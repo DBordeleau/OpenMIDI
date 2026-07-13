@@ -12,6 +12,10 @@ import {
 } from "@/server/repositories/revisions";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
+// Intentionally omit this segment's loading.tsx while using Next.js 16.2.
+// Its dev debug channel misidentifies Firefox streaming navigations as cache
+// restores and hard-reloads forever. Remove this workaround after upstream
+// fix vercel/next.js#94128 ships in the pinned stable release.
 export default async function StudioPage({
   params,
 }: {
