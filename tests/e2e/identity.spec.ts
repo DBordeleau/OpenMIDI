@@ -1,4 +1,74 @@
 import { expect, test } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { createClient } from "@supabase/supabase-js";
+
+function localSupabaseEnv() {
+  const output =
+    process.platform === "win32"
+      ? execFileSync(
+          process.env.ComSpec ?? "cmd.exe",
+          ["/d", "/s", "/c", "npx supabase status -o env"],
+          { encoding: "utf8" },
+        )
+      : execFileSync("npx", ["supabase", "status", "-o", "env"], {
+          encoding: "utf8",
+        });
+  return Object.fromEntries(
+    output
+      .split(/\r?\n/)
+      .map((line) => line.match(/^([^=]+)="(.*)"$/))
+      .filter((match): match is RegExpMatchArray => Boolean(match))
+      .map((match) => [match[1], match[2]]),
+  );
+}
+
+async function promoteLatestTestAsset() {
+  const env = localSupabaseEnv();
+  if (
+    !env.API_URL?.startsWith("http://127.0.0.1:") ||
+    !env.SERVICE_ROLE_KEY ||
+    !env.PUBLISHABLE_KEY ||
+    !process.env.TEST_AUTH_EMAIL ||
+    !process.env.TEST_AUTH_PASSWORD
+  )
+    throw new Error("Refusing E2E asset promotion outside local Supabase.");
+  const admin = createClient(env.API_URL, env.SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const actor = createClient(env.API_URL, env.PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: signInError } = await actor.auth.signInWithPassword({
+    email: process.env.TEST_AUTH_EMAIL,
+    password: process.env.TEST_AUTH_PASSWORD,
+  });
+  if (signInError) throw signInError;
+  const { data: asset, error: assetError } = await actor
+    .from("assets")
+    .select("id")
+    .eq("status", "processing")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  if (assetError) throw assetError;
+  const bytes = await readFile(
+    path.join(process.cwd(), "public", "fixtures", "audio", "stem-a.wav"),
+  );
+  const { error } = await admin.rpc("operator_promote_source_asset", {
+    p_asset_id: asset.id,
+    p_media_type: "audio/wav",
+    p_byte_size: bytes.byteLength,
+    p_sha256: createHash("sha256").update(bytes).digest("hex"),
+    p_duration_ms: 2_000,
+    p_sample_rate_hz: 44_100,
+    p_channels: 1,
+    p_verification_version: "playwright-fixture-v1",
+  });
+  if (error) throw error;
+}
 
 test.describe("identity vertical slice", () => {
   test.skip(
@@ -20,7 +90,10 @@ test.describe("identity vertical slice", () => {
     await page.getByRole("button", { name: "Complete profile" }).click();
     await expect(page.getByText("Profile saved.")).toBeVisible();
 
-    await page.getByRole("link", { name: "New project" }).click();
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "New project" })
+      .click();
     await page.getByLabel("Title").fill("E2E collaboration draft");
     await page.getByLabel("Description").fill("A private project test.");
     await page.getByLabel("BPM").fill("118.5");
@@ -32,12 +105,50 @@ test.describe("identity vertical slice", () => {
     await expect(
       page.getByRole("heading", { name: "E2E collaboration draft" }),
     ).toBeVisible();
+    const projectUrl = new URL(page.url()).pathname;
     await page.reload();
     await expect(page.getByText("118.5 BPM")).toBeVisible();
     await page.getByRole("link", { name: "Edit metadata" }).click();
     await page.getByLabel("Title").fill("Edited collaboration draft");
     await page.getByRole("button", { name: "Save project" }).click();
     await expect(page.getByText("Project saved.")).toBeVisible();
+
+    await page.goto("/uploads");
+    await page
+      .getByLabel("Choose source audio")
+      .setInputFiles("public/fixtures/audio/stem-a.wav");
+    await expect(
+      page.getByText("Uploaded; awaiting trusted verification.", {
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 30_000 });
+    await promoteLatestTestAsset();
+
+    await page.goto(`${projectUrl}/publish`);
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "Publish first revision" }).click();
+    await expect(page.getByText("Published arrangement")).toBeVisible();
+    await page.getByRole("link", { name: "Open studio" }).click();
+    await page.getByRole("button", { name: "Create editable draft" }).click();
+    await expect(page.getByText("Private draft from revision 1")).toBeVisible();
+    await page.getByRole("button", { name: "Open studio" }).click();
+    await expect(page.getByLabel("Track label")).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByLabel("Track label").fill("Saved browser stem");
+    await page.getByLabel("Track label").press("Tab");
+    await expect(
+      page.getByText("Unsaved changes", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.reload();
+    await page.getByRole("button", { name: "Open studio" }).click();
+    await expect(page.getByLabel("Track label")).toHaveValue(
+      "Saved browser stem",
+      { timeout: 30_000 },
+    );
 
     await page.goto("/@E2EArtist");
     await expect(

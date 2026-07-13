@@ -34,7 +34,7 @@ const capabilities = [
   ],
   [
     "Synchronized playback",
-    "Open the production studio to audition a published arrangement and make session-only mixer adjustments.",
+    "Open the production studio to audition a published arrangement, then create a private workspace for conflict-safe editing and autosave.",
   ],
   [
     "Review and discovery",

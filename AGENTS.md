@@ -25,7 +25,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PRs 01–09 are implemented. The repository contains the responsive Next.js product shell with global navigation and progressively enhanced Auth-aware account links; invite-only Google OAuth and profile onboarding; private project metadata; immutable, trusted-verified source assets uploaded directly and resumably to Supabase Storage; atomic first publishing into immutable revisions; and authenticated, lazy-loaded Waveform Playlist playback for the current revision through short-lived signed URLs. Workspace editing/autosave, later revision publishing from a workspace, contributions, forks, discovery, moderation, and release hardening are not implemented. npm is the sole package manager and Node.js 24 LTS is required.
+PRs 01–10 are implemented. The repository contains the responsive Next.js product shell with global navigation and progressively enhanced Auth-aware account links; invite-only Google OAuth and profile onboarding; private project metadata; immutable, trusted-verified source assets uploaded directly and resumably to Supabase Storage; atomic first publishing into immutable revisions; authenticated, lazy-loaded Waveform Playlist playback for the current revision through short-lived signed URLs; and owner-only editable workspaces with optimistic, conflict-safe autosave and private recovery snapshots. Later revision publishing from a workspace, contributions, forks, discovery, moderation, and release hardening are not implemented. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 

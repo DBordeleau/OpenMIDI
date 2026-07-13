@@ -165,6 +165,24 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
     }
   }
 
+  removeTrack(id: string) {
+    this.assertReady();
+    if (!this.manifest) return;
+    if (this.manifest.tracks.length === 1)
+      throw new StudioAdapterError(
+        "invalid_state",
+        "A workspace must keep at least one track.",
+      );
+    if (!this.manifest.tracks.some((track) => track.trackId === id))
+      throw new StudioAdapterError("missing_asset", "Unknown track.");
+    const tracks = this.manifest.tracks
+      .filter((track) => track.trackId !== id)
+      .map((track, sortOrder) => ({ ...track, sortOrder }));
+    this.manifest = parseWorkspaceManifest({ ...this.manifest, tracks });
+    this.tracks = this.tracks.filter((track) => track.id !== id);
+    this.emit();
+  }
+
   updateTrack(id: string, patch: TrackPatch) {
     this.assertReady();
     if (!this.manifest) return;
@@ -192,6 +210,35 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
         ? manifestTrackToClipTrack(track, buffer)
         : existing!;
     });
+    this.emit();
+  }
+
+  reorderTracks(trackIds: readonly string[]) {
+    this.assertReady();
+    if (
+      !this.manifest ||
+      trackIds.length !== this.manifest.tracks.length ||
+      new Set(trackIds).size !== trackIds.length ||
+      trackIds.some(
+        (id) => !this.manifest!.tracks.some((track) => track.trackId === id),
+      )
+    )
+      throw new StudioAdapterError(
+        "invalid_state",
+        "Track order does not match the workspace.",
+      );
+    const byId = new Map(
+      this.manifest.tracks.map((track) => [track.trackId, track]),
+    );
+    const editorById = new Map(this.tracks.map((track) => [track.id, track]));
+    this.manifest = parseWorkspaceManifest({
+      ...this.manifest,
+      tracks: trackIds.map((id, sortOrder) => ({
+        ...byId.get(id)!,
+        sortOrder,
+      })),
+    });
+    this.tracks = trackIds.map((id) => editorById.get(id)!);
     this.emit();
   }
 

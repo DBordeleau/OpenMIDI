@@ -4,8 +4,13 @@ import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { StudioLauncher } from "@/features/studio/components/studio-launcher.client";
+import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form";
 import { getProjectForViewer } from "@/server/repositories/projects";
-import { getRevisionPlayback } from "@/server/repositories/revisions";
+import {
+  getRevisionPlayback,
+  listPublishOptions,
+} from "@/server/repositories/revisions";
+import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
 export default async function StudioPage({
   params,
@@ -14,15 +19,26 @@ export default async function StudioPage({
 }) {
   const { projectId } = await params;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
-  await requireViewer(`/projects/${projectId}/studio`);
+  const viewer = await requireViewer(`/projects/${projectId}/studio`);
   const project = await getProjectForViewer(projectId);
   if (!project) notFound();
+  const editable = project.ownerId === viewer.id;
+  const workspace = editable ? await getActiveWorkspace(projectId) : null;
   const revision = project.currentRevisionId
     ? await getRevisionPlayback({
         projectId,
         revisionId: project.currentRevisionId,
       })
     : null;
+  const options = workspace ? await listPublishOptions() : null;
+  const workspaceDurationMs = workspace
+    ? Math.max(
+        ...workspace.manifest.tracks.map(
+          (track) => track.positionMs + track.durationMs,
+        ),
+      )
+    : 0;
+
   return (
     <main id="main-content">
       <Container className="py-12">
@@ -35,16 +51,46 @@ export default async function StudioPage({
               Return to project
             </Link>
             <p className="text-accent mt-6 text-sm font-semibold tracking-widest uppercase">
-              Current revision {revision?.revisionNumber ?? "—"}
+              {workspace
+                ? `Private draft from revision ${revision?.revisionNumber ?? "—"}`
+                : `Current revision ${revision?.revisionNumber ?? "—"}`}
             </p>
             <h1 className="mt-2 text-4xl font-bold">{project.title} studio</h1>
             <p className="text-muted mt-3">
-              Read-only synchronized playback of the immutable published
-              arrangement.
+              {workspace
+                ? "Edit and autosave a private workspace. The published revision remains immutable."
+                : "Synchronized playback of the immutable published arrangement."}
             </p>
           </div>
-          {revision ? (
+          {workspace && options ? (
             <StudioLauncher
+              mode="workspace"
+              projectId={projectId}
+              viewerId={viewer.id}
+              workspaceId={workspace.id}
+              baseRevisionId={workspace.baseRevisionId}
+              lockVersion={workspace.lockVersion}
+              manifestSha256={workspace.manifestSha256}
+              updatedAt={workspace.updatedAt}
+              manifest={workspace.manifest}
+              durationMs={workspaceDurationMs}
+              tracks={workspace.tracks}
+              assets={options.assets.map((asset) => ({
+                id: asset.id,
+                filename: asset.filename,
+                durationMs: asset.durationMs,
+                creditName: asset.creditName,
+              }))}
+              instruments={options.instruments}
+            />
+          ) : revision && editable ? (
+            <CreateWorkspaceForm
+              projectId={projectId}
+              currentRevisionId={revision.revisionId}
+            />
+          ) : revision ? (
+            <StudioLauncher
+              mode="revision"
               projectId={projectId}
               revisionId={revision.revisionId}
               manifest={revision.manifest}

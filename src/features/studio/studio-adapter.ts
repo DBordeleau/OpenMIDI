@@ -12,7 +12,9 @@ export interface StudioAdapter {
   pause(): void;
   seek(seconds: number): void;
   addAudioAsset(input: AddAudioAssetInput): Promise<TrackRef>;
+  removeTrack(id: string): void;
   updateTrack(id: string, patch: TrackPatch): void;
+  reorderTracks(trackIds: readonly string[]): void;
   exportManifest(): WorkspaceManifestV1;
   renderMix(): Promise<Blob>;
   dispose(): Promise<void>;
