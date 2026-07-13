@@ -1,8 +1,8 @@
 # Jam Session
 
-Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians will be able to share stems, propose contributions, and fork songs into new creative directions while preserving history and attribution.
+Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians create projects from stems, preserve immutable revision history, and will be able to propose contributions and fork songs into new creative directions while retaining attribution.
 
-> **Current status:** early MVP foundation. The repository contains local Supabase identity/authorization, private project metadata, immutable verified source uploads, and an atomic first-publish flow that assembles 1–12 ready stems into a durable private revision. Contributions, playback, and the production studio are not implemented yet.
+> **Current status:** PRs 01–09 are complete. Invite-only Google sign-in/onboarding, private projects, resumable verified source uploads, atomic immutable first publishing, and authenticated synchronized playback in the production studio are implemented. Studio editing/autosave, contributions, forks, discovery, moderation, and release hardening remain planned.
 
 ## Planned MVP
 
@@ -20,8 +20,8 @@ The [product requirements](docs/PRD.md) describe the intended experience. The [t
 - [Next.js](https://nextjs.org/) App Router and TypeScript
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [Motion for React](https://motion.dev/docs/react) (formerly Framer Motion) for purposeful interaction animation
-- [Supabase](https://supabase.com/) for Postgres, Auth, and Storage once backend work begins
-- [Waveform Playlist](https://github.com/naomiaro/waveform-playlist) behind a client-only adapter once the studio spike begins
+- [Supabase](https://supabase.com/) for Postgres, invite-only Google Auth, and private Storage
+- [Waveform Playlist](https://github.com/naomiaro/waveform-playlist) behind a production client-only adapter for synchronized playback
 - [Vitest](https://vitest.dev/) and React Testing Library for unit/component tests
 - [Playwright](https://playwright.dev/) for browser tests
 - Vercel for eventual deployment
@@ -102,9 +102,9 @@ npm run supabase:start
 npm run supabase:status
 ```
 
-The first start downloads the database image and can take a while. PR 01 deliberately starts only Postgres; Auth, Storage, Realtime, Studio, Mailpit, Edge Functions, analytics, and image services are deferred until a feature uses them.
+The first start downloads the database image and can take a while. This command intentionally starts only Postgres for migration, pgTAP, and type-generation work. Use `npm run supabase:start:auth` for authentication flows or `npm run supabase:start:storage` for upload/playback flows; each starts only the services that feature needs.
 
-The typed SSR client factories are infrastructure for later work and are not imported by the current application. When Auth integration begins, copy the example environment file without overwriting an existing local file:
+Copy the example environment file without overwriting an existing local file:
 
 ```powershell
 Copy-Item .env.example .env.local
@@ -116,7 +116,7 @@ On macOS/Linux:
 cp .env.example .env.local
 ```
 
-The later Auth setup will document how to obtain the local API URL and Publishable key. The application never needs the local Secret key in browser configuration. Never commit `.env`, `.env.local`, credentials, or service-role keys.
+Use `npm run supabase:status` to obtain the local API URL and Publishable key, then set those values and one canonical `SITE_URL` in `.env.local`. Use either `http://localhost:3000` everywhere or `http://127.0.0.1:3000` everywhere; mixing them breaks OAuth PKCE cookies. The application never needs the Secret/service-role key in browser configuration. Never commit `.env`, `.env.local`, credentials, or service-role keys.
 
 Reset migrations and deterministic seed data, run the database checks, then stop the stack when finished:
 
@@ -126,36 +126,41 @@ npm run db:check
 npm run supabase:stop
 ```
 
-`npm run db:reset` permanently deletes all local database content before reapplying migrations and seed data. It never targets a remote database in this repository's current unlinked configuration. The public schema is intentionally empty at this stage. `npm run db:types` regenerates the committed TypeScript definitions atomically from the running local database; `npm run db:types:check` detects drift without modifying tracked files.
+`npm run db:reset` permanently deletes all local database content before reapplying migrations and seed data. Confirm the CLI is targeting the intended local project before running destructive commands. `npm run db:types` regenerates the committed TypeScript definitions atomically from the running local database; `npm run db:types:check` detects drift without modifying tracked files.
 
-No remote Supabase project is required. The application remains at `http://127.0.0.1:3000`; `npm run supabase:status` is authoritative for the local database state.
+A hosted Supabase project is optional for local-only development but is required for real Google OAuth and eventual deployment. Invitations must be inserted into the same database named by `NEXT_PUBLIC_SUPABASE_URL`; inserting into local Postgres does not invite a user to a hosted project.
 
 ## Common commands
 
 Run commands from the repository root:
 
-| Command                   | Purpose                                                         |
-| ------------------------- | --------------------------------------------------------------- |
-| `npm ci`                  | Reproduce dependencies from the lockfile                        |
-| `npm run dev`             | Start the local development server                              |
-| `npm run check`           | Run formatting, lint, types, unit tests, and a production build |
-| `npm run format`          | Format supported files                                          |
-| `npm run format:check`    | Check formatting without changing files                         |
-| `npm run lint`            | Run ESLint with zero warnings allowed                           |
-| `npm run typecheck`       | Run strict TypeScript checking                                  |
-| `npm test`                | Run unit and component tests once                               |
-| `npm run test:watch`      | Run unit tests while editing                                    |
-| `npm run test:coverage`   | Generate a local coverage report                                |
-| `npm run build`           | Create a production Next.js build                               |
-| `npm run start`           | Serve an existing production build                              |
-| `npm run test:e2e`        | Run Playwright browser tests                                    |
-| `npm run supabase:start`  | Start local Supabase Postgres only                              |
-| `npm run supabase:stop`   | Stop local Supabase while preserving its database               |
-| `npm run supabase:status` | Show local database state                                       |
-| `npm run db:reset`        | Recreate the local database and apply seed data                 |
-| `npm run db:test`         | Run pgTAP tests against local Postgres                          |
-| `npm run db:check`        | Lint/test the database and check generated-type drift           |
-| `npm run db:types`        | Atomically regenerate committed database types                  |
+| Command                          | Purpose                                                         |
+| -------------------------------- | --------------------------------------------------------------- |
+| `npm ci`                         | Reproduce dependencies from the lockfile                        |
+| `npm run dev`                    | Start the local development server                              |
+| `npm run check`                  | Run formatting, lint, types, unit tests, and a production build |
+| `npm run format`                 | Format supported files                                          |
+| `npm run format:check`           | Check formatting without changing files                         |
+| `npm run lint`                   | Run ESLint with zero warnings allowed                           |
+| `npm run typecheck`              | Run strict TypeScript checking                                  |
+| `npm test`                       | Run unit and component tests once                               |
+| `npm run test:watch`             | Run unit tests while editing                                    |
+| `npm run test:coverage`          | Generate a local coverage report                                |
+| `npm run build`                  | Create a production Next.js build                               |
+| `npm run start`                  | Serve an existing production build                              |
+| `npm run test:e2e`               | Run Playwright browser tests                                    |
+| `npm run supabase:start`         | Start local Supabase Postgres only                              |
+| `npm run supabase:start:auth`    | Start the reduced local Auth stack                              |
+| `npm run supabase:start:storage` | Start the reduced local Storage/upload stack                    |
+| `npm run supabase:stop`          | Stop local Supabase while preserving its database               |
+| `npm run supabase:status`        | Show local database state                                       |
+| `npm run db:reset`               | Recreate the local database and apply seed data                 |
+| `npm run db:test`                | Run pgTAP tests against local Postgres                          |
+| `npm run db:check`               | Lint/test the database and check generated-type drift           |
+| `npm run db:types`               | Atomically regenerate committed database types                  |
+| `npm run auth:e2e:setup`         | Prepare the gated local/CI test Auth actor                      |
+| `npm run assets:verify`          | Trusted verification of a processing source asset               |
+| `npm run assets:cleanup`         | Dry-run reference-aware asset cleanup                           |
 
 Before the first browser-test run, download Playwright's Chromium build once:
 
@@ -170,7 +175,7 @@ That browser download is only needed for E2E tests, not normal development.
 ```text
 src/app/           Next.js routes, layouts, styles, and route-owned UI
 src/components/    Reusable layout and UI primitives used by current routes
-src/features/      Feature-owned code; the future studio adapter boundary lives here
+src/features/      Feature-owned auth, profile, project, asset, revision, and studio code
 src/lib/env/       Runtime configuration validation
 src/lib/supabase/  Generated database types and user-scoped client factories
 src/test/          Shared unit-test setup
@@ -182,7 +187,7 @@ docs/              Product requirements, technical design, and decisions
 local/             Untracked personal implementation plans; never committed
 ```
 
-The `supabase/` directory contains local configuration, deterministic seed structure, and database tests. Migrations, server repositories, and reusable components will be introduced with the first real behavior that needs them.
+The `supabase/` directory contains forward-only migrations, local configuration, deterministic seeds, and pgTAP authorization/transaction tests. Typed repositories live in `src/server/repositories`; multi-row lifecycle authority remains in database commands.
 
 ## Core architecture vocabulary
 
@@ -195,7 +200,7 @@ The `supabase/` directory contains local configuration, deterministic seed struc
 | Fork         | New project that points back to an exact source project and revision     |
 | Asset        | Immutable audio, editor snapshot, preview, waveform, or image object     |
 
-The backend will form a Git-like revision graph using Postgres relationships and immutable Storage assets rather than literal Git repositories. See the [system architecture](docs/technical-design/01-system-architecture.md) and [data model](docs/technical-design/02-data-model.md) for details.
+The backend forms a Git-like revision graph using Postgres relationships and immutable Storage assets rather than literal Git repositories. Projects point to immutable revisions; normalized tracks and append-only asset references form the currently implemented graph. See the [system architecture](docs/technical-design/01-system-architecture.md) and [data model](docs/technical-design/02-data-model.md) for details.
 
 ## Troubleshooting
 
@@ -253,13 +258,13 @@ Use `npm run supabase:start:auth` when exercising Auth, PostgREST, and browser i
 
 Product sign-in is Google-only. Google Cloud, hosted Supabase, exact callback URLs, invitation provisioning, and the production smoke checklist are documented in [docs/setup/google-auth.md](docs/setup/google-auth.md). Local/CI browser automation can prepare the seeded `.test` actor with `npm run auth:e2e:setup`; it requires an ephemeral `TEST_AUTH_PASSWORD`, and the test route additionally requires `ENABLE_TEST_AUTH=true`.
 
-If OAuth reports a callback mismatch, compare the canonical `SITE_URL`, Supabase redirect allowlist, and Google/Supabase callback URI exactly. If an invited account is rejected, confirm the normalized invitation is active and the hosted Before User Created hook was enabled after the migration. Clear stale local cookies after resetting the Auth stack.
+If OAuth reports a callback mismatch, compare the canonical `SITE_URL`, Supabase redirect allowlist, and Google/Supabase callback URI exactly. Do not alternate between `localhost` and `127.0.0.1`. If an invited account is rejected, confirm the normalized invitation is active in the same hosted/local database the app uses and that the Before User Created hook was enabled after migration. If OAuth succeeds but onboarding reports `viewer_profile_PT500`, verify the `on_auth_user_created` trigger and backfill a profile for any Auth user created before that trigger. Clear stale cookies after changing origins or resetting Auth.
 
-The removable Waveform Playlist architecture spike at `/__spikes__/studio` is disabled by default. For local verification only, set the server-only `ENABLE_STUDIO_SPIKE=true`, start the Auth stack, and sign in with an onboarding-complete invited/test profile. A Vercel Preview also requires the explicit flag; production environments cannot expose the route. The flag is never prefixed with `NEXT_PUBLIC_`.
+The production studio is available at `/projects/{projectId}/studio` for an authenticated member of a project with a published current revision. It lazy-loads Waveform Playlist only after **Open studio**, signs exact referenced source assets for ten minutes, and keeps gain/pan/mute/solo changes session-only. The former `/__spikes__/studio` route and `ENABLE_STUDIO_SPIKE` flag no longer exist.
 
 ### Supabase configuration is missing
 
-The static application shell works without Supabase environment variables. When a later feature first requests a Supabase client, missing values produce an error naming the required variable. That feature's setup will provide the local API URL and Publishable key; restart the development server after adding them.
+The public shell can render without visiting an authenticated feature, but authentication, profiles, projects, uploads, revisions, and studio playback require valid Supabase environment variables. Missing values produce an actionable validation error. Restart the development server after changing `.env.local`.
 
 ### Docker Desktop and WSL disagree
 

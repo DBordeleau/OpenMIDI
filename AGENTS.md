@@ -25,7 +25,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-The repository contains the scaffolded frontend foundation plus local Supabase configuration, database testing/type-generation infrastructure, typed user-scoped clients, and the identity/profile authorization schema. OAuth and authentication UI are not implemented yet. npm is the sole package manager and Node.js 24 LTS is required.
+PRs 01–09 are implemented. The repository contains the Next.js product shell; invite-only Google OAuth and profile onboarding; private project metadata; immutable, trusted-verified source assets uploaded directly and resumably to Supabase Storage; atomic first publishing into immutable revisions; and authenticated, lazy-loaded Waveform Playlist playback for the current revision through short-lived signed URLs. Workspace editing/autosave, later revision publishing from a workspace, contributions, forks, discovery, moderation, and release hardening are not implemented. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -38,28 +38,33 @@ Before implementing a task:
 
 Keep this section exact and runnable from the repository root.
 
-| Purpose                   | Command                   |
-| ------------------------- | ------------------------- |
-| Install dependencies      | `npm ci`                  |
-| Development server        | `npm run dev`             |
-| Full non-E2E check        | `npm run check`           |
-| Lint                      | `npm run lint`            |
-| Type check                | `npm run typecheck`       |
-| Unit tests                | `npm test`                |
-| Start local Postgres      | `npm run supabase:start`  |
-| Stop local Supabase       | `npm run supabase:stop`   |
-| Show local Supabase state | `npm run supabase:status` |
-| Reset/seed local database | `npm run db:reset`        |
-| Database lint/tests/types | `npm run db:check`        |
-| Database tests            | `npm run db:test`         |
-| Generate database types   | `npm run db:types`        |
-| Check database type drift | `npm run db:types:check`  |
-| End-to-end tests          | `npm run test:e2e`        |
-| Production build          | `npm run build`           |
+| Purpose                   | Command                          |
+| ------------------------- | -------------------------------- |
+| Install dependencies      | `npm ci`                         |
+| Development server        | `npm run dev`                    |
+| Full non-E2E check        | `npm run check`                  |
+| Lint                      | `npm run lint`                   |
+| Type check                | `npm run typecheck`              |
+| Unit tests                | `npm test`                       |
+| Start local Postgres      | `npm run supabase:start`         |
+| Start local Auth stack    | `npm run supabase:start:auth`    |
+| Start local Storage stack | `npm run supabase:start:storage` |
+| Stop local Supabase       | `npm run supabase:stop`          |
+| Show local Supabase state | `npm run supabase:status`        |
+| Reset/seed local database | `npm run db:reset`               |
+| Database lint/tests/types | `npm run db:check`               |
+| Database tests            | `npm run db:test`                |
+| Generate database types   | `npm run db:types`               |
+| Check database type drift | `npm run db:types:check`         |
+| Prepare test Auth actor   | `npm run auth:e2e:setup`         |
+| Verify source asset       | `npm run assets:verify`          |
+| Preview asset cleanup     | `npm run assets:cleanup`         |
+| End-to-end tests          | `npm run test:e2e`               |
+| Production build          | `npm run build`                  |
 
 Never invent a command in a handoff. Read `package.json` and tool configuration, run the narrowest relevant checks during iteration, then run `npm run check` before completion. Run `npm run test:e2e` when routes or browser-visible flows change; Chromium must be installed once with `npx playwright install chromium`.
 
-Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; later feature PRs introduce other Supabase services when needed. Reset the database before validating migrations, and stop it when finished. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. `npm run check` intentionally remains independent of Docker.
+Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth or Storage stack commands for their corresponding browser flows. Reset the database before validating migrations, and stop it when finished. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. Source verification is a trusted operator command, not a browser authority. `npm run check` intentionally remains independent of Docker.
 
 ## Non-negotiable architecture rules
 
@@ -81,9 +86,9 @@ Database commands require a running Docker-compatible container engine. `npm run
 - Database timestamps are UTC `timestamptz`; serialized application timestamps are ISO 8601 strings.
 - Do not expand MVP scope to real-time collaborative editing, automatic audio merging, payments, native applications, or professional-DAW parity without an explicit product decision.
 
-## Intended repository boundaries
+## Repository boundaries
 
-Use this shape once the application is scaffolded:
+Preserve this implemented shape as the application grows:
 
 ```text
 src/
@@ -192,7 +197,7 @@ Mock external boundaries only when the real local dependency is impractical. Do 
 - Do not discard, overwrite, or stage unrelated user changes.
 - Do not use destructive Git commands unless explicitly requested.
 - Never commit `.env*`, credentials, local Supabase state, uploaded media, build output, or editor-specific files.
-- Generated database types may be committed once the scaffold establishes that convention; identify them clearly in review.
+- Generated database types are committed and must change with the migration that changes them; identify generated output clearly in review.
 - Update docs or add a superseding ADR when a stable architectural decision changes.
 
 ## Definition of done

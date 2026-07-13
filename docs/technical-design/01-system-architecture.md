@@ -45,14 +45,14 @@ flowchart LR
 
 ## Rendering and route map
 
-| Route                                 | Rendering                          | Notes                                                       |
-| ------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
-| `/` and `/explore`                    | Server-rendered, cached briefly    | Public discovery; query parameters form the filter contract |
-| `/@{username}`                        | Server-rendered                    | Canonical profile display uses `@`; database stores no `@`  |
-| `/projects/{projectId}`               | Server-rendered with client player | Project metadata and current published revision             |
-| `/projects/{projectId}/studio`        | Authenticated client-only studio   | No SSR of editor, Tone.js or browser audio APIs             |
-| `/projects/{projectId}/contributions` | Authenticated server page          | Owner review queue or contributor-owned submissions         |
-| `/auth/callback`                      | Route Handler                      | Exchanges OAuth code and redirects to onboarding if needed  |
+| Route                                 | Rendering                         | Notes                                                       |
+| ------------------------------------- | --------------------------------- | ----------------------------------------------------------- |
+| `/` and `/explore`                    | Server-rendered, cached briefly   | Public discovery; query parameters form the filter contract |
+| `/@{username}`                        | Server-rendered                   | Canonical profile display uses `@`; database stores no `@`  |
+| `/projects/{projectId}`               | Authenticated Server Component    | Private metadata, current revision and explicit studio link |
+| `/projects/{projectId}/studio`        | Server shell + lazy client studio | Editor/Tone/browser audio load only after explicit open     |
+| `/projects/{projectId}/contributions` | Authenticated server page         | Owner review queue or contributor-owned submissions         |
+| `/auth/callback`                      | Route Handler                     | Exchanges OAuth code and redirects to onboarding if needed  |
 
 Use stable opaque IDs in project URLs for MVP. Human-readable slugs can be added later without changing identity.
 
@@ -132,9 +132,9 @@ interface StudioAdapter {
 
 Persist a versioned **Jam Session manifest** containing asset IDs, stable track IDs, positions, trims, labels, gain, pan, mute/solo, order and basic tempo metadata. It is the authoritative collaboration subset, supports server validation and migrations, and prevents the editor library from becoming the data model. Each saved workspace records `engine = 'waveform-playlist'`, an exact adapter/package compatibility version, `manifest_version`, and a checksum. A future engine-native artifact may be added as an optional fidelity aid but is not required for MVP reopen.
 
-### Integration spike (release gate)
+### Completed integration spike and productionization gate
 
-Before project persistence depends on the editor, prove all of the following in a disposable vertical slice:
+PR 05 proved the following in a disposable vertical slice before persistence depended on the editor. PR 09 removed the spike route and productionized its read-only playback subset. Historical results are in [`evidence/pr-05-waveform-playlist-spike.md`](evidence/pr-05-waveform-playlist-spike.md); the current production boundary and outstanding manual browser/Preview checks are in [`evidence/pr-09-production-studio.md`](evidence/pr-09-production-studio.md).
 
 - Open a project in the Next.js client boundary without SSR/build failures.
 - Import two signed Storage audio URLs, play them sample-synchronously and seek.
@@ -146,11 +146,11 @@ Before project persistence depends on the editor, prove all of the following in 
 - Measure the studio lazy chunk, decoded-audio memory and time-to-interactive on a mid-range device.
 - Document package APIs actually used and lock versions.
 
-If the selected React package surface proves unsuitable, evaluate Waveform Playlist's framework-independent engine/Web Components or a Jam Session UI over Tone.js before changing the persistence model. OpenDAW is a post-MVP alternative requiring a separate ADR and licensing review.
+The selected React package surface passed the automated gate. If later editable-workspace work exposes a blocker, evaluate Waveform Playlist's framework-independent engine/Web Components or a Jam Session UI over Tone.js before changing the persistence model. OpenDAW is a post-MVP alternative requiring a separate ADR and licensing review.
 
 ### Dependency and licensing controls
 
-Waveform Playlist and Tone.js are MIT-licensed. Preserve their notices, inventory the exact direct and transitive packages used, and verify the lockfile during the spike. Do not copy demo audio, styles, or other repository assets unless their redistribution terms are known. Any later OpenDAW integration must resolve its AGPL/commercial licensing path before network deployment.
+Waveform Playlist and Tone.js are MIT-licensed. Preserve their notices, retain the exact direct version pins and validated lockfile, and rerun manifest/adapter fixtures for deliberate upgrades. Do not copy demo audio, styles, or other repository assets unless their redistribution terms are known. Any later OpenDAW integration must resolve its AGPL/commercial licensing path before network deployment.
 
 ## Upload and asset processing
 

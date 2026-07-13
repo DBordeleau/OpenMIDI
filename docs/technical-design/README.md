@@ -1,7 +1,9 @@
 # Jam Session Technical Design
 
-Status: Proposed for MVP  
-Last updated: 2026-07-12  
+Status: Accepted MVP design; implementation in progress
+
+Last updated: 2026-07-13
+
 Companion: [`PRD.md`](../PRD.md)
 
 ## Purpose
@@ -14,6 +16,20 @@ This document set turns the product requirements into an implementation contract
 | [02-data-model.md](02-data-model.md)                   | PostgreSQL/Supabase schema, invariants, storage layout and RLS                         |
 | [03-delivery-plan.md](03-delivery-plan.md)             | Milestones, vertical slices, testing, observability and agent execution rules          |
 | [decisions/README.md](decisions/README.md)             | Architectural decisions that must remain stable across implementation tasks            |
+
+## Implementation pulse after PR 09
+
+The following vertical slices are implemented and are the baseline for future work:
+
+- repository/Next.js quality scaffold and responsive product shell;
+- local Supabase migrations, pgTAP, generated database types, and user-scoped clients;
+- identity schema, invite-only Google OAuth, onboarding, settings, and safe public profiles;
+- private project metadata, owner membership, controlled licenses/genres/tags/instruments, idempotency, and optimistic metadata updates;
+- private immutable WAV/FLAC/MP3 assets, direct resumable Storage uploads, trusted verification, and user/global quota projections;
+- strict manifest v1, immutable revisions/tracks, append-only project asset references, project storage projection, and atomic idempotent first publish;
+- authenticated current-revision studio playback with lazy Waveform Playlist hydration, exact-revision short-lived signed URLs, synchronized transport, and session-only mixer controls.
+
+The next planned slice is editable private workspaces with add/position/remove controls and conflict-safe autosave. Workspace persistence, later publish-from-workspace, export/download, contributions, acceptance, attribution UI, forks, public discovery, dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained, while [PR 09 evidence](evidence/pr-09-production-studio.md) describes the production playback boundary and outstanding manual browser/Preview verification.
 
 ## Executive recommendation
 

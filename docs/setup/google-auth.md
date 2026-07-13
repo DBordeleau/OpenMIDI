@@ -21,6 +21,10 @@ Apply the database migration before enabling the hook, then:
 
 The application needs only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SITE_URL`. Do not add the Google secret or Supabase service-role key to the application environment.
 
+Insert invitations into the same project named by `NEXT_PUBLIC_SUPABASE_URL`; a local invitation has no effect on hosted Auth. Keep the application origin exact and consistent: `localhost` and `127.0.0.1` are different cookie hosts, so switching between them can lose the PKCE verifier during the callback. Add the chosen application callback to the Supabase redirect allowlist and restart Next.js after changing `SITE_URL`.
+
+If the code exchange succeeds but onboarding raises `viewer_profile_PT500`, the Auth user exists without its required `public.profiles` row. Confirm `auth.users` has the user, check that the `on_auth_user_created` trigger from the identity migration exists, and backfill only missing profile IDs. This can occur for users created before the trigger was deployed; fixing that user does not replace applying the migration for future users.
+
 ## Local and CI auth
 
 Google credentials are intentionally optional. Start the reduced stack with `npm run supabase:start:auth`, reset it, set an ephemeral `TEST_AUTH_PASSWORD`, then run `npm run auth:e2e:setup`. The `/test-auth` route additionally requires `ENABLE_TEST_AUTH=true`, is restricted to an `@example.test` actor, and returns 404 in production.

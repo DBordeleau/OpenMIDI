@@ -87,37 +87,36 @@ Do not duplicate email into `profiles`. Email comes from `auth.users` for the au
 
 ## Projects and membership
 
-PR 06 implements the private metadata foundation as `projects`, `project_members`,
+PR 06 implemented the private metadata foundation as `projects`, `project_members`,
 `project_genres`, and `project_tags`, with explicit `lock_version` optimistic
 concurrency and `(owner_id, create_request_id)` idempotency. The initial controlled
 catalog is 4 licenses, 12 genres, 16 tags, and 16 instruments with fixed IDs.
-`current_revision_id`, `source_project_id`, and `source_revision_id` are intentionally
-deferred until their referenced revision/fork tables exist; no dangling UUID columns
-are created.
+PR 08 added `current_revision_id` with a same-project composite foreign key when
+immutable revisions landed. `source_project_id` and `source_revision_id` remain
+deferred until the fork tables and command are implemented; no dangling fork UUID
+columns exist.
 
 ### `projects`
 
-| Column                                     | Type                 | Rules                                                                     |
-| ------------------------------------------ | -------------------- | ------------------------------------------------------------------------- |
-| `id`                                       | `uuid`               | PK                                                                        |
-| `owner_id`                                 | `uuid`               | FK profiles                                                               |
-| `title`                                    | `text`               | 1–120 chars                                                               |
-| `description`                              | `text null`          | max 5,000 chars                                                           |
-| `visibility`                               | `project_visibility` | default private                                                           |
-| `status`                                   | `project_status`     | default draft                                                             |
-| `open_to_contributions`                    | `boolean`            | default false                                                             |
-| `bpm`                                      | `numeric(6,3) null`  | > 0 and <= 400                                                            |
-| `musical_key`                              | `text null`          | canonical application enum value                                          |
-| `time_signature_numerator`                 | `smallint`           | default 4, 1–32                                                           |
-| `time_signature_denominator`               | `smallint`           | default 4, in 1,2,4,8,16,32                                               |
-| `license_code`                             | `text`               | FK `licenses(code)`                                                       |
-| `current_revision_id`                      | `uuid null`          | FK added after revisions table; same project enforced in publish function |
-| `source_project_id`                        | `uuid null`          | fork lineage FK projects                                                  |
-| `source_revision_id`                       | `uuid null`          | exact fork base FK revisions                                              |
-| `created_at`, `updated_at`, `published_at` | `timestamptz`        | lifecycle timestamps                                                      |
-| `deleted_at`                               | `timestamptz null`   | soft deletion                                                             |
+| Column                                     | Type                 | Rules                                              |
+| ------------------------------------------ | -------------------- | -------------------------------------------------- |
+| `id`                                       | `uuid`               | PK                                                 |
+| `owner_id`                                 | `uuid`               | FK profiles                                        |
+| `title`                                    | `text`               | 1–120 chars                                        |
+| `description`                              | `text null`          | max 5,000 chars                                    |
+| `visibility`                               | `project_visibility` | default private                                    |
+| `status`                                   | `project_status`     | default draft                                      |
+| `open_to_contributions`                    | `boolean`            | default false                                      |
+| `bpm`                                      | `numeric(6,3) null`  | > 0 and <= 400                                     |
+| `musical_key`                              | `text null`          | canonical application enum value                   |
+| `time_signature_numerator`                 | `smallint`           | default 4, 1–32                                    |
+| `time_signature_denominator`               | `smallint`           | default 4, in 1,2,4,8,16,32                        |
+| `license_code`                             | `text`               | FK `licenses(code)`                                |
+| `current_revision_id`                      | `uuid null`          | implemented same-project composite FK to revisions |
+| `created_at`, `updated_at`, `published_at` | `timestamptz`        | lifecycle timestamps                               |
+| `deleted_at`                               | `timestamptz null`   | soft deletion                                      |
 
-`source_project_id` and `source_revision_id` are either both null or both non-null. A fork cannot reference itself. Cycle prevention belongs in the fork function, although normal creation only points backward.
+Planned fork columns `source_project_id` and `source_revision_id` do not exist yet. When introduced, they will be either both null or both non-null. A fork cannot reference itself. Cycle prevention belongs in the future fork function, although normal creation only points backward.
 
 ### `project_members`
 
@@ -136,47 +135,47 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 
 ### `project_revisions`
 
-| Column                     | Type          | Rules                                                      |
-| -------------------------- | ------------- | ---------------------------------------------------------- |
-| `id`                       | `uuid`        | PK                                                         |
-| `project_id`               | `uuid`        | FK projects                                                |
-| `revision_number`          | `integer`     | positive; unique per project                               |
-| `parent_revision_id`       | `uuid null`   | previous revision                                          |
-| `created_by`               | `uuid`        | FK profiles                                                |
-| `message`                  | `text null`   | max 500 chars                                              |
-| `snapshot_asset_id`        | `uuid null`   | reserved for a future engine-native artifact; null for MVP |
-| `manifest`                 | `jsonb`       | validated versioned portable subset                        |
-| `manifest_version`         | `smallint`    | explicit schema version                                    |
-| `engine`                   | `text`        | MVP value `waveform-playlist`                              |
-| `engine_version`           | `text`        | exact adapter/package compatibility version                |
-| `duration_ms`              | `bigint`      | non-negative verified duration                             |
-| `mix_preview_asset_id`     | `uuid null`   | derived audio                                              |
-| `accepted_contribution_id` | `uuid null`   | provenance                                                 |
-| `created_at`               | `timestamptz` | immutable                                                  |
+| Column                      | Type          | Rules                                                      |
+| --------------------------- | ------------- | ---------------------------------------------------------- |
+| `id`                        | `uuid`        | PK                                                         |
+| `project_id`                | `uuid`        | FK projects                                                |
+| `revision_number`           | `integer`     | positive; unique per project                               |
+| `parent_revision_id`        | `uuid null`   | same-project previous revision                             |
+| `created_by`                | `uuid`        | FK profiles                                                |
+| `publish_request_id`        | `uuid`        | idempotency key; unique with project                       |
+| `expected_base_revision_id` | `uuid null`   | same-project optimistic-concurrency base                   |
+| `message`                   | `text null`   | max 500 chars                                              |
+| `snapshot_asset_id`         | `uuid null`   | reserved for a future engine-native artifact; null for MVP |
+| `manifest`                  | `jsonb`       | validated canonical versioned subset                       |
+| `manifest_version`          | `smallint`    | currently `1`                                              |
+| `engine`                    | `text`        | MVP value `waveform-playlist`                              |
+| `engine_version`            | `text`        | exact adapter/package compatibility version                |
+| `manifest_sha256`           | `text`        | canonical lowercase SHA-256 integrity checksum             |
+| `duration_ms`               | `integer`     | non-negative derived duration                              |
+| `created_at`                | `timestamptz` | immutable                                                  |
 
-Unique `(project_id, revision_number)` and `(project_id, publish_request_id)`. Composite foreign keys prove that `parent_revision_id` and `projects.current_revision_id` belong to the same project. The first revision has no parent; later revisions point to the locked current revision. Update/delete is denied to application roles and rejected by immutability triggers. Corrections create a new revision.
+Unique `(project_id, revision_number)` and `(project_id, publish_request_id)`. Composite foreign keys prove that `parent_revision_id`, `expected_base_revision_id`, and `projects.current_revision_id` belong to the same project. The first revision has no parent; later revisions point to the locked current revision. Update/delete is denied to application roles and rejected by immutability triggers. Corrections create a new revision. `mix_preview_asset_id` and `accepted_contribution_id` are planned but do not exist yet.
 
 ### `revision_tracks`
 
 This is the queryable, engine-neutral track projection:
 
-| Column            | Type           | Notes                                                 |
-| ----------------- | -------------- | ----------------------------------------------------- |
-| `id`              | `uuid`         | stable track identity where carried between revisions |
-| `revision_id`     | `uuid`         | part of composite PK                                  |
-| `asset_id`        | `uuid`         | source audio asset                                    |
-| `engine_track_id` | `text null`    | optional adapter-local mapping, not global identity   |
-| `name`            | `text`         | 1–120 chars                                           |
-| `instrument_id`   | `uuid null`    | controlled taxonomy                                   |
-| `position_ms`     | `bigint`       | >= 0                                                  |
-| `trim_start_ms`   | `bigint`       | >= 0                                                  |
-| `duration_ms`     | `bigint`       | > 0 and within asset duration                         |
-| `gain_db`         | `numeric(6,3)` | bounded application range                             |
-| `pan`             | `numeric(5,4)` | -1 through 1                                          |
-| `muted`           | `boolean`      | default false                                         |
-| `soloed`          | `boolean`      | saved workspace preference                            |
-| `sort_order`      | `integer`      | non-negative                                          |
-| `added_by`        | `uuid`         | attribution source                                    |
+| Column          | Type           | Notes                                                 |
+| --------------- | -------------- | ----------------------------------------------------- |
+| `id`            | `uuid`         | stable track identity where carried between revisions |
+| `revision_id`   | `uuid`         | part of composite PK                                  |
+| `asset_id`      | `uuid`         | source audio asset                                    |
+| `name`          | `text`         | 1–120 chars                                           |
+| `instrument_id` | `uuid null`    | controlled taxonomy                                   |
+| `position_ms`   | `bigint`       | >= 0                                                  |
+| `trim_start_ms` | `bigint`       | >= 0                                                  |
+| `duration_ms`   | `bigint`       | > 0 and within asset duration                         |
+| `gain_db`       | `numeric(6,3)` | bounded application range                             |
+| `pan`           | `numeric(5,4)` | -1 through 1                                          |
+| `muted`         | `boolean`      | default false                                         |
+| `soloed`        | `boolean`      | saved workspace preference                            |
+| `sort_order`    | `integer`      | non-negative                                          |
+| `added_by`      | `uuid`         | attribution source                                    |
 
 Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
 
@@ -188,36 +187,35 @@ MVP supports one contiguous region per uploaded stem in this projection. Wavefor
 
 ### `assets`
 
-| Column                                 | Type            | Notes                                           |
-| -------------------------------------- | --------------- | ----------------------------------------------- |
-| `id`                                   | `uuid`          | PK; generated before upload                     |
-| `owner_id`                             | `uuid`          | uploader, not necessarily sole credited creator |
-| `kind`                                 | `asset_kind`    | object purpose                                  |
-| `status`                               | `asset_status`  | upload lifecycle                                |
-| `bucket`                               | `text`          | constrained allowlist                           |
-| `object_path`                          | `text`          | unique, server-generated                        |
-| `original_filename`                    | `text null`     | display only; sanitized                         |
-| `media_type`                           | `text`          | verified MIME                                   |
-| `byte_size`                            | `bigint`        | non-negative                                    |
-| `sha256`                               | `text null`     | lowercase 64-char hex                           |
-| `duration_ms`                          | `bigint null`   | verified for audio                              |
-| `sample_rate_hz`                       | `integer null`  | audio metadata                                  |
-| `channels`                             | `smallint null` | 1–8 initially                                   |
-| `created_at`, `ready_at`, `deleted_at` | `timestamptz`   | lifecycle                                       |
+| Column                                          | Type                   | Notes                                                        |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
+| `id`                                            | `uuid`                 | PK; generated during reservation                             |
+| `owner_id`                                      | `uuid`                 | uploader, not necessarily sole credited creator              |
+| `kind`                                          | `asset_kind`           | currently source audio through the implemented reservation   |
+| `status`                                        | `asset_status`         | reserved/uploading/processing/ready/failed/deleted lifecycle |
+| `bucket`                                        | `text`                 | implemented source value `source-audio`                      |
+| `object_path`                                   | `text`                 | unique, server-generated                                     |
+| `original_filename`                             | `text`                 | required sanitized display value                             |
+| `declared_media_type`, `reserved_byte_size`     | nullable/text + bigint | untrusted declaration and quota reservation                  |
+| `media_type`, `byte_size`, `sha256`             | nullable               | trusted verification output; required when ready             |
+| `duration_ms`, `sample_rate_hz`, `channels`     | nullable numeric       | verified audio metadata; required when ready                 |
+| `verification_version`, `failure_code`          | `text null`            | operator verifier provenance or bounded failure reason       |
+| `created_at`, `upload_completed_at`, `ready_at` | `timestamptz`          | lifecycle timestamps                                         |
+| `failed_at`, `deleted_at`                       | `timestamptz`          | failure/deletion lifecycle                                   |
 
 Storage paths must not embed mutable usernames:
 
 ```text
-audio/{owner_uuid}/{asset_uuid}/source
-snapshots/{owner_uuid}/{asset_uuid}/workspace.json
-derived/{asset_uuid}/preview.webm
-derived/{asset_uuid}/peaks.v1.bin
-avatars/{user_uuid}/{asset_uuid}/avatar.webp
+source-audio bucket: {owner_uuid}/{asset_uuid}/source
+workspace-snapshots bucket (planned objects): {owner_uuid}/{asset_uuid}/workspace.json
+derived-assets bucket (planned objects): {asset_uuid}/preview.webm
+derived-assets bucket (planned objects): {asset_uuid}/peaks.v1.bin
+future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
 ```
 
 Do not globally deduplicate uploads in MVP: identical hashes can belong to different access domains and deletion expectations. Hashes provide integrity and later dedupe analysis.
 
-Add `asset_credits(asset_id, user_id nullable, credit_name_snapshot, role, position)` so attribution survives profile renames and can represent non-user performers. `owner_id` is operational ownership, not authorship.
+Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` snapshots display credit so attribution survives profile renames and can represent non-user performers. `owner_id` is operational ownership, not authorship.
 
 ## Workspaces and contributions
 
