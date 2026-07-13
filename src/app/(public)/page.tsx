@@ -69,8 +69,8 @@ export default function Home() {
                   label: "Sign in to Jam Session",
                 }}
                 signedIn={{
-                  href: "/projects/new",
-                  label: "Create a new project",
+                  href: "/projects",
+                  label: "Go to my projects",
                 }}
                 className="rounded-control bg-accent hover:bg-accent-strong inline-flex min-h-11 items-center justify-center px-5 py-3 text-sm font-semibold text-slate-950 transition-colors"
               />

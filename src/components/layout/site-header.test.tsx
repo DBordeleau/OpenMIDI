@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SiteHeader } from "./site-header";
+
+vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
 describe("SiteHeader", () => {
   it("links to every implemented top-level workflow", () => {
@@ -11,6 +13,9 @@ describe("SiteHeader", () => {
       "/",
     );
     const navigation = screen.getByRole("navigation", { name: "Primary" });
+    expect(
+      within(navigation).getByRole("link", { name: "My projects" }),
+    ).toHaveAttribute("href", "/projects");
     expect(
       within(navigation).getByRole("link", { name: "New project" }),
     ).toHaveAttribute("href", "/projects/new");

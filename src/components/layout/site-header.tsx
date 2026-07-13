@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { Container } from "./container";
-
-const primaryLinks = [
-  { href: "/projects/new", label: "New project" },
-  { href: "/uploads", label: "Uploads" },
-] as const;
+import { PrimaryNavigation } from "./primary-navigation.client";
 
 export function SiteHeader() {
   return (
@@ -17,20 +13,7 @@ export function SiteHeader() {
         >
           Jam Session
         </Link>
-        <nav
-          aria-label="Primary"
-          className="text-muted order-3 flex w-full items-center gap-x-5 gap-y-2 overflow-x-auto pb-1 text-sm sm:order-2 sm:w-auto sm:overflow-visible sm:pb-0"
-        >
-          {primaryLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="hover:text-ink shrink-0 py-2 transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <PrimaryNavigation />
         <AuthAwareLink
           signedOut={{ href: "/sign-in", label: "Sign in" }}
           signedIn={{ href: "/settings/profile", label: "Account" }}
