@@ -21,6 +21,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "supabase:start": "supabase db start",
+    "supabase:start:auth": "supabase start -x realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "db:reset": "supabase db reset",
@@ -28,6 +29,7 @@
     "db:test": "supabase test db",
     "db:types": "node scripts/generate-database-types.mjs --write",
     "db:types:check": "node scripts/generate-database-types.mjs --check",
+    "auth:e2e:setup": "node scripts/setup-auth-e2e.mjs",
     "db:check": "npm run db:lint && npm run db:test && npm run db:types:check",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
   },
