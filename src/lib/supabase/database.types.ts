@@ -9,6 +9,209 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      asset_credits: {
+        Row: {
+          asset_id: string
+          created_at: string
+          credit_name: string
+          position: number
+          role: Database["public"]["Enums"]["asset_credit_role"]
+          user_id: string | null
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          credit_name: string
+          position: number
+          role: Database["public"]["Enums"]["asset_credit_role"]
+          user_id?: string | null
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          credit_name?: string
+          position?: number
+          role?: Database["public"]["Enums"]["asset_credit_role"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_credits_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_uploads: {
+        Row: {
+          asset_id: string
+          client_duration_ms: number | null
+          client_filename: string
+          client_media_type: string | null
+          created_at: string
+          expected_byte_size: number
+          expected_sha256: string | null
+          expires_at: string
+          owner_id: string
+          request_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          client_duration_ms?: number | null
+          client_filename: string
+          client_media_type?: string | null
+          created_at?: string
+          expected_byte_size: number
+          expected_sha256?: string | null
+          expires_at: string
+          owner_id: string
+          request_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          client_duration_ms?: number | null
+          client_filename?: string
+          client_media_type?: string | null
+          created_at?: string
+          expected_byte_size?: number
+          expected_sha256?: string | null
+          expires_at?: string
+          owner_id?: string
+          request_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_uploads_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: true
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_uploads_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_uploads_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          bucket: string
+          byte_size: number | null
+          channels: number | null
+          created_at: string
+          declared_media_type: string | null
+          deleted_at: string | null
+          duration_ms: number | null
+          failed_at: string | null
+          failure_code: string | null
+          id: string
+          kind: Database["public"]["Enums"]["asset_kind"]
+          media_type: string | null
+          object_path: string
+          original_filename: string
+          owner_id: string
+          ready_at: string | null
+          reserved_byte_size: number
+          sample_rate_hz: number | null
+          sha256: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          upload_completed_at: string | null
+          verification_version: string | null
+        }
+        Insert: {
+          bucket?: string
+          byte_size?: number | null
+          channels?: number | null
+          created_at?: string
+          declared_media_type?: string | null
+          deleted_at?: string | null
+          duration_ms?: number | null
+          failed_at?: string | null
+          failure_code?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["asset_kind"]
+          media_type?: string | null
+          object_path: string
+          original_filename: string
+          owner_id: string
+          ready_at?: string | null
+          reserved_byte_size: number
+          sample_rate_hz?: number | null
+          sha256?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          upload_completed_at?: string | null
+          verification_version?: string | null
+        }
+        Update: {
+          bucket?: string
+          byte_size?: number | null
+          channels?: number | null
+          created_at?: string
+          declared_media_type?: string | null
+          deleted_at?: string | null
+          duration_ms?: number | null
+          failed_at?: string | null
+          failure_code?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["asset_kind"]
+          media_type?: string | null
+          object_path?: string
+          original_filename?: string
+          owner_id?: string
+          ready_at?: string | null
+          reserved_byte_size?: number
+          sample_rate_hz?: number | null
+          sha256?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          upload_completed_at?: string | null
+          verification_version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genres: {
         Row: {
           created_at: string
@@ -33,6 +236,27 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      global_storage_usage: {
+        Row: {
+          reserved_source_bytes: number
+          singleton: boolean
+          source_bytes: number
+          updated_at: string
+        }
+        Insert: {
+          reserved_source_bytes?: number
+          singleton?: boolean
+          source_bytes?: number
+          updated_at?: string
+        }
+        Update: {
+          reserved_source_bytes?: number
+          singleton?: boolean
+          source_bytes?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -432,6 +656,42 @@ export type Database = {
           },
         ]
       }
+      user_storage_usage: {
+        Row: {
+          reserved_source_bytes: number
+          source_bytes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          reserved_source_bytes?: number
+          source_bytes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          reserved_source_bytes?: number
+          source_bytes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_storage_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_storage_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_profiles: {
@@ -469,12 +729,20 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_source_upload: {
+        Args: { p_asset_id: string }
+        Returns: Database["public"]["Enums"]["asset_status"]
+      }
       claim_username: {
         Args: { p_username: string }
         Returns: {
           username: string
           username_normalized: string
         }[]
+      }
+      complete_source_upload: {
+        Args: { p_asset_id: string }
+        Returns: Database["public"]["Enums"]["asset_status"]
       }
       create_project: {
         Args: {
@@ -510,6 +778,42 @@ export type Database = {
           updated_at: string
           username: string
           username_normalized: string
+        }[]
+      }
+      operator_fail_source_asset: {
+        Args: { p_asset_id: string; p_failure_code: string }
+        Returns: undefined
+      }
+      operator_promote_source_asset: {
+        Args: {
+          p_asset_id: string
+          p_byte_size: number
+          p_channels: number
+          p_duration_ms: number
+          p_media_type: string
+          p_sample_rate_hz: number
+          p_sha256: string
+          p_verification_version: string
+        }
+        Returns: undefined
+      }
+      reserve_source_asset: {
+        Args: {
+          p_client_duration_ms?: number
+          p_declared_media_type?: string
+          p_expected_byte_size: number
+          p_expected_sha256?: string
+          p_filename: string
+          p_request_id: string
+        }
+        Returns: {
+          asset_id: string
+          bucket: string
+          capacity_warning: boolean
+          expires_at: string
+          global_remaining_bytes: number
+          object_path: string
+          user_remaining_bytes: number
         }[]
       }
       save_own_profile: {
@@ -555,6 +859,25 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "suspended" | "deleted"
+      asset_credit_role:
+        | "creator"
+        | "performer"
+        | "producer"
+        | "engineer"
+        | "other"
+      asset_kind:
+        | "source_audio"
+        | "workspace_snapshot"
+        | "mix_preview"
+        | "waveform_peaks"
+        | "image"
+      asset_status:
+        | "reserved"
+        | "uploading"
+        | "processing"
+        | "ready"
+        | "failed"
+        | "deleted"
       member_role: "owner" | "editor" | "viewer"
       project_status: "draft" | "active" | "archived" | "deleted"
       project_visibility: "private" | "unlisted" | "public"
@@ -686,6 +1009,28 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended", "deleted"],
+      asset_credit_role: [
+        "creator",
+        "performer",
+        "producer",
+        "engineer",
+        "other",
+      ],
+      asset_kind: [
+        "source_audio",
+        "workspace_snapshot",
+        "mix_preview",
+        "waveform_peaks",
+        "image",
+      ],
+      asset_status: [
+        "reserved",
+        "uploading",
+        "processing",
+        "ready",
+        "failed",
+        "deleted",
+      ],
       member_role: ["owner", "editor", "viewer"],
       project_status: ["draft", "active", "archived", "deleted"],
       project_visibility: ["private", "unlisted", "public"],

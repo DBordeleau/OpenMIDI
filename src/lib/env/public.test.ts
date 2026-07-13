@@ -12,7 +12,11 @@ describe("parseSupabasePublicEnv", () => {
         NEXT_PUBLIC_SUPABASE_URL: url,
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey,
       }),
-    ).toEqual({ url, publishableKey });
+    ).toEqual({
+      url,
+      publishableKey,
+      storageTusUrl: `${url}/storage/v1/upload/resumable`,
+    });
   });
 
   it.each([
