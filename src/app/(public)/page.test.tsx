@@ -2,26 +2,43 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
-vi.mock("./_components/hero-reveal", () => ({
-  HeroReveal: ({ children }: { children: React.ReactNode }) => children,
+vi.mock("./_components/aurora.client", () => ({ Aurora: () => null }));
+vi.mock("./_components/hero-waveform.client", () => ({
+  HeroWaveform: () => null,
+}));
+vi.mock("./_components/floating-cta.client", () => ({
+  FloatingCta: () => null,
+}));
+vi.mock("./_components/reveal.client", () => ({
+  Reveal: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 describe("Home", () => {
-  it("presents the product workflow and a clear sign-in path", () => {
+  it("leads with collaboration and covers the core selling points", () => {
     render(<Home />);
+
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: /make music with a history/i,
+        name: /your song isn't done/i,
       }),
     ).toBeVisible();
+
+    const primaryCtas = screen.getAllByRole("link", {
+      name: /create something/i,
+    });
+    expect(primaryCtas[0]).toHaveAttribute("href", "/sign-in");
+
+    expect(screen.getByText(/invite-only/i)).toBeVisible();
+
     expect(
-      screen.getByRole("link", { name: /sign in to jam session/i }),
-    ).toHaveAttribute("href", "/sign-in");
-    expect(screen.getByText(/private mvp/i)).toBeVisible();
-    expect(screen.getAllByRole("listitem")).toHaveLength(4);
+      screen.getByRole("heading", { name: /everyone in the mix/i }),
+    ).toBeVisible();
     expect(
-      screen.getByRole("heading", { name: /companion to the daw/i }),
+      screen.getByRole("heading", { name: /nothing gets lost/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: /named, for good/i }),
     ).toBeVisible();
   });
 });

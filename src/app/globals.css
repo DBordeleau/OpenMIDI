@@ -2,26 +2,35 @@
 
 :root {
   color-scheme: dark;
-  --color-canvas: #080b10;
-  --color-surface: #10151d;
-  --color-surface-raised: #171e28;
-  --color-surface-soft: #0c1219;
-  --color-text: #f3f6f4;
-  --color-text-muted: #aab5b0;
-  --color-border: #29342f;
-  --color-border-strong: #43524b;
-  --color-accent: #9cf2cc;
-  --color-accent-strong: #62dba7;
-  --color-accent-contrast: #07130e;
+  /* Warm "studio night" brand palette — see docs/design/brand.md */
+  --color-canvas: #160f1a;
+  --color-surface: #1e1524;
+  --color-surface-raised: #2a1d31;
+  --color-surface-soft: #140d19;
+  --color-text: #f7efe9;
+  --color-text-muted: #c6adb4;
+  --color-border: rgb(255 255 255 / 10%);
+  --color-border-strong: rgb(255 255 255 / 16%);
+  --color-accent: #ff8d63;
+  --color-accent-strong: #ff7a4d;
+  --color-accent-2: #ffc879;
+  --color-berry: #e77aa6;
+  --color-accent-contrast: #2a1310;
   --color-danger: #ff9c9c;
-  --color-focus: #b8ffe0;
+  --color-focus: #ffcf8f;
   --radius-control: 0.75rem;
   --radius-card: 1.25rem;
-  --shadow-raised: 0 24px 70px rgb(0 0 0 / 28%);
+  --shadow-raised: 0 24px 70px rgb(0 0 0 / 40%);
   --duration-fast: 140ms;
   --duration-normal: 320ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --content-width: 76rem;
+  --font-serif:
+    "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman",
+    serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono",
+    monospace;
 }
 
 @theme inline {
@@ -35,12 +44,16 @@
   --color-strong: var(--color-border-strong);
   --color-accent: var(--color-accent);
   --color-accent-strong: var(--color-accent-strong);
+  --color-accent-2: var(--color-accent-2);
+  --color-berry: var(--color-berry);
   --color-accent-contrast: var(--color-accent-contrast);
   --color-danger: var(--color-danger);
   --color-focus: var(--color-focus);
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
   --shadow-raised: var(--shadow-raised);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
 }
 
 * {
@@ -56,23 +69,24 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 15% 5%, rgb(98 219 167 / 10%), transparent 28rem),
-    linear-gradient(rgb(156 242 204 / 2%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(156 242 204 / 2%) 1px, transparent 1px),
+    radial-gradient(circle at 12% 4%, rgb(255 141 99 / 10%), transparent 30rem),
+    radial-gradient(
+      circle at 88% 18%,
+      rgb(231 122 166 / 8%),
+      transparent 32rem
+    ),
+    linear-gradient(rgb(255 200 121 / 2%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 200 121 / 2%) 1px, transparent 1px),
     var(--color-canvas);
   background-size:
+    auto,
     auto,
     4rem 4rem,
     4rem 4rem,
     auto;
   color: var(--color-text);
   font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, ui-sans-serif,
     sans-serif;
   text-rendering: optimizeLegibility;
 }
@@ -93,6 +107,21 @@ a {
 }
 [id] {
   scroll-margin-top: 7rem;
+}
+
+/* Brand primary action: warm coral→gold gradient with dark foreground.
+   Keeps WCAG AA contrast; never use light text on the accent. */
+.cta-gradient {
+  background: linear-gradient(
+    120deg,
+    var(--color-accent),
+    var(--color-accent-2)
+  );
+  color: var(--color-accent-contrast);
+  box-shadow: 0 12px 40px -12px rgb(255 141 99 / 70%);
+}
+.cta-gradient:hover {
+  box-shadow: 0 16px 48px -12px rgb(255 141 99 / 85%);
 }
 
 @media (prefers-reduced-motion: reduce) {

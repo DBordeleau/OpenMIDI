@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: "%s | Jam Session",
   },
   description:
-    "A Git-inspired space for asynchronous music collaboration, versioned projects, contributions, and forks.",
+    "Jam Session is where unfinished songs find their people. Upload stems, collaborate in the browser, and keep every contributor credited.",
 };
 
 export default function RootLayout({
