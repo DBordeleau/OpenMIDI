@@ -5,8 +5,9 @@ export const STUDIO_ENGINE_VERSION =
 
 const trackSchema = z
   .object({
-    trackId: z.string().min(1).max(100),
-    assetId: z.string().min(1).max(100),
+    trackId: z.uuid(),
+    assetId: z.uuid(),
+    instrumentId: z.uuid().nullable(),
     name: z.string().trim().min(1).max(120),
     positionMs: z.number().int().nonnegative(),
     trimStartMs: z.number().int().nonnegative(),
@@ -24,7 +25,7 @@ export const workspaceManifestV1Schema = z
     manifestVersion: z.literal(1),
     engine: z.literal("waveform-playlist"),
     engineVersion: z.literal(STUDIO_ENGINE_VERSION),
-    workspaceId: z.string().min(1).max(100),
+    workspaceId: z.uuid(),
     tempoBpm: z.number().finite().min(20).max(400),
     tracks: z.array(trackSchema).min(1).max(12),
   })
@@ -43,6 +44,16 @@ export const workspaceManifestV1Schema = z
         seen.add(track[key]);
       }
     }
+    const orders = tracks
+      .map(({ sortOrder }) => sortOrder)
+      .sort((a, b) => a - b);
+    if (orders.some((order, index) => order !== index)) {
+      context.addIssue({
+        code: "custom",
+        message: "Track sortOrder values must be contiguous",
+        path: ["tracks"],
+      });
+    }
   });
 
 export type WorkspaceManifestV1 = z.infer<typeof workspaceManifestV1Schema>;
@@ -51,6 +62,12 @@ export type WorkspaceTrackV1 = WorkspaceManifestV1["tracks"][number];
 export function parseWorkspaceManifest(input: unknown): WorkspaceManifestV1 {
   const parsed = workspaceManifestV1Schema.parse(input);
   return canonicalizeManifest(parsed);
+}
+
+export function serializeCanonicalManifest(
+  manifest: WorkspaceManifestV1,
+): string {
+  return JSON.stringify(canonicalizeManifest(manifest));
 }
 
 export function canonicalizeManifest(

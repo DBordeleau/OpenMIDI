@@ -119,10 +119,14 @@ export function StudioSurface({
 
   async function addTrack() {
     await adapter.addAudioAsset({
-      asset: { assetId: "asset-pulse-copy", url: assets[0].url },
+      asset: {
+        assetId: "00000000-0000-4000-8000-000000000023",
+        url: assets[0].url,
+      },
       track: {
-        trackId: "track-pulse-copy",
-        assetId: "asset-pulse-copy",
+        trackId: "00000000-0000-4000-8000-000000000013",
+        assetId: "00000000-0000-4000-8000-000000000023",
+        instrumentId: null,
         name: "Pulse copy",
         positionMs: 1000,
         trimStartMs: 0,

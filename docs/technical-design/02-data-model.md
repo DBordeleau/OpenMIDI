@@ -154,7 +154,7 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 | `accepted_contribution_id` | `uuid null`   | provenance                                                 |
 | `created_at`               | `timestamptz` | immutable                                                  |
 
-Unique `(project_id, revision_number)`. `parent_revision_id` must belong to the same project, enforced in the publishing function. Deny update/delete to application roles. Corrections create a new revision.
+Unique `(project_id, revision_number)` and `(project_id, publish_request_id)`. Composite foreign keys prove that `parent_revision_id` and `projects.current_revision_id` belong to the same project. The first revision has no parent; later revisions point to the locked current revision. Update/delete is denied to application roles and rejected by immutability triggers. Corrections create a new revision.
 
 ### `revision_tracks`
 
@@ -179,6 +179,8 @@ This is the queryable, engine-neutral track projection:
 | `added_by`        | `uuid`         | attribution source                                    |
 
 Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
+
+`project_asset_references` is the append-only reference graph from a project to every unique immutable source asset retained by any surviving revision. `project_storage_usage` is a locked projection of that graph and counts each ready source asset once, regardless of revision reuse. First publish creates the revision, exact ordered track projection, missing asset references, usage projection, bounded activity event, lifecycle timestamp, and current pointer in one transaction.
 
 MVP supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
 

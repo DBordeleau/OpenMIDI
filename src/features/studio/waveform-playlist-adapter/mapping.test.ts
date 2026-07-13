@@ -23,8 +23,8 @@ describe("Waveform Playlist mapping", () => {
       manifestTrackToClipTrack(track, buffer),
     );
     expect(editorTracks.map(({ id }) => id)).toEqual([
-      "track-pulse",
-      "track-chime",
+      "00000000-0000-4000-8000-000000000011",
+      "00000000-0000-4000-8000-000000000012",
     ]);
     expect(
       editorTracksToManifest(STUDIO_FIXTURE_MANIFEST, editorTracks),

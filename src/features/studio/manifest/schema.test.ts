@@ -53,4 +53,19 @@ describe("workspace manifest v1", () => {
     };
     expect(parseWorkspaceManifest(reversed)).toEqual(STUDIO_FIXTURE_MANIFEST);
   });
+
+  it("rejects noncontiguous order and non-UUID identifiers", () => {
+    expect(() =>
+      parseWorkspaceManifest({
+        ...STUDIO_FIXTURE_MANIFEST,
+        workspaceId: "not-a-uuid",
+      }),
+    ).toThrow();
+    expect(() =>
+      parseWorkspaceManifest({
+        ...STUDIO_FIXTURE_MANIFEST,
+        tracks: [{ ...STUDIO_FIXTURE_MANIFEST.tracks[0], sortOrder: 1 }],
+      }),
+    ).toThrow("contiguous");
+  });
 });

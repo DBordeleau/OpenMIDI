@@ -25,7 +25,9 @@ export type ProjectDetail = {
   tags: TaxonomyOption[];
   lockVersion: number;
   visibility: "private";
-  status: "draft";
+  status: "draft" | "active";
+  currentRevisionId: string | null;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

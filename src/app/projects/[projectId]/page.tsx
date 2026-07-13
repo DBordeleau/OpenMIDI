@@ -4,6 +4,7 @@ import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { getProjectForViewer } from "@/server/repositories/projects";
+import { getRevisionHistory } from "@/server/repositories/revisions";
 export default async function ProjectPage({
   params,
   searchParams,
@@ -16,6 +17,8 @@ export default async function ProjectPage({
   if (!projectIdSchema.safeParse(projectId).success) notFound();
   const project = await getProjectForViewer(projectId);
   if (!project) notFound();
+  const revisions = await getRevisionHistory(projectId);
+  const current = revisions.find(({ id }) => id === project.currentRevisionId);
   const saved = (await searchParams).saved === "1";
   return (
     <main id="main-content">
@@ -31,7 +34,9 @@ export default async function ProjectPage({
           )}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-accent font-semibold">Private · Draft</p>
+              <p className="text-accent font-semibold">
+                Private · {project.status === "active" ? "Active" : "Draft"}
+              </p>
               <h1 className="mt-2 text-4xl font-bold">{project.title}</h1>
             </div>
             <Link
@@ -80,13 +85,73 @@ export default async function ProjectPage({
               <dd>{project.tags.map((t) => t.name).join(", ") || "None"}</dd>
             </div>
           </dl>
-          <section className="rounded-card border-strong mt-8 border border-dashed p-8 text-center">
-            <h2 className="text-xl font-bold">No stems yet</h2>
-            <p className="text-muted mt-2">
-              Audio upload and the browser workspace arrive in the next project
-              phase.
-            </p>
-          </section>
+          {current ? (
+            <section
+              id={`revision-${current.revisionNumber}`}
+              className="rounded-card border-strong mt-8 border p-6"
+            >
+              <p className="text-accent font-semibold">
+                Current revision {current.revisionNumber}
+              </p>
+              <h2 className="mt-1 text-2xl font-bold">Published arrangement</h2>
+              <p className="text-muted mt-2">
+                By {current.authorName} ·{" "}
+                {new Date(current.createdAt).toLocaleString()} ·{" "}
+                {(current.durationMs / 1000).toFixed(1)} seconds
+              </p>
+              {current.message && (
+                <p className="mt-3 whitespace-pre-wrap">{current.message}</p>
+              )}
+              <ol className="mt-5 space-y-3">
+                {current.tracks.map((track) => (
+                  <li
+                    className="border-subtle rounded-control border p-4"
+                    key={track.id}
+                  >
+                    <strong>
+                      {track.sortOrder + 1}. {track.name}
+                    </strong>
+                    <span className="text-muted block text-sm">
+                      {track.instrumentName ?? "No instrument"} ·{" "}
+                      {(track.durationMs / 1000).toFixed(1)}s · Creator:{" "}
+                      {track.creditName}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : (
+            <section className="rounded-card border-strong mt-8 border border-dashed p-8 text-center">
+              <h2 className="text-xl font-bold">Ready to assemble stems?</h2>
+              <p className="text-muted mt-2">
+                Create the first immutable revision from your verified uploads.
+              </p>
+              <Link
+                className="bg-accent rounded-control mt-5 inline-flex min-h-11 items-center px-5 font-semibold text-white"
+                href={`/projects/${project.id}/publish`}
+              >
+                Publish first revision
+              </Link>
+            </section>
+          )}
+          {revisions.length > 1 && (
+            <section className="mt-8">
+              <h2 className="text-xl font-bold">Revision history</h2>
+              <ol className="mt-3 space-y-2">
+                {revisions.map((revision) => (
+                  <li key={revision.id}>
+                    <a
+                      className="underline"
+                      href={`#revision-${revision.revisionNumber}`}
+                    >
+                      Revision {revision.revisionNumber}
+                    </a>{" "}
+                    · {new Date(revision.createdAt).toLocaleDateString()}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </article>
       </Container>
     </main>
