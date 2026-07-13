@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONTRIBUTOR_ATTESTATION_VERSION,
   createContributionSchema,
+  reviewContributionSchema,
   submitContributionSchema,
   withdrawContributionSchema,
 } from "./schema";
@@ -43,6 +44,27 @@ describe("contribution schemas", () => {
         expectedStatus: "draft",
         expectedCurrentVersionId: null,
       }).success,
+    ).toBe(true);
+  });
+
+  it("requires feedback for request changes and rejection", () => {
+    const input = {
+      contributionId: id,
+      requestId: id,
+      expectedStatus: "submitted",
+      expectedCurrentVersionId: id,
+      expectedProjectRevisionId: id,
+      note: "",
+    } as const;
+    expect(
+      reviewContributionSchema.safeParse({
+        ...input,
+        decision: "request_changes",
+      }).success,
+    ).toBe(false);
+    expect(
+      reviewContributionSchema.safeParse({ ...input, decision: "accept" })
+        .success,
     ).toBe(true);
   });
 });

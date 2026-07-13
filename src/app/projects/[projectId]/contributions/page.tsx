@@ -4,7 +4,10 @@ import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { ContributionList } from "@/features/contributions/contribution-list";
 import { projectIdSchema } from "@/features/projects/schema";
-import { listContributionsByAuthor } from "@/server/repositories/contributions";
+import {
+  listContributionsByAuthor,
+  listContributionsForOwnerReview,
+} from "@/server/repositories/contributions";
 import { getProjectForViewer } from "@/server/repositories/projects";
 
 export default async function ProjectContributionsPage({
@@ -15,11 +18,12 @@ export default async function ProjectContributionsPage({
   const { projectId } = await params;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
   await requireViewer("/projects/" + projectId + "/contributions");
-  const [project, contributions] = await Promise.all([
-    getProjectForViewer(projectId),
-    listContributionsByAuthor(),
-  ]);
+  const project = await getProjectForViewer(projectId);
   if (!project) notFound();
+  const contributions =
+    project.viewerRole === "owner"
+      ? await listContributionsForOwnerReview(projectId)
+      : await listContributionsByAuthor();
   const visible = contributions.filter((item) => item.projectId === projectId);
   return (
     <main id="main-content">

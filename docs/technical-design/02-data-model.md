@@ -249,7 +249,7 @@ PR 11 adds `publish_workspace_revision()`, which delegates immutable revision cr
 
 Queryable mutable projection of the workspace manifest. It mirrors the engine-neutral fields in `revision_tracks` and uses primary key `(workspace_id, track_id)`, with retention/discovery indexes on `asset_id` and `instrument_id`. Application roles may select their own rows but cannot mutate the projection directly; only workspace commands replace it after manifest validation.
 
-### `contributions` (implemented — PR 12)
+### `contributions` (implemented — PRs 12–13)
 
 - `id`, `project_id`, `author_id`, idempotent `create_request_id`, `base_revision_id`
 - `title`, `description`
@@ -257,7 +257,7 @@ Queryable mutable projection of the workspace manifest. It mirrors the engine-ne
 - `submitted_at`, `withdrawn_at`, `reviewed_at`, `reviewed_by`
 - `review_note`, `created_at`, `updated_at`
 
-State transitions occur only through database commands. PR 12 authors can create, submit, and withdraw; PR 13 owns request-changes, accept, and reject. Every submitted version and its track projection remain immutable.
+State transitions occur only through database commands. Authors create, submit, resubmit after changes requested, and withdraw; the project owner may request changes, reject, or accept the exact current submitted version. Every submitted version and its track projection remain immutable.
 
 ### `contribution_versions` (implemented — PR 12)
 
@@ -268,6 +268,12 @@ Immutable submission attempts: `id`, `contribution_id`, positive `version_number
 Immutable queryable projection of each submitted manifest, mirroring the engine-neutral arrangement fields in `revision_tracks` and retaining `added_by` provenance. Asset, instrument, ordering, and track relationships remain normalized for review, retention, and future acceptance instead of being hidden only in JSONB. The submitted manifest remains the portable authority, and the command must prove projection equivalence before commit.
 
 Rejected and withdrawn contributions remain selectable by their author and the project owner while the project exists. They are excluded from public project pages, discovery, activity feeds and public profile contribution lists. An author may request earlier deletion unless the contribution was accepted or is under a moderation/legal hold.
+
+### `contribution_reviews` (implemented — PR 13)
+
+Immutable idempotent review attempts contain the exact contribution/version, reviewer, request UUID, requested and applied decision, bounded machine reason, participant-private note, expected project revision, optional resulting revision, and timestamp. A stale requested accept is applied as request changes with reason `base_outdated`. Only the author and owning reviewer may select review history; application roles cannot mutate it directly.
+
+Accepted `project_revisions` store both `accepted_contribution_id` and `accepted_contribution_version_id`. Composite constraints prove same-project/version lineage, and the acceptance command copies normalized track `added_by` provenance while adding only newly referenced assets to project usage.
 
 ## Quotas, reports and moderation
 

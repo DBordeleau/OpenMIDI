@@ -271,6 +271,100 @@ export type Database = {
           },
         ]
       }
+      contribution_reviews: {
+        Row: {
+          applied_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          contribution_id: string
+          contribution_version_id: string
+          created_at: string
+          expected_project_revision_id: string
+          id: string
+          note: string | null
+          reason:
+            | Database["public"]["Enums"]["contribution_review_reason"]
+            | null
+          request_id: string
+          requested_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          resulting_revision_id: string | null
+          reviewer_id: string
+        }
+        Insert: {
+          applied_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          contribution_id: string
+          contribution_version_id: string
+          created_at?: string
+          expected_project_revision_id: string
+          id?: string
+          note?: string | null
+          reason?:
+            | Database["public"]["Enums"]["contribution_review_reason"]
+            | null
+          request_id: string
+          requested_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          resulting_revision_id?: string | null
+          reviewer_id: string
+        }
+        Update: {
+          applied_decision?: Database["public"]["Enums"]["contribution_review_decision"]
+          contribution_id?: string
+          contribution_version_id?: string
+          created_at?: string
+          expected_project_revision_id?: string
+          id?: string
+          note?: string | null
+          reason?:
+            | Database["public"]["Enums"]["contribution_review_reason"]
+            | null
+          request_id?: string
+          requested_decision?: Database["public"]["Enums"]["contribution_review_decision"]
+          resulting_revision_id?: string | null
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_reviews_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_reviews_expected_project_revision_id_fkey"
+            columns: ["expected_project_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_reviews_result_fk"
+            columns: ["contribution_id", "resulting_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["accepted_contribution_id", "id"]
+          },
+          {
+            foreignKeyName: "contribution_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_reviews_version_fk"
+            columns: ["contribution_id", "contribution_version_id"]
+            isOneToOne: false
+            referencedRelation: "contribution_versions"
+            referencedColumns: ["contribution_id", "id"]
+          },
+        ]
+      }
       contribution_version_tracks: {
         Row: {
           added_by: string
@@ -883,6 +977,8 @@ export type Database = {
       }
       project_revisions: {
         Row: {
+          accepted_contribution_id: string | null
+          accepted_contribution_version_id: string | null
           created_at: string
           created_by: string
           duration_ms: number
@@ -901,6 +997,8 @@ export type Database = {
           snapshot_asset_id: string | null
         }
         Insert: {
+          accepted_contribution_id?: string | null
+          accepted_contribution_version_id?: string | null
           created_at?: string
           created_by: string
           duration_ms: number
@@ -919,6 +1017,8 @@ export type Database = {
           snapshot_asset_id?: string | null
         }
         Update: {
+          accepted_contribution_id?: string | null
+          accepted_contribution_version_id?: string | null
           created_at?: string
           created_by?: string
           duration_ms?: number
@@ -937,6 +1037,23 @@ export type Database = {
           snapshot_asset_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_revisions_accepted_contribution_project_fk"
+            columns: ["project_id", "accepted_contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "project_revisions_accepted_version_fk"
+            columns: [
+              "accepted_contribution_id",
+              "accepted_contribution_version_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "contribution_versions"
+            referencedColumns: ["contribution_id", "id"]
+          },
           {
             foreignKeyName: "project_revisions_created_by_fkey"
             columns: ["created_by"]
@@ -1771,6 +1888,28 @@ export type Database = {
         Args: { p_asset_id: string }
         Returns: string
       }
+      review_contribution: {
+        Args: {
+          p_contribution_id: string
+          p_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          p_expected_current_version_id: string
+          p_expected_project_revision_id: string
+          p_expected_status: Database["public"]["Enums"]["contribution_status"]
+          p_note?: string
+          p_request_id: string
+        }
+        Returns: {
+          applied_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          contribution_id: string
+          contribution_version_id: string
+          reason: Database["public"]["Enums"]["contribution_review_reason"]
+          requested_decision: Database["public"]["Enums"]["contribution_review_decision"]
+          reviewed_at: string
+          revision_id: string
+          revision_number: number
+          status: Database["public"]["Enums"]["contribution_status"]
+        }[]
+      }
       revision_manifest_checksum_valid: {
         Args: { p_project_id: string; p_revision_id: string }
         Returns: boolean
@@ -1895,6 +2034,8 @@ export type Database = {
         | "ready"
         | "failed"
         | "deleted"
+      contribution_review_decision: "request_changes" | "reject" | "accept"
+      contribution_review_reason: "owner_feedback" | "base_outdated"
       contribution_status:
         | "draft"
         | "submitted"
@@ -2055,6 +2196,8 @@ export const Constants = {
         "failed",
         "deleted",
       ],
+      contribution_review_decision: ["request_changes", "reject", "accept"],
+      contribution_review_reason: ["owner_feedback", "base_outdated"],
       contribution_status: [
         "draft",
         "submitted",

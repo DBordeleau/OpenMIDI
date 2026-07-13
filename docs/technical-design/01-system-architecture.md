@@ -118,7 +118,7 @@ PR 11 completes owner publication with `publish_workspace_revision()`. The wrapp
 3. Submission freezes the draft into proposed revision `C`, records `base_revision_id = R`, and changes contribution state from `draft` to `submitted`.
 4. Subsequent changes require a new contribution revision; submitted bytes are not overwritten.
 
-PR 12 implements steps 1–4 for non-owner members who already have access to an active private project. Creation atomically links a contribution to an author-owned workspace cloned from the exact current revision. Autosave remains private and conflict-safe. Submission locks project, contribution, and workspace in that order, requires the exact acknowledged lock/checksum/snapshot and contributor-attestation-v1, then copies the manifest and normalized tracks into immutable version rows without advancing project history or project storage usage. Withdrawal archives the workspace while retaining versions. Owner review, request-changes, rejection, and atomic acceptance remain PR 13.
+PR 12 implements steps 1–4 for non-owner members who already have access to an active private project. Creation atomically links a contribution to an author-owned workspace cloned from the exact current revision. Autosave remains private and conflict-safe. Submission locks project, contribution, and workspace in that order, requires the exact acknowledged lock/checksum/snapshot and contributor-attestation-v1, then copies the manifest and normalized tracks into immutable version rows without advancing project history or project storage usage. Withdrawal archives the workspace while retaining versions; PR 13 builds owner review and acceptance on those immutable records.
 
 ### Accept a contribution
 
@@ -127,6 +127,8 @@ PR 12 implements steps 1–4 for non-owner members who already have access to an
 3. If the project has advanced, mark the contribution `changes_requested` with reason `base_outdated`; do not attempt an automatic audio merge in MVP.
 4. Otherwise copy the proposed snapshot references into a new project revision, record `accepted_contribution_id`, advance the current revision, and mark the contribution accepted in one transaction.
 5. Attribution is computed from immutable asset ownership and contribution authorship, not free-text credits alone.
+
+PR 13 implements this review boundary for the single project owner. Review attempts are immutable and idempotent. Request changes re-enables the existing exact-base workspace, rejection archives it, and acceptance revalidates the exact submitted manifest/projection before creating a contribution-linked revision, advancing the pointer, updating unique project asset usage, recording bounded activity, and archiving the workspace in one transaction. A stale accept instead records `base_outdated` and moves the contribution to `changes_requested`; no automatic merge or rebase occurs. Exact submitted-version audio remains private and is signed only for its author or owning reviewer through user-scoped RLS.
 
 ### Fork
 

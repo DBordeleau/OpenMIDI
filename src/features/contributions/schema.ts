@@ -14,6 +14,12 @@ export const contributionStatusSchema = z.enum([
   "withdrawn",
 ]);
 
+export const contributionReviewDecisionSchema = z.enum([
+  "request_changes",
+  "reject",
+  "accept",
+]);
+
 export const createContributionSchema = z
   .object({
     requestId: z.uuid(),
@@ -47,4 +53,29 @@ export const withdrawContributionSchema = z
   })
   .strict();
 
+export const reviewContributionSchema = z
+  .object({
+    contributionId: z.uuid(),
+    requestId: z.uuid(),
+    decision: contributionReviewDecisionSchema,
+    expectedStatus: z.literal("submitted"),
+    expectedCurrentVersionId: z.uuid(),
+    expectedProjectRevisionId: z.uuid(),
+    note: z
+      .string()
+      .trim()
+      .max(5000)
+      .transform((value) => value || null),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.decision !== "accept" && value.note === null)
+      context.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "Add a review note.",
+      });
+  });
+
 export const contributionIdSchema = z.uuid();
+export const contributionVersionIdSchema = z.uuid();

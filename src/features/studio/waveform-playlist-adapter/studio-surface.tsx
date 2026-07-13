@@ -503,7 +503,8 @@ function PlaybackControls({
 }
 
 export function StudioSurface(props: StudioLauncherProps) {
-  const workspaceAuthority = props.mode === "revision" ? null : props;
+  const workspaceAuthority =
+    props.mode === "workspace" || props.mode === "contribution" ? props : null;
   const editable =
     props.mode === "workspace" ||
     (props.mode === "contribution" && props.canEdit)
@@ -555,9 +556,11 @@ export function StudioSurface(props: StudioLauncherProps) {
   );
 
   const sourceEndpoint =
-    props.mode !== "revision"
-      ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`
-      : `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`;
+    props.mode === "revision"
+      ? `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`
+      : props.mode === "contributionVersion"
+        ? `/api/projects/${props.projectId}/contributions/${props.contributionId}/versions/${props.versionId}/audio-sources`
+        : `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`;
   const signLoad = useCallback(async (): Promise<SignedAudioSource[]> => {
     const response = await fetch(sourceEndpoint, {
       method: "POST",
@@ -1222,9 +1225,11 @@ export function StudioSurface(props: StudioLauncherProps) {
       )}
       <StemDownloadPanel
         endpoint={
-          props.mode !== "revision"
-            ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/downloads/stems`
-            : `/api/projects/${props.projectId}/revisions/${props.revisionId}/downloads/stems`
+          props.mode === "revision"
+            ? `/api/projects/${props.projectId}/revisions/${props.revisionId}/downloads/stems`
+            : props.mode === "contributionVersion"
+              ? `/api/projects/${props.projectId}/contributions/${props.contributionId}/versions/${props.versionId}/downloads/stems`
+              : `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/downloads/stems`
         }
         assetIds={snapshot.manifest?.tracks.map((track) => track.assetId) ?? []}
         disabled={Boolean(editable && autosave.status !== "saved")}

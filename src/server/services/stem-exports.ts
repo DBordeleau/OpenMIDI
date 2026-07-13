@@ -5,6 +5,7 @@ import type { StemExportResponse } from "@/features/exports/contract";
 import type { WorkspaceTrackV1 } from "@/features/studio/manifest/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getProjectForViewer } from "@/server/repositories/projects";
+import { getContributionVersionPlayback } from "@/server/repositories/contributions";
 import { getRevisionPlayback } from "@/server/repositories/revisions";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
@@ -12,7 +13,13 @@ const SIGNED_URL_SECONDS = 600;
 
 type Authority =
   | { mode: "revision"; projectId: string; revisionId: string }
-  | { mode: "workspace"; projectId: string; workspaceId: string };
+  | { mode: "workspace"; projectId: string; workspaceId: string }
+  | {
+      mode: "contributionVersion";
+      projectId: string;
+      contributionId: string;
+      versionId: string;
+    };
 
 export async function createStemExport(
   authority: Authority,
@@ -34,11 +41,15 @@ export async function createStemExport(
     tracks = revision.manifest.tracks;
     revisionId = revision.revisionId;
     revisionNumber = revision.revisionNumber;
-  } else {
+  } else if (authority.mode === "workspace") {
     const workspace = await getActiveWorkspace(authority.projectId);
     if (!workspace || workspace.id !== authority.workspaceId) return null;
     tracks = workspace.manifest.tracks;
     workspaceId = workspace.id;
+  } else {
+    const version = await getContributionVersionPlayback(authority);
+    if (!version) return null;
+    tracks = version.manifest.tracks;
   }
   const expected = tracks.map((track) => track.assetId).sort();
   const requested = [...requestedAssetIds].sort();

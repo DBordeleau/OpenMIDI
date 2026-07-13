@@ -32,6 +32,12 @@ export type StudioLauncherProps = CommonProps &
   (
     | { mode: "revision"; revisionId: string; revisionNumber: number }
     | {
+        mode: "contributionVersion";
+        contributionId: string;
+        versionId: string;
+        versionNumber: number;
+      }
+    | {
         mode: "workspace";
         viewerId: string;
         workspaceId: string;

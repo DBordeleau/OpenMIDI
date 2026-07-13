@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createContributionSchema,
+  reviewContributionSchema,
   submitContributionSchema,
   withdrawContributionSchema,
 } from "./schema";
 import {
   createContributionWorkspace,
+  reviewContribution,
   setProjectContributionsOpen,
   submitContribution,
   withdrawContribution,
@@ -110,6 +112,40 @@ export async function withdrawContributionAction(
   );
   revalidatePath(`/projects/${projectId}/studio`);
   return { ok: true as const };
+}
+
+export async function reviewContributionAction(
+  projectId: string,
+  input: unknown,
+) {
+  const parsed = reviewContributionSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  const { data, error } = await reviewContribution(parsed.data);
+  if (error || !data?.[0]) {
+    return {
+      ok: false as const,
+      code:
+        error?.message === "contribution_review_project_quota_exceeded"
+          ? ("quota" as const)
+          : error?.code === "PT409"
+            ? ("conflict" as const)
+            : ("unavailable" as const),
+    };
+  }
+  revalidatePath("/contributions");
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/contributions`);
+  revalidatePath(
+    `/projects/${projectId}/contributions/${parsed.data.contributionId}`,
+  );
+  return {
+    ok: true as const,
+    status: data[0].status,
+    reason: data[0].reason,
+    revisionId: data[0].revision_id,
+    revisionNumber: data[0].revision_number,
+  };
 }
 
 export async function setProjectContributionsOpenAction(

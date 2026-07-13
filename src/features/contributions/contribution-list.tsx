@@ -52,6 +52,25 @@ export function ContributionList({
             </Link>
           </h2>
           <p className="text-muted mt-2">{contribution.projectTitle}</p>
+          {contribution.currentVersionNumber && (
+            <dl className="text-muted mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <dt>Arrangement</dt>
+                <dd>
+                  {contribution.trackCount} tracks ·{" "}
+                  {((contribution.durationMs ?? 0) / 1000).toFixed(1)} seconds
+                </dd>
+              </div>
+              <div>
+                <dt>Base comparison</dt>
+                <dd>
+                  Revision {contribution.baseRevisionNumber ?? "—"} →{" "}
+                  {contribution.currentRevisionNumber ?? "—"}
+                  {contribution.isStale ? " · Outdated" : " · Current"}
+                </dd>
+              </div>
+            </dl>
+          )}
           <p className="text-muted mt-5 text-sm">
             Updated {new Date(contribution.updatedAt).toLocaleString()}
           </p>
