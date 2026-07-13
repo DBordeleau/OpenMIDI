@@ -4,9 +4,12 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Jam Session",
+  title: {
+    default: "Jam Session",
+    template: "%s | Jam Session",
+  },
   description:
-    "An asynchronous music collaboration platform inspired by open-source development.",
+    "A Git-inspired space for asynchronous music collaboration, versioned projects, contributions, and forks.",
 };
 
 export default function RootLayout({

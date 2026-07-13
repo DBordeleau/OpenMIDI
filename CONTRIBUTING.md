@@ -49,6 +49,8 @@ npm run test:e2e
 
 Report any check you could not run and why. Never claim a check passed without running it.
 
+For visible UI changes, also inspect the affected pages at 320, 768, 1280, and 1536 CSS pixels. Verify keyboard order, visible focus, reduced-motion behavior, readable zoom, and the absence of horizontal overflow. Keep public pages server-first; add a Client Component only around behavior that requires browser APIs or interaction.
+
 ## Tests
 
 - Put deterministic domain and component tests next to their source as `*.test.ts` or `*.test.tsx`.

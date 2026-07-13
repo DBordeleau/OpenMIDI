@@ -1,62 +1,107 @@
 @import "tailwindcss";
 
 :root {
-  --background: #080b12;
-  --foreground: #f4f7fb;
-  --muted: #a7b0c0;
-  --surface: #111723;
-  --surface-border: #283244;
-  --accent: #9cf2cc;
-  --accent-strong: #5de4aa;
+  color-scheme: dark;
+  --color-canvas: #080b10;
+  --color-surface: #10151d;
+  --color-surface-raised: #171e28;
+  --color-surface-soft: #0c1219;
+  --color-text: #f3f6f4;
+  --color-text-muted: #aab5b0;
+  --color-border: #29342f;
+  --color-border-strong: #43524b;
+  --color-accent: #9cf2cc;
+  --color-accent-strong: #62dba7;
+  --color-accent-contrast: #07130e;
+  --color-danger: #ff9c9c;
+  --color-focus: #b8ffe0;
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+  --shadow-raised: 0 24px 70px rgb(0 0 0 / 28%);
+  --duration-fast: 140ms;
+  --duration-normal: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --content-width: 76rem;
+}
+
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-surface-soft: var(--color-surface-soft);
+  --color-ink: var(--color-text);
+  --color-muted: var(--color-text-muted);
+  --color-subtle: var(--color-border);
+  --color-strong: var(--color-border-strong);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-contrast: var(--color-accent-contrast);
+  --color-danger: var(--color-danger);
+  --color-focus: var(--color-focus);
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --shadow-raised: var(--shadow-raised);
 }
 
 * {
   box-sizing: border-box;
 }
-
 html {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-canvas);
+  color: var(--color-text);
+  scroll-behavior: smooth;
 }
-
 body {
+  min-width: 320px;
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(
-      circle at 15% 10%,
-      rgb(93 228 170 / 10%),
-      transparent 28rem
-    ),
-    radial-gradient(
-      circle at 90% 75%,
-      rgb(123 151 255 / 8%),
-      transparent 30rem
-    ),
-    var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    radial-gradient(circle at 15% 5%, rgb(98 219 167 / 10%), transparent 28rem),
+    linear-gradient(rgb(156 242 204 / 2%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(156 242 204 / 2%) 1px, transparent 1px),
+    var(--color-canvas);
+  background-size:
+    auto,
+    4rem 4rem,
+    4rem 4rem,
+    auto;
+  color: var(--color-text);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  text-rendering: optimizeLegibility;
 }
-
 a {
   color: inherit;
 }
-
-::selection {
-  background: var(--accent);
-  color: var(--background);
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
 }
-
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 4px;
+}
+[id] {
+  scroll-margin-top: 7rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

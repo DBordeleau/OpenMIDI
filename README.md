@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians will be able to share stems, propose contributions, and fork songs into new creative directions while preserving history and attribution.
 
-> **Current status:** early MVP foundation. The repository contains the Next.js application shell, local Supabase Postgres development and typed client infrastructure, quality tooling, and a stack-verification page. Authentication, projects, uploads, contributions, and OpenDAW are not implemented yet.
+> **Current status:** early MVP foundation. The repository contains a responsive public product shell, a small semantic UI foundation, local Supabase Postgres development and typed client infrastructure, and quality tooling. Authentication, projects, uploads, contributions, and OpenDAW are not implemented yet.
 
 ## Planned MVP
 
@@ -169,6 +169,7 @@ That browser download is only needed for E2E tests, not normal development.
 
 ```text
 src/app/           Next.js routes, layouts, styles, and route-owned UI
+src/components/    Reusable layout and UI primitives used by current routes
 src/features/      Feature-owned code; the future studio adapter boundary lives here
 src/lib/env/       Runtime configuration validation
 src/lib/supabase/  Generated database types and user-scoped client factories
