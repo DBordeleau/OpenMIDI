@@ -34,7 +34,7 @@ The following vertical slices are implemented and are the baseline for future wo
 - exact-version owner review with request changes/rejection and atomic stale-safe acceptance into immutable history;
 - explicit ordered self/external source-credit confirmation, immutable per-revision track snapshots, distinct publisher and accepted-contributor attribution, role-bearing project presentation, authenticated accepted history, and a deliberately empty public-history surface until public projects are activated.
 
-The next planned slice adds copy-on-write forks and navigable lineage. Public discovery, broader dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; the evidence directory records the production path through PR 14.
+Copy-on-write forks and navigable lineage are implemented. Public discovery, broader dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; the evidence directory records the production path through PR 15.
 
 ## Executive recommendation
 

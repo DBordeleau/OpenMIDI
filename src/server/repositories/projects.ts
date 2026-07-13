@@ -11,14 +11,27 @@ import type { Database } from "@/lib/supabase/database.types";
 export async function listProjectFormOptions(): Promise<ProjectFormOptions> {
   const db = await createSupabaseServerClient();
   const [licenses, genres, tags] = await Promise.all([
-    db.from("licenses").select("code,name,url,summary").order("sort_order"),
+    db
+      .from("licenses")
+      .select(
+        "code,name,url,summary,allows_derivatives,requires_attribution,share_alike",
+      )
+      .order("sort_order"),
     db.from("genres").select("id,slug,name").order("sort_order"),
     db.from("tags").select("id,slug,display_name").order("sort_order"),
   ]);
   if (licenses.error || genres.error || tags.error)
     throw new Error("project_options_unavailable");
   return {
-    licenses: licenses.data,
+    licenses: licenses.data.map((license) => ({
+      code: license.code,
+      name: license.name,
+      url: license.url,
+      summary: license.summary,
+      allowsDerivatives: license.allows_derivatives,
+      requiresAttribution: license.requires_attribution,
+      shareAlike: license.share_alike,
+    })),
     genres: genres.data,
     tags: tags.data.map((row) => ({
       id: row.id,
@@ -94,7 +107,7 @@ export async function getProjectForViewer(
   const { data: project, error } = await db
     .from("projects")
     .select(
-      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,published_at,created_at,updated_at,license_code,project_members(role)",
+      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,project_members(role)",
     )
     .eq("id", projectId)
     .maybeSingle();
@@ -102,7 +115,9 @@ export async function getProjectForViewer(
   const [license, genres, tags] = await Promise.all([
     db
       .from("licenses")
-      .select("code,name,url,summary")
+      .select(
+        "code,name,url,summary,allows_derivatives,requires_attribution,share_alike",
+      )
       .eq("code", project.license_code)
       .single(),
     db
@@ -127,7 +142,15 @@ export async function getProjectForViewer(
       numerator: project.time_signature_numerator,
       denominator: project.time_signature_denominator,
     },
-    license: license.data,
+    license: {
+      code: license.data.code,
+      name: license.data.name,
+      url: license.data.url,
+      summary: license.data.summary,
+      allowsDerivatives: license.data.allows_derivatives,
+      requiresAttribution: license.data.requires_attribution,
+      shareAlike: license.data.share_alike,
+    },
     genres: genres.data.map((row) => ({
       ...row.genres,
       isPrimary: row.is_primary,
@@ -143,6 +166,8 @@ export async function getProjectForViewer(
     visibility: "private",
     status: project.status as ProjectDetail["status"],
     currentRevisionId: project.current_revision_id,
+    sourceProjectId: project.source_project_id,
+    sourceRevisionId: project.source_revision_id,
     publishedAt: project.published_at,
     createdAt: project.created_at,
     updatedAt: project.updated_at,

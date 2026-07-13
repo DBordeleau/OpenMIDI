@@ -103,31 +103,33 @@ PR 06 implemented the private metadata foundation as `projects`, `project_member
 concurrency and `(owner_id, create_request_id)` idempotency. The initial controlled
 catalog is 4 licenses, 12 genres, 16 tags, and 16 instruments with fixed IDs.
 PR 08 added `current_revision_id` with a same-project composite foreign key when
-immutable revisions landed. `source_project_id` and `source_revision_id` remain
-deferred until the fork tables and command are implemented; no dangling fork UUID
-columns exist.
+immutable revisions landed. PR 15 added the immutable `source_project_id` and
+`source_revision_id` pair plus a same-project source-revision foreign key for
+copy-on-write lineage.
 
 ### `projects`
 
-| Column                                     | Type                 | Rules                                              |
-| ------------------------------------------ | -------------------- | -------------------------------------------------- |
-| `id`                                       | `uuid`               | PK                                                 |
-| `owner_id`                                 | `uuid`               | FK profiles                                        |
-| `title`                                    | `text`               | 1–120 chars                                        |
-| `description`                              | `text null`          | max 5,000 chars                                    |
-| `visibility`                               | `project_visibility` | default private                                    |
-| `status`                                   | `project_status`     | default draft                                      |
-| `open_to_contributions`                    | `boolean`            | default false                                      |
-| `bpm`                                      | `numeric(6,3) null`  | > 0 and <= 400                                     |
-| `musical_key`                              | `text null`          | canonical application enum value                   |
-| `time_signature_numerator`                 | `smallint`           | default 4, 1–32                                    |
-| `time_signature_denominator`               | `smallint`           | default 4, in 1,2,4,8,16,32                        |
-| `license_code`                             | `text`               | FK `licenses(code)`                                |
-| `current_revision_id`                      | `uuid null`          | implemented same-project composite FK to revisions |
-| `created_at`, `updated_at`, `published_at` | `timestamptz`        | lifecycle timestamps                               |
-| `deleted_at`                               | `timestamptz null`   | soft deletion                                      |
+| Column                                     | Type                 | Rules                                                 |
+| ------------------------------------------ | -------------------- | ----------------------------------------------------- |
+| `id`                                       | `uuid`               | PK                                                    |
+| `owner_id`                                 | `uuid`               | FK profiles                                           |
+| `title`                                    | `text`               | 1–120 chars                                           |
+| `description`                              | `text null`          | max 5,000 chars                                       |
+| `visibility`                               | `project_visibility` | default private                                       |
+| `status`                                   | `project_status`     | default draft                                         |
+| `open_to_contributions`                    | `boolean`            | default false                                         |
+| `bpm`                                      | `numeric(6,3) null`  | > 0 and <= 400                                        |
+| `musical_key`                              | `text null`          | canonical application enum value                      |
+| `time_signature_numerator`                 | `smallint`           | default 4, 1–32                                       |
+| `time_signature_denominator`               | `smallint`           | default 4, in 1,2,4,8,16,32                           |
+| `license_code`                             | `text`               | FK `licenses(code)`                                   |
+| `current_revision_id`                      | `uuid null`          | implemented same-project composite FK to revisions    |
+| `source_project_id`                        | `uuid null`          | immutable source project; paired with source revision |
+| `source_revision_id`                       | `uuid null`          | immutable exact source revision                       |
+| `created_at`, `updated_at`, `published_at` | `timestamptz`        | lifecycle timestamps                                  |
+| `deleted_at`                               | `timestamptz null`   | soft deletion                                         |
 
-Planned fork columns `source_project_id` and `source_revision_id` do not exist yet. When introduced, they will be either both null or both non-null. A fork cannot reference itself. Cycle prevention belongs in the future fork function, although normal creation only points backward.
+Fork lineage columns are either both null or both non-null, cannot self-reference, and cannot be changed after insertion. The composite foreign key proves that the recorded revision belongs to the recorded source project. `fork_project(...)` only creates a new project that points to a pre-existing revision, so the creation direction cannot introduce a cycle.
 
 ### `project_members`
 
@@ -368,10 +370,11 @@ Avoid permissive direct updates to lifecycle columns. Expose functions such as:
 - `submit_contribution(...)`
 - `withdraw_contribution(...)`
 - `review_contribution(...)`
+- `fork_project(...)`
 
 Each function verifies `auth.uid()`, validates current state, uses row locks where needed and returns the created/updated IDs.
 
-`fork_project(...)` is the next planned command and does not exist through PR 14.
+`fork_project(...)` uses an actor-scoped request UUID for idempotency, verifies exact source membership and derivative-license permission under a row lock, creates the target project/revision/owner membership atomically, reuses asset references without inserting `assets`, preserves track authors and immutable credit/attribution snapshots, and creates no workspace until the studio is opened.
 
 ## Deletion and retention
 
