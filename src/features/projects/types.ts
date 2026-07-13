@@ -38,7 +38,7 @@ export type ProjectDetail = {
   lockVersion: number;
   viewerRole: "owner" | "editor" | "viewer";
   openToContributions: boolean;
-  visibility: "private";
+  visibility: "private" | "public";
   status: "draft" | "active";
   currentRevisionId: string | null;
   sourceProjectId: string | null;

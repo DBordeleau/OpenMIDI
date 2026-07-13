@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { PrimaryNavigation } from "./primary-navigation.client";
 
 const sectionLinks = [
+  { href: "/explore", label: "Explore" },
   { href: "/#how", label: "How it works" },
   { href: "/#console", label: "The studio" },
   { href: "/#credits", label: "Credits" },
@@ -52,7 +53,7 @@ export function HeaderNav() {
         <PrimaryNavigation />
         <Link
           href="/settings/profile"
-          className="rounded-control bg-accent hover:bg-accent-strong text-accent-contrast order-2 inline-flex min-h-11 shrink-0 items-center px-4 text-sm font-semibold transition-colors sm:order-3"
+          className="cta-gradient text-accent-contrast order-2 inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition-transform hover:-translate-y-px sm:order-3"
         >
           Account
         </Link>

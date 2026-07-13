@@ -36,8 +36,8 @@ export function CollaborationSettingForm({
     >
       <h2 className="text-xl font-bold">Contribution submissions</h2>
       <p className="text-muted mt-2">
-        Accept proposals from people who already have access to this project.
-        This does not make the project public or change its license.
+        Accept proposals from eligible musicians who can see this project. This
+        setting does not change visibility or the project license.
       </p>
       <p className="mt-3 font-semibold">
         Submissions are currently {open ? "open" : "closed"}.
@@ -48,7 +48,7 @@ export function CollaborationSettingForm({
         </p>
       )}
       <button
-        className="rounded-control border-strong mt-5 min-h-11 border px-5 font-semibold disabled:opacity-50"
+        className="border-strong mt-5 min-h-11 rounded-full border px-5 font-semibold disabled:opacity-50"
         disabled={pending}
       >
         {pending

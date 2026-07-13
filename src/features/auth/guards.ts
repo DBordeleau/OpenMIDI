@@ -14,3 +14,10 @@ export async function requireViewer(destination: string) {
   if (profile.status !== "active") redirect("/account-unavailable");
   return profile;
 }
+
+export async function getOptionalViewer() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data?.claims?.sub) return null;
+  return getViewerProfile();
+}

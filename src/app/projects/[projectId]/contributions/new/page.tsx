@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { CreateContributionForm } from "@/features/contributions/create-contribution-form";
 import { projectIdSchema } from "@/features/projects/schema";
 import { getProjectForViewer } from "@/server/repositories/projects";
+import { getPublicProject } from "@/server/repositories/public-projects";
 
 export default async function NewContributionPage({
   params,
@@ -13,13 +14,40 @@ export default async function NewContributionPage({
 }) {
   const { projectId } = await params;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
-  await requireViewer("/projects/" + projectId + "/contributions/new");
-  const project = await getProjectForViewer(projectId);
+  const viewer = await requireViewer(
+    "/projects/" + projectId + "/contributions/new",
+  );
+  if (!viewer.profileCompletedAt) redirect("/onboarding");
+  const memberProject = await getProjectForViewer(projectId);
+  const publicProject = memberProject
+    ? null
+    : await getPublicProject(projectId);
+  const project = memberProject
+    ? {
+        title: memberProject.title,
+        owner: memberProject.viewerRole === "owner",
+        active: memberProject.status === "active",
+        open: memberProject.openToContributions,
+        currentRevisionId: memberProject.currentRevisionId,
+        license: memberProject.license,
+        visibility: memberProject.visibility,
+      }
+    : publicProject
+      ? {
+          title: publicProject.title,
+          owner: false,
+          active: true,
+          open: publicProject.openToContributions,
+          currentRevisionId: publicProject.currentRevisionId,
+          license: publicProject.license,
+          visibility: "public" as const,
+        }
+      : null;
   if (
     !project ||
-    project.viewerRole === "owner" ||
-    project.status !== "active" ||
-    !project.openToContributions ||
+    project.owner ||
+    !project.active ||
+    !project.open ||
     !project.currentRevisionId
   )
     notFound();
@@ -33,7 +61,9 @@ export default async function NewContributionPage({
           >
             Return to project
           </Link>
-          <p className="text-accent mt-6 font-semibold">Private contribution</p>
+          <p className="text-accent mt-6 font-semibold">
+            Private contribution workspace
+          </p>
           <h1 className="mt-2 text-4xl font-bold">
             Propose changes to {project.title}
           </h1>
@@ -46,9 +76,13 @@ export default async function NewContributionPage({
           </p>
           <p className="text-muted mt-3">
             Displayed license:{" "}
-            <a className="underline" href={project.license.url}>
-              {project.license.name}
-            </a>
+            {project.license.url ? (
+              <a className="underline" href={project.license.url}>
+                {project.license.name}
+              </a>
+            ) : (
+              project.license.name
+            )}
             .
           </p>
           <CreateContributionForm

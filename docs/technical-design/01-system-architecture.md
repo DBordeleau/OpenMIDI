@@ -54,18 +54,18 @@ flowchart LR
 
 ## Rendering and route map
 
-| Route                                     | State       | Rendering                         | Notes                                                       |
-| ----------------------------------------- | ----------- | --------------------------------- | ----------------------------------------------------------- |
-| `/`                                       | Implemented | Server-rendered                   | Public product shell                                        |
-| `/explore`                                | Planned     | Server-rendered, cached briefly   | Discovery query parameters form the future filter contract  |
-| `/@{username}`                            | Implemented | Server-rendered                   | Canonical profile display uses `@`; database stores no `@`  |
-| `/projects`                               | Implemented | Authenticated Server Component    | RLS-scoped member project index and next-action links       |
-| `/projects/{projectId}`                   | Implemented | Authenticated Server Component    | Private metadata, revision history, export and studio links |
-| `/projects/{projectId}/studio`            | Implemented | Server shell + lazy client studio | Editor/Tone/browser audio load only after explicit open     |
-| `/contributions`                          | Implemented | Authenticated Server Component    | Author-owned contribution status and version index          |
-| `/projects/{projectId}/contributions`     | Implemented | Authenticated server page         | Owner review queue or contributor-owned submissions         |
-| `/projects/{projectId}/contributions/new` | Implemented | Authenticated server page         | Eligible non-owner contribution creation                    |
-| `/auth/callback`                          | Implemented | Route Handler                     | Exchanges OAuth code and redirects to onboarding if needed  |
+| Route                                     | State       | Rendering                         | Notes                                                      |
+| ----------------------------------------- | ----------- | --------------------------------- | ---------------------------------------------------------- |
+| `/`                                       | Implemented | Server-rendered                   | Public product shell                                       |
+| `/explore`                                | Implemented | Server-rendered, version-cached   | Bounded canonical GET filters and keyset pagination        |
+| `/@{username}`                            | Implemented | Server-rendered                   | Canonical profile display uses `@`; database stores no `@` |
+| `/projects`                               | Implemented | Authenticated Server Component    | RLS-scoped member project index and next-action links      |
+| `/projects/{projectId}`                   | Implemented | Public/member Server Component    | Safe anonymous metadata branch or full member presentation |
+| `/projects/{projectId}/studio`            | Implemented | Server shell + lazy client studio | Editor/Tone/browser audio load only after explicit open    |
+| `/contributions`                          | Implemented | Authenticated Server Component    | Author-owned contribution status and version index         |
+| `/projects/{projectId}/contributions`     | Implemented | Authenticated server page         | Owner review queue or contributor-owned submissions        |
+| `/projects/{projectId}/contributions/new` | Implemented | Authenticated server page         | Eligible non-owner contribution creation                   |
+| `/auth/callback`                          | Implemented | Route Handler                     | Exchanges OAuth code and redirects to onboarding if needed |
 
 Use stable opaque IDs in project URLs for MVP. Human-readable slugs can be added later without changing identity.
 
@@ -229,7 +229,7 @@ Users may delete their own rejected contribution earlier if it has not been acce
 
 ## Caching and consistency
 
-- Public project/profile pages may use tag-based revalidation.
+- Public project/profile pages use safe projections and transactional discovery-version cache keys, with tags for prompt application-driven revalidation.
 - Viewer-specific pages and signed URLs are never shared-cacheable.
 - Database mutation commits before cache revalidation; stale cache affects presentation, not authorization.
 - Use optimistic concurrency on workspaces (`lock_version`) and projects (`current_revision_id`). A stale client receives a conflict rather than overwriting newer state.

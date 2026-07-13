@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians create projects from stems, preserve immutable revision history, propose contributions with durable attribution, and create copy-on-write forks with navigable lineage.
 
-> **Current status:** PRs 01–15 are complete, including Phase C and the Phase D collaboration graph. Global responsive navigation, invite-only Google sign-in/onboarding, private projects, resumable source uploads with automatic trusted verification and explicit ordered credit confirmation, immutable revision publishing with stable track/publisher snapshots, synchronized playback, conflict-safe workspaces, authorized exports, immutable contribution versions, owner review/atomic acceptance, durable accepted-contributor attribution, and copy-on-write forks with navigable lineage are implemented. Discovery, moderation, retention operations, and release hardening remain planned.
+> **Current status:** PRs 01–16 are complete. Global responsive navigation, invite-only Google sign-in/onboarding, private immutable audio and history, synchronized playback, conflict-safe workspaces, contribution review/acceptance, durable attribution, copy-on-write forks, owner-controlled public projects, safe metadata-only public pages, public profile history, and bounded Explore search are implemented. Moderation, retention operations, broader navigation, and release hardening remain planned.
 
 ## MVP scope
 

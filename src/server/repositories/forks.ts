@@ -4,6 +4,7 @@ import type { ForkProjectInput } from "@/features/forks/schema";
 import type { ForkSource, ProjectLineage } from "@/features/forks/types";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPublicProject } from "@/server/repositories/public-projects";
 
 export async function getForkSourceForViewer(input: {
   projectId: string;
@@ -27,13 +28,39 @@ export async function getForkSourceForViewer(input: {
     throw new Error("fork_source_unavailable");
   const project = projectResult.data;
   const revision = revisionResult.data;
-  if (
-    !project ||
-    !revision ||
-    project.status !== "active" ||
-    project.deleted_at !== null
-  )
-    return null;
+  if (!project || !revision) {
+    const publicProject = await getPublicProject(input.projectId);
+    if (!publicProject || publicProject.currentRevisionId !== input.revisionId)
+      return null;
+    const { data: publicLicense, error: publicLicenseError } = await db
+      .from("licenses")
+      .select(
+        "code,name,url,summary,allows_derivatives,requires_attribution,share_alike",
+      )
+      .eq("code", publicProject.license.code)
+      .maybeSingle();
+    if (publicLicenseError) throw new Error("fork_source_unavailable");
+    if (!publicLicense) return null;
+    return {
+      projectId: publicProject.projectId,
+      projectTitle: publicProject.title,
+      projectDescription: publicProject.description,
+      revisionId: publicProject.currentRevisionId,
+      revisionNumber: publicProject.revisionNumber,
+      durationMs: publicProject.durationMs,
+      trackCount: publicProject.tracks.length,
+      license: {
+        code: publicLicense.code,
+        name: publicLicense.name,
+        url: publicLicense.url,
+        summary: publicLicense.summary,
+        allowsDerivatives: publicLicense.allows_derivatives,
+        requiresAttribution: publicLicense.requires_attribution,
+        shareAlike: publicLicense.share_alike,
+      },
+    };
+  }
+  if (project.status !== "active" || project.deleted_at !== null) return null;
 
   const { data: license, error: licenseError } = await db
     .from("licenses")

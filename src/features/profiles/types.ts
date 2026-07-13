@@ -18,6 +18,15 @@ export type PublicProfile = {
   bio: string | null;
 };
 
+export type PublicProfileHistory = {
+  projects: Array<{
+    projectId: string;
+    title: string;
+    publishedAt: string;
+  }>;
+  acceptedContributions: AcceptedContributionHistoryItem[];
+};
+
 export type AcceptedContributionHistoryItem = {
   revisionId: string;
   revisionNumber: number;

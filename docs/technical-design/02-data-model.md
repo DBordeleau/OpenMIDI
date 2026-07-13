@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 14
+Status: Accepted MVP design; implemented through PR 16
 
 Database: Supabase Postgres
 
@@ -309,9 +309,9 @@ Planned moderation tables are `moderation_reports(id, reporter_id, target_type, 
 
 ## Discovery and activity
 
-The following discovery projections and search indexes are planned for Phase E; the bounded activity events emitted by current publish commands are already implemented.
+PR 16 implements a safe `public_project_catalog`, internal `project_stats`, and one-row `discovery_state`. Transactional refresh triggers keep public eligibility, safe metadata/credit summaries, deterministic trending inputs, and cache versions aligned with authoritative project state.
 
-- `project_stats(project_id PK, play_count, fork_count, contribution_count, accepted_contribution_count, last_activity_at, trending_score, updated_at)` is a derived cache, never authorization authority.
+- `project_stats(project_id PK, revision_events, accepted_contributions, public_direct_forks, last_public_activity_at, trending_score, updated_at)` is a derived internal cache, never authorization authority.
 - `activity_events(id bigint identity, actor_id, event_type, project_id, subject_id, payload jsonb, created_at)` is append-only and contains no secrets.
 - Search uses a generated/stored weighted `tsvector` for title, description and tags plus B-tree indexes for BPM, key, status, visibility and timestamps.
 - Trigram indexes may support username/project-title typo tolerance after measuring query plans.
@@ -319,7 +319,7 @@ The following discovery projections and search indexes are planned for Phase E; 
 
 ## Important indexes
 
-The following is the target minimum across implemented and planned phases. Contribution review indexes are implemented; public-discovery indexes remain deferred until that slice is built.
+The following is the target minimum across implemented and planned phases. PR 16 owns measured GIN/B-tree/keyset indexes on the safe catalog; authoritative relationship indexes remain on normalized tables.
 
 ```sql
 create unique index profiles_username_normalized_uq on profiles (username_normalized);
@@ -343,7 +343,7 @@ Every foreign-key column used for delete/reference checks needs a supporting ind
 
 RLS predicates should call small, stable helper functions such as `is_project_member(project_id, minimum_role)` where useful. Mark security-definer helpers carefully, set `search_path`, and revoke public execute unless intended.
 
-This is the MVP target matrix. Through PR 14, projects remain private, while participant-private contribution drafting and owner review are application-reachable. Public-project and discovery paths remain deferred; implemented private-project, workspace, source-asset, contribution, profile, revision, and credit policies follow the applicable rows below.
+This is the implemented MVP matrix through PR 16. Public project reads use a safe projection rather than broad authoritative-table selects; `unlisted` remains application-unreachable. Source audio is never granted merely because a project is public: access requires ownership, current membership, an owned active workspace reference, or an authored immutable contribution-version reference.
 
 | Resource                          | Anonymous                       | Signed-in user                                                                                                                              | Owner/reviewer                                   |
 | --------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/layout/container";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { Aurora } from "./_components/aurora.client";
@@ -528,9 +529,9 @@ export default function Home() {
                 signedIn={{ href: "/projects/new", label: "Create something" }}
                 className={ctaPrimary}
               />
-              <a href="#how" className={ctaSecondary}>
-                See how it works
-              </a>
+              <Link href="/explore" className={ctaSecondary}>
+                Explore projects
+              </Link>
             </div>
           </Reveal>
         </Container>

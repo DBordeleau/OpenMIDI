@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { ForkProjectForm } from "@/features/forks/fork-project-form";
@@ -20,7 +20,10 @@ export default async function ForkProjectPage({
     !projectIdSchema.safeParse(revision).success
   )
     notFound();
-  await requireViewer(`/projects/${projectId}/fork?revision=${revision}`);
+  const viewer = await requireViewer(
+    `/projects/${projectId}/fork?revision=${revision}`,
+  );
+  if (!viewer.profileCompletedAt) redirect("/onboarding");
 
   const source = await getForkSourceForViewer({
     projectId,

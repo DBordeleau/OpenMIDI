@@ -1,16 +1,42 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
-import { StemDownloadPanel } from "@/features/exports/stem-download-panel.client";
-import { requireViewer } from "@/features/auth/guards";
+import { getOptionalViewer } from "@/features/auth/guards";
 import { CollaborationSettingForm } from "@/features/contributions/collaboration-setting-form";
 import { CreditList } from "@/features/credits/credit-list";
 import { aggregateCredits } from "@/features/credits/types";
+import { PublicProjectPage } from "@/features/discovery/public-project-page";
 import { projectIdSchema } from "@/features/projects/schema";
+import { ProjectVisibilityForm } from "@/features/projects/project-visibility-form";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
 import { getProjectLineage } from "@/server/repositories/forks";
 import { getProjectForViewer } from "@/server/repositories/projects";
+import {
+  getPublicProject,
+  getPublicProjectLineage,
+} from "@/server/repositories/public-projects";
 import { getRevisionHistory } from "@/server/repositories/revisions";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}): Promise<Metadata> {
+  const { projectId } = await params;
+  if (!projectIdSchema.safeParse(projectId).success)
+    return { robots: { index: false, follow: false } };
+  const project = await getPublicProject(projectId);
+  if (!project) return { robots: { index: false, follow: false } };
+  return {
+    title: `${project.title} · Jam Session`,
+    description:
+      project.description?.slice(0, 160) ??
+      `A public music project by @${project.ownerUsername}.`,
+    alternates: { canonical: `/projects/${project.projectId}` },
+  };
+}
+
 export default async function ProjectPage({
   params,
   searchParams,
@@ -19,10 +45,29 @@ export default async function ProjectPage({
   searchParams: Promise<{ saved?: string; forked?: string }>;
 }) {
   const { projectId } = await params;
-  const viewer = await requireViewer(`/projects/${projectId}`);
   if (!projectIdSchema.safeParse(projectId).success) notFound();
-  const project = await getProjectForViewer(projectId);
-  if (!project) notFound();
+  const viewer = await getOptionalViewer();
+  const project =
+    viewer?.status === "active" && viewer.profileCompletedAt
+      ? await getProjectForViewer(projectId)
+      : null;
+  if (!project) {
+    const publicProject = await getPublicProject(projectId);
+    if (!publicProject) notFound();
+    const publicLineage = await getPublicProjectLineage(projectId);
+    return (
+      <PublicProjectPage
+        project={publicProject}
+        lineage={publicLineage}
+        canCollaborate={
+          viewer?.status === "active" && viewer.profileCompletedAt !== null
+        }
+      />
+    );
+  }
+  if (!viewer || viewer.status !== "active") notFound();
+  const { MemberStemDownloads } =
+    await import("@/features/projects/member-stem-downloads");
   const [revisions, contributions, lineage] = await Promise.all([
     getRevisionHistory(projectId),
     listContributionsByAuthor(),
@@ -80,7 +125,8 @@ export default async function ProjectPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-accent font-semibold">
-                Private · {project.status === "active" ? "Active" : "Draft"}
+                {project.visibility === "public" ? "Public" : "Private"} ·{" "}
+                {project.status === "active" ? "Active" : "Draft"}
               </p>
               <h1 className="mt-2 text-4xl font-bold">{project.title}</h1>
             </div>
@@ -153,6 +199,11 @@ export default async function ProjectPage({
           )}
           {project.status === "active" && project.ownerId === viewer.id && (
             <>
+              <ProjectVisibilityForm
+                projectId={project.id}
+                lockVersion={project.lockVersion}
+                visibility={project.visibility}
+              />
               <CollaborationSettingForm
                 projectId={project.id}
                 lockVersion={project.lockVersion}
@@ -278,7 +329,7 @@ export default async function ProjectPage({
                 </p>
               )}
               <div className="mt-6">
-                <StemDownloadPanel
+                <MemberStemDownloads
                   endpoint={`/api/projects/${project.id}/revisions/${current.id}/downloads/stems`}
                   assetIds={current.tracks.map((track) => track.assetId)}
                 />
