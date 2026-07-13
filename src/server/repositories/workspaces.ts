@@ -17,7 +17,7 @@ export async function getActiveWorkspace(
   const { data, error } = await db
     .from("workspaces")
     .select(
-      "id,project_id,owner_id,base_revision_id,lock_version,manifest,manifest_version,engine,engine_version,manifest_sha256,updated_at,workspace_tracks(track_id,asset_id,instrument_id,name,position_ms,trim_start_ms,duration_ms,gain_db,pan,muted,soloed,sort_order,instruments(name),assets(asset_credits(credit_name,position)))",
+      "id,project_id,owner_id,contribution_id,snapshot_asset_id,base_revision_id,lock_version,manifest,manifest_version,engine,engine_version,manifest_sha256,created_at,updated_at,workspace_tracks(track_id,asset_id,instrument_id,name,position_ms,trim_start_ms,duration_ms,gain_db,pan,muted,soloed,sort_order,instruments(name),assets(asset_credits(credit_name,position)))",
     )
     .eq("project_id", projectId)
     .eq("status", "active")
@@ -66,11 +66,14 @@ export async function getActiveWorkspace(
     id: data.id,
     projectId: data.project_id,
     ownerId: data.owner_id,
+    contributionId: data.contribution_id,
+    snapshotAssetId: data.snapshot_asset_id,
     baseRevisionId: data.base_revision_id,
     lockVersion: data.lock_version,
     manifest,
     manifestSha256: data.manifest_sha256,
     updatedAt: data.updated_at,
+    createdAt: data.created_at,
     tracks: projected.map((track) => ({
       trackId: track.track_id,
       assetId: track.asset_id,

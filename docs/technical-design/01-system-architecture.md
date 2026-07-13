@@ -118,6 +118,8 @@ PR 11 completes owner publication with `publish_workspace_revision()`. The wrapp
 3. Submission freezes the draft into proposed revision `C`, records `base_revision_id = R`, and changes contribution state from `draft` to `submitted`.
 4. Subsequent changes require a new contribution revision; submitted bytes are not overwritten.
 
+PR 12 implements steps 1–4 for non-owner members who already have access to an active private project. Creation atomically links a contribution to an author-owned workspace cloned from the exact current revision. Autosave remains private and conflict-safe. Submission locks project, contribution, and workspace in that order, requires the exact acknowledged lock/checksum/snapshot and contributor-attestation-v1, then copies the manifest and normalized tracks into immutable version rows without advancing project history or project storage usage. Withdrawal archives the workspace while retaining versions. Owner review, request-changes, rejection, and atomic acceptance remain PR 13.
+
 ### Accept a contribution
 
 1. Lock the contribution and target project.

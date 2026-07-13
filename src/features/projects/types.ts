@@ -33,6 +33,8 @@ export type ProjectDetail = {
   genres: (TaxonomyOption & { isPrimary: boolean })[];
   tags: TaxonomyOption[];
   lockVersion: number;
+  viewerRole: "owner" | "editor" | "viewer";
+  openToContributions: boolean;
   visibility: "private";
   status: "draft" | "active";
   currentRevisionId: string | null;

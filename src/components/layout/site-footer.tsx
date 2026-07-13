@@ -20,6 +20,9 @@ export function SiteFooter() {
           <Link className="hover:text-ink" href="/projects/new">
             New project
           </Link>
+          <Link className="hover:text-ink" href="/contributions">
+            Contributions
+          </Link>
           <AuthAwareLink
             signedOut={{ href: "/sign-in", label: "Sign in" }}
             signedIn={{ href: "/settings/profile", label: "Account" }}

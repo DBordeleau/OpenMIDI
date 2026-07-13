@@ -47,7 +47,7 @@ create type asset_credit_role as enum
   ('creator', 'performer', 'producer', 'engineer', 'other');
 ```
 
-Workspace status is currently constrained text (`active` or `archived`), not an enum. Contribution lifecycle values remain planned until PR 12 creates the contribution schema.
+Workspace status is constrained text (`active` or `archived`). PR 12 adds the complete `contribution_status` enum: `draft`, `submitted`, `changes_requested`, `accepted`, `rejected`, and `withdrawn`; PR 12 commands produce only draft, submitted, and withdrawn.
 
 ## Identity
 
@@ -232,17 +232,16 @@ The user-facing upload repository explicitly filters `assets.kind = 'source_audi
 
 ### `workspaces`
 
-Implemented mutable private owner drafts:
+Implemented mutable private owner and contribution-author drafts:
 
 - `id`, `project_id`, `owner_id`
 - `create_request_id` for owner-scoped idempotent creation
-- `base_revision_id null`
+- exact `base_revision_id`
+- nullable `contribution_id`; null means owner project workspace, non-null is constrained to the same contribution project, author, and base
 - `snapshot_asset_id null`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`, `manifest_sha256`
 - `status` constrained to `active` or `archived`, `lock_version integer`, `created_at`, `updated_at`
 
-`contribution_id` does not exist yet. PR 12 may add it with the contribution-workspace uniqueness rules when the referenced table exists.
-
-PR 10 allows one active owner workspace per project through a partial unique index. `create_project_workspace()` copies the exact current revision and its track projection. `reserve_workspace_snapshot()` creates a server-named, private, insert-only Storage reservation. `save_workspace()` locks the draft, requires the expected `lock_version`, validates the complete manifest and snapshot reservation, synchronizes `workspace_tracks`, assigns the immutable snapshot, and increments the version atomically. Stale, duplicate, unauthorized, suspended, or mismatched-project saves fail without changing the draft or published history.
+PR 10 allows one active viewer-owned workspace per project through a partial unique index. `create_project_workspace()` copies the exact current revision and its track projection. PR 12 links contributor workspaces through a composite contribution/project/author/base foreign key. `reserve_workspace_snapshot()` and `save_workspace()` preserve owner behavior while allowing only draft or changes-requested contribution authors to edit.
 
 PR 11 adds `publish_workspace_revision()`, which delegates immutable revision creation to `publish_project_revision()` and advances the same active workspace only after that canonical transaction succeeds. Its idempotent result is proven by the immutable revision publish-request record and the post-publish workspace base/lock. `restart_project_workspace()` archives a stale workspace and clones the exact current revision; it never rebases or merges draft fields.
 
@@ -250,7 +249,7 @@ PR 11 adds `publish_workspace_revision()`, which delegates immutable revision cr
 
 Queryable mutable projection of the workspace manifest. It mirrors the engine-neutral fields in `revision_tracks` and uses primary key `(workspace_id, track_id)`, with retention/discovery indexes on `asset_id` and `instrument_id`. Application roles may select their own rows but cannot mutate the projection directly; only workspace commands replace it after manifest validation.
 
-### `contributions` (planned — PR 12)
+### `contributions` (implemented — PR 12)
 
 - `id`, `project_id`, `author_id`, idempotent `create_request_id`, `base_revision_id`
 - `title`, `description`
@@ -258,13 +257,13 @@ Queryable mutable projection of the workspace manifest. It mirrors the engine-ne
 - `submitted_at`, `withdrawn_at`, `reviewed_at`, `reviewed_by`
 - `review_note`, `created_at`, `updated_at`
 
-State transitions occur only through database functions/service commands. Authors can withdraw; owners can request changes, accept or reject. Accepted/rejected contribution records are retained as audit history, while every submitted version and its track projection remain immutable.
+State transitions occur only through database commands. PR 12 authors can create, submit, and withdraw; PR 13 owns request-changes, accept, and reject. Every submitted version and its track projection remain immutable.
 
-### `contribution_versions` (planned — PR 12)
+### `contribution_versions` (implemented — PR 12)
 
-Immutable submission attempts: `id`, `contribution_id`, positive `version_number`, idempotent `submission_request_id`, exact `base_revision_id`, `snapshot_asset_id`, canonical `manifest`, engine/version/checksum/duration fields, versioned contributor attestation, `created_by`, and `created_at`. Unique `(contribution_id, version_number)` and `(contribution_id, submission_request_id)`. A contribution’s `current_version_id` must belong to it.
+Immutable submission attempts: `id`, `contribution_id`, positive `version_number`, idempotent `submission_request_id`, exact `base_revision_id`, `snapshot_asset_id`, acknowledged `workspace_lock_version`, canonical `manifest`, engine/version/checksum/duration fields, versioned contributor attestation, `created_by`, and `created_at`. Unique `(contribution_id, version_number)` and `(contribution_id, submission_request_id)`. A contribution’s `current_version_id` must belong to it.
 
-### `contribution_version_tracks` (planned — PR 12)
+### `contribution_version_tracks` (implemented — PR 12)
 
 Immutable queryable projection of each submitted manifest, mirroring the engine-neutral arrangement fields in `revision_tracks` and retaining `added_by` provenance. Asset, instrument, ordering, and track relationships remain normalized for review, retention, and future acceptance instead of being hidden only in JSONB. The submitted manifest remains the portable authority, and the command must prove projection equivalence before commit.
 

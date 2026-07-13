@@ -26,6 +26,10 @@ describe("PrimaryNavigation", () => {
       "href",
       "/uploads",
     );
+    expect(screen.getByRole("link", { name: "Contributions" })).toHaveAttribute(
+      "href",
+      "/contributions",
+    );
   });
 
   it("marks project routes as the current workspace without masking creation", () => {
@@ -39,6 +43,20 @@ describe("PrimaryNavigation", () => {
     usePathname.mockReturnValue("/projects/new");
     rerender(<PrimaryNavigation />);
     expect(screen.getByRole("link", { name: "New project" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("link", { name: "My projects" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks only Contributions current on nested contribution routes", () => {
+    usePathname.mockReturnValue(
+      "/projects/project-id/contributions/contribution-id",
+    );
+    render(<PrimaryNavigation />);
+    expect(screen.getByRole("link", { name: "Contributions" })).toHaveAttribute(
       "aria-current",
       "page",
     );

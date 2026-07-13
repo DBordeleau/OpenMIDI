@@ -44,6 +44,29 @@ export type StudioLauncherProps = CommonProps &
         assets: WorkspaceAssetOption[];
         instruments: WorkspaceInstrumentOption[];
       }
+    | {
+        mode: "contribution";
+        contributionId: string;
+        contributionTitle: string;
+        contributionStatus:
+          | "draft"
+          | "submitted"
+          | "changes_requested"
+          | "accepted"
+          | "rejected"
+          | "withdrawn";
+        canEdit: boolean;
+        viewerId: string;
+        workspaceId: string;
+        baseRevisionId: string;
+        currentRevisionId: string;
+        currentRevisionNumber: number;
+        lockVersion: number;
+        manifestSha256: string;
+        updatedAt: string;
+        assets: WorkspaceAssetOption[];
+        instruments: WorkspaceInstrumentOption[];
+      }
   );
 
 export function StudioLauncher(props: StudioLauncherProps) {

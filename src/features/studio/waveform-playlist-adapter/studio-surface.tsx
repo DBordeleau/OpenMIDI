@@ -56,7 +56,11 @@ import { hasAlignedMixerState } from "./mixer-state";
 import { WaveformPlaylistStudioAdapter } from "./adapter.client";
 
 type TrackMeta = StudioLauncherProps["tracks"][number];
-type EditableProps = Extract<StudioLauncherProps, { mode: "workspace" }>;
+type WorkspaceProps = Extract<
+  StudioLauncherProps,
+  { mode: "workspace" | "contribution" }
+>;
+type EditableProps = WorkspaceProps;
 
 const formatTime = (seconds: number) => {
   const safe = Math.max(0, seconds);
@@ -499,7 +503,12 @@ function PlaybackControls({
 }
 
 export function StudioSurface(props: StudioLauncherProps) {
-  const editable = props.mode === "workspace" ? props : null;
+  const workspaceAuthority = props.mode === "revision" ? null : props;
+  const editable =
+    props.mode === "workspace" ||
+    (props.mode === "contribution" && props.canEdit)
+      ? props
+      : null;
   const [adapter, setAdapter] = useState(
     () => new WaveformPlaylistStudioAdapter(),
   );
@@ -546,7 +555,7 @@ export function StudioSurface(props: StudioLauncherProps) {
   );
 
   const sourceEndpoint =
-    props.mode === "workspace"
+    props.mode !== "revision"
       ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`
       : `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`;
   const signLoad = useCallback(async (): Promise<SignedAudioSource[]> => {
@@ -554,7 +563,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        editable
+        workspaceAuthority
           ? { mode: "load", assetIds: initialAssetIds }
           : { assetIds: initialAssetIds },
       ),
@@ -569,7 +578,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       );
     const value = (await response.json()) as { sources: SignedAudioSource[] };
     return value.sources;
-  }, [editable, initialAssetIds, sourceEndpoint]);
+  }, [initialAssetIds, sourceEndpoint, workspaceAuthority]);
   const signAdd = useCallback(
     async (assetId: string) => {
       if (!editable) throw new Error("read_only");
@@ -966,6 +975,33 @@ export function StudioSurface(props: StudioLauncherProps) {
   );
   return (
     <section className="space-y-6">
+      {props.mode === "contribution" && (
+        <div className="rounded-card border-subtle border p-4">
+          <p className="text-accent font-semibold">
+            Contribution: {props.contributionTitle}
+          </p>
+          <p className="text-muted mt-1 text-sm">
+            Status: {props.contributionStatus.replace("_", " ")} Â· Based on
+            revision {props.currentRevisionNumber}
+          </p>
+          <Link
+            className="mt-2 inline-flex underline"
+            href={
+              "/projects/" +
+              props.projectId +
+              "/contributions/" +
+              props.contributionId
+            }
+          >
+            Return to contribution
+          </Link>
+          {!props.canEdit && (
+            <p className="mt-3 font-semibold">
+              This submitted or terminal contribution is read-only.
+            </p>
+          )}
+        </div>
+      )}
       <div
         aria-live="polite"
         className="rounded-control border-subtle bg-surface border p-4"
@@ -1120,62 +1156,64 @@ export function StudioSurface(props: StudioLauncherProps) {
               delete its uploaded source.
             </p>
           </div>
-          <section className="rounded-card border-strong border p-5">
-            <h2 className="font-bold">Publish saved workspace</h2>
-            <p className="text-muted mt-1 text-sm">
-              Publishing creates a new immutable revision. It never changes the
-              previous revision.
-            </p>
-            <label className="mt-4 block">
-              Revision message (optional)
-              <textarea
-                className="border-subtle mt-1 block min-h-24 w-full border p-3"
-                maxLength={500}
-                value={publishMessage}
-                onChange={(event) => setPublishMessage(event.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              className="bg-accent rounded-control mt-4 min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-50"
-              disabled={
-                autosave.status !== "saved" ||
-                Boolean(pendingManifest) ||
-                publishState.status === "publishing"
-              }
-              onClick={() => void publishWorkspace()}
-            >
-              {publishState.status === "publishing"
-                ? "Publishing…"
-                : "Publish revision"}
-            </button>
-            {publishState.status === "published" && (
-              <p className="mt-3" role="status">
-                Revision {publishState.revisionNumber} published. This workspace
-                now continues from it.
+          {props.mode === "workspace" && (
+            <section className="rounded-card border-strong border p-5">
+              <h2 className="font-bold">Publish saved workspace</h2>
+              <p className="text-muted mt-1 text-sm">
+                Publishing creates a new immutable revision. It never changes
+                the previous revision.
               </p>
-            )}
-            {publishState.status === "error" && (
-              <p className="mt-3" role="alert">
-                {publishState.message}
-              </p>
-            )}
-            {publishState.status === "stale" && (
-              <div className="mt-4" role="alert">
-                <p>
-                  The project has a newer revision. Jam Session will not merge
-                  or overwrite it automatically.
+              <label className="mt-4 block">
+                Revision message (optional)
+                <textarea
+                  className="border-subtle mt-1 block min-h-24 w-full border p-3"
+                  maxLength={500}
+                  value={publishMessage}
+                  onChange={(event) => setPublishMessage(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="bg-accent rounded-control mt-4 min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-50"
+                disabled={
+                  autosave.status !== "saved" ||
+                  Boolean(pendingManifest) ||
+                  publishState.status === "publishing"
+                }
+                onClick={() => void publishWorkspace()}
+              >
+                {publishState.status === "publishing"
+                  ? "Publishing…"
+                  : "Publish revision"}
+              </button>
+              {publishState.status === "published" && (
+                <p className="mt-3" role="status">
+                  Revision {publishState.revisionNumber} published. This
+                  workspace now continues from it.
                 </p>
-                <button
-                  type="button"
-                  className="rounded-control border-strong mt-3 min-h-11 border px-4"
-                  onClick={() => void restartWorkspace()}
-                >
-                  Restart draft from current revision
-                </button>
-              </div>
-            )}
-          </section>
+              )}
+              {publishState.status === "error" && (
+                <p className="mt-3" role="alert">
+                  {publishState.message}
+                </p>
+              )}
+              {publishState.status === "stale" && (
+                <div className="mt-4" role="alert">
+                  <p>
+                    The project has a newer revision. Jam Session will not merge
+                    or overwrite it automatically.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-control border-strong mt-3 min-h-11 border px-4"
+                    onClick={() => void restartWorkspace()}
+                  >
+                    Restart draft from current revision
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
         </div>
       ) : (
         <p className="text-muted text-sm">
@@ -1184,7 +1222,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       )}
       <StemDownloadPanel
         endpoint={
-          props.mode === "workspace"
+          props.mode !== "revision"
             ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/downloads/stems`
             : `/api/projects/${props.projectId}/revisions/${props.revisionId}/downloads/stems`
         }

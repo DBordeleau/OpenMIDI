@@ -9,12 +9,22 @@ const links = [
     label: "My projects",
     active: (pathname: string) =>
       pathname === "/projects" ||
-      (pathname.startsWith("/projects/") && pathname !== "/projects/new"),
+      (pathname.startsWith("/projects/") &&
+        pathname !== "/projects/new" &&
+        !pathname.includes("/contributions")),
   },
   {
     href: "/projects/new",
     label: "New project",
     active: (pathname: string) => pathname === "/projects/new",
+  },
+  {
+    href: "/contributions",
+    label: "Contributions",
+    active: (pathname: string) =>
+      pathname === "/contributions" ||
+      (pathname.startsWith("/projects/") &&
+        pathname.includes("/contributions")),
   },
   {
     href: "/uploads",

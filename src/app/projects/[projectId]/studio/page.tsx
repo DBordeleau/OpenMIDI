@@ -5,10 +5,11 @@ import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { StudioLauncher } from "@/features/studio/components/studio-launcher.client";
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form";
+import { getContributionForViewer } from "@/server/repositories/contributions";
 import { getProjectForViewer } from "@/server/repositories/projects";
 import {
   getRevisionPlayback,
-  listPublishOptions,
+  listWorkspaceAssetOptions,
 } from "@/server/repositories/revisions";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
@@ -26,15 +27,18 @@ export default async function StudioPage({
   const viewer = await requireViewer(`/projects/${projectId}/studio`);
   const project = await getProjectForViewer(projectId);
   if (!project) notFound();
+  const workspace = await getActiveWorkspace(projectId);
+  const contribution = workspace?.contributionId
+    ? await getContributionForViewer(workspace.contributionId)
+    : null;
   const editable = project.ownerId === viewer.id;
-  const workspace = editable ? await getActiveWorkspace(projectId) : null;
   const revision = project.currentRevisionId
     ? await getRevisionPlayback({
         projectId,
         revisionId: project.currentRevisionId,
       })
     : null;
-  const options = workspace ? await listPublishOptions() : null;
+  const options = workspace ? await listWorkspaceAssetOptions() : null;
   const workspaceDurationMs = workspace
     ? Math.max(
         ...workspace.manifest.tracks.map(
@@ -66,7 +70,38 @@ export default async function StudioPage({
                 : "Synchronized playback of the immutable published arrangement."}
             </p>
           </div>
-          {workspace && options ? (
+          {workspace && options && contribution ? (
+            <StudioLauncher
+              mode="contribution"
+              projectId={projectId}
+              projectTitle={project.title}
+              contributionId={contribution.id}
+              contributionTitle={contribution.title}
+              contributionStatus={contribution.status}
+              canEdit={
+                contribution.status === "draft" ||
+                contribution.status === "changes_requested"
+              }
+              viewerId={viewer.id}
+              workspaceId={workspace.id}
+              baseRevisionId={workspace.baseRevisionId}
+              currentRevisionId={revision!.revisionId}
+              currentRevisionNumber={revision!.revisionNumber}
+              lockVersion={workspace.lockVersion}
+              manifestSha256={workspace.manifestSha256}
+              updatedAt={workspace.updatedAt}
+              manifest={workspace.manifest}
+              durationMs={workspaceDurationMs}
+              tracks={workspace.tracks}
+              assets={options.assets.map((asset) => ({
+                id: asset.id,
+                filename: asset.filename,
+                durationMs: asset.durationMs,
+                creditName: asset.creditName,
+              }))}
+              instruments={options.instruments}
+            />
+          ) : workspace && options ? (
             <StudioLauncher
               mode="workspace"
               projectId={projectId}

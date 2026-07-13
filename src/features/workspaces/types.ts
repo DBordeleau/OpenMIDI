@@ -13,11 +13,14 @@ export type EditableWorkspace = {
   id: string;
   projectId: string;
   ownerId: string;
+  contributionId: string | null;
+  snapshotAssetId: string | null;
   baseRevisionId: string;
   lockVersion: number;
   manifest: WorkspaceManifestV1;
   manifestSha256: string;
   updatedAt: string;
+  createdAt: string;
   tracks: Array<{
     trackId: string;
     assetId: string;

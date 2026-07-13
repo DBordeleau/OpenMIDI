@@ -100,7 +100,7 @@ export async function getRevisionPlayback(input: {
   };
 }
 
-export async function listPublishOptions(): Promise<{
+export async function listWorkspaceAssetOptions(): Promise<{
   assets: PublishAssetOption[];
   instruments: InstrumentOption[];
 }> {
@@ -148,6 +148,8 @@ export async function listPublishOptions(): Promise<{
     instruments: instruments.data,
   };
 }
+
+export const listPublishOptions = listWorkspaceAssetOptions;
 
 export async function publishRevision(input: {
   projectId: string;

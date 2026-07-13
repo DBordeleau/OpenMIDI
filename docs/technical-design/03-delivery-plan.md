@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; M0–M3 implementation complete through PR 11.5 plus post-phase navigation and studio/upload presentation fixes
+Status: Accepted; M0–M3 complete and M4 contribution draft/submission implemented through PR 12
 
 ## Delivery strategy
 
@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M3 are implemented. The current shell also includes an authenticated member-project index and active-route navigation; upload history excludes internal snapshot assets; and the pinned Next.js 16.2.10 studio omits the route loading boundary that caused a Firefox development refresh loop. Conditional manual browser/audio/Preview checks remain recorded in the corresponding evidence documents and are not represented as completed when they were not run. M4–M6 remain planned.
+M0–M3 and the PR 12 contribution draft/submission portion of M4 are implemented. The current shell also includes an authenticated member-project index and active-route navigation; upload history excludes internal snapshot assets; and the pinned Next.js 16.2.10 studio omits the route loading boundary that caused a Firefox development refresh loop. Conditional manual browser/audio/Preview checks remain recorded in the corresponding evidence documents and are not represented as completed when they were not run. M4 review/acceptance and M5–M6 remain planned.
 
 ### M0 — Decisions and feasibility
 
@@ -51,8 +51,8 @@ Exit: the defined MVP studio subset survives hard refresh and a new browser sess
 
 ### M4 — Contribution and review
 
-- Contribution workspace based on an exact revision.
-- Submit immutable contribution version.
+- Contribution workspace based on an exact revision. **Implemented in PR 12 for already-authorized private-project members.**
+- Submit immutable contribution version. **Implemented in PR 12 with versioned attestation and retained withdrawal history.**
 - Owner review with A/B metadata and accept/reject/request-changes.
 - Atomic accept creates a project revision; outdated base is surfaced.
 - Credit snapshots and asset attribution.

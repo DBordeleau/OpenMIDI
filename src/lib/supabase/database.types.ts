@@ -271,6 +271,293 @@ export type Database = {
           },
         ]
       }
+      contribution_version_tracks: {
+        Row: {
+          added_by: string
+          asset_id: string
+          contribution_version_id: string
+          duration_ms: number
+          gain_db: number
+          instrument_id: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          soloed: boolean
+          sort_order: number
+          track_id: string
+          trim_start_ms: number
+        }
+        Insert: {
+          added_by: string
+          asset_id: string
+          contribution_version_id: string
+          duration_ms: number
+          gain_db: number
+          instrument_id?: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          soloed: boolean
+          sort_order: number
+          track_id: string
+          trim_start_ms: number
+        }
+        Update: {
+          added_by?: string
+          asset_id?: string
+          contribution_version_id?: string
+          duration_ms?: number
+          gain_db?: number
+          instrument_id?: string | null
+          muted?: boolean
+          name?: string
+          pan?: number
+          position_ms?: number
+          soloed?: boolean
+          sort_order?: number
+          track_id?: string
+          trim_start_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_version_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_version_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_version_tracks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_version_tracks_contribution_version_id_fkey"
+            columns: ["contribution_version_id"]
+            isOneToOne: false
+            referencedRelation: "contribution_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_version_tracks_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "instruments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contribution_versions: {
+        Row: {
+          attestation_version: string
+          base_revision_id: string
+          contribution_id: string
+          created_at: string
+          created_by: string
+          duration_ms: number
+          engine: string
+          engine_version: string
+          id: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          snapshot_asset_id: string
+          submission_request_id: string
+          version_number: number
+          workspace_lock_version: number
+        }
+        Insert: {
+          attestation_version: string
+          base_revision_id: string
+          contribution_id: string
+          created_at?: string
+          created_by: string
+          duration_ms: number
+          engine: string
+          engine_version: string
+          id?: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          snapshot_asset_id: string
+          submission_request_id: string
+          version_number: number
+          workspace_lock_version: number
+        }
+        Update: {
+          attestation_version?: string
+          base_revision_id?: string
+          contribution_id?: string
+          created_at?: string
+          created_by?: string
+          duration_ms?: number
+          engine?: string
+          engine_version?: string
+          id?: string
+          manifest?: Json
+          manifest_sha256?: string
+          manifest_version?: number
+          snapshot_asset_id?: string
+          submission_request_id?: string
+          version_number?: number
+          workspace_lock_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_versions_base_revision_id_fkey"
+            columns: ["base_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_versions_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_versions_snapshot_asset_id_fkey"
+            columns: ["snapshot_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contributions: {
+        Row: {
+          author_id: string
+          base_revision_id: string
+          create_request_id: string
+          created_at: string
+          current_version_id: string | null
+          description: string | null
+          id: string
+          project_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["contribution_status"]
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          author_id: string
+          base_revision_id: string
+          create_request_id: string
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          project_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["contribution_status"]
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          base_revision_id?: string
+          create_request_id?: string
+          created_at?: string
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["contribution_status"]
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contributions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contributions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contributions_current_version_fk"
+            columns: ["id", "current_version_id"]
+            isOneToOne: false
+            referencedRelation: "contribution_versions"
+            referencedColumns: ["contribution_id", "id"]
+          },
+          {
+            foreignKeyName: "contributions_project_base_fk"
+            columns: ["project_id", "base_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "contributions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contributions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contributions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genres: {
         Row: {
           created_at: string
@@ -1103,6 +1390,7 @@ export type Database = {
       workspaces: {
         Row: {
           base_revision_id: string | null
+          contribution_id: string | null
           create_request_id: string
           created_at: string
           engine: string
@@ -1120,6 +1408,7 @@ export type Database = {
         }
         Insert: {
           base_revision_id?: string | null
+          contribution_id?: string | null
           create_request_id: string
           created_at?: string
           engine: string
@@ -1137,6 +1426,7 @@ export type Database = {
         }
         Update: {
           base_revision_id?: string | null
+          contribution_id?: string | null
           create_request_id?: string
           created_at?: string
           engine?: string
@@ -1159,6 +1449,23 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "project_revisions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_contribution_identity_fk"
+            columns: [
+              "contribution_id",
+              "project_id",
+              "owner_id",
+              "base_revision_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: [
+              "id",
+              "project_id",
+              "author_id",
+              "base_revision_id",
+            ]
           },
           {
             foreignKeyName: "workspaces_owner_id_fkey"
@@ -1241,6 +1548,22 @@ export type Database = {
       complete_source_upload: {
         Args: { p_asset_id: string }
         Returns: Database["public"]["Enums"]["asset_status"]
+      }
+      create_contribution_workspace: {
+        Args: {
+          p_description: string
+          p_expected_current_revision_id: string
+          p_project_id: string
+          p_request_id: string
+          p_title: string
+        }
+        Returns: {
+          base_revision_id: string
+          contribution_id: string
+          created_at: string
+          lock_version: number
+          workspace_id: string
+        }[]
       }
       create_project: {
         Args: {
@@ -1486,6 +1809,36 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      set_project_contributions_open: {
+        Args: {
+          p_expected_lock_version: number
+          p_open: boolean
+          p_project_id: string
+        }
+        Returns: {
+          lock_version: number
+          open_to_contributions: boolean
+          project_id: string
+          updated_at: string
+        }[]
+      }
+      submit_contribution: {
+        Args: {
+          p_attestation_version: string
+          p_contribution_id: string
+          p_expected_base_revision_id: string
+          p_expected_manifest_sha256: string
+          p_expected_workspace_lock_version: number
+          p_request_id: string
+        }
+        Returns: {
+          contribution_id: string
+          created_at: string
+          status: Database["public"]["Enums"]["contribution_status"]
+          version_id: string
+          version_number: number
+        }[]
+      }
       update_project_metadata: {
         Args: {
           p_bpm: number
@@ -1505,6 +1858,19 @@ export type Database = {
           id: string
           lock_version: number
           title: string
+        }[]
+      }
+      withdraw_contribution: {
+        Args: {
+          p_contribution_id: string
+          p_expected_current_version_id: string
+          p_expected_status: Database["public"]["Enums"]["contribution_status"]
+        }
+        Returns: {
+          contribution_id: string
+          current_version_id: string
+          status: Database["public"]["Enums"]["contribution_status"]
+          withdrawn_at: string
         }[]
       }
     }
@@ -1529,6 +1895,13 @@ export type Database = {
         | "ready"
         | "failed"
         | "deleted"
+      contribution_status:
+        | "draft"
+        | "submitted"
+        | "changes_requested"
+        | "accepted"
+        | "rejected"
+        | "withdrawn"
       member_role: "owner" | "editor" | "viewer"
       project_status: "draft" | "active" | "archived" | "deleted"
       project_visibility: "private" | "unlisted" | "public"
@@ -1681,6 +2054,14 @@ export const Constants = {
         "ready",
         "failed",
         "deleted",
+      ],
+      contribution_status: [
+        "draft",
+        "submitted",
+        "changes_requested",
+        "accepted",
+        "rejected",
+        "withdrawn",
       ],
       member_role: ["owner", "editor", "viewer"],
       project_status: ["draft", "active", "archived", "deleted"],
