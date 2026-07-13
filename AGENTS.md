@@ -18,8 +18,9 @@ Load only the documents relevant to the task, but always use them as the source 
 4. Schema, storage, RLS, quotas, and retention: [`docs/technical-design/02-data-model.md`](docs/technical-design/02-data-model.md)
 5. Milestones, testing, and definition of done: [`docs/technical-design/03-delivery-plan.md`](docs/technical-design/03-delivery-plan.md)
 6. Stable architectural decisions: [`docs/technical-design/decisions/README.md`](docs/technical-design/decisions/README.md)
-7. Contributor setup and repository map: [`README.md`](README.md)
-8. Contribution workflow: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+7. Brand, product voice, and visual design for user-facing work: [`docs/design/brand.md`](docs/design/brand.md)
+8. Contributor setup and repository map: [`README.md`](README.md)
+9. Contribution workflow: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 If code, task instructions, and these documents disagree, stop and surface the conflict. A user instruction in the active task takes precedence, but update the relevant documentation when it intentionally changes an established decision.
 
@@ -142,6 +143,7 @@ Prefer a working vertical slice over speculative abstraction. Do not silently re
 - Use server actions for small same-origin mutations and route handlers for callbacks, upload coordination, or stable HTTP contracts.
 - Authorization belongs in service/data boundaries, not middleware or hidden UI controls.
 - Use Tailwind for styling and Motion for purposeful state/transition feedback. Respect reduced-motion preferences and keep core behavior usable without animation.
+- User-facing surfaces must follow [`docs/design/brand.md`](docs/design/brand.md): use the shared semantic tokens and established component patterns, keep product copy warm and musician-focused, and use pill-shaped shared buttons consistent with the landing page. Do not introduce raw palette values or a competing visual system.
 - Use accessible semantic controls and keyboard interactions, especially for playback and mixer functions.
 
 ## Database and migration rules

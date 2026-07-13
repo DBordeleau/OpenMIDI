@@ -9,6 +9,7 @@ Thanks for helping build Jam Session. The project is early, so focused changes a
    - [Product requirements](docs/PRD.md)
    - [Technical-design index](docs/technical-design/README.md)
    - [Architecture decisions](docs/technical-design/decisions/README.md)
+   - [Brand and visual design](docs/design/brand.md) for any user-facing change
 3. Coding agents must follow [AGENTS.md](AGENTS.md).
 
 Discuss changes that alter product scope, the data model, authorization, persisted formats, browser-studio integration, or established architectural decisions before investing in a large implementation.
@@ -18,7 +19,7 @@ Discuss changes that alter product scope, the data model, authorization, persist
 - Start from an up-to-date branch. Names such as `feature/short-description` and `fix/short-description` are recommended until the repository adopts enforced conventions.
 - Keep commits and pull requests focused on one outcome.
 - Explain why the change is needed, not only what files changed.
-- Include screenshots or a short recording for visible UI changes.
+- Include screenshots or a short recording for visible UI changes, demonstrating consistency with the brand guide as well as the intended interaction.
 - Add tests at the layer that owns the behavior.
 - Do not reformat unrelated files or mix opportunistic refactors into feature work.
 - Preserve immutable history, RLS, private storage, and browser-studio boundaries described in the technical design.

@@ -162,6 +162,11 @@ query. Never ship motion without this fallback.
 
 Reusable patterns established by the landing page. Prefer these over re-inventing.
 
+Shared application buttons and button links use the landing page's pill shape
+(`rounded-full`). Variants may change fill, border, emphasis, or density, but must
+not revert to the older `rounded-control` button silhouette. Form fields and
+other compact controls continue to use `rounded-control`.
+
 **Primary CTA** — pill, `.cta-gradient`, dark foreground, hover lift. On the
 landing it is auth-aware (`AuthAwareLink`): signed-out → `/sign-in`, signed-in →
 `/projects/new`, both labeled "Create something".
@@ -234,9 +239,6 @@ hierarchy; preserve it.
 
 ## 9. Open follow-ups
 
-- **Button shape consistency**: landing CTAs are pill-shaped (`rounded-full`)
-  while the shared `ButtonLink`/`Button` use `rounded-control`. Decide whether to
-  standardize app-wide on pills, and update `src/components/ui/button.tsx` if so.
 - **Discovery surface**: hero/CTA copy points at collaboration and creating; a
   public `/explore` page (planned) would let "See how it works" / browse flows
   point at real songs instead of in-page anchors.

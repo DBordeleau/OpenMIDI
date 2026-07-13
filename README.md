@@ -13,7 +13,7 @@ Jam Session is an asynchronous music-collaboration platform inspired by Git and 
 - Fork a project while preserving its source and contributor credits.
 - Discover public projects by musical metadata.
 
-The [product requirements](docs/PRD.md) describe the intended experience. The [technical-design index](docs/technical-design/README.md) explains how it will be built.
+The [product requirements](docs/PRD.md) describe the intended experience. The [technical-design index](docs/technical-design/README.md) explains how it will be built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces.
 
 ## Technology
 
@@ -191,7 +191,7 @@ supabase/          Local stack configuration, seed entry point, and pgTAP tests
 scripts/           Cross-platform repository automation
 tests/e2e/         Playwright browser journeys
 public/            Static files served by Next.js
-docs/              Product requirements, technical design, and decisions
+docs/              Product requirements, brand guidance, technical design, and decisions
 local/             Untracked personal implementation plans; never committed
 ```
 

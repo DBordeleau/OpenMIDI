@@ -4,11 +4,13 @@ Status: Accepted MVP design; implemented through PR 14
 
 Last updated: 2026-07-13
 
-Companion: [`PRD.md`](../PRD.md)
+Companions: [`PRD.md`](../PRD.md) for product intent and [`design/brand.md`](../design/brand.md) for user-facing voice and visual design
 
 ## Purpose
 
 This document set turns the product requirements into an implementation contract. It is intentionally split by concern so coding agents can load the smallest useful context while preserving one source of truth.
+
+For any user-facing surface, treat the brand guide as the presentation contract alongside this technical design. Technical authorization, data, runtime, and persistence rules remain authoritative here; product voice, semantic visual tokens, shared button treatment, typography, motion, and established presentation patterns are authoritative in the brand guide.
 
 | Document                                               | Use it for                                                                             |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------- |

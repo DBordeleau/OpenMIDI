@@ -43,7 +43,7 @@ flowchart LR
 - The header exposes only implemented top-level destinations: home through the brand link, the authenticated member project index, new project, uploads, and a sign-in/account action. Active-route treatment orients users within these workspaces. Project-specific edit, publish, and studio links remain contextual to project cards and pages.
 - Public HTML renders a complete signed-out shell without a server-side Auth dependency. A small Client Component listens for Supabase Auth changes and route transitions, calls `getClaims()` to verify identity, and progressively replaces sign-in links with account or create-project destinations.
 - This Auth-aware display is convenience only. Server Components, server actions, Route Handlers, database commands, and RLS independently authorize every protected destination.
-- Navigation and landing-page actions must remain keyboard accessible at the 320 px minimum layout. Primary mint-accent actions use a dark foreground with WCAG 2.2 AA contrast; do not reintroduce white text on the light accent.
+- Navigation and landing-page actions must remain keyboard accessible at the 320 px minimum layout. User-facing surfaces follow the warm studio-night system in [`docs/design/brand.md`](../design/brand.md): primary coral-to-gold actions use the dark accent foreground with WCAG 2.2 AA contrast, and shared buttons use the landing page's pill shape. Do not place white or light text on coral or gold fills.
 
 ### Supabase
 
