@@ -9,16 +9,113 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          credit_name: string | null
+          display_name: string | null
+          id: string
+          last_active_at: string | null
+          profile_completed_at: string | null
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+          username: string | null
+          username_normalized: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          credit_name?: string | null
+          display_name?: string | null
+          id: string
+          last_active_at?: string | null
+          profile_completed_at?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+          username?: string | null
+          username_normalized?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          credit_name?: string | null
+          display_name?: string | null
+          id?: string
+          last_active_at?: string | null
+          profile_completed_at?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+          username?: string | null
+          username_normalized?: string | null
+        }
+        Relationships: []
+      }
+      reserved_usernames: {
+        Row: {
+          created_at: string
+          reason: string | null
+          username_normalized: string
+        }
+        Insert: {
+          created_at?: string
+          reason?: string | null
+          username_normalized: string
+        }
+        Update: {
+          created_at?: string
+          reason?: string | null
+          username_normalized?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          credit_name: string | null
+          display_name: string | null
+          id: string | null
+          updated_at: string | null
+          username: string | null
+          username_normalized: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          credit_name?: string | null
+          display_name?: string | null
+          id?: string | null
+          updated_at?: string | null
+          username?: string | null
+          username_normalized?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          credit_name?: string | null
+          display_name?: string | null
+          id?: string | null
+          updated_at?: string | null
+          username?: string | null
+          username_normalized?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      claim_username: {
+        Args: { p_username: string }
+        Returns: {
+          username: string
+          username_normalized: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      account_status: "active" | "suspended" | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -145,7 +242,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      account_status: ["active", "suspended", "deleted"],
+    },
   },
 } as const
 

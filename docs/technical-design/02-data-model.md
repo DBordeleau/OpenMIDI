@@ -50,32 +50,38 @@ create type contribution_status as enum
 
 ### `profiles`
 
-| Column                | Type               | Rules                                                             |
-| --------------------- | ------------------ | ----------------------------------------------------------------- |
-| `id`                  | `uuid`             | PK and FK `auth.users(id)` on delete restrict                     |
-| `username`            | `text`             | display casing; 3–30 chars; no leading `@`                        |
-| `username_normalized` | `text`             | lower-case canonical value; unique                                |
-| `display_name`        | `text`             | 1–80 chars                                                        |
-| `credit_name`         | `text`             | 1–120 chars; immutable snapshots copied to credits when published |
-| `avatar_asset_id`     | `uuid null`        | FK assets, image kind (enforced by service/trigger)               |
-| `bio`                 | `text null`        | max 500 chars                                                     |
-| `status`              | `account_status`   | default active                                                    |
-| `created_at`          | `timestamptz`      | default `now()`                                                   |
-| `updated_at`          | `timestamptz`      | trigger-maintained                                                |
-| `last_active_at`      | `timestamptz null` | throttled update, not every request                               |
+| Column                 | Type               | Rules                                                         |
+| ---------------------- | ------------------ | ------------------------------------------------------------- |
+| `id`                   | `uuid`             | PK and FK `auth.users(id)` on delete restrict                 |
+| `username`             | `text null`        | display casing; 3–30 chars; no leading `@`; null before claim |
+| `username_normalized`  | `text null`        | lower-case canonical value; unique; paired with username      |
+| `display_name`         | `text null`        | 1–80 chars; null during onboarding                            |
+| `credit_name`          | `text null`        | 1–120 chars; snapshots copied to published credits            |
+| `bio`                  | `text null`        | max 500 chars                                                 |
+| `status`               | `account_status`   | default active                                                |
+| `profile_completed_at` | `timestamptz null` | requires username, display name and credit name               |
+| `created_at`           | `timestamptz`      | default `now()`                                               |
+| `updated_at`           | `timestamptz`      | trigger-maintained                                            |
+| `last_active_at`       | `timestamptz null` | throttled update, not every request                           |
 
 Recommended checks:
 
 ```sql
-check (username = btrim(username)),
-check (username ~ '^[A-Za-z0-9_]{3,30}$'),
-check (username_normalized = lower(username)),
-check (char_length(display_name) between 1 and 80),
-check (char_length(credit_name) between 1 and 120),
+check ((username is null) = (username_normalized is null)),
+check (username is null or (username = btrim(username) and username ~ '^[A-Za-z0-9_]{3,30}$')),
+check (username is null or username_normalized = lower(username)),
+check (display_name is null or (display_name = btrim(display_name) and char_length(display_name) between 1 and 80)),
+check (credit_name is null or (credit_name = btrim(credit_name) and char_length(credit_name) between 1 and 120)),
 check (bio is null or char_length(bio) <= 500)
 ```
 
-Reserve names such as `admin`, `api`, `auth`, `explore`, `projects`, `settings`, `support` in a `reserved_usernames` table. Claim/rename through one security-definer database function with a fixed `search_path`, explicit authorization and a unique index on `username_normalized`. Limit renames and optionally retain old names later.
+The Auth trigger inserts only the user ID and ignores provider metadata, producing an incomplete row. Only completed active profiles are public. A security-invoker `public_profiles` view exposes safe identity columns; authenticated users may additionally read their own safe projection while incomplete, suspended or deleted. Application roles have no direct profile DML, and lifecycle/activity columns are not selectable through the public view. Profile completion is a separate onboarding command, not a direct update policy.
+
+Reserve names such as `admin`, `api`, `auth`, `explore`, `projects`, `settings`, `support` in a non-readable `reserved_usernames` table. Claim through one self-authorized security-definer function with a fixed empty `search_path`, row lock and unique index on `username_normalized`. Claims are idempotent for the same normalized name; renames and reassignment are deferred.
+
+Administrator membership lives in unexposed `private.app_admins`; the no-argument `private.is_admin()` helper checks only the current authenticated user and grants no automatic RLS bypass. Avatar persistence is deferred until the asset pipeline can enforce asset ownership and image-kind integrity.
+
+The `profiles.id` foreign key deliberately uses `on delete restrict`: deleting an Auth user must wait for the future account-deletion workflow to anonymize identity safely without erasing attribution.
 
 Do not duplicate email into `profiles`. Email comes from `auth.users` for the authenticated viewer only. This prevents accidental exposure through profile selects and avoids sync bugs.
 

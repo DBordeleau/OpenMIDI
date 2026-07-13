@@ -25,7 +25,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-The repository contains the scaffolded frontend foundation plus local Supabase configuration, database testing/type-generation infrastructure, and typed user-scoped clients. It has no product schema or authentication feature yet. npm is the sole package manager and Node.js 24 LTS is required.
+The repository contains the scaffolded frontend foundation plus local Supabase configuration, database testing/type-generation infrastructure, typed user-scoped clients, and the identity/profile authorization schema. OAuth and authentication UI are not implemented yet. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -74,6 +74,8 @@ Database commands require a running Docker-compatible container engine. `npm run
 - Audio, snapshots, and derived files use server-generated asset IDs and private buckets. Do not make a bucket public as an authorization shortcut.
 - All application-facing tables in exposed schemas have RLS enabled and policy tests. The service-role key is server-only and exceptional, not the normal application data path.
 - Email remains in Supabase Auth and must not be copied into publicly selectable profile data.
+- Provider metadata is untrusted for public identity; new Auth users begin with incomplete profiles that are not publicly visible.
+- Read public profiles through a safe projection and never expose lifecycle or activity columns through broad base-table selects.
 - Store usernames without `@`; render them as `@username`. Normalize and claim usernames atomically in the database.
 - Database timestamps are UTC `timestamptz`; serialized application timestamps are ISO 8601 strings.
 - Do not expand MVP scope to real-time collaborative editing, automatic audio merging, payments, native applications, or professional-DAW parity without an explicit product decision.

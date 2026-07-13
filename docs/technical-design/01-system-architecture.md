@@ -59,12 +59,12 @@ Use stable opaque IDs in project URLs for MVP. Human-readable slugs can be added
 ## Authentication and onboarding
 
 1. Supabase completes OAuth and establishes a cookie-backed SSR session.
-2. A database trigger creates a minimal `profiles` row keyed by `auth.users.id`. It must not trust provider metadata for a final username.
-3. A new user is redirected to onboarding to claim a username and confirm `display_name` and `credit_name`.
-4. Username claim is a single database function/transaction backed by a unique normalized index.
+2. A database trigger creates an incomplete `profiles` row keyed by `auth.users.id`. Username, display name, credit name and completion time remain null; provider metadata is never trusted as public identity.
+3. A new user is redirected to onboarding. Username may be claimed first through the atomic `claim_username()` command, but the row remains incomplete until display name, credit name and the completion timestamp are set together by the onboarding command introduced with the authentication UI.
+4. Username claim is a single database function/transaction backed by a unique normalized index and reserved-name policy.
 5. Server code obtains the user with a verified Supabase auth call and relies on RLS plus explicit service authorization.
 
-Email does not belong in the public profile table or public `User` DTO. Define two shapes:
+Only completed, active rows from the safe public-profile projection become `PublicUser` values. Database onboarding fields are nullable; the public domain shape is deliberately non-nullable. Email does not belong in the public profile table or public `User` DTO. Avatar persistence is deferred until the asset pipeline can enforce image ownership and integrity, so clients use a deterministic placeholder meanwhile. Define two eventual shapes:
 
 ```ts
 type PublicUser = {

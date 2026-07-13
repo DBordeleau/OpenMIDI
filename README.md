@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians will be able to share stems, propose contributions, and fork songs into new creative directions while preserving history and attribution.
 
-> **Current status:** early MVP foundation. The repository contains a responsive public product shell, a small semantic UI foundation, local Supabase Postgres development and typed client infrastructure, and quality tooling. Authentication, projects, uploads, contributions, and OpenDAW are not implemented yet.
+> **Current status:** early MVP foundation. The repository contains a responsive public product shell, a small semantic UI foundation, local Supabase Postgres development, typed client infrastructure, the database identity/authorization foundation, and quality tooling. OAuth/onboarding UI, projects, uploads, contributions, and OpenDAW are not implemented yet.
 
 ## Planned MVP
 
