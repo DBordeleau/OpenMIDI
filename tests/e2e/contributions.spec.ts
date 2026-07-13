@@ -106,6 +106,7 @@ async function setupContributionFixture() {
     insert into public.asset_credits(asset_id,position,user_id,credit_name,role)
     values('${assetId}',0,'${ownerId}','Contribution owner','creator')
     on conflict (asset_id,position) do nothing;
+    update public.assets set credits_confirmed_at=ready_at,credits_confirmation_request_id=id,credits_confirmation_sha256=repeat('c',64) where id='${assetId}';
     insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,message,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms)
     values('${revisionId}','${projectId}',1,'${ownerId}','d3000000-0000-4000-8000-000000000011','Fixture revision','${manifest}'::jsonb,1,'waveform-playlist','browser-15.3.4_playout-12.5.4_tone-15.1.22',encode(extensions.digest(convert_to('${manifest}'::jsonb::text,'UTF8'),'sha256'),'hex'),2000)
     on conflict (id) do nothing;
@@ -204,6 +205,7 @@ async function setupReviewFixture() {
     set constraints all immediate; set constraints all deferred;
     insert into public.assets(id,owner_id,status,object_path,original_filename,reserved_byte_size,media_type,byte_size,sha256,duration_ms,sample_rate_hz,channels,verification_version,ready_at) values('${reviewAssetId}','${reviewAuthorId}','ready','${reviewAuthorId}/${reviewAssetId}/source','stem-a.wav',${bytes.byteLength},'audio/wav',${bytes.byteLength},'${sha256}',2000,44100,1,'playwright-fixture-v1',now());
     insert into public.asset_credits(asset_id,position,user_id,credit_name,role) values('${reviewAssetId}',0,'${reviewAuthorId}','Review author','creator');
+    update public.assets set credits_confirmed_at=ready_at,credits_confirmation_request_id=id,credits_confirmation_sha256=repeat('c',64) where id='${reviewAssetId}';
     insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,message,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms) values('${reviewRevisionId}','${reviewProjectId}',1,'${owner.id}','e3000000-0000-4000-8000-000000000011','Base','${manifest}'::jsonb,1,'waveform-playlist','browser-15.3.4_playout-12.5.4_tone-15.1.22',encode(extensions.digest(convert_to('${manifest}'::jsonb::text,'UTF8'),'sha256'),'hex'),2000);
     insert into public.revision_tracks(revision_id,id,asset_id,name,position_ms,trim_start_ms,duration_ms,gain_db,pan,muted,soloed,sort_order,added_by) values('${reviewRevisionId}','${reviewTrackId}','${reviewAssetId}','Contributor take',0,0,2000,0,0,false,false,0,'${reviewAuthorId}');
     insert into public.project_asset_references(project_id,asset_id,first_revision_id,added_by) values('${reviewProjectId}','${reviewAssetId}','${reviewRevisionId}','${reviewAuthorId}');
@@ -319,6 +321,35 @@ test.describe("contribution vertical slice", () => {
     await expect(page.getByText("Accepted as revision 2.")).toBeVisible();
     await expect(
       page.getByText("Accepted · Based on exact revision"),
+    ).toBeVisible();
+    execFileSync(
+      "docker",
+      [
+        "exec",
+        "supabase_db_jam-session",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `update public.profiles set credit_name='Renamed review author' where id='${reviewAuthorId}'`,
+      ],
+      { encoding: "utf8" },
+    );
+    await page.goto(`/projects/${reviewProjectId}`);
+    await expect(
+      page.getByText("Published by Review owner", { exact: false }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Accepted contribution by Review author", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Creator: Review author", { exact: false }),
     ).toBeVisible();
   });
 });

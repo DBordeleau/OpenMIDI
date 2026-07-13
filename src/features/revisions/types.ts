@@ -16,6 +16,7 @@ export type RevisionPlaybackTrack = {
   verifiedDurationMs: number;
   instrumentName: string | null;
   creditName: string;
+  credits: CreditSnapshot[];
 };
 export type RevisionTrack = {
   id: string;
@@ -25,6 +26,7 @@ export type RevisionTrack = {
   durationMs: number;
   sortOrder: number;
   creditName: string;
+  credits: CreditSnapshot[];
 };
 export type RevisionSummary = {
   id: string;
@@ -33,5 +35,11 @@ export type RevisionSummary = {
   durationMs: number;
   createdAt: string;
   authorName: string;
+  publisher: RevisionAttribution;
+  acceptedContributor: RevisionAttribution | null;
   tracks: RevisionTrack[];
 };
+import type {
+  CreditSnapshot,
+  RevisionAttribution,
+} from "@/features/credits/types";

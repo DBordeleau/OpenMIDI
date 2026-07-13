@@ -9,6 +9,44 @@ export const sourceReservationSchema = z.object({
   durationMs: z.number().int().min(1).max(600_000).nullable(),
 });
 
+export const assetCreditRoleSchema = z.enum([
+  "creator",
+  "performer",
+  "producer",
+  "engineer",
+  "other",
+]);
+export const creditDeclarationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("self"), role: assetCreditRoleSchema }),
+  z.object({
+    kind: z.literal("external"),
+    role: assetCreditRoleSchema,
+    creditName: z.string().trim().min(1).max(120),
+  }),
+]);
+export const confirmAssetCreditsSchema = z.object({
+  assetId: z.uuid(),
+  requestId: z.uuid(),
+  credits: z
+    .array(creditDeclarationSchema)
+    .min(1)
+    .max(12)
+    .refine((credits) => credits.some(({ role }) => role === "creator"), {
+      message: "At least one creator credit is required.",
+    })
+    .refine(
+      (credits) => {
+        const keys = credits.map((credit) =>
+          credit.kind === "self"
+            ? `self:${credit.role}`
+            : `external:${credit.creditName.toLowerCase()}:${credit.role}`,
+        );
+        return new Set(keys).size === keys.length;
+      },
+      { message: "Duplicate names with the same role are not allowed." },
+    ),
+});
+
 export async function preflightSourceFile(file: File) {
   if (!file.size || file.size > MAX_SOURCE_BYTES)
     throw new Error("Choose a file between 1 byte and 45 MiB.");

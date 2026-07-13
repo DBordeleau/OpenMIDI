@@ -29,6 +29,7 @@ insert into public.assets(id,owner_id,status,object_path,original_filename,reser
 insert into public.asset_credits(asset_id,position,user_id,credit_name,role) values
 ('d2000000-0000-4000-8000-000000000001',0,'d0000000-0000-4000-8000-000000000001','Owner','creator'),
 ('d2000000-0000-4000-8000-000000000002',0,'d0000000-0000-4000-8000-000000000002','Author','creator');
+update public.assets set credits_confirmed_at=ready_at,credits_confirmation_request_id=id,credits_confirmation_sha256=repeat('c',64) where status='ready';
 
 create temporary table review_base_manifest(value jsonb);
 insert into review_base_manifest values ('{"manifestVersion":1,"engine":"waveform-playlist","engineVersion":"browser-15.3.4_playout-12.5.4_tone-15.1.22","workspaceId":"d1000000-0000-4000-8000-000000000001","tempoBpm":120,"tracks":[{"trackId":"d4000000-0000-4000-8000-000000000001","assetId":"d2000000-0000-4000-8000-000000000001","instrumentId":null,"name":"Base","positionMs":0,"trimStartMs":0,"durationMs":1000,"gainDb":0,"pan":0,"muted":false,"soloed":false,"sortOrder":0}]}'::jsonb);

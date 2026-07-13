@@ -12,7 +12,7 @@ export async function listOwnedSourceAssets(): Promise<OwnedSourceAsset[]> {
   const { data, error } = await db
     .from("assets")
     .select(
-      "id,original_filename,status,media_type,byte_size,duration_ms,sample_rate_hz,channels,failure_code,created_at",
+      "id,original_filename,status,media_type,byte_size,duration_ms,sample_rate_hz,channels,failure_code,created_at,credits_confirmed_at,owner_id,asset_credits(credit_name,role,position,user_id)",
     )
     .eq("kind", "source_audio")
     .order("created_at", { ascending: false })
@@ -29,7 +29,39 @@ export async function listOwnedSourceAssets(): Promise<OwnedSourceAsset[]> {
     channels: row.channels,
     failureCode: row.failure_code,
     createdAt: row.created_at,
+    creditsConfirmedAt: row.credits_confirmed_at,
+    credits: [...row.asset_credits]
+      .sort((a, b) => a.position - b.position)
+      .map((credit) => ({
+        creditName: credit.credit_name,
+        role: credit.role,
+        position: credit.position,
+        isSelf: credit.user_id === row.owner_id,
+      })),
   }));
+}
+
+export async function confirmSourceAssetCredits(input: {
+  assetId: string;
+  requestId: string;
+  credits: Array<
+    | {
+        kind: "self";
+        role: "creator" | "performer" | "producer" | "engineer" | "other";
+      }
+    | {
+        kind: "external";
+        role: "creator" | "performer" | "producer" | "engineer" | "other";
+        creditName: string;
+      }
+  >;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("confirm_source_asset_credits", {
+    p_asset_id: input.assetId,
+    p_request_id: input.requestId,
+    p_credits: input.credits,
+  });
 }
 
 export async function reserveSourceAsset(input: {

@@ -17,12 +17,16 @@ export type StemExportFile = {
   byteSize: number;
   sha256: string;
   creditName: string;
+  credits: Array<{
+    creditName: string;
+    role: "creator" | "performer" | "producer" | "engineer" | "other";
+  }>;
   signedUrl: string;
   expiresAt: string;
 };
 
 export type StemExportResponse = {
-  version: 1;
+  version: 2;
   projectId: string;
   projectTitle: string;
   revisionId: string | null;

@@ -2,6 +2,7 @@ import { requireViewer } from "@/features/auth/guards";
 import { AssetVerificationStatus } from "@/features/assets/asset-verification-status";
 import { SourceUpload } from "@/features/assets/source-upload";
 import { sourceVerificationFailureMessage } from "@/features/assets/types";
+import { CreditConfirmationForm } from "@/features/assets/credit-confirmation-form";
 import { listOwnedSourceAssets } from "@/server/repositories/assets";
 export default async function UploadsPage() {
   await requireViewer("/uploads");
@@ -24,11 +25,28 @@ export default async function UploadsPage() {
               <span className="capitalize">{asset.status}</span>
             </div>
             {asset.status === "ready" && (
-              <p className="mt-1 text-sm text-zinc-400">
-                {asset.mediaType} · {asset.byteSize?.toLocaleString()} bytes ·{" "}
-                {asset.durationMs} ms · {asset.sampleRateHz} Hz ·{" "}
-                {asset.channels} ch
-              </p>
+              <>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {asset.mediaType} · {asset.byteSize?.toLocaleString()} bytes ·{" "}
+                  {asset.durationMs} ms · {asset.sampleRateHz} Hz ·{" "}
+                  {asset.channels} ch
+                </p>
+                {asset.creditsConfirmedAt ? (
+                  <p className="mt-2 text-sm text-emerald-300">
+                    Credits confirmed:{" "}
+                    {asset.credits
+                      .map((credit) => `${credit.creditName} (${credit.role})`)
+                      .join(", ")}
+                  </p>
+                ) : (
+                  <CreditConfirmationForm
+                    assetId={asset.id}
+                    suggestedName={
+                      asset.credits[0]?.creditName ?? "Your credit name"
+                    }
+                  />
+                )}
+              </>
             )}
             {asset.status === "processing" && (
               <AssetVerificationStatus assetId={asset.id} />

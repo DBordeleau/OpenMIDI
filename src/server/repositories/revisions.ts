@@ -11,6 +11,7 @@ import {
   STUDIO_ENGINE_VERSION,
   type WorkspaceManifestV1,
 } from "@/features/studio/manifest/schema";
+import type { CreditSnapshot } from "@/features/credits/types";
 
 export type RevisionPlayback = {
   projectId: string;
@@ -26,6 +27,7 @@ export type RevisionPlayback = {
     verifiedDurationMs: number;
     instrumentName: string | null;
     creditName: string;
+    credits: CreditSnapshot[];
   }>;
 };
 
@@ -37,7 +39,7 @@ export async function getRevisionPlayback(input: {
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),assets(duration_ms,asset_credits(credit_name,position)))",
+      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),assets(duration_ms),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)))",
     )
     .eq("project_id", input.projectId)
     .eq("id", input.revisionId)
@@ -93,9 +95,17 @@ export async function getRevisionPlayback(input: {
       displayName: track.name,
       verifiedDurationMs: track.assets.duration_ms!,
       instrumentName: track.instruments?.name ?? null,
-      creditName:
-        track.assets.asset_credits.find((credit) => credit.position === 0)
-          ?.credit_name ?? "Unknown creator",
+      credits: [...track.revision_track_credits]
+        .sort((a, b) => a.position - b.position)
+        .map((credit) => ({
+          creditName: credit.credit_name,
+          role: credit.role,
+          position: credit.position,
+          profileUsername: credit.profiles?.username ?? null,
+        })),
+      creditName: track.revision_track_credits.find(
+        (credit) => credit.position === 0,
+      )!.credit_name,
     })),
   };
 }
@@ -109,9 +119,10 @@ export async function listWorkspaceAssetOptions(): Promise<{
     db
       .from("assets")
       .select(
-        "id,original_filename,media_type,byte_size,duration_ms,sample_rate_hz,channels,asset_credits(credit_name,position)",
+        "id,original_filename,media_type,byte_size,duration_ms,sample_rate_hz,channels,credits_confirmed_at,asset_credits(credit_name,position)",
       )
       .eq("status", "ready")
+      .not("credits_confirmed_at", "is", null)
       .order("created_at", { ascending: false })
       .limit(30),
     db
@@ -175,31 +186,60 @@ export async function getRevisionHistory(
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,revision_number,message,duration_ms,created_at,profiles!project_revisions_created_by_fkey(credit_name),revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),assets(asset_credits(credit_name,position)))",
+      "id,revision_number,message,duration_ms,created_at,revision_attributions(kind,credit_name,profiles!revision_attributions_user_id_fkey(username)),revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)))",
     )
     .eq("project_id", projectId)
     .order("revision_number", { ascending: false })
     .limit(20);
   if (error) throw new Error("revision_history_unavailable");
-  return data.map((row) => ({
-    id: row.id,
-    revisionNumber: row.revision_number,
-    message: row.message,
-    durationMs: row.duration_ms,
-    createdAt: row.created_at,
-    authorName: row.profiles.credit_name ?? "Unknown author",
-    tracks: row.revision_tracks
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((track) => ({
-        id: track.id,
-        assetId: track.asset_id,
-        instrumentName: track.instruments?.name ?? null,
-        name: track.name,
-        durationMs: track.duration_ms,
-        sortOrder: track.sort_order,
-        creditName:
-          track.assets.asset_credits.find((credit) => credit.position === 0)
-            ?.credit_name ?? "Unknown creator",
-      })),
-  }));
+  return data.map((row) => {
+    const publisher = row.revision_attributions.find(
+      ({ kind }) => kind === "publisher",
+    );
+    const acceptedContributor = row.revision_attributions.find(
+      ({ kind }) => kind === "accepted_contributor",
+    );
+    if (!publisher) throw new Error("revision_attribution_missing");
+    return {
+      id: row.id,
+      revisionNumber: row.revision_number,
+      message: row.message,
+      durationMs: row.duration_ms,
+      createdAt: row.created_at,
+      authorName: publisher.credit_name,
+      publisher: {
+        creditName: publisher.credit_name,
+        profileUsername: publisher.profiles?.username ?? null,
+      },
+      acceptedContributor: acceptedContributor
+        ? {
+            creditName: acceptedContributor.credit_name,
+            profileUsername: acceptedContributor.profiles?.username ?? null,
+          }
+        : null,
+      tracks: row.revision_tracks
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((track) => {
+          const credits = [...track.revision_track_credits]
+            .sort((a, b) => a.position - b.position)
+            .map((credit) => ({
+              creditName: credit.credit_name,
+              role: credit.role,
+              position: credit.position,
+              profileUsername: credit.profiles?.username ?? null,
+            }));
+          if (!credits[0]) throw new Error("revision_credit_missing");
+          return {
+            id: track.id,
+            assetId: track.asset_id,
+            instrumentName: track.instruments?.name ?? null,
+            name: track.name,
+            durationMs: track.duration_ms,
+            sortOrder: track.sort_order,
+            creditName: credits[0].creditName,
+            credits,
+          };
+        }),
+    };
+  });
 }

@@ -55,6 +55,12 @@ export default async function PublicProfilePage({
               {profile.bio}
             </p>
           )}
+          <section className="border-subtle mt-10 border-t pt-8">
+            <h2 className="text-2xl font-bold">Accepted contributions</h2>
+            <p className="text-muted mt-3">
+              No public accepted contributions yet.
+            </p>
+          </section>
         </article>
       </Container>
     </main>

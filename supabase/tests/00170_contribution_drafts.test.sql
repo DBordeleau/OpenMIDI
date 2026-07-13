@@ -25,6 +25,7 @@ insert into public.assets(id,owner_id,status,object_path,original_filename,reser
 values('c2000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','ready','c0000000-0000-4000-8000-000000000001/c2000000-0000-4000-8000-000000000001/source','base.wav',1000,'audio/wav',1000,repeat('a',64),1000,48000,2,'test',now());
 insert into public.asset_credits(asset_id,position,user_id,credit_name,role)
 values('c2000000-0000-4000-8000-000000000001',0,'c0000000-0000-4000-8000-000000000001','Owner','creator');
+update public.assets set credits_confirmed_at=ready_at,credits_confirmation_request_id=id,credits_confirmation_sha256=repeat('c',64) where status='ready';
 
 create temporary table contribution_manifest(value jsonb);
 insert into contribution_manifest values (

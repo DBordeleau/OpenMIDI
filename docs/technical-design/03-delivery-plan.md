@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; M0–M3 complete and M4 contribution review/acceptance implemented through PR 13
+Status: Accepted; M0–M3 complete and M4 implemented through PR 14 attribution
 
 ## Delivery strategy
 
@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M3 and the PR 13 contribution review/acceptance portion of M4 are implemented. The current shell also includes an authenticated member-project index and active-route navigation; upload history excludes internal snapshot assets; and the pinned Next.js 16.2.10 studio omits the route loading boundary that caused a Firefox development refresh loop. Conditional manual browser/audio/Preview checks remain recorded in the corresponding evidence documents and are not represented as completed when they were not run. Final attribution presentation and M5–M6 remain planned.
+M0–M3 and the PR 14 attribution portion of M4 are implemented. Source credits require explicit confirmation, published revisions own immutable musical/activity snapshots, and accepted contributors retain privacy-safe history across profile changes. The current shell also includes an authenticated member-project index and active-route navigation; upload history excludes internal snapshots; and the pinned Next.js 16.2.10 studio omits the Firefox-problematic loading boundary. Conditional manual browser/audio/Preview checks remain recorded as such. M5–M6 remain planned.
 
 ### M0 — Decisions and feasibility
 
@@ -55,6 +55,7 @@ Exit: the defined MVP studio subset survives hard refresh and a new browser sess
 - Submit immutable contribution version. **Implemented in PR 12 with versioned attestation and retained withdrawal history.**
 - Owner review with A/B metadata and accept/reject/request-changes. **Implemented in PR 13 with exact-version private audition and immutable review history.**
 - Atomic accept creates a project revision; outdated base is surfaced. **Implemented in PR 13 with idempotent acceptance and `base_outdated` changes-requested fallback.**
+- Immutable ordered musical credits, distinct publisher/accepted-contributor attribution, rename/deletion stability, and profile history. **Implemented in PR 14.**
 - Credit snapshots and asset attribution.
 
 Exit: a second account can contribute a stem and the owner can accept it without mutating prior history.
