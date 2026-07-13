@@ -661,6 +661,24 @@ export type Database = {
           },
         ]
       }
+      discovery_state: {
+        Row: {
+          singleton: boolean
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          singleton?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          singleton?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       genres: {
         Row: {
           created_at: string
@@ -1100,6 +1118,44 @@ export type Database = {
           },
         ]
       }
+      project_stats: {
+        Row: {
+          accepted_contributions: number
+          last_public_activity_at: string | null
+          project_id: string
+          public_direct_forks: number
+          revision_events: number
+          trending_score: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_contributions?: number
+          last_public_activity_at?: string | null
+          project_id: string
+          public_direct_forks?: number
+          revision_events?: number
+          trending_score?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_contributions?: number
+          last_public_activity_at?: string | null
+          project_id?: string
+          public_direct_forks?: number
+          revision_events?: number
+          trending_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stats_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_storage_usage: {
         Row: {
           project_id: string
@@ -1266,6 +1322,127 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_project_catalog: {
+        Row: {
+          attributions: Json
+          bpm: number | null
+          current_revision_id: string
+          description: string | null
+          discovery_version: number
+          duration_ms: number
+          genre_slugs: string[]
+          genres: Json
+          instrument_slugs: string[]
+          license_allows_derivatives: boolean
+          license_code: string
+          license_name: string
+          license_summary: string
+          license_url: string
+          musical_key: string | null
+          open_to_contributions: boolean
+          owner_id: string
+          project_id: string
+          published_at: string
+          refreshed_at: string
+          revision_number: number
+          search_vector: unknown
+          tag_slugs: string[]
+          tags: Json
+          time_signature_denominator: number
+          time_signature_numerator: number
+          title: string
+          tracks: Json
+          trending_score: number
+          updated_at: string
+        }
+        Insert: {
+          attributions: Json
+          bpm?: number | null
+          current_revision_id: string
+          description?: string | null
+          discovery_version: number
+          duration_ms: number
+          genre_slugs: string[]
+          genres: Json
+          instrument_slugs: string[]
+          license_allows_derivatives: boolean
+          license_code: string
+          license_name: string
+          license_summary: string
+          license_url: string
+          musical_key?: string | null
+          open_to_contributions: boolean
+          owner_id: string
+          project_id: string
+          published_at: string
+          refreshed_at?: string
+          revision_number: number
+          search_vector: unknown
+          tag_slugs: string[]
+          tags: Json
+          time_signature_denominator: number
+          time_signature_numerator: number
+          title: string
+          tracks: Json
+          trending_score: number
+          updated_at: string
+        }
+        Update: {
+          attributions?: Json
+          bpm?: number | null
+          current_revision_id?: string
+          description?: string | null
+          discovery_version?: number
+          duration_ms?: number
+          genre_slugs?: string[]
+          genres?: Json
+          instrument_slugs?: string[]
+          license_allows_derivatives?: boolean
+          license_code?: string
+          license_name?: string
+          license_summary?: string
+          license_url?: string
+          musical_key?: string | null
+          open_to_contributions?: boolean
+          owner_id?: string
+          project_id?: string
+          published_at?: string
+          refreshed_at?: string
+          revision_number?: number
+          search_vector?: unknown
+          tag_slugs?: string[]
+          tags?: Json
+          time_signature_denominator?: number
+          time_signature_numerator?: number
+          title?: string
+          tracks?: Json
+          trending_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_project_catalog_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_project_catalog_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_project_catalog_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1891,6 +2068,18 @@ export type Database = {
           revision_number: number
         }[]
       }
+      get_contribution_project_context: {
+        Args: { p_contribution_id: string }
+        Returns: Json
+      }
+      get_public_profile_history: {
+        Args: { p_profile_id: string }
+        Returns: Json
+      }
+      get_public_project_lineage: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       get_source_verification_status: {
         Args: { p_asset_id: string }
         Returns: {
@@ -2124,6 +2313,47 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      search_public_projects: {
+        Args: {
+          p_after_project_id?: string
+          p_after_published_at?: string
+          p_after_score?: number
+          p_bpm_max?: number
+          p_bpm_min?: number
+          p_genres?: string[]
+          p_instruments?: string[]
+          p_keys?: string[]
+          p_limit?: number
+          p_open?: boolean
+          p_query?: string
+          p_sort?: string
+          p_tags?: string[]
+        }
+        Returns: {
+          attributions: Json
+          bpm: number
+          current_revision_id: string
+          description: string
+          discovery_version: number
+          duration_ms: number
+          genres: Json
+          license_allows_derivatives: boolean
+          license_code: string
+          license_name: string
+          license_summary: string
+          musical_key: string
+          open_to_contributions: boolean
+          owner_id: string
+          project_id: string
+          published_at: string
+          revision_number: number
+          tags: Json
+          title: string
+          tracks: Json
+          trending_score: number
+          updated_at: string
+        }[]
+      }
       set_project_contributions_open: {
         Args: {
           p_expected_lock_version: number
@@ -2135,6 +2365,19 @@ export type Database = {
           open_to_contributions: boolean
           project_id: string
           updated_at: string
+        }[]
+      }
+      set_project_visibility: {
+        Args: {
+          p_expected_lock_version: number
+          p_project_id: string
+          p_visibility: Database["public"]["Enums"]["project_visibility"]
+        }
+        Returns: {
+          lock_version: number
+          project_id: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["project_visibility"]
         }[]
       }
       submit_contribution: {

@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 
 const links = [
   {
+    href: "/explore",
+    label: "Explore",
+    active: (pathname: string) => pathname === "/explore",
+  },
+  {
     href: "/projects",
     label: "My projects",
     active: (pathname: string) =>

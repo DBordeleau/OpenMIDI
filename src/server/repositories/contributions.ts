@@ -13,6 +13,21 @@ import {
 import type { RevisionPlayback } from "@/server/repositories/revisions";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { z } from "zod";
+
+const contributionProjectContextSchema = z.object({
+  title: z.string(),
+  ownerId: z.string().uuid(),
+  currentRevisionId: z.string().uuid().nullable(),
+  currentRevisionNumber: z.number().int().positive().nullable(),
+  baseRevisionNumber: z.number().int().positive(),
+  license: z.object({
+    code: z.string(),
+    name: z.string(),
+    url: z.string(),
+    summary: z.string(),
+  }),
+});
 
 export async function listContributionsByAuthor(): Promise<
   ContributionListItem[]
@@ -21,15 +36,25 @@ export async function listContributionsByAuthor(): Promise<
   const { data, error } = await db
     .from("contributions")
     .select(
-      "id,project_id,title,status,base_revision_id,current_version_id,updated_at,projects(title)",
+      "id,project_id,title,status,base_revision_id,current_version_id,updated_at",
     )
     .order("updated_at", { ascending: false })
     .limit(50);
   if (error) throw new Error("contributions_unavailable");
-  return data.map((row) => ({
+  const contexts = await Promise.all(
+    data.map(async (row) => {
+      const { data: context, error: contextError } = await db.rpc(
+        "get_contribution_project_context",
+        { p_contribution_id: row.id },
+      );
+      if (contextError) throw new Error("contributions_unavailable");
+      return contributionProjectContextSchema.parse(context);
+    }),
+  );
+  return data.map((row, index) => ({
     id: row.id,
     projectId: row.project_id,
-    projectTitle: row.projects.title,
+    projectTitle: contexts[index]!.title,
     title: row.title,
     status: row.status,
     baseRevisionId: row.base_revision_id,
@@ -126,15 +151,20 @@ export async function getContributionForViewer(
   const { data: contribution, error } = await db
     .from("contributions")
     .select(
-      "id,project_id,author_id,title,description,status,base_revision_id,current_version_id,submitted_at,withdrawn_at,updated_at,projects(title,owner_id,current_revision_id,license_code,licenses(code,name,url,summary))",
+      "id,project_id,author_id,title,description,status,base_revision_id,current_version_id,submitted_at,withdrawn_at,updated_at",
     )
     .eq("id", contributionId)
     .maybeSingle();
   if (error || !contribution) return null;
+  const { data: rawContext, error: contextError } = await db.rpc(
+    "get_contribution_project_context",
+    { p_contribution_id: contributionId },
+  );
+  if (contextError || !rawContext) return null;
+  const context = contributionProjectContextSchema.parse(rawContext);
   const [
     { data: versions, error: versionsError },
     reviewsResult,
-    revisionsResult,
     acceptedResult,
   ] = await Promise.all([
     db
@@ -155,47 +185,29 @@ export async function getContributionForViewer(
     db
       .from("project_revisions")
       .select("id,revision_number")
-      .in(
-        "id",
-        [
-          contribution.base_revision_id,
-          contribution.projects.current_revision_id,
-        ].filter((id): id is string => Boolean(id)),
-      ),
-    db
-      .from("project_revisions")
-      .select("id,revision_number")
       .eq("accepted_contribution_id", contributionId)
       .maybeSingle(),
   ]);
   if (versionsError) throw new Error("contribution_versions_unavailable");
-  if (reviewsResult.error || revisionsResult.error || acceptedResult.error)
+  if (reviewsResult.error || acceptedResult.error)
     throw new Error("contribution_review_unavailable");
-  const revisionNumbers = new Map(
-    revisionsResult.data.map((revision) => [
-      revision.id,
-      revision.revision_number,
-    ]),
-  );
   return {
     id: contribution.id,
     projectId: contribution.project_id,
-    projectTitle: contribution.projects.title,
-    projectOwnerId: contribution.projects.owner_id,
+    projectTitle: context.title,
+    projectOwnerId: context.ownerId,
     authorId: contribution.author_id,
     title: contribution.title,
     description: contribution.description,
     status: contribution.status,
     baseRevisionId: contribution.base_revision_id,
-    currentProjectRevisionId: contribution.projects.current_revision_id,
-    baseRevisionNumber: revisionNumbers.get(contribution.base_revision_id)!,
-    currentProjectRevisionNumber: contribution.projects.current_revision_id
-      ? (revisionNumbers.get(contribution.projects.current_revision_id) ?? null)
-      : null,
+    currentProjectRevisionId: context.currentRevisionId,
+    baseRevisionNumber: context.baseRevisionNumber,
+    currentProjectRevisionNumber: context.currentRevisionNumber,
     currentVersionId: contribution.current_version_id,
     acceptedRevisionId: acceptedResult.data?.id ?? null,
     acceptedRevisionNumber: acceptedResult.data?.revision_number ?? null,
-    license: contribution.projects.licenses,
+    license: context.license,
     submittedAt: contribution.submitted_at,
     withdrawnAt: contribution.withdrawn_at,
     updatedAt: contribution.updated_at,

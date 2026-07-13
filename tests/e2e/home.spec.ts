@@ -18,6 +18,9 @@ test("loads the Jam Session product shell without browser errors", async ({
     navigation.getByRole("link", { name: "My projects" }),
   ).toHaveAttribute("href", "/projects");
   await expect(
+    navigation.getByRole("link", { name: "Explore" }),
+  ).toHaveAttribute("href", "/explore");
+  await expect(
     navigation.getByRole("link", { name: "New project" }),
   ).toHaveAttribute("href", "/projects/new");
   await expect(
@@ -26,7 +29,9 @@ test("loads the Jam Session product shell without browser errors", async ({
   await expect(
     page.getByRole("banner").getByRole("link", { name: "Sign in" }),
   ).toHaveAttribute("href", "/sign-in");
-  await expect(page.getByText("Private MVP · invite only")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Explore projects" }),
+  ).toHaveAttribute("href", "/explore");
   expect(pageErrors).toEqual([]);
 });
 

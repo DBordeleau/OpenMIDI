@@ -3,8 +3,33 @@ import "server-only";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ProfileInput } from "@/features/profiles/schema";
-import type { PublicProfile, ViewerProfile } from "@/features/profiles/types";
+import type {
+  PublicProfile,
+  PublicProfileHistory,
+  ViewerProfile,
+} from "@/features/profiles/types";
 import type { AcceptedContributionHistoryItem } from "@/features/profiles/types";
+import { z } from "zod";
+
+const publicProfileHistorySchema = z.object({
+  projects: z.array(
+    z.object({
+      projectId: z.string().uuid(),
+      title: z.string(),
+      publishedAt: z.string(),
+    }),
+  ),
+  acceptedContributions: z.array(
+    z.object({
+      projectId: z.string().uuid(),
+      projectTitle: z.string(),
+      revisionId: z.string().uuid(),
+      revisionNumber: z.number().int().positive(),
+      acceptedAt: z.string(),
+      creditName: z.string(),
+    }),
+  ),
+});
 
 export async function getViewerProfile(): Promise<ViewerProfile | null> {
   const supabase = await createSupabaseServerClient();
@@ -85,4 +110,15 @@ export async function getPublicProfile(
     creditName: data.credit_name,
     bio: data.bio,
   };
+}
+
+export async function getPublicProfileHistory(
+  profileId: string,
+): Promise<PublicProfileHistory> {
+  const supabase = createSupabaseAnonymousClient();
+  const { data, error } = await supabase.rpc("get_public_profile_history", {
+    p_profile_id: profileId,
+  });
+  if (error) throw new Error("public_profile_history_unavailable");
+  return publicProfileHistorySchema.parse(data);
 }

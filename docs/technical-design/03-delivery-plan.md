@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M4 and the copy-on-write fork portion of M5 are implemented. Source credits require explicit confirmation, published revisions own immutable musical/activity snapshots, accepted contributors retain privacy-safe history across profile changes, and authorized derivative forks preserve exact lineage without duplicating source audio. The current shell also includes an authenticated member-project index and active-route navigation; upload history excludes internal snapshots; and the pinned Next.js 16.2.10 studio omits the Firefox-problematic loading boundary. Conditional manual browser/audio/Preview checks remain recorded as such. M5 discovery and M6 hardening remain planned.
+M0–M5 are implemented. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Conditional manual browser/audio/Preview checks remain recorded as such. M6 hardening remains planned.
 
 ### M0 — Decisions and feasibility
 
@@ -62,11 +62,11 @@ Exit: a second account can contribute a stem and the owner can accept it without
 ### M5 — Forking and discovery
 
 - Copy-on-write fork with complete lineage and license checks. **Implemented in PR 15.**
-- Browse/search filters for genre, tags, BPM, key and instrument.
-- Recent and explainable trending ordering.
-- Public profile project/contribution lists.
+- Browse/search filters for genre, tags, BPM, key and instrument. **Implemented in PR 16.**
+- Recent and explainable trending ordering. **Implemented in PR 16.**
+- Public profile project/contribution lists. **Implemented in PR 16.**
 
-Exit: fork lineage is navigable and discovery results respect visibility/RLS.
+Exit: **Met in PR 16** — fork lineage is navigable and discovery results respect visibility/RLS.
 
 ### M6 — Launch hardening
 

@@ -100,6 +100,19 @@ export async function updateProjectMetadata(
   return db.rpc("update_project_metadata", args);
 }
 
+export async function setProjectVisibility(input: {
+  projectId: string;
+  expectedLockVersion: number;
+  visibility: "private" | "public";
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("set_project_visibility", {
+    p_project_id: input.projectId,
+    p_expected_lock_version: input.expectedLockVersion,
+    p_visibility: input.visibility,
+  });
+}
+
 export async function getProjectForViewer(
   projectId: string,
 ): Promise<ProjectDetail | null> {
@@ -163,7 +176,7 @@ export async function getProjectForViewer(
     lockVersion: project.lock_version,
     viewerRole: project.project_members[0]!.role,
     openToContributions: project.open_to_contributions,
-    visibility: "private",
+    visibility: project.visibility as ProjectDetail["visibility"],
     status: project.status as ProjectDetail["status"],
     currentRevisionId: project.current_revision_id,
     sourceProjectId: project.source_project_id,

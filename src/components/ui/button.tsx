@@ -11,12 +11,12 @@ export function ButtonLink({
 }>) {
   const styles =
     variant === "primary"
-      ? "bg-accent text-slate-950 hover:bg-accent-strong"
+      ? "cta-gradient text-accent-contrast hover:-translate-y-px"
       : "border border-strong bg-surface text-ink hover:border-accent hover:text-accent";
   return (
     <Link
       href={href}
-      className={`rounded-control inline-flex min-h-11 items-center justify-center px-5 py-3 text-sm font-semibold transition-colors ${styles}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition ${styles}`}
     >
       {children}
     </Link>
@@ -31,7 +31,7 @@ export function Button({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-control bg-accent hover:bg-accent-strong min-h-11 px-5 py-3 text-sm font-semibold text-slate-950 transition-colors"
+      className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-px"
     >
       {children}
     </button>
