@@ -128,6 +128,7 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 
 ### `project_revisions`
 
+<<<<<<< Updated upstream
 | Column                     | Type          | Rules                               |
 | -------------------------- | ------------- | ----------------------------------- |
 | `id`                       | `uuid`        | PK                                  |
@@ -145,6 +146,25 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 | `mix_preview_asset_id`     | `uuid null`   | derived audio                       |
 | `accepted_contribution_id` | `uuid null`   | provenance                          |
 | `created_at`               | `timestamptz` | immutable                           |
+=======
+| Column                     | Type          | Rules                                                      |
+| -------------------------- | ------------- | ---------------------------------------------------------- |
+| `id`                       | `uuid`        | PK                                                         |
+| `project_id`               | `uuid`        | FK projects                                                |
+| `revision_number`          | `integer`     | positive; unique per project                               |
+| `parent_revision_id`       | `uuid null`   | previous revision                                          |
+| `created_by`               | `uuid`        | FK profiles                                                |
+| `message`                  | `text null`   | max 500 chars                                              |
+| `snapshot_asset_id`        | `uuid null`   | reserved for a future engine-native artifact; null for MVP |
+| `manifest`                 | `jsonb`       | validated versioned portable subset                        |
+| `manifest_version`         | `smallint`    | explicit schema version                                    |
+| `engine`                   | `text`        | MVP value `waveform-playlist`                              |
+| `engine_version`           | `text`        | exact adapter/package compatibility version                |
+| `duration_ms`              | `bigint`      | non-negative verified duration                             |
+| `mix_preview_asset_id`     | `uuid null`   | derived audio                                              |
+| `accepted_contribution_id` | `uuid null`   | provenance                                                 |
+| `created_at`               | `timestamptz` | immutable                                                  |
+>>>>>>> Stashed changes
 
 Unique `(project_id, revision_number)`. `parent_revision_id` must belong to the same project, enforced in the publishing function. Deny update/delete to application roles. Corrections create a new revision.
 
@@ -152,6 +172,7 @@ Unique `(project_id, revision_number)`. `parent_revision_id` must belong to the 
 
 This is the queryable, engine-neutral track projection:
 
+<<<<<<< Updated upstream
 | Column             | Type           | Notes                                                 |
 | ------------------ | -------------- | ----------------------------------------------------- |
 | `id`               | `uuid`         | stable track identity where carried between revisions |
@@ -173,6 +194,29 @@ This is the queryable, engine-neutral track projection:
 Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
 
 MVP supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects state outside the promoted collaboration subset until corresponding manifest validation and normalized projections exist.
+=======
+| Column            | Type           | Notes                                                 |
+| ----------------- | -------------- | ----------------------------------------------------- |
+| `id`              | `uuid`         | stable track identity where carried between revisions |
+| `revision_id`     | `uuid`         | part of composite PK                                  |
+| `asset_id`        | `uuid`         | source audio asset                                    |
+| `engine_track_id` | `text null`    | optional adapter-local mapping, not global identity   |
+| `name`            | `text`         | 1–120 chars                                           |
+| `instrument_id`   | `uuid null`    | controlled taxonomy                                   |
+| `position_ms`     | `bigint`       | >= 0                                                  |
+| `trim_start_ms`   | `bigint`       | >= 0                                                  |
+| `duration_ms`     | `bigint`       | > 0 and within asset duration                         |
+| `gain_db`         | `numeric(6,3)` | bounded application range                             |
+| `pan`             | `numeric(5,4)` | -1 through 1                                          |
+| `muted`           | `boolean`      | default false                                         |
+| `soloed`          | `boolean`      | saved workspace preference                            |
+| `sort_order`      | `integer`      | non-negative                                          |
+| `added_by`        | `uuid`         | attribution source                                    |
+
+Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
+
+MVP supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
+>>>>>>> Stashed changes
 
 ## Assets and storage
 

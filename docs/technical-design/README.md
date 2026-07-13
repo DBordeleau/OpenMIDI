@@ -8,12 +8,21 @@ Companion: [`PRD.md`](../PRD.md)
 
 This document set turns the product requirements into an implementation contract. It is intentionally split by concern so coding agents can load the smallest useful context while preserving one source of truth.
 
+<<<<<<< Updated upstream
 | Document                                               | Use it for                                                                      |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | [01-system-architecture.md](01-system-architecture.md) | Runtime boundaries, request flows, browser studio integration, security and deployment |
 | [02-data-model.md](02-data-model.md)                   | PostgreSQL/Supabase schema, invariants, storage layout and RLS                  |
 | [03-delivery-plan.md](03-delivery-plan.md)             | Milestones, vertical slices, testing, observability and agent execution rules   |
 | [decisions/README.md](decisions/README.md)             | Architectural decisions that must remain stable across implementation tasks     |
+=======
+| Document                                               | Use it for                                                                             |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [01-system-architecture.md](01-system-architecture.md) | Runtime boundaries, request flows, browser studio integration, security and deployment |
+| [02-data-model.md](02-data-model.md)                   | PostgreSQL/Supabase schema, invariants, storage layout and RLS                         |
+| [03-delivery-plan.md](03-delivery-plan.md)             | Milestones, vertical slices, testing, observability and agent execution rules          |
+| [decisions/README.md](decisions/README.md)             | Architectural decisions that must remain stable across implementation tasks            |
+>>>>>>> Stashed changes
 
 ## Executive recommendation
 

@@ -172,6 +172,7 @@ A change is done when:
 
 ## Risk register
 
+<<<<<<< Updated upstream
 | Risk                                              | Impact                        | Mitigation/trigger                                                                                                          |
 | ------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Waveform Playlist API/package changes             | Rework or reopen regressions  | Exact version pins, adapter boundary, deterministic manifest fixtures, explicit upgrades                                    |
@@ -182,3 +183,15 @@ A change is done when:
 | Forks/deletes break asset ownership               | Data loss                     | Immutable asset IDs, reference-aware retention, copy-on-write lineage                                                       |
 | “Merge” semantics are ambiguous for audio         | User confusion                | Snapshot acceptance; reject stale bases; no automatic merge in MVP                                                          |
 | Browser memory/CPU limits                         | Poor studio UX                | Published limits, lazy loading, measured browser matrix, graceful block                                                     |
+=======
+| Risk                                              | Impact                       | Mitigation/trigger                                                                                                  |
+| ------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Waveform Playlist API/package changes             | Rework or reopen regressions | Exact version pins, adapter boundary, deterministic manifest fixtures, explicit upgrades                            |
+| MVP editor lacks a required collaboration action  | Product gap                  | Prove the promoted subset in PR 05; fall back to lower-level Waveform engine/Tone.js, and consider OpenDAW post-MVP |
+| Vercel/browser worker or isolation constraints    | Studio failure               | Preview-deploy spike and CSP/header tests                                                                           |
+| Large audio uploads exceed request/runtime limits | Failed uploads/cost          | Direct resumable Storage uploads and async processing                                                               |
+| RLS complexity leaks private audio                | Severe privacy issue         | Deny-by-default policies, role-matrix tests, short-lived signed URLs                                                |
+| Forks/deletes break asset ownership               | Data loss                    | Immutable asset IDs, reference-aware retention, copy-on-write lineage                                               |
+| “Merge” semantics are ambiguous for audio         | User confusion               | Snapshot acceptance; reject stale bases; no automatic merge in MVP                                                  |
+| Browser memory/CPU limits                         | Poor studio UX               | Published limits, lazy loading, measured browser matrix, graceful block                                             |
+>>>>>>> Stashed changes
