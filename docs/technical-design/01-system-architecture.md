@@ -14,7 +14,7 @@ flowchart LR
   U["Browser"] --> N["Next.js on Vercel"]
   U --> S["Supabase Auth, Postgres, Storage"]
   N --> S
-  U --> O["OpenDAW adapter and Web Audio"]
+  U --> O["Waveform Playlist adapter and Web Audio"]
   O --> S
   N --> J["Background job provider (post-MVP trigger)"]
   J --> S
@@ -25,7 +25,7 @@ flowchart LR
 - Receives Server Component HTML for public and authenticated product pages.
 - Uses Client Components only for interactive islands.
 - Loads the studio via `dynamic(..., { ssr: false })` after an explicit user action.
-- Runs OpenDAW, Web Audio, waveform work and local draft caching.
+- Runs Waveform Playlist, Web Audio, waveform work and local draft caching.
 - Uploads large files directly to Supabase Storage using a short-lived authenticated session or signed upload flow. Audio bytes must not transit a Vercel Function.
 
 ### Next.js application
@@ -50,7 +50,7 @@ flowchart LR
 | `/` and `/explore`                    | Server-rendered, cached briefly    | Public discovery; query parameters form the filter contract |
 | `/@{username}`                        | Server-rendered                    | Canonical profile display uses `@`; database stores no `@`  |
 | `/projects/{projectId}`               | Server-rendered with client player | Project metadata and current published revision             |
-| `/projects/{projectId}/studio`        | Authenticated client-only studio   | No SSR of OpenDAW or browser audio APIs                     |
+| `/projects/{projectId}/studio`        | Authenticated client-only studio   | No SSR of editor, Tone.js or browser audio APIs             |
 | `/projects/{projectId}/contributions` | Authenticated server page          | Owner review queue or contributor-owned submissions         |
 | `/auth/callback`                      | Route Handler                      | Exchanges OAuth code and redirects to onboarding if needed  |
 
@@ -92,7 +92,7 @@ Dates crossing a network or Server/Client Component boundary are ISO 8601 string
 1. Create a private project and owner membership.
 2. Create a workspace draft based on no revision or the current revision.
 3. Client validates and uploads source audio to an immutable asset path.
-4. Client saves an OpenDAW snapshot plus a small, vendor-neutral manifest.
+4. Client saves the versioned Jam Session workspace manifest exported through the studio adapter.
 5. `publish_project_revision()` locks the project, verifies every referenced asset, creates the immutable revision and track rows, advances `projects.current_revision_id`, and writes an activity event.
 
 ### Submit a contribution
@@ -114,49 +114,43 @@ Dates crossing a network or Server/Client Component boundary are ISO 8601 string
 
 Forking is metadata-copy-on-write, not file duplication. The new project and first revision reference existing immutable assets, subject to license and visibility checks. `source_project_id` and `source_revision_id` preserve lineage. Deleting the source project must not break an authorized fork; asset retention uses references rather than owner paths.
 
-## OpenDAW integration boundary
+## Browser studio integration boundary
 
 ### Decision
 
-Create a Jam Session `StudioAdapter` interface and one `OpenDawStudioAdapter` implementation. Pin exact OpenDAW package versions. Never persist only live in-memory OpenDAW state.
+Create a Jam Session `StudioAdapter` interface and one `WaveformPlaylistStudioAdapter` implementation. Pin exact Waveform Playlist packages and any direct Tone.js dependency. Never persist live editor objects or decoded `AudioBuffer` instances.
 
 ```ts
 interface StudioAdapter {
   load(input: StudioLoadInput): Promise<void>;
   addAudioAsset(asset: SignedAudioAsset): Promise<TrackRef>;
-  exportSnapshot(): Promise<StudioSnapshot>;
   exportManifest(): Promise<WorkspaceManifest>;
   renderPreview(options: PreviewOptions): Promise<Blob>;
   dispose(): Promise<void>;
 }
 ```
 
-Persist two complementary artifacts:
-
-- **Native snapshot**: the pinned OpenDAW binary project representation for faithful reopen.
-- **Jam Session manifest**: versioned JSON containing asset IDs, track IDs, positions, labels, gain, pan, mute/solo and basic tempo metadata. This supports validation, indexing, migrations and a future engine change.
-
-The manifest is not a second editing engine. It is the portable collaboration subset. Each snapshot records `engine = 'opendaw'`, `engine_version`, `manifest_version` and a checksum.
+Persist a versioned **Jam Session manifest** containing asset IDs, stable track IDs, positions, trims, labels, gain, pan, mute/solo, order and basic tempo metadata. It is the authoritative collaboration subset, supports server validation and migrations, and prevents the editor library from becoming the data model. Each saved workspace records `engine = 'waveform-playlist'`, an exact adapter/package compatibility version, `manifest_version`, and a checksum. A future engine-native artifact may be added as an optional fidelity aid but is not required for MVP reopen.
 
 ### Integration spike (release gate)
 
-Before feature construction, prove all of the following in a disposable vertical slice:
+Before project persistence depends on the editor, prove all of the following in a disposable vertical slice:
 
 - Open a project in the Next.js client boundary without SSR/build failures.
 - Import two signed Storage audio URLs, play them sample-synchronously and seek.
 - Change gain/pan/mute/solo and position one region.
 - Serialize, reload after a hard refresh and produce the same arrangement.
-- Upload a new stem and reconnect its OpenDAW audio-file UUID to a Jam Session asset ID.
-- Export a mix or downloadable project bundle.
-- Confirm cross-origin isolation, worker, worklet, WASM and CSP requirements on a Vercel preview deployment.
-- Measure initial JS/WASM payload and time-to-interactive on a mid-range device.
+- Add a new stem while preserving its stable Jam Session asset ID through adapter hydration and export.
+- Export a WAV mix and, where supported, individual tracks.
+- Confirm AudioWorklet, worker, CSP and audio-source requirements on a Vercel preview deployment; do not enable cross-origin isolation or WASM allowances without measured need.
+- Measure the studio lazy chunk, decoded-audio memory and time-to-interactive on a mid-range device.
 - Document package APIs actually used and lock versions.
 
-If embedded packages prove too coupled to OpenDAW’s own application, the fallback is a separately built studio application under the same origin (for example `/studio-app`) communicating through a versioned `postMessage` protocol. Do not use an iframe as the default without the spike evidence.
+If the selected React package surface proves unsuitable, evaluate Waveform Playlist's framework-independent engine/Web Components or a Jam Session UI over Tone.js before changing the persistence model. OpenDAW is a post-MVP alternative requiring a separate ADR and licensing review.
 
-### Licensing gate
+### Dependency and licensing controls
 
-OpenDAW’s repository describes AGPLv3-or-later and commercial alternatives for public SaaS incorporation. Private MVP integration may proceed before the final license path is selected, provided the repository preserves required notices and attribution, pins exact dependency versions, records modifications, and keeps the adapter boundary intact. Enabling access for an external alpha or public network deployment requires a recorded legal/licensing decision. This is a legal review item, not a package-manager detail.
+Waveform Playlist and Tone.js are MIT-licensed. Preserve their notices, inventory the exact direct and transitive packages used, and verify the lockfile during the spike. Do not copy demo audio, styles, or other repository assets unless their redistribution terms are known. Any later OpenDAW integration must resolve its AGPL/commercial licensing path before network deployment.
 
 ## Upload and asset processing
 
@@ -178,7 +172,7 @@ OpenDAW’s repository describes AGPLv3-or-later and commercial alternatives for
 - Rate-limit username claims, uploads, project creation, contribution submission and search.
 - Sanitize user-authored text at render boundaries; descriptions remain plain text or a restricted Markdown subset.
 - Set a strict CSP and narrow worker/audio/media sources to required origins.
-- Never log OAuth tokens, signed URLs or full OpenDAW snapshots.
+- Never log OAuth tokens, signed URLs, manifests containing private object references, or decoded audio.
 - Soft deletion hides content immediately. A retention job later removes unreferenced assets after the recovery window.
 
 ## MVP moderation and retention

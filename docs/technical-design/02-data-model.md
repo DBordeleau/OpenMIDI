@@ -136,11 +136,11 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 | `parent_revision_id`       | `uuid null`   | previous revision                   |
 | `created_by`               | `uuid`        | FK profiles                         |
 | `message`                  | `text null`   | max 500 chars                       |
-| `snapshot_asset_id`        | `uuid`        | immutable OpenDAW snapshot          |
+| `snapshot_asset_id`        | `uuid null`   | reserved for a future engine-native artifact; null for MVP |
 | `manifest`                 | `jsonb`       | validated versioned portable subset |
 | `manifest_version`         | `smallint`    | explicit schema version             |
-| `engine`                   | `text`        | initially `opendaw`                 |
-| `engine_version`           | `text`        | exact package/format version        |
+| `engine`                   | `text`        | MVP value `waveform-playlist`       |
+| `engine_version`           | `text`        | exact adapter/package compatibility version |
 | `duration_ms`              | `bigint`      | non-negative verified duration      |
 | `mix_preview_asset_id`     | `uuid null`   | derived audio                       |
 | `accepted_contribution_id` | `uuid null`   | provenance                          |
@@ -157,7 +157,7 @@ This is the queryable, engine-neutral track projection:
 | `id`               | `uuid`         | stable track identity where carried between revisions |
 | `revision_id`      | `uuid`         | part of composite PK                                  |
 | `asset_id`         | `uuid`         | source audio asset                                    |
-| `opendaw_track_id` | `text`         | adapter mapping, not global identity                  |
+| `engine_track_id`  | `text null`    | optional adapter-local mapping, not global identity   |
 | `name`             | `text`         | 1–120 chars                                           |
 | `instrument_id`    | `uuid null`    | controlled taxonomy                                   |
 | `position_ms`      | `bigint`       | >= 0                                                  |
@@ -172,7 +172,7 @@ This is the queryable, engine-neutral track projection:
 
 Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
 
-MVP supports one contiguous region per uploaded stem in this projection. OpenDAW may contain richer state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
+MVP supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects state outside the promoted collaboration subset until corresponding manifest validation and normalized projections exist.
 
 ## Assets and storage
 
@@ -199,7 +199,7 @@ Storage paths must not embed mutable usernames:
 
 ```text
 audio/{owner_uuid}/{asset_uuid}/source
-snapshots/{owner_uuid}/{asset_uuid}/project.opendaw
+snapshots/{owner_uuid}/{asset_uuid}/workspace.json
 derived/{asset_uuid}/preview.webm
 derived/{asset_uuid}/peaks.v1.bin
 avatars/{user_uuid}/{asset_uuid}/avatar.webp
@@ -217,7 +217,7 @@ Mutable private drafts:
 
 - `id`, `project_id`, `owner_id`
 - `base_revision_id null`
-- `snapshot_asset_id`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`
+- `snapshot_asset_id null`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`
 - `status`, `lock_version integer`, `created_at`, `updated_at`
 - optional `contribution_id`
 

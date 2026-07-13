@@ -4,7 +4,7 @@ Status: Proposed
 
 ## Delivery strategy
 
-Build thin vertical slices that end in observable user behavior. The OpenDAW integration spike precedes broad schema/UI work because it holds the largest feasibility and licensing risk.
+Build thin vertical slices that end in observable user behavior. A focused Waveform Playlist integration spike precedes project persistence so the adapter, manifest round trip, browser behavior and bundle cost are proven early.
 
 ## Milestones
 
@@ -12,8 +12,8 @@ Build thin vertical slices that end in observable user behavior. The OpenDAW int
 
 Exit criteria:
 
-- OpenDAW license obligations documented for private development; an external/public access decision is explicitly deferred and tracked.
-- OpenDAW/Vercel spike passes the checks in the architecture document.
+- Waveform Playlist and direct playback/export package versions and licenses are inventoried and pinned.
+- Waveform Playlist/Vercel spike passes the checks in the architecture document.
 - Supported browser and upload-format matrix measured.
 - Local Supabase development and preview deployment work.
 - Architecture ADRs accepted; package versions pinned.
@@ -39,9 +39,9 @@ Exit: an owner can publish a two-stem project, reload it and play synchronized a
 
 ### M3 — Integrated workspace
 
-- Productionized OpenDAW adapter.
+- Productionized Waveform Playlist adapter.
 - Load signed assets, add/position a stem, mix controls, autosave and recovery.
-- Native snapshot plus portable manifest.
+- Authoritative portable manifest with deterministic editor hydration/export.
 - Download/export with progress and failure recovery.
 
 Exit: the defined MVP studio subset survives hard refresh and a new browser session.
@@ -78,7 +78,7 @@ Exit: fork lineage is navigable and discovery results respect visibility/RLS.
 ### Unit
 
 - Username normalization and validation.
-- Manifest parser/migrations and OpenDAW adapter mapping.
+- Manifest parser/migrations and Waveform Playlist adapter mapping.
 - Contribution state machine and permissions.
 - Discovery query parsing and trending formula.
 
@@ -103,14 +103,14 @@ Run against local Supabase, not mocks:
 
 ### Contract fixtures
 
-Commit small, redistributable OpenDAW snapshot fixtures for every supported `engine_version`. CI must load and round-trip them. A package upgrade is incomplete until fixtures and migration compatibility pass.
+Commit small, redistributable manifest and audio fixtures for every supported manifest/adapter compatibility version. CI must hydrate the editor model and round-trip the manifest deterministically. A package upgrade is incomplete until fixtures and migration compatibility pass.
 
 ## Non-functional targets for MVP
 
 Targets should be validated with product analytics and adjusted deliberately:
 
 - Public pages: Core Web Vitals “good” at the 75th percentile on supported devices.
-- Product shell excludes OpenDAW code; studio bundle loads only on the studio route.
+- Product shell excludes Waveform Playlist, Tone.js and browser-audio code; the studio bundle loads only on the studio route.
 - API/server mutation p95 under 750 ms excluding uploads and media processing.
 - Workspace autosave is debounced, conflict-aware and visibly reports `saved`, `saving`, `offline` or `conflict`.
 - No loss of an acknowledged published revision or submitted contribution.
@@ -154,7 +154,7 @@ Every implementation task should contain:
 6. **Verification** — exact commands plus manual checks where audio behavior is involved.
 7. **Artifacts** — migration, generated types, tests and docs expected.
 
-Agents must inspect existing migrations and feature boundaries before editing. They must not invent schema names that conflict with this design, bypass RLS with the service role, expose Storage buckets for convenience, or import OpenDAW outside the adapter boundary.
+Agents must inspect existing migrations and feature boundaries before editing. They must not invent schema names that conflict with this design, bypass RLS with the service role, expose Storage buckets for convenience, or import Waveform Playlist/Tone.js outside the adapter boundary.
 
 Recommended task size: one vertical behavior or one safe refactor, normally reviewable in under roughly 400 changed lines excluding generated files/migrations. Larger outcomes should be sequenced so the application remains runnable after each merge.
 
@@ -174,8 +174,8 @@ A change is done when:
 
 | Risk                                              | Impact                        | Mitigation/trigger                                                                                                          |
 | ------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| OpenDAW licensing incompatible with product plan  | External-alpha/launch blocker | Integrate privately with notices and modification records; choose commercial or AGPL-compatible path before external access |
-| OpenDAW APIs/formats change rapidly               | Rework/data loss              | Exact version pin, adapter, fixture round-trips, explicit upgrades                                                          |
+| Waveform Playlist API/package changes             | Rework or reopen regressions  | Exact version pins, adapter boundary, deterministic manifest fixtures, explicit upgrades                                    |
+| MVP editor lacks a required collaboration action  | Product gap                   | Prove the promoted subset in PR 05; fall back to lower-level Waveform engine/Tone.js, and consider OpenDAW post-MVP          |
 | Vercel/browser worker or isolation constraints    | Studio failure                | Preview-deploy spike and CSP/header tests                                                                                   |
 | Large audio uploads exceed request/runtime limits | Failed uploads/cost           | Direct resumable Storage uploads and async processing                                                                       |
 | RLS complexity leaks private audio                | Severe privacy issue          | Deny-by-default policies, role-matrix tests, short-lived signed URLs                                                        |

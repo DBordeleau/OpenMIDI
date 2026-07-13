@@ -132,6 +132,8 @@ Users can open a project in a browser-based music workspace where they can:
 
 Additional editing, recording, effects, MIDI, and automation capabilities may be exposed where they are stable and appropriate, but they are not all required for the initial release.
 
+For the MVP, this workspace will be built on the MIT-licensed Waveform Playlist packages behind a Jam Session-owned adapter. Jam Session's versioned manifest remains the persisted authority; the application must not depend on an editor-specific opaque project format. A fuller OpenDAW integration is a post-MVP option and is not an MVP dependency.
+
 ---
 
 ## MVP Scope

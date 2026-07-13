@@ -7,8 +7,8 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 ### ADR-001: Next.js application with a client-only studio boundary
 
 - **Decision:** Use Next.js App Router for the product and a dynamically loaded client-only studio feature.
-- **Why:** Public/social pages benefit from server rendering while Web Audio/OpenDAW requires browser APIs.
-- **Consequence:** No OpenDAW import may enter a Server Component or shared server module.
+- **Why:** Public/social pages benefit from server rendering while Web Audio and the waveform editor require browser APIs.
+- **Consequence:** No browser editor, Tone.js, or Web Audio import may enter a Server Component or shared server module.
 
 ### ADR-002: Supabase as identity, relational authority and object storage
 
@@ -22,11 +22,11 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 - **Why:** Reliable attribution, forks, review and recovery require stable history.
 - **Consequence:** Acceptance creates a revision rather than updating one.
 
-### ADR-004: Native OpenDAW snapshot plus portable Jam Session manifest
+### ADR-004: Jam Session manifest is the portable workspace authority
 
-- **Decision:** Store both artifacts and pin the engine version.
-- **Why:** Native fidelity alone creates vendor lock-in and poor server validation; a generic model alone loses editor fidelity.
-- **Consequence:** Publish validates correspondence between manifest assets and authorized stored objects.
+- **Decision:** Persist a versioned Jam Session JSON manifest and normalized track projection; do not require an opaque editor-native snapshot for MVP reopen.
+- **Why:** The MVP collaboration subset is small enough to model directly, making it server-validatable, migration-friendly, and independent of a particular editor.
+- **Consequence:** The Waveform Playlist adapter must deterministically hydrate from and export to the manifest, and publish validates every referenced asset.
 
 ### ADR-005: Copy-on-write forks and no automatic audio merge
 
@@ -34,15 +34,11 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 - **Why:** Byte duplication wastes storage, and a Git-like automatic merge is unsafe for musical arrangements.
 - **Consequence:** An outdated contribution needs manual rebase/resubmission in MVP.
 
-## Deferred during private MVP development; required before external access
+### ADR-006: Waveform Playlist for the MVP browser studio
 
-### ADR-006: OpenDAW license path
-
-- **Status:** Deferred for private integration; blocking for an external alpha or public network deployment.
-- **Options:** Operate the applicable combined work under AGPL-compatible terms, or obtain and comply with a commercial license.
-- **Owner:** Product/legal.
-- **Evidence needed:** Written interpretation/agreement covering the deployed architecture and modifications.
-- **Interim controls:** Preserve notices and attribution, pin versions, record modifications and keep OpenDAW behind the adapter boundary.
+- **Decision:** Use pinned Waveform Playlist packages behind `WaveformPlaylistStudioAdapter`; retain Tone.js only where required by the selected playback/export path.
+- **Why:** It supplies the MVP's multitrack timeline, synchronized playback, mixer and export capabilities through modular React/TypeScript packages under the MIT license.
+- **Consequence:** Jam Session owns serialization, product-specific controls, accessibility integration and manifest migrations. OpenDAW remains a post-MVP alternative and cannot be introduced without superseding this ADR.
 
 ## ADR template
 

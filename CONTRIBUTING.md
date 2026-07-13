@@ -11,7 +11,7 @@ Thanks for helping build Jam Session. The project is early, so focused changes a
    - [Architecture decisions](docs/technical-design/decisions/README.md)
 3. Coding agents must follow [AGENTS.md](AGENTS.md).
 
-Discuss changes that alter product scope, the data model, authorization, persisted formats, OpenDAW integration, or established architectural decisions before investing in a large implementation.
+Discuss changes that alter product scope, the data model, authorization, persisted formats, browser-studio integration, or established architectural decisions before investing in a large implementation.
 
 ## Making a change
 
@@ -21,7 +21,7 @@ Discuss changes that alter product scope, the data model, authorization, persist
 - Include screenshots or a short recording for visible UI changes.
 - Add tests at the layer that owns the behavior.
 - Do not reformat unrelated files or mix opportunistic refactors into feature work.
-- Preserve immutable history, RLS, private storage, and OpenDAW boundaries described in the technical design.
+- Preserve immutable history, RLS, private storage, and browser-studio boundaries described in the technical design.
 
 ## Validate your work
 
@@ -57,7 +57,7 @@ For visible UI changes, also inspect the affected pages at 320, 768, 1280, and 1
 - Put complete browser journeys in `tests/e2e`.
 - Test public behavior and accessibility rather than animation timing or private implementation details.
 - Future database authorization behavior must be tested against local Supabase, not mocked RLS.
-- OpenDAW version or manifest changes will require persisted round-trip fixtures.
+- Waveform Playlist/Tone.js version or manifest changes require persisted round-trip fixtures.
 
 ## Secrets and local files
 

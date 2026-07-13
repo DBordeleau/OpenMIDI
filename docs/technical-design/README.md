@@ -10,16 +10,16 @@ This document set turns the product requirements into an implementation contract
 
 | Document                                               | Use it for                                                                      |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| [01-system-architecture.md](01-system-architecture.md) | Runtime boundaries, request flows, OpenDAW integration, security and deployment |
+| [01-system-architecture.md](01-system-architecture.md) | Runtime boundaries, request flows, browser studio integration, security and deployment |
 | [02-data-model.md](02-data-model.md)                   | PostgreSQL/Supabase schema, invariants, storage layout and RLS                  |
 | [03-delivery-plan.md](03-delivery-plan.md)             | Milestones, vertical slices, testing, observability and agent execution rules   |
 | [decisions/README.md](decisions/README.md)             | Architectural decisions that must remain stable across implementation tasks     |
 
 ## Executive recommendation
 
-Use a Next.js App Router application deployed to Vercel, Supabase for Auth/Postgres/Storage, Tailwind CSS for styling, and Motion for intentional interaction animation. Keep the browser studio in a client-only boundary backed by a Jam Session adapter around pinned OpenDAW packages.
+Use a Next.js App Router application deployed to Vercel, Supabase for Auth/Postgres/Storage, Tailwind CSS for styling, and Motion for intentional interaction animation. Build the MVP browser studio with pinned MIT-licensed Waveform Playlist packages behind a Jam Session-owned client-only adapter.
 
-This is a good fit because most of Jam Session is a server-rendered social and project-management application, while audio editing is a distinct browser-only workload. A separate SPA or custom backend would add operational complexity without solving an MVP requirement. Revisit the topology only if the OpenDAW spike proves it cannot be safely bundled into the application.
+This is a good fit because most of Jam Session is a server-rendered social and project-management application, while audio editing is a distinct browser-only workload. Waveform Playlist provides the stem timeline, synchronized playback, mixer controls and export primitives required by the MVP without making a full DAW runtime or opaque native project format part of the persistence contract.
 
 ## Product decisions added to make the PRD implementable
 
@@ -40,7 +40,8 @@ The PRD is directionally strong. The following interpretations are normative for
 
 The initial demo uses the following bounded policies:
 
-- OpenDAW integration work may proceed during private MVP development. The final AGPL-compatible versus commercial license decision is deferred, while attribution, notices, exact dependency versions and a record of modifications are preserved. External alpha/public network access remains a legal-review gate.
+- Waveform Playlist is the selected MVP browser editor. Pin its direct packages exactly, retain their MIT notices, and keep access behind the studio adapter.
+- OpenDAW integration is post-MVP. Reintroducing it requires a new architecture decision, integration spike, persisted-format compatibility plan and licensing review.
 - Authentication is Google-only. Additional identity providers are post-MVP.
 - Audio uploads accept WAV (`audio/wav`, `audio/x-wav`), FLAC (`audio/flac`) and MP3 (`audio/mpeg`). FLAC is the recommended lossless format.
 - Limits are 45 MiB and 10 minutes per audio file, 12 source stems and 250 MiB of uniquely referenced source audio per project, 200 MiB of owned source audio per user, and an 850 MiB global Storage soft stop.
@@ -49,7 +50,6 @@ The initial demo uses the following bounded policies:
 
 ## Remaining launch questions
 
-- Final OpenDAW licensing path for external/public network use.
 - Default project license and contributor attestation language.
 - Production-scale quotas, moderation operations, appeal process and statutory takedown contact.
 
@@ -63,7 +63,7 @@ The initial demo uses the following bounded policies:
 - A database row is the authority for access to a stored object; bucket policies mirror that authority.
 - Published revisions and accepted contribution snapshots are immutable.
 - Route handlers and server actions validate input with shared schemas and authorize at the data boundary.
-- OpenDAW-specific types and binary formats do not escape `features/studio/opendaw-adapter`.
+- Waveform Playlist and Tone.js types do not escape `features/studio/waveform-playlist-adapter`; domain code speaks only in Jam Session manifest and adapter types.
 
 ## Suggested repository shape
 
@@ -78,7 +78,7 @@ src/
     contributions/
     discovery/
     studio/
-      opendaw-adapter/         # sole OpenDAW dependency boundary
+      waveform-playlist-adapter/ # sole Waveform Playlist/Tone.js dependency boundary
   lib/
     supabase/                  # browser/server/admin client factories
     validation/                # shared input schemas
