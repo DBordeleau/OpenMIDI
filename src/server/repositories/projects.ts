@@ -68,7 +68,7 @@ export async function getProjectForViewer(
   const { data: project, error } = await db
     .from("projects")
     .select(
-      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,visibility,status,created_at,updated_at,license_code",
+      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,visibility,status,current_revision_id,published_at,created_at,updated_at,license_code",
     )
     .eq("id", projectId)
     .maybeSingle();
@@ -113,7 +113,9 @@ export async function getProjectForViewer(
     })),
     lockVersion: project.lock_version,
     visibility: "private",
-    status: "draft",
+    status: project.status as ProjectDetail["status"],
+    currentRevisionId: project.current_revision_id,
+    publishedAt: project.published_at,
     createdAt: project.created_at,
     updatedAt: project.updated_at,
   };

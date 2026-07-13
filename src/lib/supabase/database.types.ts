@@ -9,6 +9,65 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          project_id: string
+          subject_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload: Json
+          project_id: string
+          subject_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_project_id_subject_id_fkey"
+            columns: ["project_id", "subject_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+        ]
+      }
       asset_credits: {
         Row: {
           asset_id: string
@@ -379,6 +438,66 @@ export type Database = {
         }
         Relationships: []
       }
+      project_asset_references: {
+        Row: {
+          added_by: string
+          asset_id: string
+          created_at: string
+          first_revision_id: string
+          project_id: string
+        }
+        Insert: {
+          added_by: string
+          asset_id: string
+          created_at?: string
+          first_revision_id: string
+          project_id: string
+        }
+        Update: {
+          added_by?: string
+          asset_id?: string
+          created_at?: string
+          first_revision_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_asset_references_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_asset_references_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_asset_references_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_asset_references_project_id_first_revision_id_fkey"
+            columns: ["project_id", "first_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "project_asset_references_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_genres: {
         Row: {
           created_at: string
@@ -475,6 +594,128 @@ export type Database = {
           },
         ]
       }
+      project_revisions: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration_ms: number
+          engine: string
+          engine_version: string
+          expected_base_revision_id: string | null
+          id: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          message: string | null
+          parent_revision_id: string | null
+          project_id: string
+          publish_request_id: string
+          revision_number: number
+          snapshot_asset_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration_ms: number
+          engine: string
+          engine_version: string
+          expected_base_revision_id?: string | null
+          id?: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          message?: string | null
+          parent_revision_id?: string | null
+          project_id: string
+          publish_request_id: string
+          revision_number: number
+          snapshot_asset_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration_ms?: number
+          engine?: string
+          engine_version?: string
+          expected_base_revision_id?: string | null
+          id?: string
+          manifest?: Json
+          manifest_sha256?: string
+          manifest_version?: number
+          message?: string | null
+          parent_revision_id?: string | null
+          project_id?: string
+          publish_request_id?: string
+          revision_number?: number
+          snapshot_asset_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_revisions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_revisions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_revisions_expected_base_project_fk"
+            columns: ["project_id", "expected_base_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "project_revisions_parent_project_fk"
+            columns: ["project_id", "parent_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "project_revisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_storage_usage: {
+        Row: {
+          project_id: string
+          source_bytes: number
+          unique_source_count: number
+          updated_at: string
+        }
+        Insert: {
+          project_id: string
+          source_bytes?: number
+          unique_source_count?: number
+          updated_at?: string
+        }
+        Update: {
+          project_id?: string
+          source_bytes?: number
+          unique_source_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_storage_usage_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_tags: {
         Row: {
           created_at: string
@@ -513,6 +754,7 @@ export type Database = {
           bpm: number | null
           create_request_id: string
           created_at: string
+          current_revision_id: string | null
           deleted_at: string | null
           description: string | null
           id: string
@@ -533,6 +775,7 @@ export type Database = {
           bpm?: number | null
           create_request_id: string
           created_at?: string
+          current_revision_id?: string | null
           deleted_at?: string | null
           description?: string | null
           id?: string
@@ -553,6 +796,7 @@ export type Database = {
           bpm?: number | null
           create_request_id?: string
           created_at?: string
+          current_revision_id?: string | null
           deleted_at?: string | null
           description?: string | null
           id?: string
@@ -570,6 +814,13 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["project_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_current_revision_fk"
+            columns: ["id", "current_revision_id"]
+            isOneToOne: true
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
           {
             foreignKeyName: "projects_license_code_fkey"
             columns: ["license_code"]
@@ -610,6 +861,93 @@ export type Database = {
           username_normalized?: string
         }
         Relationships: []
+      }
+      revision_tracks: {
+        Row: {
+          added_by: string
+          asset_id: string
+          duration_ms: number
+          gain_db: number
+          id: string
+          instrument_id: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          revision_id: string
+          soloed: boolean
+          sort_order: number
+          trim_start_ms: number
+        }
+        Insert: {
+          added_by: string
+          asset_id: string
+          duration_ms: number
+          gain_db: number
+          id: string
+          instrument_id?: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          revision_id: string
+          soloed: boolean
+          sort_order: number
+          trim_start_ms: number
+        }
+        Update: {
+          added_by?: string
+          asset_id?: string
+          duration_ms?: number
+          gain_db?: number
+          id?: string
+          instrument_id?: string | null
+          muted?: boolean
+          name?: string
+          pan?: number
+          position_ms?: number
+          revision_id?: string
+          soloed?: boolean
+          sort_order?: number
+          trim_start_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_tracks_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_tracks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_tracks_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "instruments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_tracks_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tags: {
         Row: {
@@ -796,6 +1134,20 @@ export type Database = {
           p_verification_version: string
         }
         Returns: undefined
+      }
+      publish_project_revision: {
+        Args: {
+          p_expected_current_revision_id: string
+          p_manifest: Json
+          p_message: string
+          p_project_id: string
+          p_request_id: string
+        }
+        Returns: {
+          created_at: string
+          revision_id: string
+          revision_number: number
+        }[]
       }
       reserve_source_asset: {
         Args: {

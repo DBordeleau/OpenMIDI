@@ -93,7 +93,7 @@ Dates crossing a network or Server/Client Component boundary are ISO 8601 string
 2. Create a workspace draft based on no revision or the current revision.
 3. Client validates and uploads source audio to an immutable asset path.
 4. Client saves the versioned Jam Session workspace manifest exported through the studio adapter.
-5. `publish_project_revision()` locks the project, verifies every referenced asset, creates the immutable revision and track rows, advances `projects.current_revision_id`, and writes an activity event.
+5. `publish_project_revision()` locks the project and usage projection, canonicalizes and checksums manifest v1, verifies trusted-ready owned assets and active instruments, creates immutable revision, track and reference rows, enforces unique retained project bytes, advances `projects.current_revision_id`, and writes a bounded activity event atomically. First publish changes a private project from draft to active without opening contributions.
 
 ### Submit a contribution
 

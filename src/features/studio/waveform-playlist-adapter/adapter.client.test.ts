@@ -37,7 +37,9 @@ describe("WaveformPlaylistStudioAdapter", () => {
       manifest: STUDIO_FIXTURE_MANIFEST,
       assets: STUDIO_FIXTURE_ASSETS,
     });
-    adapter.updateTrack("track-pulse", { muted: true });
+    adapter.updateTrack("00000000-0000-4000-8000-000000000011", {
+      muted: true,
+    });
     expect(adapter.exportManifest().tracks[0]).toEqual({
       ...STUDIO_FIXTURE_MANIFEST.tracks[0],
       muted: true,

@@ -4,12 +4,13 @@ export const STUDIO_FIXTURE_MANIFEST = parseWorkspaceManifest({
   manifestVersion: 1,
   engine: "waveform-playlist",
   engineVersion: "browser-15.3.4_playout-12.5.4_tone-15.1.22",
-  workspaceId: "workspace-spike-001",
+  workspaceId: "00000000-0000-4000-8000-000000000001",
   tempoBpm: 120,
   tracks: [
     {
-      trackId: "track-pulse",
-      assetId: "asset-pulse-a",
+      trackId: "00000000-0000-4000-8000-000000000011",
+      assetId: "00000000-0000-4000-8000-000000000021",
+      instrumentId: null,
       name: "Pulse A",
       positionMs: 0,
       trimStartMs: 0,
@@ -21,8 +22,9 @@ export const STUDIO_FIXTURE_MANIFEST = parseWorkspaceManifest({
       sortOrder: 0,
     },
     {
-      trackId: "track-chime",
-      assetId: "asset-chime-b",
+      trackId: "00000000-0000-4000-8000-000000000012",
+      assetId: "00000000-0000-4000-8000-000000000022",
+      instrumentId: "00000000-0000-4000-8000-000000000031",
       name: "Chime B",
       positionMs: 500,
       trimStartMs: 0,
@@ -37,7 +39,16 @@ export const STUDIO_FIXTURE_MANIFEST = parseWorkspaceManifest({
 });
 
 export const STUDIO_FIXTURE_ASSETS = [
-  { assetId: "asset-pulse-a", url: "/fixtures/audio/stem-a.wav" },
-  { assetId: "asset-chime-b", url: "/fixtures/audio/stem-b.wav" },
-  { assetId: "asset-pulse-copy", url: "/fixtures/audio/stem-a.wav" },
+  {
+    assetId: "00000000-0000-4000-8000-000000000021",
+    url: "/fixtures/audio/stem-a.wav",
+  },
+  {
+    assetId: "00000000-0000-4000-8000-000000000022",
+    url: "/fixtures/audio/stem-b.wav",
+  },
+  {
+    assetId: "00000000-0000-4000-8000-000000000023",
+    url: "/fixtures/audio/stem-a.wav",
+  },
 ] as const;
