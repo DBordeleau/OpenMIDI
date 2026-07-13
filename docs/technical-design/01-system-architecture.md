@@ -135,7 +135,7 @@ PR 14 adds the credit boundary used by every publication path. Trusted verificat
 
 ### Fork
 
-Forking remains the next planned slice. It is metadata-copy-on-write, not file duplication. The new project and first revision reference existing immutable assets and copy immutable credit snapshots, subject to license and visibility checks. `source_project_id` and `source_revision_id` preserve lineage. Deleting the source project must not break an authorized fork; asset retention uses references rather than owner paths.
+Forking is metadata-copy-on-write, not file duplication. The `fork_project(...)` transaction creates a private project owned solely by the caller, copies the exact selected immutable revision into revision 1, reuses its immutable asset references and credit/attribution snapshots, inherits the source license and taxonomy, and emits one bounded activity event. It rejects inaccessible, inactive, stale-license, non-derivative, or mismatched source revisions. `source_project_id` and `source_revision_id` are immutable lineage, direct child lists are bounded and RLS-filtered, and unavailable parents render a safe fallback. The editable workspace is created lazily on first studio use. Losing access to or soft-deleting the source does not break the surviving fork because authorization and retention follow the fork's own project/revision references rather than the source owner's membership or Storage path.
 
 ## Browser studio integration boundary
 

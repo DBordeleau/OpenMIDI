@@ -1177,6 +1177,8 @@ export type Database = {
           open_to_contributions: boolean
           owner_id: string
           published_at: string | null
+          source_project_id: string | null
+          source_revision_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           time_signature_denominator: number
           time_signature_numerator: number
@@ -1198,6 +1200,8 @@ export type Database = {
           open_to_contributions?: boolean
           owner_id: string
           published_at?: string | null
+          source_project_id?: string | null
+          source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           time_signature_denominator?: number
           time_signature_numerator?: number
@@ -1219,6 +1223,8 @@ export type Database = {
           open_to_contributions?: boolean
           owner_id?: string
           published_at?: string | null
+          source_project_id?: string | null
+          source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           time_signature_denominator?: number
           time_signature_numerator?: number
@@ -1231,6 +1237,13 @@ export type Database = {
             foreignKeyName: "projects_current_revision_fk"
             columns: ["id", "current_revision_id"]
             isOneToOne: true
+            referencedRelation: "project_revisions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
+            foreignKeyName: "projects_fork_source_revision_fk"
+            columns: ["source_project_id", "source_revision_id"]
+            isOneToOne: false
             referencedRelation: "project_revisions"
             referencedColumns: ["project_id", "id"]
           },
@@ -1860,6 +1873,22 @@ export type Database = {
           created_at: string
           lock_version: number
           workspace_id: string
+        }[]
+      }
+      fork_project: {
+        Args: {
+          p_description: string
+          p_expected_license_code: string
+          p_request_id: string
+          p_source_project_id: string
+          p_source_revision_id: string
+          p_title: string
+        }
+        Returns: {
+          created_at: string
+          project_id: string
+          revision_id: string
+          revision_number: number
         }[]
       }
       get_source_verification_status: {

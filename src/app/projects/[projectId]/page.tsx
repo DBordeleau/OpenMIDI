@@ -8,6 +8,7 @@ import { CreditList } from "@/features/credits/credit-list";
 import { aggregateCredits } from "@/features/credits/types";
 import { projectIdSchema } from "@/features/projects/schema";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
+import { getProjectLineage } from "@/server/repositories/forks";
 import { getProjectForViewer } from "@/server/repositories/projects";
 import { getRevisionHistory } from "@/server/repositories/revisions";
 export default async function ProjectPage({
@@ -15,15 +16,22 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; forked?: string }>;
 }) {
   const { projectId } = await params;
   const viewer = await requireViewer(`/projects/${projectId}`);
   if (!projectIdSchema.safeParse(projectId).success) notFound();
   const project = await getProjectForViewer(projectId);
   if (!project) notFound();
-  const revisions = await getRevisionHistory(projectId);
-  const contributions = await listContributionsByAuthor();
+  const [revisions, contributions, lineage] = await Promise.all([
+    getRevisionHistory(projectId),
+    listContributionsByAuthor(),
+    getProjectLineage({
+      projectId,
+      sourceProjectId: project.sourceProjectId,
+      sourceRevisionId: project.sourceRevisionId,
+    }),
+  ]);
   const liveContribution = contributions.find(
     (item) =>
       item.projectId === projectId &&
@@ -45,7 +53,9 @@ export default async function ProjectPage({
       ),
     ).values(),
   );
-  const saved = (await searchParams).saved === "1";
+  const resolvedSearchParams = await searchParams;
+  const saved = resolvedSearchParams.saved === "1";
+  const forked = resolvedSearchParams.forked === "1";
   return (
     <main id="main-content">
       <Container className="py-16">
@@ -56,6 +66,15 @@ export default async function ProjectPage({
               className="rounded-control border-accent mb-6 border p-3"
             >
               Project saved.
+            </p>
+          )}
+          {forked && (
+            <p
+              role="status"
+              className="rounded-control border-accent mb-6 border p-3"
+            >
+              Private fork created. Open the studio when you are ready to make
+              it your own.
             </p>
           )}
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -113,6 +132,25 @@ export default async function ProjectPage({
               <dd>{project.tags.map((t) => t.name).join(", ") || "None"}</dd>
             </div>
           </dl>
+          {(lineage.source || lineage.sourceUnavailable) && (
+            <section className="rounded-card border-subtle mt-8 border p-6">
+              <h2 className="text-xl font-bold">Fork lineage</h2>
+              {lineage.source ? (
+                <p className="text-muted mt-2">
+                  Forked from{" "}
+                  <Link
+                    className="underline"
+                    href={`/projects/${lineage.source.projectId}`}
+                  >
+                    {lineage.source.title}
+                  </Link>
+                  , revision {lineage.source.revisionNumber}.
+                </p>
+              ) : (
+                <p className="text-muted mt-2">Source unavailable.</p>
+              )}
+            </section>
+          )}
           {project.status === "active" && project.ownerId === viewer.id && (
             <>
               <CollaborationSettingForm
@@ -227,6 +265,18 @@ export default async function ProjectPage({
               >
                 Open studio
               </Link>
+              {project.license.allowsDerivatives ? (
+                <Link
+                  className="rounded-control border-strong ml-3 inline-flex min-h-11 items-center border px-5 font-semibold"
+                  href={`/projects/${project.id}/fork?revision=${current.id}`}
+                >
+                  Fork this revision
+                </Link>
+              ) : (
+                <p className="text-muted mt-4 text-sm">
+                  This project’s license does not permit derivative forks.
+                </p>
+              )}
               <div className="mt-6">
                 <StemDownloadPanel
                   endpoint={`/api/projects/${project.id}/revisions/${current.id}/downloads/stems`}
@@ -285,6 +335,31 @@ export default async function ProjectPage({
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+          {lineage.directForks.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-xl font-bold">Direct forks</h2>
+              <ul className="mt-3 space-y-2">
+                {lineage.directForks.map((fork) => (
+                  <li key={fork.projectId}>
+                    <Link
+                      className="underline"
+                      href={`/projects/${fork.projectId}`}
+                    >
+                      {fork.title}
+                    </Link>{" "}
+                    <span className="text-muted">
+                      · {new Date(fork.createdAt).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {lineage.hasMoreDirectForks && (
+                <p className="text-muted mt-3 text-sm">
+                  Showing the 20 most recent forks you can access.
+                </p>
+              )}
             </section>
           )}
         </article>

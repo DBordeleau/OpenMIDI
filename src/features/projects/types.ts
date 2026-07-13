@@ -5,6 +5,9 @@ export type LicenseOption = {
   name: string;
   url: string;
   summary: string;
+  allowsDerivatives: boolean;
+  requiresAttribution: boolean;
+  shareAlike: boolean;
 };
 export type TaxonomyOption = { id: string; slug: string; name: string };
 export type ProjectFormOptions = {
@@ -38,6 +41,8 @@ export type ProjectDetail = {
   visibility: "private";
   status: "draft" | "active";
   currentRevisionId: string | null;
+  sourceProjectId: string | null;
+  sourceRevisionId: string | null;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
