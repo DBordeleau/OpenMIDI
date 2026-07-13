@@ -1030,6 +1030,166 @@ export type Database = {
           },
         ]
       }
+      workspace_tracks: {
+        Row: {
+          asset_id: string
+          duration_ms: number
+          gain_db: number
+          instrument_id: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          soloed: boolean
+          sort_order: number
+          track_id: string
+          trim_start_ms: number
+          workspace_id: string
+        }
+        Insert: {
+          asset_id: string
+          duration_ms: number
+          gain_db: number
+          instrument_id?: string | null
+          muted: boolean
+          name: string
+          pan: number
+          position_ms: number
+          soloed: boolean
+          sort_order: number
+          track_id: string
+          trim_start_ms: number
+          workspace_id: string
+        }
+        Update: {
+          asset_id?: string
+          duration_ms?: number
+          gain_db?: number
+          instrument_id?: string | null
+          muted?: boolean
+          name?: string
+          pan?: number
+          position_ms?: number
+          soloed?: boolean
+          sort_order?: number
+          track_id?: string
+          trim_start_ms?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_tracks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_tracks_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "instruments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_tracks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          base_revision_id: string | null
+          create_request_id: string
+          created_at: string
+          engine: string
+          engine_version: string
+          id: string
+          lock_version: number
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          owner_id: string
+          project_id: string
+          snapshot_asset_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          base_revision_id?: string | null
+          create_request_id: string
+          created_at?: string
+          engine: string
+          engine_version: string
+          id?: string
+          lock_version?: number
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          owner_id: string
+          project_id: string
+          snapshot_asset_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          base_revision_id?: string | null
+          create_request_id?: string
+          created_at?: string
+          engine?: string
+          engine_version?: string
+          id?: string
+          lock_version?: number
+          manifest?: Json
+          manifest_sha256?: string
+          manifest_version?: number
+          owner_id?: string
+          project_id?: string
+          snapshot_asset_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_base_revision_id_fkey"
+            columns: ["base_revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_snapshot_asset_id_fkey"
+            columns: ["snapshot_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_profiles: {
@@ -1102,6 +1262,19 @@ export type Database = {
           title: string
         }[]
       }
+      create_project_workspace: {
+        Args: {
+          p_expected_current_revision_id: string
+          p_project_id: string
+          p_request_id: string
+        }
+        Returns: {
+          base_revision_id: string
+          created_at: string
+          lock_version: number
+          workspace_id: string
+        }[]
+      }
       get_viewer_profile: {
         Args: never
         Returns: {
@@ -1168,6 +1341,25 @@ export type Database = {
           user_remaining_bytes: number
         }[]
       }
+      reserve_workspace_snapshot: {
+        Args: {
+          p_byte_size: number
+          p_expected_lock_version: number
+          p_manifest_sha256: string
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          asset_id: string
+          bucket: string
+          expires_at: string
+          object_path: string
+        }[]
+      }
+      revision_manifest_checksum_valid: {
+        Args: { p_project_id: string; p_revision_id: string }
+        Returns: boolean
+      }
       save_own_profile: {
         Args: {
           p_bio?: string
@@ -1185,6 +1377,21 @@ export type Database = {
           updated_at: string
           username: string
           username_normalized: string
+        }[]
+      }
+      save_workspace: {
+        Args: {
+          p_expected_lock_version: number
+          p_manifest: Json
+          p_request_id: string
+          p_snapshot_asset_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          lock_version: number
+          manifest_sha256: string
+          updated_at: string
+          workspace_id: string
         }[]
       }
       update_project_metadata: {

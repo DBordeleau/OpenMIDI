@@ -54,6 +54,15 @@ describe("WaveformPlaylistStudioAdapter", () => {
       ...STUDIO_FIXTURE_MANIFEST.tracks[0],
       muted: true,
     });
+    adapter.reorderTracks([
+      "00000000-0000-4000-8000-000000000012",
+      "00000000-0000-4000-8000-000000000011",
+    ]);
+    expect(
+      adapter.exportManifest().tracks.map((track) => track.sortOrder),
+    ).toEqual([0, 1]);
+    adapter.removeTrack("00000000-0000-4000-8000-000000000012");
+    expect(adapter.exportManifest().tracks).toHaveLength(1);
   });
 
   it("disposes idempotently and rejects later calls predictably", async () => {

@@ -103,6 +103,8 @@ Dates crossing a network or Server/Client Component boundary are ISO 8601 string
 4. Client saves the versioned Jam Session workspace manifest exported through the studio adapter.
 5. `publish_project_revision()` locks the project and usage projection, canonicalizes and checksums manifest v1, verifies trusted-ready owned assets and active instruments, creates immutable revision, track and reference rows, enforces unique retained project bytes, advances `projects.current_revision_id`, and writes a bounded activity event atomically. First publish changes a private project from draft to active without opening contributions.
 
+PR 10 implements steps 2–4 for project owners. Workspace creation copies the exact current immutable revision into a private draft. Every save submits the expected `lock_version`; the database locks the workspace, rejects stale writers, validates the complete manifest and referenced trusted-ready assets, replaces the normalized workspace-track projection, records an immutable private recovery snapshot, and increments the version atomically. Autosave never advances `projects.current_revision_id` or changes a published revision.
+
 ### Submit a contribution
 
 1. Contributor creates a workspace based on revision `R`.
@@ -142,7 +144,7 @@ Persist a versioned **Jam Session manifest** containing asset IDs, stable track 
 
 ### Completed integration spike and productionization gate
 
-PR 05 proved the following in a disposable vertical slice before persistence depended on the editor. PR 09 removed the spike route and productionized its read-only playback subset. Historical results are in [`evidence/pr-05-waveform-playlist-spike.md`](evidence/pr-05-waveform-playlist-spike.md); the current production boundary and outstanding manual browser/Preview checks are in [`evidence/pr-09-production-studio.md`](evidence/pr-09-production-studio.md).
+PR 05 proved the following in a disposable vertical slice before persistence depended on the editor. PR 09 removed the spike route and productionized its read-only playback subset. PR 10 promotes the supported editing subset—add/remove/reorder, position, trim, label, instrument, gain, pan, mute and solo—into the validated manifest and conflict-safe workspace boundary. Historical results are in [`evidence/pr-05-waveform-playlist-spike.md`](evidence/pr-05-waveform-playlist-spike.md); current evidence is in [`evidence/pr-09-production-studio.md`](evidence/pr-09-production-studio.md) and [`evidence/pr-10-editable-workspaces.md`](evidence/pr-10-editable-workspaces.md).
 
 - Open a project in the Next.js client boundary without SSR/build failures.
 - Import two signed Storage audio URLs, play them sample-synchronously and seek.

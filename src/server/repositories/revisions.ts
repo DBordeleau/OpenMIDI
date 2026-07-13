@@ -8,7 +8,6 @@ import type {
 } from "@/features/revisions/types";
 import {
   parseVersionedWorkspaceManifest,
-  sha256PostgresJsonb,
   STUDIO_ENGINE_VERSION,
   type WorkspaceManifestV1,
 } from "@/features/studio/manifest/schema";
@@ -52,9 +51,14 @@ export async function getRevisionPlayback(input: {
   )
     throw new Error("revision_playback_invalid");
   const manifest = parseVersionedWorkspaceManifest(data.manifest);
+  const { data: checksumValid, error: checksumError } = await db.rpc(
+    "revision_manifest_checksum_valid",
+    { p_project_id: input.projectId, p_revision_id: input.revisionId },
+  );
   if (
     manifest.workspaceId !== input.projectId ||
-    (await sha256PostgresJsonb(manifest)) !== data.manifest_sha256
+    checksumError ||
+    checksumValid !== true
   )
     throw new Error("revision_playback_invalid");
   const normalized = [...data.revision_tracks].sort(

@@ -3,6 +3,10 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { WorkspaceManifestV1 } from "../manifest/schema";
+import type {
+  WorkspaceAssetOption,
+  WorkspaceInstrumentOption,
+} from "@/features/workspaces/types";
 
 const StudioSurface = dynamic(
   () =>
@@ -12,9 +16,8 @@ const StudioSurface = dynamic(
   { ssr: false, loading: () => <p role="status">Loading studio controls…</p> },
 );
 
-export function StudioLauncher(props: {
+type CommonProps = {
   projectId: string;
-  revisionId: string;
   manifest: WorkspaceManifestV1;
   durationMs: number;
   tracks: Array<{
@@ -22,7 +25,25 @@ export function StudioLauncher(props: {
     instrumentName: string | null;
     creditName: string;
   }>;
-}) {
+};
+
+export type StudioLauncherProps = CommonProps &
+  (
+    | { mode: "revision"; revisionId: string }
+    | {
+        mode: "workspace";
+        viewerId: string;
+        workspaceId: string;
+        baseRevisionId: string;
+        lockVersion: number;
+        manifestSha256: string;
+        updatedAt: string;
+        assets: WorkspaceAssetOption[];
+        instruments: WorkspaceInstrumentOption[];
+      }
+  );
+
+export function StudioLauncher(props: StudioLauncherProps) {
   const [opened, setOpened] = useState(false);
   const [unsupported, setUnsupported] = useState<string | null>(null);
   if (!opened)

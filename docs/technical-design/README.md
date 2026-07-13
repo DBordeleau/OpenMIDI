@@ -17,7 +17,7 @@ This document set turns the product requirements into an implementation contract
 | [03-delivery-plan.md](03-delivery-plan.md)             | Milestones, vertical slices, testing, observability and agent execution rules          |
 | [decisions/README.md](decisions/README.md)             | Architectural decisions that must remain stable across implementation tasks            |
 
-## Implementation pulse after PR 09
+## Implementation pulse after PR 10
 
 The following vertical slices are implemented and are the baseline for future work:
 
@@ -28,8 +28,9 @@ The following vertical slices are implemented and are the baseline for future wo
 - private immutable WAV/FLAC/MP3 assets, direct resumable Storage uploads, trusted verification, and user/global quota projections;
 - strict manifest v1, immutable revisions/tracks, append-only project asset references, project storage projection, and atomic idempotent first publish;
 - authenticated current-revision studio playback with lazy Waveform Playlist hydration, exact-revision short-lived signed URLs, synchronized transport, and session-only mixer controls.
+- owner-only editable workspaces created from the exact current revision, normalized workspace-track projections, private immutable recovery snapshots, debounced autosave, optimistic lock conflicts, and local crash recovery.
 
-The next planned slice is editable private workspaces with add/position/remove controls and conflict-safe autosave. Workspace persistence, later publish-from-workspace, export/download, contributions, acceptance, attribution UI, forks, public discovery, dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained, while [PR 09 evidence](evidence/pr-09-production-studio.md) describes the production playback boundary and outstanding manual browser/Preview verification.
+The next planned slice publishes a later immutable revision from an owner workspace. Export/download, contributions, acceptance, attribution UI, forks, public discovery, dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; [PR 09 evidence](evidence/pr-09-production-studio.md) describes production playback and [PR 10 evidence](evidence/pr-10-editable-workspaces.md) describes workspace persistence and verification.
 
 ## Executive recommendation
 

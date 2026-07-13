@@ -17,6 +17,7 @@ export type TrackPatch = Partial<
   Pick<
     WorkspaceTrackV1,
     | "name"
+    | "instrumentId"
     | "positionMs"
     | "trimStartMs"
     | "durationMs"

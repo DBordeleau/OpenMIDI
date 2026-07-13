@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
@@ -16,16 +18,36 @@ import {
   usePlaylistData,
 } from "@waveform-playlist/browser";
 import { resumeGlobalAudioContext } from "@waveform-playlist/playout";
-import type { WorkspaceManifestV1 } from "../manifest/schema";
+import type { StudioLauncherProps } from "../components/studio-launcher.client";
+import {
+  serializePostgresJsonb,
+  sha256PostgresJsonb,
+  type WorkspaceManifestV1,
+  type WorkspaceTrackV1,
+} from "../manifest/schema";
 import type { SignedAudioSource } from "../source-contract";
 import { StudioAdapterError } from "../studio-adapter.types";
+import {
+  getAutosaveDelay,
+  initialAutosaveState,
+  reduceAutosave,
+} from "@/features/workspaces/autosave-machine";
+import {
+  reserveWorkspaceSnapshotAction,
+  saveWorkspaceAction,
+} from "@/features/workspaces/actions";
+import {
+  clearLocalRecovery,
+  readLocalRecovery,
+  writeLocalRecovery,
+} from "@/features/workspaces/local-recovery.client";
+import type { LocalRecoveryEnvelope } from "@/features/workspaces/schema";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { gainToDecibels } from "./mapping";
 import { WaveformPlaylistStudioAdapter } from "./adapter.client";
 
-type TrackMeta = {
-  trackId: string;
-  instrumentName: string | null;
-  creditName: string;
-};
+type TrackMeta = StudioLauncherProps["tracks"][number];
+type EditableProps = Extract<StudioLauncherProps, { mode: "workspace" }>;
 
 const formatTime = (seconds: number) => {
   const safe = Math.max(0, seconds);
@@ -36,18 +58,26 @@ const formatTime = (seconds: number) => {
 
 function PlaybackControls({
   adapter,
-  duration,
   tracks,
+  editable,
+  onEdited,
 }: {
   adapter: WaveformPlaylistStudioAdapter;
-  duration: number;
   tracks: TrackMeta[];
+  editable: EditableProps | null;
+  onEdited: () => void;
 }) {
   const controls = usePlaylistControls();
   const data = usePlaylistData();
   const { isPlaying } = usePlaybackAnimation();
   const [time, setTime] = useState(0);
   const [audioIssue, setAudioIssue] = useState(false);
+  const manifest = adapter.exportManifest();
+  const duration = Math.max(
+    ...manifest.tracks.map(
+      (track) => (track.positionMs + track.durationMs) / 1000,
+    ),
+  );
   const attemptPlay = useCallback(async () => {
     try {
       await adapter.play();
@@ -56,6 +86,22 @@ function PlaybackControls({
       setAudioIssue(true);
     }
   }, [adapter]);
+  const updateTrack = (
+    trackId: string,
+    patch: Parameters<typeof adapter.updateTrack>[1],
+  ) => {
+    adapter.updateTrack(trackId, patch);
+    onEdited();
+  };
+  const moveTrack = (trackId: string, delta: number) => {
+    const ids = adapter.exportManifest().tracks.map((track) => track.trackId);
+    const index = ids.indexOf(trackId);
+    const target = index + delta;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target]!, ids[index]!];
+    adapter.reorderTracks(ids);
+    onEdited();
+  };
   useEffect(() => {
     adapter.attachRuntime({
       play: async () => {
@@ -65,7 +111,7 @@ function PlaybackControls({
       pause: controls.pause,
       seek: controls.seekTo,
       renderMix: async () => {
-        throw new Error("read_only");
+        throw new Error("export_not_available");
       },
     });
     const timer = window.setInterval(
@@ -149,7 +195,7 @@ function PlaybackControls({
             max={duration}
             step="0.1"
             value={Math.min(time, duration)}
-            onChange={(e) => controls.seekTo(Number(e.target.value))}
+            onChange={(event) => controls.seekTo(Number(event.target.value))}
           />
         </label>
       </div>
@@ -159,7 +205,13 @@ function PlaybackControls({
       <div className="grid gap-4 lg:grid-cols-2">
         {data.tracks.map((track, index) => {
           const meta = tracks.find((item) => item.trackId === track.id);
+          const persisted = manifest.tracks.find(
+            (item) => item.trackId === track.id,
+          )!;
           const current = data.trackStates[index]!;
+          const displayedGainDb = editable
+            ? persisted.gainDb
+            : Number(gainToDecibels(current.volume).toFixed(1));
           return (
             <fieldset
               key={track.id}
@@ -167,25 +219,84 @@ function PlaybackControls({
             >
               <legend className="px-2 font-semibold">{track.name}</legend>
               <p className="text-muted text-sm">
-                {meta?.instrumentName ?? "No instrument"} ·{" "}
+                {editable
+                  ? (editable.instruments.find(
+                      (instrument) => instrument.id === persisted.instrumentId,
+                    )?.name ?? "No instrument")
+                  : (meta?.instrumentName ?? "No instrument")}{" "}
+                {" · "}
                 {meta?.creditName ?? "Unknown creator"}
               </p>
+              {editable && (
+                <>
+                  <label className="block">
+                    Track label
+                    <input
+                      className="border-subtle mt-1 block min-h-11 w-full border px-3"
+                      maxLength={120}
+                      defaultValue={persisted.name}
+                      onBlur={(event) =>
+                        event.target.value.trim() &&
+                        updateTrack(track.id, {
+                          name: event.target.value.trim(),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="block">
+                    Instrument
+                    <select
+                      className="border-subtle mt-1 block min-h-11 w-full border px-3"
+                      value={persisted.instrumentId ?? ""}
+                      onChange={(event) =>
+                        updateTrack(track.id, {
+                          instrumentId: event.target.value || null,
+                        })
+                      }
+                    >
+                      <option value="">Not specified</option>
+                      {editable.instruments.map((instrument) => (
+                        <option key={instrument.id} value={instrument.id}>
+                          {instrument.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    Start position (seconds)
+                    <input
+                      className="border-subtle mt-1 block min-h-11 w-full border px-3"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      defaultValue={persisted.positionMs / 1000}
+                      onBlur={(event) =>
+                        updateTrack(track.id, {
+                          positionMs: Math.max(
+                            0,
+                            Math.round(Number(event.target.value) * 1000),
+                          ),
+                        })
+                      }
+                    />
+                  </label>
+                </>
+              )}
               <label className="block">
-                Gain{" "}
-                <span className="text-muted">
-                  {Math.round(current.volume * 100)}%
-                </span>
+                Gain <span className="text-muted">{displayedGainDb} dB</span>
                 <input
                   aria-label={`${track.name} gain`}
                   className="w-full"
                   type="range"
-                  min="0"
-                  max="2"
-                  step="0.01"
-                  value={current.volume}
-                  onChange={(e) =>
-                    controls.setTrackVolume(index, Number(e.target.value))
-                  }
+                  min="-60"
+                  max="6"
+                  step="0.5"
+                  value={displayedGainDb}
+                  onChange={(event) => {
+                    const gainDb = Number(event.target.value);
+                    controls.setTrackVolume(index, Math.pow(10, gainDb / 20));
+                    if (editable) updateTrack(track.id, { gainDb });
+                  }}
                 />
               </label>
               <label className="block">
@@ -198,17 +309,23 @@ function PlaybackControls({
                   max="1"
                   step="0.1"
                   value={current.pan}
-                  onChange={(e) =>
-                    controls.setTrackPan(index, Number(e.target.value))
-                  }
+                  onChange={(event) => {
+                    const pan = Number(event.target.value);
+                    controls.setTrackPan(index, pan);
+                    if (editable) updateTrack(track.id, { pan });
+                  }}
                 />
               </label>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
                   aria-pressed={current.muted}
                   className="rounded-control border-strong min-h-11 border px-4"
-                  onClick={() => controls.setTrackMute(index, !current.muted)}
+                  onClick={() => {
+                    controls.setTrackMute(index, !current.muted);
+                    if (editable)
+                      updateTrack(track.id, { muted: !current.muted });
+                  }}
                 >
                   {current.muted ? "Muted" : "Mute"}
                 </button>
@@ -216,10 +333,48 @@ function PlaybackControls({
                   type="button"
                   aria-pressed={current.soloed}
                   className="rounded-control border-strong min-h-11 border px-4"
-                  onClick={() => controls.setTrackSolo(index, !current.soloed)}
+                  onClick={() => {
+                    controls.setTrackSolo(index, !current.soloed);
+                    if (editable)
+                      updateTrack(track.id, { soloed: !current.soloed });
+                  }}
                 >
                   {current.soloed ? "Soloed" : "Solo"}
                 </button>
+                {editable && (
+                  <>
+                    <button
+                      type="button"
+                      className="rounded-control border-strong min-h-11 border px-4"
+                      aria-label={`Move ${track.name} up`}
+                      disabled={index === 0}
+                      onClick={() => moveTrack(track.id, -1)}
+                    >
+                      Move up
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-control border-strong min-h-11 border px-4"
+                      aria-label={`Move ${track.name} down`}
+                      disabled={index === data.tracks.length - 1}
+                      onClick={() => moveTrack(track.id, 1)}
+                    >
+                      Move down
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-control min-h-11 border border-red-700 px-4 text-red-700"
+                      aria-label={`Remove ${track.name} from draft`}
+                      disabled={data.tracks.length === 1}
+                      onClick={() => {
+                        adapter.removeTrack(track.id);
+                        onEdited();
+                      }}
+                    >
+                      Remove from draft
+                    </button>
+                  </>
+                )}
               </div>
             </fieldset>
           );
@@ -229,19 +384,8 @@ function PlaybackControls({
   );
 }
 
-export function StudioSurface({
-  projectId,
-  revisionId,
-  manifest,
-  durationMs,
-  tracks,
-}: {
-  projectId: string;
-  revisionId: string;
-  manifest: WorkspaceManifestV1;
-  durationMs: number;
-  tracks: TrackMeta[];
-}) {
+export function StudioSurface(props: StudioLauncherProps) {
+  const editable = props.mode === "workspace" ? props : null;
   const [adapter, setAdapter] = useState(
     () => new WaveformPlaylistStudioAdapter(),
   );
@@ -251,22 +395,46 @@ export function StudioSurface({
     adapter.getSnapshot,
   );
   const [message, setMessage] = useState("Requesting private audio access…");
+  const [trackMeta, setTrackMeta] = useState(props.tracks);
+  const [autosave, dispatchAutosave] = useReducer(
+    reduceAutosave,
+    initialAutosaveState,
+  );
+  const [pendingManifest, setPendingManifest] =
+    useState<WorkspaceManifestV1 | null>(null);
+  const latestManifest = useRef<WorkspaceManifestV1 | null>(null);
+  const [editGeneration, setEditGeneration] = useState(0);
+  const lockVersion = useRef(editable?.lockVersion ?? 0);
+  const saving = useRef(false);
+  const dirtySince = useRef<number | null>(null);
+  const autosaveStatus = useRef(autosave.status);
   const controller = useRef<AbortController | null>(null);
   const disposalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const assetIds = useMemo(
-    () => manifest.tracks.map((track) => track.assetId),
-    [manifest],
+  const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [recovery, setRecovery] = useState<LocalRecoveryEnvelope | null>(null);
+  useEffect(() => {
+    autosaveStatus.current = autosave.status;
+  }, [autosave.status]);
+  const initialAssetIds = useMemo(
+    () => props.manifest.tracks.map((track) => track.assetId),
+    [props.manifest],
   );
-  const sign = useCallback(async (): Promise<SignedAudioSource[]> => {
-    const response = await fetch(
-      `/api/projects/${projectId}/revisions/${revisionId}/audio-sources`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetIds }),
-        cache: "no-store",
-      },
-    );
+
+  const sourceEndpoint =
+    props.mode === "workspace"
+      ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`
+      : `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`;
+  const signLoad = useCallback(async (): Promise<SignedAudioSource[]> => {
+    const response = await fetch(sourceEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        editable
+          ? { mode: "load", assetIds: initialAssetIds }
+          : { assetIds: initialAssetIds },
+      ),
+      cache: "no-store",
+    });
     if (!response.ok)
       throw new StudioAdapterError(
         response.status === 401 ? "unauthorized_source" : "fetch_failed",
@@ -276,28 +444,220 @@ export function StudioSurface({
       );
     const value = (await response.json()) as { sources: SignedAudioSource[] };
     return value.sources;
-  }, [assetIds, projectId, revisionId]);
+  }, [editable, initialAssetIds, sourceEndpoint]);
+  const signAdd = useCallback(
+    async (assetId: string) => {
+      if (!editable) throw new Error("read_only");
+      const response = await fetch(sourceEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "add", assetId }),
+        cache: "no-store",
+      });
+      if (!response.ok)
+        throw new Error("This stem is no longer available to add.");
+      const value = (await response.json()) as { sources: SignedAudioSource[] };
+      return value.sources[0]!;
+    },
+    [editable, sourceEndpoint],
+  );
+
+  const cachePending = useCallback(
+    async (manifest: WorkspaceManifestV1, state: "pending" | "conflict") => {
+      if (!editable) return;
+      const manifestSha256 = await sha256PostgresJsonb(manifest);
+      writeLocalRecovery({
+        version: 1,
+        viewerId: editable.viewerId,
+        projectId: editable.projectId,
+        workspaceId: editable.workspaceId,
+        baseRevisionId: editable.baseRevisionId,
+        serverLockVersion: lockVersion.current,
+        manifest,
+        manifestSha256,
+        savedAt: new Date().toISOString(),
+        state,
+      });
+    },
+    [editable],
+  );
+  const markEdited = useCallback(() => {
+    const manifest = adapter.exportManifest();
+    dirtySince.current ??= Date.now();
+    latestManifest.current = manifest;
+    setPendingManifest(manifest);
+    setEditGeneration((value) => value + 1);
+    dispatchAutosave({ type: "edit" });
+    void cachePending(manifest, "pending");
+  }, [adapter, cachePending]);
+
+  const performSave = useCallback(async () => {
+    if (!editable || saving.current || autosave.status === "conflict") return;
+    const manifest = latestManifest.current;
+    if (!manifest) return;
+    if (!navigator.onLine) {
+      dispatchAutosave({ type: "offline" });
+      return;
+    }
+    saving.current = true;
+    dispatchAutosave({ type: "save" });
+    const requestId = crypto.randomUUID();
+    const serialized = serializePostgresJsonb(manifest);
+    const bytes = new TextEncoder().encode(serialized);
+    const manifestSha256 = await sha256PostgresJsonb(manifest);
+    try {
+      const reservation = await reserveWorkspaceSnapshotAction({
+        workspaceId: editable.workspaceId,
+        requestId,
+        expectedLockVersion: lockVersion.current,
+        manifestSha256,
+        byteSize: bytes.byteLength,
+      });
+      if (!reservation.ok) {
+        if (reservation.code === "conflict") {
+          dispatchAutosave({ type: "conflict" });
+          await cachePending(manifest, "conflict");
+          return;
+        }
+        throw new Error("Draft reservation is unavailable.");
+      }
+      const db = createSupabaseBrowserClient();
+      const { error: uploadError } = await db.storage
+        .from(reservation.bucket)
+        .upload(reservation.objectPath, new Blob([bytes]), {
+          contentType: "application/json",
+          cacheControl: "0",
+          upsert: false,
+        });
+      const status = Number(
+        (uploadError as { statusCode?: number | string } | null)?.statusCode,
+      );
+      if (uploadError && status !== 409)
+        throw new Error("The private snapshot upload was interrupted.");
+      const result = await saveWorkspaceAction({
+        workspaceId: editable.workspaceId,
+        requestId,
+        expectedLockVersion: lockVersion.current,
+        snapshotAssetId: reservation.assetId,
+        manifest,
+      });
+      if (!result.ok) {
+        if (result.code === "conflict") {
+          dispatchAutosave({ type: "conflict" });
+          await cachePending(manifest, "conflict");
+          return;
+        }
+        throw new Error(
+          result.code === "invalid_state"
+            ? "A track or snapshot changed. Review the draft and retry."
+            : "The draft could not be saved. Retry when connected.",
+        );
+      }
+      lockVersion.current = result.lockVersion;
+      const current = latestManifest.current;
+      if (
+        current &&
+        serializePostgresJsonb(current) === serializePostgresJsonb(manifest)
+      ) {
+        latestManifest.current = null;
+        dirtySince.current = null;
+        setPendingManifest(null);
+        clearLocalRecovery(editable.viewerId, editable.workspaceId);
+        dispatchAutosave({ type: "saved" });
+      } else {
+        dispatchAutosave({ type: "edit" });
+        setEditGeneration((value) => value + 1);
+      }
+    } catch (error) {
+      if (navigator.onLine)
+        dispatchAutosave({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "The draft could not be saved.",
+        });
+      else dispatchAutosave({ type: "offline" });
+    } finally {
+      saving.current = false;
+    }
+  }, [autosave.status, cachePending, editable]);
+
+  useEffect(() => {
+    if (
+      !editable ||
+      !pendingManifest ||
+      ["conflict", "offline", "error", "saving"].includes(autosave.status)
+    )
+      return;
+    const timer = window.setTimeout(
+      () => void performSave(),
+      getAutosaveDelay(dirtySince.current ?? Date.now(), Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  }, [autosave.status, editGeneration, editable, pendingManifest, performSave]);
+
+  useEffect(() => {
+    if (!editable) return;
+    const online = () => {
+      if (latestManifest.current) {
+        dispatchAutosave({ type: "retry" });
+        setEditGeneration((value) => value + 1);
+      }
+    };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!latestManifest.current) return;
+      event.preventDefault();
+    };
+    window.addEventListener("online", online);
+    if (pendingManifest || autosave.status === "conflict")
+      window.addEventListener("beforeunload", beforeUnload);
+    return () => {
+      window.removeEventListener("online", online);
+      window.removeEventListener("beforeunload", beforeUnload);
+    };
+  }, [autosave.status, editable, pendingManifest]);
+
   useEffect(() => {
     if (disposalTimer.current) clearTimeout(disposalTimer.current);
     const abort = new AbortController();
     controller.current = abort;
     const pagehide = () => {
+      if (latestManifest.current)
+        void cachePending(
+          latestManifest.current,
+          autosaveStatus.current === "conflict" ? "conflict" : "pending",
+        );
       abort.abort();
       void adapter.dispose();
     };
     window.addEventListener("pagehide", pagehide);
     void (async () => {
       try {
-        const sources = await sign();
+        const sources = await signLoad();
         await adapter.load({
-          manifest,
+          manifest: props.manifest,
           sources,
-          refreshSources: sign,
+          refreshSources: signLoad,
           signal: abort.signal,
           onProgress: (loaded, total) =>
             setMessage(`Loading ${loaded} of ${total} stems`),
         });
-        setMessage("Ready. Listening changes are session-only.");
+        setMessage(
+          editable
+            ? "Ready. Draft edits autosave privately."
+            : "Ready. Listening changes are session-only.",
+        );
+        if (editable) {
+          const local = readLocalRecovery(
+            editable.viewerId,
+            editable.workspaceId,
+          );
+          if (local && local.manifestSha256 !== editable.manifestSha256)
+            setRecovery(local);
+          else if (local)
+            clearLocalRecovery(editable.viewerId, editable.workspaceId);
+        }
       } catch (error) {
         if (!abort.signal.aborted)
           setMessage(
@@ -310,16 +670,180 @@ export function StudioSurface({
       abort.abort();
       disposalTimer.current = setTimeout(() => void adapter.dispose(), 0);
     };
-  }, [adapter, manifest, sign]);
+  }, [adapter, cachePending, editable, props.manifest, signLoad]);
+
+  const restoreRecovery = async () => {
+    if (!editable || !recovery) return;
+    try {
+      const current = adapter.exportManifest();
+      for (const track of recovery.manifest.tracks) {
+        if (current.tracks.some((item) => item.assetId === track.assetId))
+          continue;
+        const option = editable.assets.find(
+          (asset) => asset.id === track.assetId,
+        );
+        if (!option) throw new Error("A pending stem is no longer available.");
+        const source = await signAdd(track.assetId);
+        await adapter.addAudioAsset({
+          asset: { assetId: source.assetId, url: source.signedUrl },
+          track,
+        });
+        setTrackMeta((items) => [
+          ...items,
+          {
+            trackId: track.trackId,
+            creditName: option.creditName,
+            instrumentName: null,
+          },
+        ]);
+      }
+      for (const track of adapter.exportManifest().tracks) {
+        if (
+          !recovery.manifest.tracks.some(
+            (item) => item.trackId === track.trackId,
+          )
+        )
+          adapter.removeTrack(track.trackId);
+      }
+      for (const track of recovery.manifest.tracks)
+        adapter.updateTrack(track.trackId, {
+          name: track.name,
+          instrumentId: track.instrumentId,
+          positionMs: track.positionMs,
+          gainDb: track.gainDb,
+          pan: track.pan,
+          muted: track.muted,
+          soloed: track.soloed,
+        });
+      adapter.reorderTracks(
+        recovery.manifest.tracks.map((track) => track.trackId),
+      );
+      setRecovery(null);
+      markEdited();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Recovery could not be applied.",
+      );
+    }
+  };
+
+  const addSelectedAsset = async () => {
+    if (!editable || !selectedAssetId) return;
+    const option = editable.assets.find(
+      (asset) => asset.id === selectedAssetId,
+    );
+    if (!option) return;
+    try {
+      const source = await signAdd(option.id);
+      const track: WorkspaceTrackV1 = {
+        trackId: crypto.randomUUID(),
+        assetId: option.id,
+        instrumentId: null,
+        name: option.filename.replace(/\.[^.]+$/, "").slice(0, 120),
+        positionMs: 0,
+        trimStartMs: 0,
+        durationMs: option.durationMs,
+        gainDb: 0,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        sortOrder: adapter.exportManifest().tracks.length,
+      };
+      await adapter.addAudioAsset({
+        asset: { assetId: source.assetId, url: source.signedUrl },
+        track,
+      });
+      setTrackMeta((items) => [
+        ...items,
+        {
+          trackId: track.trackId,
+          instrumentName: null,
+          creditName: option.creditName,
+        },
+      ]);
+      setSelectedAssetId("");
+      markEdited();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "The stem could not be added.",
+      );
+    }
+  };
+
   const ready = ["ready", "playing", "paused"].includes(snapshot.status);
+  const addedAssetIds = new Set(
+    snapshot.manifest?.tracks.map((track) => track.assetId) ?? [],
+  );
   return (
     <section className="space-y-6">
       <div
         aria-live="polite"
         className="rounded-control border-subtle bg-surface border p-4"
       >
-        <strong>Status:</strong> {message}
+        <strong>Status:</strong> {editable ? autosave.message : message}
+        {editable && (
+          <span className="text-muted ml-2 text-sm">
+            Last server copy {new Date(editable.updatedAt).toLocaleTimeString()}
+          </span>
+        )}
+        {editable && (
+          <span className="text-muted block text-sm">Audio: {message}</span>
+        )}
       </div>
+      {recovery && (
+        <div role="alert" className="rounded-card border-accent border p-5">
+          <h2 className="font-bold">Pending changes found on this device</h2>
+          <p className="text-muted mt-1">
+            The server draft remains authoritative until you restore and save
+            this copy.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="bg-accent rounded-control min-h-11 px-4 font-semibold text-slate-950"
+              onClick={() => void restoreRecovery()}
+            >
+              Restore pending changes
+            </button>
+            <button
+              type="button"
+              className="rounded-control border-strong min-h-11 border px-4"
+              onClick={() => {
+                if (!editable) return;
+                clearLocalRecovery(editable.viewerId, editable.workspaceId);
+                setRecovery(null);
+              }}
+            >
+              Discard local copy
+            </button>
+          </div>
+        </div>
+      )}
+      {autosave.status === "conflict" && editable && (
+        <div role="alert" className="rounded-card border border-red-700 p-5">
+          <h2 className="font-bold">This draft changed in another tab</h2>
+          <p className="text-muted mt-1">
+            Your pending copy remains on this device. Reload to use the newer
+            server draft; Jam Session will not overwrite it automatically.
+          </p>
+          <button
+            type="button"
+            className="rounded-control border-strong mt-4 min-h-11 border px-4"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Reload the saved draft? Your pending local copy will remain available on this device.",
+                )
+              )
+                location.reload();
+            }}
+          >
+            Reload saved draft
+          </button>
+        </div>
+      )}
       {!ready ? (
         <button
           type="button"
@@ -333,22 +857,81 @@ export function StudioSurface({
         </button>
       ) : (
         snapshot.tracks.length > 0 && (
-          <WaveformPlaylistProvider
-            tracks={snapshot.tracks}
-            timescale
-            controls={{ show: false, width: 0 }}
-            waveHeight={96}
-            samplesPerPixel={512}
-          >
-            <PlaybackControls
-              adapter={adapter}
-              duration={durationMs / 1000}
-              tracks={tracks}
-            />
-          </WaveformPlaylistProvider>
+          <>
+            {editable && (
+              <div className="rounded-card border-subtle bg-surface flex flex-wrap items-end gap-3 border p-5">
+                <label className="min-w-64 flex-1">
+                  Add one of your ready stems
+                  <select
+                    className="border-subtle mt-1 block min-h-11 w-full border px-3"
+                    value={selectedAssetId}
+                    onChange={(event) => setSelectedAssetId(event.target.value)}
+                  >
+                    <option value="">Choose a stem</option>
+                    {editable.assets
+                      .filter((asset) => !addedAssetIds.has(asset.id))
+                      .map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.filename} ·{" "}
+                          {(asset.durationMs / 1000).toFixed(1)}s
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="bg-accent rounded-control min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-50"
+                  disabled={!selectedAssetId || snapshot.tracks.length >= 12}
+                  onClick={() => void addSelectedAsset()}
+                >
+                  Add stem
+                </button>
+                <Link className="min-h-11 py-2 underline" href="/uploads">
+                  Upload another stem
+                </Link>
+              </div>
+            )}
+            <WaveformPlaylistProvider
+              tracks={snapshot.tracks}
+              timescale
+              controls={{ show: false, width: 0 }}
+              waveHeight={96}
+              samplesPerPixel={512}
+            >
+              <PlaybackControls
+                adapter={adapter}
+                tracks={trackMeta}
+                editable={editable}
+                onEdited={markEdited}
+              />
+            </WaveformPlaylistProvider>
+          </>
         )
       )}
-      <p className="text-muted text-sm">Listening changes are session-only.</p>
+      {editable ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="rounded-control border-strong min-h-11 border px-4 disabled:opacity-50"
+            disabled={
+              !pendingManifest ||
+              autosave.status === "saving" ||
+              autosave.status === "conflict"
+            }
+            onClick={() => void performSave()}
+          >
+            Save now
+          </button>
+          <p className="text-muted text-sm">
+            Draft edits are private and unpublished. Removing a track does not
+            delete its uploaded source.
+          </p>
+        </div>
+      ) : (
+        <p className="text-muted text-sm">
+          Listening changes are session-only.
+        </p>
+      )}
     </section>
   );
 }

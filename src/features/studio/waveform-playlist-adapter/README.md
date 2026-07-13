@@ -6,7 +6,7 @@ The adapter is client-only and lazy-loaded. It translates between pinned editor 
 
 Before adding code here, read the [system architecture](../../../../docs/technical-design/01-system-architecture.md) and [architectural decisions](../../../../docs/technical-design/decisions/README.md).
 
-The production PR 09 surface is read-only. It accepts a validated immutable manifest, obtains one exact-revision signed batch after explicit activation, and downloads/decodes at concurrency three. Authorization failures refresh that batch once; disposal aborts outstanding work, pauses playback, and closes the owned decode context. Gain, pan, mute, and solo are session state only. Adding, trimming, reordering, persistence, and export belong to later workspace work and must not be exposed by this surface.
+The production surface accepts a validated revision or workspace manifest, obtains one exact-authority signed batch after explicit activation, and downloads/decodes at concurrency three. Authorization failures refresh that batch once; disposal aborts outstanding work, pauses playback, and closes the owned decode context. Revision mode remains read-only. PR 10 workspace mode supports add/remove/reorder, position, trim, label, instrument, gain, pan, mute, and solo, then exports only the validated Jam Session manifest for persistence. Export/render remains later work.
 
 OpenDAW is a post-MVP option and must not be added here without a superseding ADR and a dedicated integration/licensing plan.
 

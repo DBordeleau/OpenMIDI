@@ -135,24 +135,24 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 
 ### `project_revisions`
 
-| Column                      | Type          | Rules                                                      |
-| --------------------------- | ------------- | ---------------------------------------------------------- |
-| `id`                        | `uuid`        | PK                                                         |
-| `project_id`                | `uuid`        | FK projects                                                |
-| `revision_number`           | `integer`     | positive; unique per project                               |
-| `parent_revision_id`        | `uuid null`   | same-project previous revision                             |
-| `created_by`                | `uuid`        | FK profiles                                                |
-| `publish_request_id`        | `uuid`        | idempotency key; unique with project                       |
-| `expected_base_revision_id` | `uuid null`   | same-project optimistic-concurrency base                   |
-| `message`                   | `text null`   | max 500 chars                                              |
-| `snapshot_asset_id`         | `uuid null`   | reserved for a future engine-native artifact; null for MVP |
-| `manifest`                  | `jsonb`       | validated canonical versioned subset                       |
-| `manifest_version`          | `smallint`    | currently `1`                                              |
-| `engine`                    | `text`        | MVP value `waveform-playlist`                              |
-| `engine_version`            | `text`        | exact adapter/package compatibility version                |
-| `manifest_sha256`           | `text`        | canonical lowercase SHA-256 integrity checksum             |
-| `duration_ms`               | `integer`     | non-negative derived duration                              |
-| `created_at`                | `timestamptz` | immutable                                                  |
+| Column                      | Type          | Rules                                                                          |
+| --------------------------- | ------------- | ------------------------------------------------------------------------------ |
+| `id`                        | `uuid`        | PK                                                                             |
+| `project_id`                | `uuid`        | FK projects                                                                    |
+| `revision_number`           | `integer`     | positive; unique per project                                                   |
+| `parent_revision_id`        | `uuid null`   | same-project previous revision                                                 |
+| `created_by`                | `uuid`        | FK profiles                                                                    |
+| `publish_request_id`        | `uuid`        | idempotency key; unique with project                                           |
+| `expected_base_revision_id` | `uuid null`   | same-project optimistic-concurrency base                                       |
+| `message`                   | `text null`   | max 500 chars                                                                  |
+| `snapshot_asset_id`         | `uuid null`   | reserved for a future engine-native artifact; null for published MVP revisions |
+| `manifest`                  | `jsonb`       | validated canonical versioned subset                                           |
+| `manifest_version`          | `smallint`    | currently `1`                                                                  |
+| `engine`                    | `text`        | MVP value `waveform-playlist`                                                  |
+| `engine_version`            | `text`        | exact adapter/package compatibility version                                    |
+| `manifest_sha256`           | `text`        | canonical lowercase SHA-256 integrity checksum                                 |
+| `duration_ms`               | `integer`     | non-negative derived duration                                                  |
+| `created_at`                | `timestamptz` | immutable                                                                      |
 
 Unique `(project_id, revision_number)` and `(project_id, publish_request_id)`. Composite foreign keys prove that `parent_revision_id`, `expected_base_revision_id`, and `projects.current_revision_id` belong to the same project. The first revision has no parent; later revisions point to the locked current revision. Update/delete is denied to application roles and rejected by immutability triggers. Corrections create a new revision. `mix_preview_asset_id` and `accepted_contribution_id` are planned but do not exist yet.
 
@@ -191,9 +191,9 @@ MVP supports one contiguous region per uploaded stem in this projection. Wavefor
 | ----------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
 | `id`                                            | `uuid`                 | PK; generated during reservation                             |
 | `owner_id`                                      | `uuid`                 | uploader, not necessarily sole credited creator              |
-| `kind`                                          | `asset_kind`           | currently source audio through the implemented reservation   |
+| `kind`                                          | `asset_kind`           | implemented source audio and workspace snapshot reservations |
 | `status`                                        | `asset_status`         | reserved/uploading/processing/ready/failed/deleted lifecycle |
-| `bucket`                                        | `text`                 | implemented source value `source-audio`                      |
+| `bucket`                                        | `text`                 | `source-audio` or private `workspace-snapshots`              |
 | `object_path`                                   | `text`                 | unique, server-generated                                     |
 | `original_filename`                             | `text`                 | required sanitized display value                             |
 | `declared_media_type`, `reserved_byte_size`     | nullable/text + bigint | untrusted declaration and quota reservation                  |
@@ -207,7 +207,7 @@ Storage paths must not embed mutable usernames:
 
 ```text
 source-audio bucket: {owner_uuid}/{asset_uuid}/source
-workspace-snapshots bucket (planned objects): {owner_uuid}/{asset_uuid}/workspace.json
+workspace-snapshots bucket: {owner_uuid}/{asset_uuid}/workspace.json
 derived-assets bucket (planned objects): {asset_uuid}/preview.webm
 derived-assets bucket (planned objects): {asset_uuid}/peaks.v1.bin
 future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
@@ -221,15 +221,19 @@ Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, positi
 
 ### `workspaces`
 
-Mutable private drafts:
+Implemented mutable private owner drafts:
 
 - `id`, `project_id`, `owner_id`
 - `base_revision_id null`
-- `snapshot_asset_id null`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`
+- `snapshot_asset_id null`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`, `manifest_sha256`
 - `status`, `lock_version integer`, `created_at`, `updated_at`
 - optional `contribution_id`
 
-Unique active personal workspace per `(project_id, owner_id, contribution_id)` using an appropriate partial index. Saving requires the expected `lock_version`, then increments it.
+PR 10 allows one active owner workspace per project through a partial unique index. `create_project_workspace()` copies the exact current revision and its track projection. `reserve_workspace_snapshot()` creates a server-named, private, insert-only Storage reservation. `save_workspace()` locks the draft, requires the expected `lock_version`, validates the complete manifest and snapshot reservation, synchronizes `workspace_tracks`, assigns the immutable snapshot, and increments the version atomically. Stale, duplicate, unauthorized, suspended, or mismatched-project saves fail without changing the draft or published history.
+
+### `workspace_tracks`
+
+Queryable mutable projection of the workspace manifest. It mirrors the engine-neutral fields in `revision_tracks` and uses primary key `(workspace_id, id)`, with retention/discovery indexes on `asset_id` and `instrument_id`. Application roles may select their own rows but cannot mutate the projection directly; only workspace commands replace it after manifest validation.
 
 ### `contributions`
 
