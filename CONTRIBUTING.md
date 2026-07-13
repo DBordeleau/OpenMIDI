@@ -31,6 +31,15 @@ Before requesting review, run:
 npm run check
 ```
 
+For database or Supabase infrastructure changes, start the local stack and also run:
+
+```powershell
+npm run db:reset
+npm run db:check
+```
+
+The reset command deletes local database content and reapplies committed migrations and seed data. See the README for Docker setup and type generation.
+
 If routes or browser-visible flows changed, also install Chromium once and run E2E tests:
 
 ```powershell

@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians will be able to share stems, propose contributions, and fork songs into new creative directions while preserving history and attribution.
 
-> **Current status:** early MVP foundation. The repository currently contains the Next.js application shell, documentation, quality tooling, and a stack-verification page. Authentication, projects, uploads, contributions, Supabase, and OpenDAW are planned but not implemented yet.
+> **Current status:** early MVP foundation. The repository contains the Next.js application shell, local Supabase Postgres development and typed client infrastructure, quality tooling, and a stack-verification page. Authentication, projects, uploads, contributions, and OpenDAW are not implemented yet.
 
 ## Planned MVP
 
@@ -32,9 +32,10 @@ You need:
 
 1. [Git](https://git-scm.com/downloads)
 2. [Node.js 24 LTS](https://nodejs.org/en/download) — npm is included with Node
-3. A code editor such as [Visual Studio Code](https://code.visualstudio.com/)
+3. [Docker Desktop](https://www.docker.com/products/docker-desktop/) or another Docker-compatible container engine for database work
+4. A code editor such as [Visual Studio Code](https://code.visualstudio.com/)
 
-Docker and Supabase are **not** required for the current bootstrap application.
+Docker is not needed for frontend-only commands, including `npm run dev` and `npm run check`. The Supabase CLI is installed by `npm ci`; do not install an unpinned global copy.
 
 After installing, open a new terminal and verify:
 
@@ -92,11 +93,18 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), and stop the server with `Ctrl+C`.
 
-## Environment variables
+## Local Supabase setup
 
-The bootstrap page does not require environment variables.
+Start Docker Desktop, then launch local Postgres:
 
-When Supabase integration begins, copy `.env.example` to `.env.local` and fill in the documented values:
+```powershell
+npm run supabase:start
+npm run supabase:status
+```
+
+The first start downloads the database image and can take a while. PR 01 deliberately starts only Postgres; Auth, Storage, Realtime, Studio, Mailpit, Edge Functions, analytics, and image services are deferred until a feature uses them.
+
+The typed SSR client factories are infrastructure for later work and are not imported by the current application. When Auth integration begins, copy the example environment file without overwriting an existing local file:
 
 ```powershell
 Copy-Item .env.example .env.local
@@ -108,27 +116,46 @@ On macOS/Linux:
 cp .env.example .env.local
 ```
 
-Never commit `.env`, `.env.local`, credentials, or service-role keys. These files are ignored by Git.
+The later Auth setup will document how to obtain the local API URL and Publishable key. The application never needs the local Secret key in browser configuration. Never commit `.env`, `.env.local`, credentials, or service-role keys.
+
+Reset migrations and deterministic seed data, run the database checks, then stop the stack when finished:
+
+```powershell
+npm run db:reset
+npm run db:check
+npm run supabase:stop
+```
+
+`npm run db:reset` permanently deletes all local database content before reapplying migrations and seed data. It never targets a remote database in this repository's current unlinked configuration. The public schema is intentionally empty at this stage. `npm run db:types` regenerates the committed TypeScript definitions atomically from the running local database; `npm run db:types:check` detects drift without modifying tracked files.
+
+No remote Supabase project is required. The application remains at `http://127.0.0.1:3000`; `npm run supabase:status` is authoritative for the local database state.
 
 ## Common commands
 
 Run commands from the repository root:
 
-| Command                 | Purpose                                                         |
-| ----------------------- | --------------------------------------------------------------- |
-| `npm ci`                | Reproduce dependencies from the lockfile                        |
-| `npm run dev`           | Start the local development server                              |
-| `npm run check`         | Run formatting, lint, types, unit tests, and a production build |
-| `npm run format`        | Format supported files                                          |
-| `npm run format:check`  | Check formatting without changing files                         |
-| `npm run lint`          | Run ESLint with zero warnings allowed                           |
-| `npm run typecheck`     | Run strict TypeScript checking                                  |
-| `npm test`              | Run unit and component tests once                               |
-| `npm run test:watch`    | Run unit tests while editing                                    |
-| `npm run test:coverage` | Generate a local coverage report                                |
-| `npm run build`         | Create a production Next.js build                               |
-| `npm run start`         | Serve an existing production build                              |
-| `npm run test:e2e`      | Run Playwright browser tests                                    |
+| Command                   | Purpose                                                         |
+| ------------------------- | --------------------------------------------------------------- |
+| `npm ci`                  | Reproduce dependencies from the lockfile                        |
+| `npm run dev`             | Start the local development server                              |
+| `npm run check`           | Run formatting, lint, types, unit tests, and a production build |
+| `npm run format`          | Format supported files                                          |
+| `npm run format:check`    | Check formatting without changing files                         |
+| `npm run lint`            | Run ESLint with zero warnings allowed                           |
+| `npm run typecheck`       | Run strict TypeScript checking                                  |
+| `npm test`                | Run unit and component tests once                               |
+| `npm run test:watch`      | Run unit tests while editing                                    |
+| `npm run test:coverage`   | Generate a local coverage report                                |
+| `npm run build`           | Create a production Next.js build                               |
+| `npm run start`           | Serve an existing production build                              |
+| `npm run test:e2e`        | Run Playwright browser tests                                    |
+| `npm run supabase:start`  | Start local Supabase Postgres only                              |
+| `npm run supabase:stop`   | Stop local Supabase while preserving its database               |
+| `npm run supabase:status` | Show local database state                                       |
+| `npm run db:reset`        | Recreate the local database and apply seed data                 |
+| `npm run db:test`         | Run pgTAP tests against local Postgres                          |
+| `npm run db:check`        | Lint/test the database and check generated-type drift           |
+| `npm run db:types`        | Atomically regenerate committed database types                  |
 
 Before the first browser-test run, download Playwright's Chromium build once:
 
@@ -141,16 +168,20 @@ That browser download is only needed for E2E tests, not normal development.
 ## Repository map
 
 ```text
-src/app/          Next.js routes, layouts, styles, and route-owned UI
-src/features/     Feature-owned code; the future studio adapter boundary lives here
-src/test/         Shared unit-test setup
-tests/e2e/        Playwright browser journeys
-public/           Static files served by Next.js
-docs/             Product requirements, technical design, and decisions
-local/            Untracked personal implementation plans; never committed
+src/app/           Next.js routes, layouts, styles, and route-owned UI
+src/features/      Feature-owned code; the future studio adapter boundary lives here
+src/lib/env/       Runtime configuration validation
+src/lib/supabase/  Generated database types and user-scoped client factories
+src/test/          Shared unit-test setup
+supabase/          Local stack configuration, seed entry point, and pgTAP tests
+scripts/           Cross-platform repository automation
+tests/e2e/         Playwright browser journeys
+public/            Static files served by Next.js
+docs/              Product requirements, technical design, and decisions
+local/             Untracked personal implementation plans; never committed
 ```
 
-Folders for Supabase migrations, server repositories, and reusable components will be introduced with the first real behavior that needs them. We avoid empty architecture placeholders.
+The `supabase/` directory contains local configuration, deterministic seed structure, and database tests. Migrations, server repositories, and reusable components will be introduced with the first real behavior that needs them.
 
 ## Core architecture vocabulary
 
@@ -203,9 +234,29 @@ npm ci
 
 Do not delete `package-lock.json`; it is the reproducibility contract.
 
-### Where are the Supabase instructions?
+### Supabase cannot connect to Docker
 
-Supabase is intentionally not configured in the bootstrap commit. Setup commands will be added here and in `AGENTS.md` when the first backend integration lands.
+Confirm Docker Desktop is running and `docker version` shows both Client and Server sections. Start the engine before retrying `npm run supabase:start`. If a previous stack is stale, run `npm run supabase:stop` and start it again; do not delete checked-in configuration or migrations.
+
+### A local Supabase port is already in use
+
+Stop the other local Supabase project or container using the reported port. The checked-in default ports are part of the documented environment contract; avoid changing them only for a one-machine conflict.
+
+### Generated database types are stale
+
+Start Supabase, run `npm run db:reset`, then run `npm run db:types`. Commit the resulting `src/lib/supabase/database.types.ts` change with the migration that caused it.
+
+### Supabase configuration is missing
+
+The static application shell works without Supabase environment variables. When a later feature first requests a Supabase client, missing values produce an error naming the required variable. That feature's setup will provide the local API URL and Publishable key; restart the development server after adding them.
+
+### Docker Desktop and WSL disagree
+
+On Windows, confirm Docker Desktop is using Linux containers and that WSL integration is enabled for the distribution where you run commands. Run repository commands consistently from either PowerShell or the same integrated WSL distribution.
+
+### Containers are stale after a CLI upgrade
+
+Preserve any needed local schema/data first, then follow the Supabase CLI upgrade guidance for stopping and recreating local containers. Normal `npm run supabase:stop` preserves local database state.
 
 ## Contributing
 

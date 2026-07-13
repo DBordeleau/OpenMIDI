@@ -44,3 +44,6 @@ Thumbs.db
 # Supabase local runtime
 /supabase/.branches/
 /supabase/.temp/
+/supabase/.volumes/
+/supabase/.env
+/supabase/.env.*

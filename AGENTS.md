@@ -25,7 +25,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-The repository contains the scaffolded frontend foundation: Next.js App Router, strict TypeScript, Tailwind CSS, Motion, ESLint, Prettier, Vitest, React Testing Library, Playwright, and CI. npm is the sole package manager and Node.js 24 LTS is required.
+The repository contains the scaffolded frontend foundation plus local Supabase configuration, database testing/type-generation infrastructure, and typed user-scoped clients. It has no product schema or authentication feature yet. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -38,22 +38,28 @@ Before implementing a task:
 
 Keep this section exact and runnable from the repository root.
 
-| Purpose                   | Command                                          |
-| ------------------------- | ------------------------------------------------ |
-| Install dependencies      | `npm ci`                                         |
-| Development server        | `npm run dev`                                    |
-| Full non-E2E check        | `npm run check`                                  |
-| Lint                      | `npm run lint`                                   |
-| Type check                | `npm run typecheck`                              |
-| Unit tests                | `npm test`                                       |
-| Integration tests         | Not available until local Supabase is configured |
-| End-to-end tests          | `npm run test:e2e`                               |
-| Production build          | `npm run build`                                  |
-| Start local Supabase      | Not available until Supabase CLI is configured   |
-| Reset/seed local database | Not available until Supabase CLI is configured   |
-| Generate database types   | Not available until Supabase is configured       |
+| Purpose                   | Command                   |
+| ------------------------- | ------------------------- |
+| Install dependencies      | `npm ci`                  |
+| Development server        | `npm run dev`             |
+| Full non-E2E check        | `npm run check`           |
+| Lint                      | `npm run lint`            |
+| Type check                | `npm run typecheck`       |
+| Unit tests                | `npm test`                |
+| Start local Postgres      | `npm run supabase:start`  |
+| Stop local Supabase       | `npm run supabase:stop`   |
+| Show local Supabase state | `npm run supabase:status` |
+| Reset/seed local database | `npm run db:reset`        |
+| Database lint/tests/types | `npm run db:check`        |
+| Database tests            | `npm run db:test`         |
+| Generate database types   | `npm run db:types`        |
+| Check database type drift | `npm run db:types:check`  |
+| End-to-end tests          | `npm run test:e2e`        |
+| Production build          | `npm run build`           |
 
 Never invent a command in a handoff. Read `package.json` and tool configuration, run the narrowest relevant checks during iteration, then run `npm run check` before completion. Run `npm run test:e2e` when routes or browser-visible flows change; Chromium must be installed once with `npx playwright install chromium`.
+
+Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; later feature PRs introduce other Supabase services when needed. Reset the database before validating migrations, and stop it when finished. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. `npm run check` intentionally remains independent of Docker.
 
 ## Non-negotiable architecture rules
 
