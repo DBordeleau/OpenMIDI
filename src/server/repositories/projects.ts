@@ -4,6 +4,7 @@ import type { ProjectInput } from "@/features/projects/schema";
 import type {
   ProjectDetail,
   ProjectFormOptions,
+  ProjectSummary,
 } from "@/features/projects/types";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -25,6 +26,31 @@ export async function listProjectFormOptions(): Promise<ProjectFormOptions> {
       name: row.display_name,
     })),
   };
+}
+
+export async function listProjectsForViewer(
+  viewerId: string,
+): Promise<ProjectSummary[]> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("projects")
+    .select(
+      "id,title,description,status,current_revision_id,updated_at,project_members!inner(user_id,role)",
+    )
+    .eq("project_members.user_id", viewerId)
+    .is("deleted_at", null)
+    .neq("status", "deleted")
+    .order("updated_at", { ascending: false });
+  if (error) throw new Error("projects_unavailable");
+  return data.map((project) => ({
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    status: project.status as ProjectSummary["status"],
+    role: project.project_members[0]!.role,
+    currentRevisionId: project.current_revision_id,
+    updatedAt: project.updated_at,
+  }));
 }
 
 const rpcArgs = (input: ProjectInput) => ({

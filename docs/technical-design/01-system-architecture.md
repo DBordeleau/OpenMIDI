@@ -40,7 +40,7 @@ flowchart LR
 ### Product shell and navigation
 
 - The root layout owns one skip link, persistent header, and footer so public, Auth, profile, project, upload, revision, and studio routes share navigable product chrome.
-- The header exposes only implemented top-level destinations: home through the brand link, new project, uploads, and a sign-in/account action. Project-specific edit, publish, and studio links remain contextual to the project page.
+- The header exposes only implemented top-level destinations: home through the brand link, the authenticated member project index, new project, uploads, and a sign-in/account action. Active-route treatment orients users within these workspaces. Project-specific edit, publish, and studio links remain contextual to project cards and pages.
 - Public HTML renders a complete signed-out shell without a server-side Auth dependency. A small Client Component listens for Supabase Auth changes and route transitions, calls `getClaims()` to verify identity, and progressively replaces sign-in links with account or create-project destinations.
 - This Auth-aware display is convenience only. Server Components, server actions, Route Handlers, database commands, and RLS independently authorize every protected destination.
 - Navigation and landing-page actions must remain keyboard accessible at the 320 px minimum layout. Primary mint-accent actions use a dark foreground with WCAG 2.2 AA contrast; do not reintroduce white text on the light accent.
@@ -59,6 +59,7 @@ flowchart LR
 | `/`                                   | Implemented | Server-rendered                   | Public product shell                                        |
 | `/explore`                            | Planned     | Server-rendered, cached briefly   | Discovery query parameters form the future filter contract  |
 | `/@{username}`                        | Implemented | Server-rendered                   | Canonical profile display uses `@`; database stores no `@`  |
+| `/projects`                           | Implemented | Authenticated Server Component    | RLS-scoped member project index and next-action links       |
 | `/projects/{projectId}`               | Implemented | Authenticated Server Component    | Private metadata, revision history, export and studio links |
 | `/projects/{projectId}/studio`        | Implemented | Server shell + lazy client studio | Editor/Tone/browser audio load only after explicit open     |
 | `/projects/{projectId}/contributions` | Planned     | Authenticated server page         | Owner review queue or contributor-owned submissions         |

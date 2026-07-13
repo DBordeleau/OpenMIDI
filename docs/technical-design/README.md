@@ -21,7 +21,7 @@ This document set turns the product requirements into an implementation contract
 
 The following vertical slices are implemented and are the baseline for future work:
 
-- repository/Next.js quality scaffold and responsive global product shell with progressively enhanced Auth-aware navigation;
+- repository/Next.js quality scaffold and responsive global product shell with active-route navigation and an authenticated member project index;
 - local Supabase migrations, pgTAP, generated database types, and user-scoped clients;
 - identity schema, invite-only Google OAuth, onboarding, settings, and safe public profiles;
 - private project metadata, owner membership, controlled licenses/genres/tags/instruments, idempotency, and optimistic metadata updates;
@@ -31,7 +31,7 @@ The following vertical slices are implemented and are the baseline for future wo
 - owner-only editable workspaces created from the exact current revision, normalized workspace-track projections, private immutable recovery snapshots, debounced autosave, optimistic lock conflicts, and local crash recovery;
 - owner workspace publication through the canonical immutable-revision transaction, idempotent workspace advancement, explicit stale-draft restart, authorized direct-to-Storage stem downloads, and bounded browser-rendered 16-bit WAV mix export.
 
-The next planned slice adds contribution drafts and immutable submission versions. Contribution review/acceptance, attribution UI, forks, public discovery, dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; [PR 09 evidence](evidence/pr-09-production-studio.md), [PR 10 evidence](evidence/pr-10-editable-workspaces.md), [PR 11 evidence](evidence/pr-11-export-download-publishing.md), and [PR 11.5 evidence](evidence/pr-11-5-automatic-source-verification.md) describe the production path.
+The next planned slice adds contribution drafts and immutable submission versions. Contribution review/acceptance, attribution UI, forks, public discovery, broader dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; [PR 09 evidence](evidence/pr-09-production-studio.md), [PR 10 evidence](evidence/pr-10-editable-workspaces.md), [PR 11 evidence](evidence/pr-11-export-download-publishing.md), and [PR 11.5 evidence](evidence/pr-11-5-automatic-source-verification.md) describe the production path.
 
 ## Executive recommendation
 

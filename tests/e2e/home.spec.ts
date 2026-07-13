@@ -15,6 +15,9 @@ test("loads the Jam Session product shell without browser errors", async ({
   const navigation = page.getByRole("navigation", { name: "Primary" });
   await expect(navigation).toBeVisible();
   await expect(
+    navigation.getByRole("link", { name: "My projects" }),
+  ).toHaveAttribute("href", "/projects");
+  await expect(
     navigation.getByRole("link", { name: "New project" }),
   ).toHaveAttribute("href", "/projects/new");
   await expect(

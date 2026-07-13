@@ -12,6 +12,15 @@ export type ProjectFormOptions = {
   genres: TaxonomyOption[];
   tags: TaxonomyOption[];
 };
+export type ProjectSummary = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "draft" | "active" | "archived";
+  role: "owner" | "editor" | "viewer";
+  currentRevisionId: string | null;
+  updatedAt: string;
+};
 export type ProjectDetail = {
   id: string;
   ownerId: string;
