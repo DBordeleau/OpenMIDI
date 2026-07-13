@@ -4,6 +4,8 @@ import { Container } from "@/components/layout/container";
 import { StemDownloadPanel } from "@/features/exports/stem-download-panel.client";
 import { requireViewer } from "@/features/auth/guards";
 import { CollaborationSettingForm } from "@/features/contributions/collaboration-setting-form";
+import { CreditList } from "@/features/credits/credit-list";
+import { aggregateCredits } from "@/features/credits/types";
 import { projectIdSchema } from "@/features/projects/schema";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
 import { getProjectForViewer } from "@/server/repositories/projects";
@@ -28,6 +30,21 @@ export default async function ProjectPage({
       !["withdrawn", "accepted", "rejected"].includes(item.status),
   );
   const current = revisions.find(({ id }) => id === project.currentRevisionId);
+  const currentCredits = current ? aggregateCredits(current.tracks) : [];
+  const acceptedContributors = Array.from(
+    new Map(
+      revisions.flatMap((revision) =>
+        revision.acceptedContributor
+          ? [
+              [
+                revision.acceptedContributor.creditName.toLowerCase(),
+                revision.acceptedContributor,
+              ] as const,
+            ]
+          : [],
+      ),
+    ).values(),
+  );
   const saved = (await searchParams).saved === "1";
   return (
     <main id="main-content">
@@ -147,10 +164,35 @@ export default async function ProjectPage({
               </p>
               <h2 className="mt-1 text-2xl font-bold">Published arrangement</h2>
               <p className="text-muted mt-2">
-                By {current.authorName} ·{" "}
-                {new Date(current.createdAt).toLocaleString()} ·{" "}
+                Published by{" "}
+                {current.publisher.profileUsername ? (
+                  <Link
+                    className="underline"
+                    href={`/@${current.publisher.profileUsername}`}
+                  >
+                    {current.publisher.creditName}
+                  </Link>
+                ) : (
+                  current.publisher.creditName
+                )}{" "}
+                · {new Date(current.createdAt).toLocaleString()} ·{" "}
                 {(current.durationMs / 1000).toFixed(1)} seconds
               </p>
+              {current.acceptedContributor && (
+                <p className="text-muted mt-2">
+                  Accepted contribution by{" "}
+                  {current.acceptedContributor.profileUsername ? (
+                    <Link
+                      className="underline"
+                      href={`/@${current.acceptedContributor.profileUsername}`}
+                    >
+                      {current.acceptedContributor.creditName}
+                    </Link>
+                  ) : (
+                    current.acceptedContributor.creditName
+                  )}
+                </p>
+              )}
               {current.message && (
                 <p className="mt-3 whitespace-pre-wrap">{current.message}</p>
               )}
@@ -165,12 +207,20 @@ export default async function ProjectPage({
                     </strong>
                     <span className="text-muted block text-sm">
                       {track.instrumentName ?? "No instrument"} ·{" "}
-                      {(track.durationMs / 1000).toFixed(1)}s · Creator:{" "}
-                      {track.creditName}
+                      {(track.durationMs / 1000).toFixed(1)}s
                     </span>
+                    <div className="mt-2 text-sm">
+                      <CreditList credits={track.credits} />
+                    </div>
                   </li>
                 ))}
               </ol>
+              <div className="border-subtle mt-6 border-t pt-5">
+                <h3 className="font-semibold">Music credits</h3>
+                <div className="mt-2 text-sm">
+                  <CreditList credits={currentCredits} />
+                </div>
+              </div>
               <Link
                 className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
                 href={`/projects/${project.id}/studio`}
@@ -214,6 +264,27 @@ export default async function ProjectPage({
                   </li>
                 ))}
               </ol>
+            </section>
+          )}
+          {acceptedContributors.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-xl font-bold">Accepted contributors</h2>
+              <ul className="mt-3 space-y-1">
+                {acceptedContributors.map((contributor) => (
+                  <li key={contributor.creditName}>
+                    {contributor.profileUsername ? (
+                      <Link
+                        className="underline"
+                        href={`/@${contributor.profileUsername}`}
+                      >
+                        {contributor.creditName}
+                      </Link>
+                    ) : (
+                      contributor.creditName
+                    )}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
         </article>

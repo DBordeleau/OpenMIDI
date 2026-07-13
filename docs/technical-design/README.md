@@ -31,8 +31,10 @@ The following vertical slices are implemented and are the baseline for future wo
 - owner-only editable workspaces created from the exact current revision, normalized workspace-track projections, private immutable recovery snapshots, debounced autosave, optimistic lock conflicts, and local crash recovery;
 - owner workspace publication through the canonical immutable-revision transaction, idempotent workspace advancement, explicit stale-draft restart, authorized direct-to-Storage stem downloads, and bounded browser-rendered 16-bit WAV mix export.
 - private already-authorized member contribution drafts rooted at exact revisions, contribution-aware autosave through the existing studio boundary, immutable attested submission versions, withdrawal with retained history, and owner visibility beginning only after submission.
+- exact-version owner review with request changes/rejection and atomic stale-safe acceptance into immutable history;
+- explicit ordered self/external source-credit confirmation, immutable per-revision track snapshots, distinct publisher and accepted-contributor attribution, role-bearing project presentation, and privacy-safe accepted history.
 
-The next planned slice adds contribution review and atomic acceptance. Attribution UI, forks, public discovery, broader dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; [PR 09 evidence](evidence/pr-09-production-studio.md), [PR 10 evidence](evidence/pr-10-editable-workspaces.md), [PR 11 evidence](evidence/pr-11-export-download-publishing.md), [PR 11.5 evidence](evidence/pr-11-5-automatic-source-verification.md), and [PR 12 evidence](evidence/pr-12-contribution-drafts.md) describe the production path.
+The next planned slice adds copy-on-write forks and navigable lineage. Public discovery, broader dashboards, moderation/retention jobs, and final release hardening remain unimplemented. Historical PR 05 spike evidence is retained; the evidence directory records the production path through PR 14.
 
 ## Executive recommendation
 

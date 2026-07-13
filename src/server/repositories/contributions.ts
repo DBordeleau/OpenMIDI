@@ -230,7 +230,7 @@ export async function getContributionVersionPlayback(input: {
   const { data, error } = await db
     .from("contribution_versions")
     .select(
-      "id,contribution_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,contributions(project_id),contribution_version_tracks(track_id,asset_id,name,duration_ms,sort_order,instruments(name),assets(duration_ms,asset_credits(credit_name,position)))",
+      "id,contribution_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,contributions(project_id),contribution_version_tracks(track_id,asset_id,name,duration_ms,sort_order,instruments(name),assets(duration_ms,asset_credits(credit_name,role,position,profiles!asset_credits_user_id_fkey(username))))",
     )
     .eq("id", input.versionId)
     .eq("contribution_id", input.contributionId)
@@ -277,9 +277,17 @@ export async function getContributionVersionPlayback(input: {
       displayName: track.name,
       verifiedDurationMs: track.assets.duration_ms!,
       instrumentName: track.instruments?.name ?? null,
-      creditName:
-        track.assets.asset_credits.find((credit) => credit.position === 0)
-          ?.credit_name ?? "Unknown creator",
+      credits: [...track.assets.asset_credits]
+        .sort((a, b) => a.position - b.position)
+        .map((credit) => ({
+          creditName: credit.credit_name,
+          role: credit.role,
+          position: credit.position,
+          profileUsername: credit.profiles?.username ?? null,
+        })),
+      creditName: track.assets.asset_credits.find(
+        (credit) => credit.position === 0,
+      )!.credit_name,
     })),
   };
 }

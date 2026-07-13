@@ -4,6 +4,7 @@ import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ProfileInput } from "@/features/profiles/schema";
 import type { PublicProfile, ViewerProfile } from "@/features/profiles/types";
+import type { AcceptedContributionHistoryItem } from "@/features/profiles/types";
 
 export async function getViewerProfile(): Promise<ViewerProfile | null> {
   const supabase = await createSupabaseServerClient();
@@ -23,6 +24,30 @@ export async function getViewerProfile(): Promise<ViewerProfile | null> {
     status: row.status,
     profileCompletedAt: row.profile_completed_at,
   };
+}
+
+export async function listViewerAcceptedContributions(
+  userId: string,
+): Promise<AcceptedContributionHistoryItem[]> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("revision_attributions")
+    .select(
+      "revision_id,credit_name,created_at,project_revisions!inner(revision_number,projects!project_revisions_project_id_fkey!inner(id,title))",
+    )
+    .eq("kind", "accepted_contributor")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error("accepted_contributions_unavailable");
+  return data.map((row) => ({
+    revisionId: row.revision_id,
+    revisionNumber: row.project_revisions.revision_number,
+    projectId: row.project_revisions.projects.id,
+    projectTitle: row.project_revisions.projects.title,
+    acceptedAt: row.created_at,
+    creditName: row.credit_name,
+  }));
 }
 
 export async function saveViewerProfile(input: ProfileInput) {

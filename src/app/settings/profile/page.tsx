@@ -5,6 +5,7 @@ import { signOut } from "@/features/auth/actions";
 import { requireViewer } from "@/features/auth/guards";
 import { ProfileForm } from "@/features/profiles/profile-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { listViewerAcceptedContributions } from "@/server/repositories/profiles";
 
 export default async function ProfileSettingsPage({
   searchParams,
@@ -14,7 +15,10 @@ export default async function ProfileSettingsPage({
   const profile = await requireViewer("/settings/profile");
   if (!profile.profileCompletedAt) redirect("/onboarding");
   const supabase = await createSupabaseServerClient();
-  const { data: authData } = await supabase.auth.getUser();
+  const [{ data: authData }, acceptedContributions] = await Promise.all([
+    supabase.auth.getUser(),
+    listViewerAcceptedContributions(profile.id),
+  ]);
   const saved = (await searchParams).saved === "1";
   return (
     <main id="main-content">
@@ -57,6 +61,32 @@ export default async function ProfileSettingsPage({
             </p>
           )}
           <ProfileForm profile={profile} />
+          <section className="border-subtle mt-10 border-t pt-8">
+            <h2 className="text-2xl font-bold">Accepted contributions</h2>
+            {acceptedContributions.length ? (
+              <ol className="mt-4 space-y-3">
+                {acceptedContributions.map((item) => (
+                  <li
+                    className="rounded-control border-subtle border p-4"
+                    key={item.revisionId}
+                  >
+                    <Link
+                      className="font-semibold underline"
+                      href={`/projects/${item.projectId}#revision-${item.revisionNumber}`}
+                    >
+                      {item.projectTitle} · revision {item.revisionNumber}
+                    </Link>
+                    <p className="text-muted mt-1 text-sm">
+                      Credited as {item.creditName} ·{" "}
+                      {new Date(item.acceptedAt).toLocaleDateString()}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-muted mt-3">No accepted contributions yet.</p>
+            )}
+          </section>
         </section>
       </Container>
     </main>

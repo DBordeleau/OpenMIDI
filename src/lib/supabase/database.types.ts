@@ -187,6 +187,9 @@ export type Database = {
           byte_size: number | null
           channels: number | null
           created_at: string
+          credits_confirmation_request_id: string | null
+          credits_confirmation_sha256: string | null
+          credits_confirmed_at: string | null
           declared_media_type: string | null
           deleted_at: string | null
           duration_ms: number | null
@@ -211,6 +214,9 @@ export type Database = {
           byte_size?: number | null
           channels?: number | null
           created_at?: string
+          credits_confirmation_request_id?: string | null
+          credits_confirmation_sha256?: string | null
+          credits_confirmed_at?: string | null
           declared_media_type?: string | null
           deleted_at?: string | null
           duration_ms?: number | null
@@ -235,6 +241,9 @@ export type Database = {
           byte_size?: number | null
           channels?: number | null
           created_at?: string
+          credits_confirmation_request_id?: string | null
+          credits_confirmation_sha256?: string | null
+          credits_confirmed_at?: string | null
           declared_media_type?: string | null
           deleted_at?: string | null
           duration_ms?: number | null
@@ -1266,6 +1275,137 @@ export type Database = {
         }
         Relationships: []
       }
+      revision_attributions: {
+        Row: {
+          contribution_id: string | null
+          contribution_version_id: string | null
+          created_at: string
+          credit_name: string
+          kind: Database["public"]["Enums"]["revision_attribution_kind"]
+          revision_id: string
+          user_id: string
+        }
+        Insert: {
+          contribution_id?: string | null
+          contribution_version_id?: string | null
+          created_at?: string
+          credit_name: string
+          kind: Database["public"]["Enums"]["revision_attribution_kind"]
+          revision_id: string
+          user_id: string
+        }
+        Update: {
+          contribution_id?: string | null
+          contribution_version_id?: string | null
+          created_at?: string
+          credit_name?: string
+          kind?: Database["public"]["Enums"]["revision_attribution_kind"]
+          revision_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_attributions_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_attributions_contribution_version_id_fkey"
+            columns: ["contribution_version_id"]
+            isOneToOne: false
+            referencedRelation: "contribution_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_attributions_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "project_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_attributions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_attributions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_track_credits: {
+        Row: {
+          asset_id: string
+          created_at: string
+          credit_name: string
+          position: number
+          revision_id: string
+          role: Database["public"]["Enums"]["asset_credit_role"]
+          source_credit_position: number
+          track_id: string
+          user_id: string | null
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          credit_name: string
+          position: number
+          revision_id: string
+          role: Database["public"]["Enums"]["asset_credit_role"]
+          source_credit_position: number
+          track_id: string
+          user_id?: string | null
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          credit_name?: string
+          position?: number
+          revision_id?: string
+          role?: Database["public"]["Enums"]["asset_credit_role"]
+          source_credit_position?: number
+          track_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_track_credits_asset_id_source_credit_position_fkey"
+            columns: ["asset_id", "source_credit_position"]
+            isOneToOne: false
+            referencedRelation: "asset_credits"
+            referencedColumns: ["asset_id", "position"]
+          },
+          {
+            foreignKeyName: "revision_track_credits_revision_id_track_id_asset_id_fkey"
+            columns: ["revision_id", "track_id", "asset_id"]
+            isOneToOne: false
+            referencedRelation: "revision_tracks"
+            referencedColumns: ["revision_id", "id", "asset_id"]
+          },
+          {
+            foreignKeyName: "revision_track_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_track_credits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revision_tracks: {
         Row: {
           added_by: string
@@ -1666,6 +1806,13 @@ export type Database = {
         Args: { p_asset_id: string }
         Returns: Database["public"]["Enums"]["asset_status"]
       }
+      confirm_source_asset_credits: {
+        Args: { p_asset_id: string; p_credits: Json; p_request_id: string }
+        Returns: {
+          asset_id: string
+          credits_confirmed_at: string
+        }[]
+      }
       create_contribution_workspace: {
         Args: {
           p_description: string
@@ -2046,6 +2193,7 @@ export type Database = {
       member_role: "owner" | "editor" | "viewer"
       project_status: "draft" | "active" | "archived" | "deleted"
       project_visibility: "private" | "unlisted" | "public"
+      revision_attribution_kind: "publisher" | "accepted_contributor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2209,6 +2357,7 @@ export const Constants = {
       member_role: ["owner", "editor", "viewer"],
       project_status: ["draft", "active", "archived", "deleted"],
       project_visibility: ["private", "unlisted", "public"],
+      revision_attribution_kind: ["publisher", "accepted_contributor"],
     },
   },
 } as const

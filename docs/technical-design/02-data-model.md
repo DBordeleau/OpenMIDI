@@ -218,7 +218,13 @@ future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
 
 Do not globally deduplicate uploads in MVP: identical hashes can belong to different access domains and deletion expectations. Hashes provide integrity and later dedupe analysis.
 
-Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` snapshots display credit so attribution survives profile renames and can represent non-user performers. `owner_id` is operational ownership, not authorship.
+Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` stores ordered self/external display snapshots. Trusted verification creates only a provisional uploader suggestion; the active owner must atomically confirm 1–12 credits with at least one creator before the source can enter workspace, contribution-version, or revision tracks. Self names are derived from the verified profile in SQL, external names remain unlinked plain text, duplicate identity/role pairs are denied, and confirmed/referenced credits are immutable. `owner_id` is operational ownership, not authorship.
+
+### `revision_track_credits` and `revision_attributions` (implemented — PR 14)
+
+Every inserted revision track atomically copies its confirmed asset credits into immutable `revision_track_credits`, retaining ordered role, snapshot name, nullable profile link, source asset, and source-credit position. Published reads use these rows rather than mutable profile or asset joins.
+
+Every revision also receives one immutable `publisher` attribution. A revision created by acceptance receives one `accepted_contributor` attribution linked to its normalized contribution/version and snapshotting the contribution author rather than the reviewer. These activity attributions are presented separately from musical roles and from `revision_tracks.added_by` provenance. Parent project/revision RLS controls reads; appearing in a credit never grants private-project access. Suspended/deleted/incomplete profiles lose safe public links while retained snapshot text remains.
 
 ### `private.asset_verification_jobs`
 

@@ -105,13 +105,14 @@ export function StemDownloadPanel({
           byteSize: file.byteSize,
           sha256: file.sha256,
           creditName: file.creditName,
+          credits: file.credits,
         })),
       };
       saveBlob(
         new Blob([JSON.stringify(safeManifest, null, 2)], {
           type: "application/json",
         }),
-        "jam-session-manifest-v1.json",
+        "jam-session-manifest-v2.json",
       );
       setState({
         status: "complete",

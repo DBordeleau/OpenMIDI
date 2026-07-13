@@ -12,6 +12,13 @@ export type OwnedSourceAsset = {
   channels: number | null;
   failureCode: string | null;
   createdAt: string;
+  creditsConfirmedAt: string | null;
+  credits: Array<{
+    creditName: string;
+    role: "creator" | "performer" | "producer" | "engineer" | "other";
+    position: number;
+    isSelf: boolean;
+  }>;
 };
 
 export type UploadInstruction = {

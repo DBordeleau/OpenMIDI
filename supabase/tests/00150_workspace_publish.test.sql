@@ -33,6 +33,7 @@ insert into public.assets(
 );
 insert into public.asset_credits(asset_id,position,user_id,credit_name,role)
 values('b2000000-0000-4000-8000-000000000001',0,'b0000000-0000-4000-8000-000000000001','Owner','creator');
+update public.assets set credits_confirmed_at=ready_at,credits_confirmation_request_id=id,credits_confirmation_sha256=repeat('c',64) where status='ready';
 
 create temporary table publish_manifest(value jsonb);
 insert into publish_manifest values (

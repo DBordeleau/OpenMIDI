@@ -32,6 +32,13 @@ export async function createStemExport(
   let revisionId: string | null = null;
   let revisionNumber: number | null = null;
   let workspaceId: string | null = null;
+  let publishedCredits: Map<
+    string,
+    Array<{
+      creditName: string;
+      role: "creator" | "performer" | "producer" | "engineer" | "other";
+    }>
+  > | null = null;
   if (authority.mode === "revision") {
     const revision = await getRevisionPlayback({
       projectId: authority.projectId,
@@ -41,6 +48,12 @@ export async function createStemExport(
     tracks = revision.manifest.tracks;
     revisionId = revision.revisionId;
     revisionNumber = revision.revisionNumber;
+    publishedCredits = new Map(
+      revision.tracks.map((track) => [
+        track.assetId,
+        track.credits.map(({ creditName, role }) => ({ creditName, role })),
+      ]),
+    );
   } else if (authority.mode === "workspace") {
     const workspace = await getActiveWorkspace(authority.projectId);
     if (!workspace || workspace.id !== authority.workspaceId) return null;
@@ -63,7 +76,7 @@ export async function createStemExport(
   const { data: assets, error } = await db
     .from("assets")
     .select(
-      "id,bucket,object_path,media_type,byte_size,sha256,asset_credits(credit_name,position)",
+      "id,bucket,object_path,media_type,byte_size,sha256,asset_credits(credit_name,role,position)",
     )
     .in("id", expected)
     .eq("kind", "source_audio")
@@ -111,7 +124,7 @@ export async function createStemExport(
     Date.now() + SIGNED_URL_SECONDS * 1000,
   ).toISOString();
   return {
-    version: 1,
+    version: 2,
     projectId: project.id,
     projectTitle: project.title,
     revisionId,
@@ -123,9 +136,18 @@ export async function createStemExport(
       mediaType: asset.media_type!,
       byteSize: Number(asset.byte_size),
       sha256: asset.sha256!,
+      credits:
+        publishedCredits?.get(asset.id) ??
+        [...asset.asset_credits]
+          .sort((a, b) => a.position - b.position)
+          .map((credit) => ({
+            creditName: credit.credit_name,
+            role: credit.role,
+          })),
       creditName:
-        asset.asset_credits.find((credit) => credit.position === 0)
-          ?.credit_name ?? "Unknown creator",
+        publishedCredits?.get(asset.id)?.[0]?.creditName ??
+        asset.asset_credits.find((credit) => credit.position === 0)!
+          .credit_name,
       signedUrl: signed[index]!.data!.signedUrl,
       expiresAt,
     })),

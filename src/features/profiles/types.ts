@@ -17,3 +17,12 @@ export type PublicProfile = {
   creditName: string;
   bio: string | null;
 };
+
+export type AcceptedContributionHistoryItem = {
+  revisionId: string;
+  revisionNumber: number;
+  projectId: string;
+  projectTitle: string;
+  acceptedAt: string;
+  creditName: string;
+};
