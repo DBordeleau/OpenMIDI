@@ -1,14 +1,19 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createWorkspaceSchema,
+  publishWorkspaceSchema,
   reserveWorkspaceSnapshotSchema,
+  restartWorkspaceSchema,
   saveWorkspaceSchema,
 } from "./schema";
 import {
   createProjectWorkspace,
+  publishWorkspaceRevision,
   reserveWorkspaceSnapshot,
+  restartProjectWorkspace,
   saveWorkspace,
 } from "@/server/repositories/workspaces";
 
@@ -80,4 +85,57 @@ export async function saveWorkspaceAction(input: unknown) {
     manifestSha256: data[0].manifest_sha256,
     updatedAt: data[0].updated_at,
   };
+}
+
+export async function publishWorkspaceAction(
+  projectId: string,
+  input: unknown,
+) {
+  const parsed = publishWorkspaceSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  const { data, error } = await publishWorkspaceRevision(parsed.data);
+  if (error || !data?.[0]) {
+    const message = error?.message;
+    return {
+      ok: false as const,
+      code:
+        message === "workspace_publish_stale_base"
+          ? ("stale_base" as const)
+          : error?.code === "PT409"
+            ? ("conflict" as const)
+            : message === "publish_project_quota_exceeded"
+              ? ("quota" as const)
+              : ("unavailable" as const),
+    };
+  }
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/studio`);
+  return {
+    ok: true as const,
+    revisionId: data[0].revision_id,
+    revisionNumber: data[0].revision_number,
+    workspaceLockVersion: data[0].workspace_lock_version,
+  };
+}
+
+export async function restartWorkspaceAction(
+  projectId: string,
+  input: unknown,
+) {
+  const parsed = restartWorkspaceSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  const { data, error } = await restartProjectWorkspace(parsed.data);
+  if (error || !data?.[0])
+    return {
+      ok: false as const,
+      code:
+        error?.code === "PT409"
+          ? ("conflict" as const)
+          : ("unavailable" as const),
+    };
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/studio`);
+  return { ok: true as const, workspaceId: data[0].workspace_id };
 }

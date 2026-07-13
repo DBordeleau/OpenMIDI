@@ -1322,6 +1322,21 @@ export type Database = {
           revision_number: number
         }[]
       }
+      publish_workspace_revision: {
+        Args: {
+          p_expected_base_revision_id: string
+          p_expected_lock_version: number
+          p_message: string
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          created_at: string
+          revision_id: string
+          revision_number: number
+          workspace_lock_version: number
+        }[]
+      }
       reserve_source_asset: {
         Args: {
           p_client_duration_ms?: number
@@ -1354,6 +1369,21 @@ export type Database = {
           bucket: string
           expires_at: string
           object_path: string
+        }[]
+      }
+      restart_project_workspace: {
+        Args: {
+          p_expected_base_revision_id: string
+          p_expected_current_revision_id: string
+          p_expected_lock_version: number
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          base_revision_id: string
+          created_at: string
+          lock_version: number
+          workspace_id: string
         }[]
       }
       revision_manifest_checksum_valid: {

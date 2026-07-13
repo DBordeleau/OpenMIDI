@@ -17,6 +17,7 @@ import {
   usePlaylistControls,
   usePlaylistData,
 } from "@waveform-playlist/browser";
+import { useExportWav } from "@waveform-playlist/browser/tone";
 import { resumeGlobalAudioContext } from "@waveform-playlist/playout";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
 import {
@@ -42,6 +43,13 @@ import {
   writeLocalRecovery,
 } from "@/features/workspaces/local-recovery.client";
 import type { LocalRecoveryEnvelope } from "@/features/workspaces/schema";
+import { StemDownloadPanel } from "@/features/exports/stem-download-panel.client";
+import { buildMixFilename } from "@/features/exports/filename";
+import { assertMixExportWithinLimits } from "@/features/exports/mix-export";
+import {
+  publishWorkspaceAction,
+  restartWorkspaceAction,
+} from "@/features/workspaces/actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { gainToDecibels } from "./mapping";
 import { WaveformPlaylistStudioAdapter } from "./adapter.client";
@@ -61,17 +69,26 @@ function PlaybackControls({
   tracks,
   editable,
   onEdited,
+  projectTitle,
+  revisionNumber,
 }: {
   adapter: WaveformPlaylistStudioAdapter;
   tracks: TrackMeta[];
   editable: EditableProps | null;
   onEdited: () => void;
+  projectTitle: string;
+  revisionNumber?: number;
 }) {
   const controls = usePlaylistControls();
   const data = usePlaylistData();
   const { isPlaying } = usePlaybackAnimation();
+  const { exportWav, isExporting, progress: exportProgress } = useExportWav();
   const [time, setTime] = useState(0);
   const [audioIssue, setAudioIssue] = useState(false);
+  const [mixMessage, setMixMessage] = useState(
+    "Stereo 16-bit WAV rendered locally in this browser.",
+  );
+  const cancelledMix = useRef(false);
   const manifest = adapter.exportManifest();
   const duration = Math.max(
     ...manifest.tracks.map(
@@ -111,7 +128,20 @@ function PlaybackControls({
       pause: controls.pause,
       seek: controls.seekTo,
       renderMix: async () => {
-        throw new Error("export_not_available");
+        const sampleRate = Math.max(
+          ...adapter
+            .getSnapshot()
+            .tracks.flatMap((track) =>
+              track.clips.map((clip) => clip.sampleRate),
+            ),
+        );
+        assertMixExportWithinLimits(duration, sampleRate);
+        const result = await exportWav(
+          adapter.getSnapshot().tracks,
+          data.trackStates,
+          { mode: "master", bitDepth: 16, autoDownload: false },
+        );
+        return result.blob;
       },
     });
     const timer = window.setInterval(
@@ -122,7 +152,39 @@ function PlaybackControls({
       window.clearInterval(timer);
       adapter.attachRuntime(null);
     };
-  }, [adapter, controls, data.playoutRef]);
+  }, [
+    adapter,
+    controls,
+    data.playoutRef,
+    data.trackStates,
+    duration,
+    exportWav,
+  ]);
+
+  const renderMix = async () => {
+    cancelledMix.current = false;
+    setMixMessage("Rendering the WAV mix locally…");
+    try {
+      const blob = await adapter.renderMix();
+      if (cancelledMix.current) {
+        setMixMessage("Mix save cancelled. The local render has finished.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = buildMixFilename({ projectTitle, revisionNumber });
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setMixMessage("WAV mix ready.");
+    } catch (error) {
+      setMixMessage(
+        error instanceof Error && error.message === "mix_export_too_large"
+          ? "This arrangement exceeds the 10-minute or 128 MiB local WAV safety limit. Download the original stems instead."
+          : "The WAV mix could not be rendered in this browser.",
+      );
+    }
+  };
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -380,6 +442,39 @@ function PlaybackControls({
           );
         })}
       </div>
+      <div className="rounded-card border-subtle bg-surface border p-5">
+        <h2 className="font-bold">Export WAV mix</h2>
+        <p className="text-muted mt-1 text-sm">{mixMessage}</p>
+        {isExporting && (
+          <progress className="mt-3 w-full" max={1} value={exportProgress}>
+            {Math.round(exportProgress * 100)}%
+          </progress>
+        )}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="rounded-control border-strong min-h-11 border px-4 disabled:opacity-50"
+            disabled={isExporting || duration > 600}
+            onClick={() => void renderMix()}
+          >
+            Export WAV mix
+          </button>
+          {isExporting && (
+            <button
+              type="button"
+              className="rounded-control border-strong min-h-11 border px-4"
+              onClick={() => {
+                cancelledMix.current = true;
+                setMixMessage(
+                  "Mix save cancelled. Rendering may finish in the background.",
+                );
+              }}
+            >
+              Cancel mix save
+            </button>
+          )}
+        </div>
+      </div>
     </>
   );
 }
@@ -405,6 +500,8 @@ export function StudioSurface(props: StudioLauncherProps) {
   const latestManifest = useRef<WorkspaceManifestV1 | null>(null);
   const [editGeneration, setEditGeneration] = useState(0);
   const lockVersion = useRef(editable?.lockVersion ?? 0);
+  const baseRevisionId = useRef(editable?.baseRevisionId ?? "");
+  const currentRevisionId = useRef(editable?.currentRevisionId ?? "");
   const saving = useRef(false);
   const dirtySince = useRef<number | null>(null);
   const autosaveStatus = useRef(autosave.status);
@@ -412,6 +509,15 @@ export function StudioSurface(props: StudioLauncherProps) {
   const disposalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState("");
   const [recovery, setRecovery] = useState<LocalRecoveryEnvelope | null>(null);
+  const [publishMessage, setPublishMessage] = useState("");
+  const [publishState, setPublishState] = useState<
+    | { status: "idle" }
+    | { status: "publishing" }
+    | { status: "published"; revisionNumber: number }
+    | { status: "stale" }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
+  const publishRequestId = useRef<string | null>(null);
   useEffect(() => {
     autosaveStatus.current = autosave.status;
   }, [autosave.status]);
@@ -471,7 +577,7 @@ export function StudioSurface(props: StudioLauncherProps) {
         viewerId: editable.viewerId,
         projectId: editable.projectId,
         workspaceId: editable.workspaceId,
-        baseRevisionId: editable.baseRevisionId,
+        baseRevisionId: baseRevisionId.current,
         serverLockVersion: lockVersion.current,
         manifest,
         manifestSha256,
@@ -772,6 +878,69 @@ export function StudioSurface(props: StudioLauncherProps) {
     }
   };
 
+  const publishWorkspace = async () => {
+    if (!editable) return;
+    publishRequestId.current ??= crypto.randomUUID();
+    setPublishState({ status: "publishing" });
+    const result = await publishWorkspaceAction(editable.projectId, {
+      workspaceId: editable.workspaceId,
+      requestId: publishRequestId.current,
+      expectedLockVersion: lockVersion.current,
+      expectedBaseRevisionId: baseRevisionId.current,
+      message: publishMessage.trim() || null,
+    });
+    if (!result.ok) {
+      if (result.code === "stale_base") setPublishState({ status: "stale" });
+      else
+        setPublishState({
+          status: "error",
+          message:
+            result.code === "conflict"
+              ? "The saved draft changed. Reload before publishing."
+              : result.code === "quota"
+                ? "This revision exceeds the project storage limit."
+                : "The workspace could not be published. Retry with the same saved draft.",
+        });
+      return;
+    }
+    lockVersion.current = result.workspaceLockVersion;
+    baseRevisionId.current = result.revisionId;
+    currentRevisionId.current = result.revisionId;
+    publishRequestId.current = null;
+    clearLocalRecovery(editable.viewerId, editable.workspaceId);
+    setPublishState({
+      status: "published",
+      revisionNumber: result.revisionNumber,
+    });
+  };
+
+  const restartWorkspace = async () => {
+    if (!editable) return;
+    if (
+      !window.confirm(
+        "Archive this stale draft and restart from the current revision? Draft edits will not be copied automatically.",
+      )
+    )
+      return;
+    const result = await restartWorkspaceAction(editable.projectId, {
+      workspaceId: editable.workspaceId,
+      requestId: crypto.randomUUID(),
+      expectedLockVersion: lockVersion.current,
+      expectedBaseRevisionId: baseRevisionId.current,
+      expectedCurrentRevisionId: currentRevisionId.current,
+    });
+    if (!result.ok) {
+      setPublishState({
+        status: "error",
+        message:
+          "The project changed again. Reload before restarting the draft.",
+      });
+      return;
+    }
+    clearLocalRecovery(editable.viewerId, editable.workspaceId);
+    location.reload();
+  };
+
   const ready = ["ready", "playing", "paused"].includes(snapshot.status);
   const addedAssetIds = new Set(
     snapshot.manifest?.tracks.map((track) => track.assetId) ?? [],
@@ -903,35 +1072,106 @@ export function StudioSurface(props: StudioLauncherProps) {
                 tracks={trackMeta}
                 editable={editable}
                 onEdited={markEdited}
+                projectTitle={props.projectTitle}
+                revisionNumber={
+                  props.mode === "revision" ? props.revisionNumber : undefined
+                }
               />
             </WaveformPlaylistProvider>
           </>
         )
       )}
       {editable ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="rounded-control border-strong min-h-11 border px-4 disabled:opacity-50"
-            disabled={
-              !pendingManifest ||
-              autosave.status === "saving" ||
-              autosave.status === "conflict"
-            }
-            onClick={() => void performSave()}
-          >
-            Save now
-          </button>
-          <p className="text-muted text-sm">
-            Draft edits are private and unpublished. Removing a track does not
-            delete its uploaded source.
-          </p>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="rounded-control border-strong min-h-11 border px-4 disabled:opacity-50"
+              disabled={
+                !pendingManifest ||
+                autosave.status === "saving" ||
+                autosave.status === "conflict"
+              }
+              onClick={() => void performSave()}
+            >
+              Save now
+            </button>
+            <p className="text-muted text-sm">
+              Draft edits are private and unpublished. Removing a track does not
+              delete its uploaded source.
+            </p>
+          </div>
+          <section className="rounded-card border-strong border p-5">
+            <h2 className="font-bold">Publish saved workspace</h2>
+            <p className="text-muted mt-1 text-sm">
+              Publishing creates a new immutable revision. It never changes the
+              previous revision.
+            </p>
+            <label className="mt-4 block">
+              Revision message (optional)
+              <textarea
+                className="border-subtle mt-1 block min-h-24 w-full border p-3"
+                maxLength={500}
+                value={publishMessage}
+                onChange={(event) => setPublishMessage(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="bg-accent rounded-control mt-4 min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-50"
+              disabled={
+                autosave.status !== "saved" ||
+                Boolean(pendingManifest) ||
+                publishState.status === "publishing"
+              }
+              onClick={() => void publishWorkspace()}
+            >
+              {publishState.status === "publishing"
+                ? "Publishing…"
+                : "Publish revision"}
+            </button>
+            {publishState.status === "published" && (
+              <p className="mt-3" role="status">
+                Revision {publishState.revisionNumber} published. This workspace
+                now continues from it.
+              </p>
+            )}
+            {publishState.status === "error" && (
+              <p className="mt-3" role="alert">
+                {publishState.message}
+              </p>
+            )}
+            {publishState.status === "stale" && (
+              <div className="mt-4" role="alert">
+                <p>
+                  The project has a newer revision. Jam Session will not merge
+                  or overwrite it automatically.
+                </p>
+                <button
+                  type="button"
+                  className="rounded-control border-strong mt-3 min-h-11 border px-4"
+                  onClick={() => void restartWorkspace()}
+                >
+                  Restart draft from current revision
+                </button>
+              </div>
+            )}
+          </section>
         </div>
       ) : (
         <p className="text-muted text-sm">
           Listening changes are session-only.
         </p>
       )}
+      <StemDownloadPanel
+        endpoint={
+          props.mode === "workspace"
+            ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/downloads/stems`
+            : `/api/projects/${props.projectId}/revisions/${props.revisionId}/downloads/stems`
+        }
+        assetIds={snapshot.manifest?.tracks.map((track) => track.assetId) ?? []}
+        disabled={Boolean(editable && autosave.status !== "saved")}
+      />
     </section>
   );
 }

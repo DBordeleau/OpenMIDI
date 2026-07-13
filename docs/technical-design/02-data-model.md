@@ -231,6 +231,8 @@ Implemented mutable private owner drafts:
 
 PR 10 allows one active owner workspace per project through a partial unique index. `create_project_workspace()` copies the exact current revision and its track projection. `reserve_workspace_snapshot()` creates a server-named, private, insert-only Storage reservation. `save_workspace()` locks the draft, requires the expected `lock_version`, validates the complete manifest and snapshot reservation, synchronizes `workspace_tracks`, assigns the immutable snapshot, and increments the version atomically. Stale, duplicate, unauthorized, suspended, or mismatched-project saves fail without changing the draft or published history.
 
+PR 11 adds `publish_workspace_revision()`, which delegates immutable revision creation to `publish_project_revision()` and advances the same active workspace only after that canonical transaction succeeds. Its idempotent result is proven by the immutable revision publish-request record and the post-publish workspace base/lock. `restart_project_workspace()` archives a stale workspace and clones the exact current revision; it never rebases or merges draft fields.
+
 ### `workspace_tracks`
 
 Queryable mutable projection of the workspace manifest. It mirrors the engine-neutral fields in `revision_tracks` and uses primary key `(workspace_id, id)`, with retention/discovery indexes on `asset_id` and `instrument_id`. Application roles may select their own rows but cannot mutate the projection directly; only workspace commands replace it after manifest validation.

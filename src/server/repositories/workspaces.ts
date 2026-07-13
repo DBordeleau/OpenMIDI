@@ -129,3 +129,37 @@ export async function saveWorkspace(input: {
       input.manifest as unknown as Database["public"]["Functions"]["save_workspace"]["Args"]["p_manifest"],
   });
 }
+
+export async function publishWorkspaceRevision(input: {
+  workspaceId: string;
+  requestId: string;
+  expectedLockVersion: number;
+  expectedBaseRevisionId: string;
+  message: string | null;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("publish_workspace_revision", {
+    p_workspace_id: input.workspaceId,
+    p_request_id: input.requestId,
+    p_expected_lock_version: input.expectedLockVersion,
+    p_expected_base_revision_id: input.expectedBaseRevisionId,
+    p_message: input.message ?? "",
+  });
+}
+
+export async function restartProjectWorkspace(input: {
+  workspaceId: string;
+  requestId: string;
+  expectedLockVersion: number;
+  expectedBaseRevisionId: string;
+  expectedCurrentRevisionId: string;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("restart_project_workspace", {
+    p_workspace_id: input.workspaceId,
+    p_request_id: input.requestId,
+    p_expected_lock_version: input.expectedLockVersion,
+    p_expected_base_revision_id: input.expectedBaseRevisionId,
+    p_expected_current_revision_id: input.expectedCurrentRevisionId,
+  });
+}

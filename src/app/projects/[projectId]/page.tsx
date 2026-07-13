@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
+import { StemDownloadPanel } from "@/features/exports/stem-download-panel.client";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { getProjectForViewer } from "@/server/repositories/projects";
@@ -125,6 +126,12 @@ export default async function ProjectPage({
               >
                 Open studio
               </Link>
+              <div className="mt-6">
+                <StemDownloadPanel
+                  endpoint={`/api/projects/${project.id}/revisions/${current.id}/downloads/stems`}
+                  assetIds={current.tracks.map((track) => track.assetId)}
+                />
+              </div>
             </section>
           ) : (
             <section className="rounded-card border-strong mt-8 border border-dashed p-8 text-center">

@@ -18,6 +18,7 @@ const StudioSurface = dynamic(
 
 type CommonProps = {
   projectId: string;
+  projectTitle: string;
   manifest: WorkspaceManifestV1;
   durationMs: number;
   tracks: Array<{
@@ -29,12 +30,14 @@ type CommonProps = {
 
 export type StudioLauncherProps = CommonProps &
   (
-    | { mode: "revision"; revisionId: string }
+    | { mode: "revision"; revisionId: string; revisionNumber: number }
     | {
         mode: "workspace";
         viewerId: string;
         workspaceId: string;
         baseRevisionId: string;
+        currentRevisionId: string;
+        currentRevisionNumber: number;
         lockVersion: number;
         manifestSha256: string;
         updatedAt: string;

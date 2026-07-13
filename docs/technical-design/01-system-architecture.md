@@ -105,6 +105,8 @@ Dates crossing a network or Server/Client Component boundary are ISO 8601 string
 
 PR 10 implements steps 2–4 for project owners. Workspace creation copies the exact current immutable revision into a private draft. Every save submits the expected `lock_version`; the database locks the workspace, rejects stale writers, validates the complete manifest and referenced trusted-ready assets, replaces the normalized workspace-track projection, records an immutable private recovery snapshot, and increments the version atomically. Autosave never advances `projects.current_revision_id` or changes a published revision.
 
+PR 11 completes owner publication with `publish_workspace_revision()`. The wrapper locks the project and workspace in a fixed order, reads only the authoritative saved manifest, calls `publish_project_revision()` in the same transaction, then advances the active workspace base and lock. A stale base cannot publish; the explicit restart command archives the stale draft and clones the current revision without merging. Stem export returns short-lived download-disposition URLs so bytes travel from private Supabase Storage to the browser rather than through Next.js. WAV mix export stays inside the lazy client adapter and is bounded to ten minutes and an estimated 128 MiB output.
+
 ### Submit a contribution
 
 1. Contributor creates a workspace based on revision `R`.

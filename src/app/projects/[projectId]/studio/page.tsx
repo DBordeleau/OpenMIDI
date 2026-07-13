@@ -66,9 +66,12 @@ export default async function StudioPage({
             <StudioLauncher
               mode="workspace"
               projectId={projectId}
+              projectTitle={project.title}
               viewerId={viewer.id}
               workspaceId={workspace.id}
               baseRevisionId={workspace.baseRevisionId}
+              currentRevisionId={revision!.revisionId}
+              currentRevisionNumber={revision!.revisionNumber}
               lockVersion={workspace.lockVersion}
               manifestSha256={workspace.manifestSha256}
               updatedAt={workspace.updatedAt}
@@ -92,7 +95,9 @@ export default async function StudioPage({
             <StudioLauncher
               mode="revision"
               projectId={projectId}
+              projectTitle={project.title}
               revisionId={revision.revisionId}
+              revisionNumber={revision.revisionNumber}
               manifest={revision.manifest}
               durationMs={revision.durationMs}
               tracks={revision.tracks.map(

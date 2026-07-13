@@ -22,6 +22,26 @@ export const saveWorkspaceSchema = z.object({
   manifest: workspaceManifestV1Schema,
 });
 
+export const publishWorkspaceSchema = z
+  .object({
+    workspaceId: z.uuid(),
+    requestId: z.uuid(),
+    expectedLockVersion: z.number().int().positive(),
+    expectedBaseRevisionId: z.uuid(),
+    message: z.string().trim().max(500).nullable(),
+  })
+  .strict();
+
+export const restartWorkspaceSchema = z
+  .object({
+    workspaceId: z.uuid(),
+    requestId: z.uuid(),
+    expectedLockVersion: z.number().int().positive(),
+    expectedBaseRevisionId: z.uuid(),
+    expectedCurrentRevisionId: z.uuid(),
+  })
+  .strict();
+
 export const localRecoveryEnvelopeSchema = z
   .object({
     version: z.literal(1),
