@@ -3,7 +3,7 @@ import { ButtonLink } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen items-center">
+    <main id="main-content" className="flex min-h-screen items-center">
       <Container>
         <p className="text-accent text-sm font-semibold">404</p>
         <h1 className="mt-3 text-4xl font-semibold">Page not found</h1>

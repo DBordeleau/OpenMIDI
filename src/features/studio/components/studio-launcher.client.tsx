@@ -37,7 +37,7 @@ export function StudioLauncher(props: {
           </p>
         )}
         <button
-          className="bg-accent rounded-control mt-5 min-h-11 px-5 font-semibold text-white"
+          className="bg-accent rounded-control mt-5 min-h-11 px-5 font-semibold text-slate-950"
           type="button"
           onClick={() => {
             if (

@@ -16,7 +16,7 @@ export default function TestAuthPage() {
             actor.
           </p>
           <form action={signInTestActor}>
-            <button className="rounded-control bg-accent text-accent-contrast min-h-11 px-5 font-semibold">
+            <button className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950">
               Sign in test actor
             </button>
           </form>

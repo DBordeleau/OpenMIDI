@@ -106,7 +106,7 @@ function PlaybackControls({
         aria-label="Playback transport"
       >
         <button
-          className="bg-accent rounded-control min-h-11 px-5 font-semibold text-white"
+          className="bg-accent rounded-control min-h-11 px-5 font-semibold text-slate-950"
           type="button"
           aria-label={isPlaying ? "Pause playback" : "Play playback"}
           onClick={() => (isPlaying ? adapter.pause() : void attemptPlay())}

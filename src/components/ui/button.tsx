@@ -11,7 +11,7 @@ export function ButtonLink({
 }>) {
   const styles =
     variant === "primary"
-      ? "bg-accent text-accent-contrast hover:bg-accent-strong"
+      ? "bg-accent text-slate-950 hover:bg-accent-strong"
       : "border border-strong bg-surface text-ink hover:border-accent hover:text-accent";
   return (
     <Link
@@ -31,7 +31,7 @@ export function Button({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-control bg-accent text-accent-contrast hover:bg-accent-strong min-h-11 px-5 py-3 text-sm font-semibold transition-colors"
+      className="rounded-control bg-accent hover:bg-accent-strong min-h-11 px-5 py-3 text-sm font-semibold text-slate-950 transition-colors"
     >
       {children}
     </button>

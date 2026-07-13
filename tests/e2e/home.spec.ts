@@ -12,8 +12,18 @@ test("loads the Jam Session product shell without browser errors", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Make music with a history",
   );
-  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
-  await expect(page.getByText("Early MVP · not yet available")).toBeVisible();
+  const navigation = page.getByRole("navigation", { name: "Primary" });
+  await expect(navigation).toBeVisible();
+  await expect(
+    navigation.getByRole("link", { name: "New project" }),
+  ).toHaveAttribute("href", "/projects/new");
+  await expect(
+    navigation.getByRole("link", { name: "Uploads" }),
+  ).toHaveAttribute("href", "/uploads");
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "Sign in" }),
+  ).toHaveAttribute("href", "/sign-in");
+  await expect(page.getByText("Private MVP · invite only")).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 
@@ -39,6 +49,7 @@ test("renders a useful not-found state", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Page not found" }),
   ).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Return home" })).toHaveAttribute(
     "href",
     "/",

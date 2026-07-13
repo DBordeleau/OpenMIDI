@@ -6,7 +6,7 @@ export default function ErrorPage({
   reset,
 }: Readonly<{ error: Error & { digest?: string }; reset: () => void }>) {
   return (
-    <main className="flex min-h-screen items-center px-5">
+    <main id="main-content" className="flex min-h-screen items-center px-5">
       <div className="mx-auto w-full max-w-xl">
         <p className="text-danger text-sm font-semibold">
           Something went wrong

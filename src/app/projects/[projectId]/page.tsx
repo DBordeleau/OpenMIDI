@@ -120,7 +120,7 @@ export default async function ProjectPage({
                 ))}
               </ol>
               <Link
-                className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-white"
+                className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
                 href={`/projects/${project.id}/studio`}
               >
                 Open studio
@@ -133,7 +133,7 @@ export default async function ProjectPage({
                 Create the first immutable revision from your verified uploads.
               </p>
               <Link
-                className="bg-accent rounded-control mt-5 inline-flex min-h-11 items-center px-5 font-semibold text-white"
+                className="bg-accent rounded-control mt-5 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
                 href={`/projects/${project.id}/publish`}
               >
                 Publish first revision

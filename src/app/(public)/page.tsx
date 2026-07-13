@@ -1,6 +1,7 @@
 import { Container } from "@/components/layout/container";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { HeroReveal } from "./_components/hero-reveal";
 
 const workflow = [
@@ -29,11 +30,11 @@ const workflow = [
 const capabilities = [
   [
     "Versioned projects",
-    "Immutable revisions are planned to make the current version, its history, and contributor attribution clear.",
+    "Create a private project, upload verified stems, and publish an immutable revision with clear history.",
   ],
   [
-    "Browser workspace",
-    "A focused workspace is planned for arranging stems, balancing a mix, and saving a private draft.",
+    "Synchronized playback",
+    "Open the production studio to audition a published arrangement and make session-only mixer adjustments.",
   ],
   [
     "Review and discovery",
@@ -62,8 +63,21 @@ export default function Home() {
               new directions without losing the story or the credits.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
-              <ButtonLink href="#workflow">See how it works</ButtonLink>
-              <StatusBadge>Early MVP · not yet available</StatusBadge>
+              <AuthAwareLink
+                signedOut={{
+                  href: "/sign-in",
+                  label: "Sign in to Jam Session",
+                }}
+                signedIn={{
+                  href: "/projects/new",
+                  label: "Create a new project",
+                }}
+                className="rounded-control bg-accent hover:bg-accent-strong inline-flex min-h-11 items-center justify-center px-5 py-3 text-sm font-semibold text-slate-950 transition-colors"
+              />
+              <ButtonLink href="#workflow" variant="secondary">
+                See how it works
+              </ButtonLink>
+              <StatusBadge>Private MVP · invite only</StatusBadge>
             </div>
           </section>
         </HeroReveal>
@@ -151,7 +165,7 @@ export default function Home() {
                 A focused collaboration foundation.
               </h2>
             </div>
-            <StatusBadge>Planned capabilities</StatusBadge>
+            <StatusBadge>Foundation available now</StatusBadge>
           </div>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             {capabilities.map(([title, description]) => (

@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { signInWithGoogle } from "@/features/auth/actions";
 import { sanitizeNextPath } from "@/features/auth/redirect";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function SignInPage({
   searchParams,
@@ -8,6 +10,9 @@ export default async function SignInPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const next = sanitizeNextPath((await searchParams).next, "/onboarding");
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getClaims();
+  if (data?.claims?.sub) redirect("/onboarding");
   return (
     <main id="main-content">
       <Container className="flex min-h-screen items-center justify-center py-16">
@@ -23,7 +28,7 @@ export default async function SignInPage({
           <form action={signInWithGoogle} className="mt-8">
             <input type="hidden" name="next" value={next} />
             <button
-              className="rounded-control bg-accent text-accent-contrast hover:bg-accent-strong min-h-12 w-full px-5 font-semibold"
+              className="rounded-control bg-accent hover:bg-accent-strong min-h-12 w-full px-5 font-semibold text-slate-950"
               type="submit"
             >
               Continue with Google

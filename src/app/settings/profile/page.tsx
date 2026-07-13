@@ -39,7 +39,7 @@ export default async function ProfileSettingsPage({
               </button>
             </form>
             <Link
-              className="rounded-control bg-accent text-accent-contrast px-4 py-2 font-semibold"
+              className="rounded-control bg-accent px-4 py-2 font-semibold text-slate-950"
               href="/projects/new"
             >
               New project

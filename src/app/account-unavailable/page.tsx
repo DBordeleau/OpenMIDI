@@ -12,7 +12,7 @@ export default function AccountUnavailablePage() {
             operator if you believe this is a mistake.
           </p>
           <form action={signOut}>
-            <button className="rounded-control bg-accent text-accent-contrast min-h-11 px-5 font-semibold">
+            <button className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950">
               Sign out
             </button>
           </form>

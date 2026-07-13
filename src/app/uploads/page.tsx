@@ -5,7 +5,7 @@ export default async function UploadsPage() {
   await requireViewer("/uploads");
   const assets = await listOwnedSourceAssets();
   return (
-    <main className="mx-auto max-w-4xl px-5 py-12">
+    <main id="main-content" className="mx-auto max-w-4xl px-5 py-12">
       <h1 className="text-3xl font-bold">My uploads</h1>
       <p className="mt-2 text-zinc-300">
         Private, immutable source audio reserved against your storage quota.

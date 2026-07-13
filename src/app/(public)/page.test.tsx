@@ -7,7 +7,7 @@ vi.mock("./_components/hero-reveal", () => ({
 }));
 
 describe("Home", () => {
-  it("presents the planned product workflow honestly", () => {
+  it("presents the product workflow and a clear sign-in path", () => {
     render(<Home />);
     expect(
       screen.getByRole("heading", {
@@ -15,7 +15,10 @@ describe("Home", () => {
         name: /make music with a history/i,
       }),
     ).toBeVisible();
-    expect(screen.getByText(/not yet available/i)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /sign in to jam session/i }),
+    ).toHaveAttribute("href", "/sign-in");
+    expect(screen.getByText(/private mvp/i)).toBeVisible();
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(
       screen.getByRole("heading", { name: /companion to the daw/i }),

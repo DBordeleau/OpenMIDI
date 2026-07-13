@@ -166,7 +166,7 @@ export function InitialPublishForm({
         </p>
       )}
       <button
-        className="rounded-control bg-accent min-h-11 px-5 font-semibold text-white disabled:opacity-50"
+        className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-50"
         disabled={pending || selected.length === 0}
       >
         {pending ? "Publishing…" : "Publish first revision"}

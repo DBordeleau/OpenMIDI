@@ -194,7 +194,7 @@ export function ProjectForm({
       </fieldset>
       <button
         disabled={pending}
-        className="rounded-control bg-accent text-accent-contrast min-h-11 px-5 font-semibold disabled:opacity-60"
+        className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-60"
       >
         {pending ? "Saving…" : project ? "Save project" : "Create project"}
       </button>
