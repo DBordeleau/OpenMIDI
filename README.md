@@ -255,6 +255,8 @@ Product sign-in is Google-only. Google Cloud, hosted Supabase, exact callback UR
 
 If OAuth reports a callback mismatch, compare the canonical `SITE_URL`, Supabase redirect allowlist, and Google/Supabase callback URI exactly. If an invited account is rejected, confirm the normalized invitation is active and the hosted Before User Created hook was enabled after the migration. Clear stale local cookies after resetting the Auth stack.
 
+The removable Waveform Playlist architecture spike at `/__spikes__/studio` is disabled by default. For local verification only, set the server-only `ENABLE_STUDIO_SPIKE=true`, start the Auth stack, and sign in with an onboarding-complete invited/test profile. A Vercel Preview also requires the explicit flag; production environments cannot expose the route. The flag is never prefixed with `NEXT_PUBLIC_`.
+
 ### Supabase configuration is missing
 
 The static application shell works without Supabase environment variables. When a later feature first requests a Supabase client, missing values produce an error naming the required variable. That feature's setup will provide the local API URL and Publishable key; restart the development server after adding them.

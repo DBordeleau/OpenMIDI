@@ -8,10 +8,16 @@ if (!password || password.length < 8)
     "Set TEST_AUTH_PASSWORD (8+ characters) for the local test actor.",
   );
 
-const npx = process.platform === "win32" ? "npx.cmd" : "npx";
-const output = execFileSync(npx, ["supabase", "status", "-o", "env"], {
-  encoding: "utf8",
-});
+const output =
+  process.platform === "win32"
+    ? execFileSync(
+        process.env.ComSpec ?? "cmd.exe",
+        ["/d", "/s", "/c", "npx supabase status -o env"],
+        { encoding: "utf8" },
+      )
+    : execFileSync("npx", ["supabase", "status", "-o", "env"], {
+        encoding: "utf8",
+      });
 const values = Object.fromEntries(
   output
     .split(/\r?\n/)
