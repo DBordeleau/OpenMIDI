@@ -11,3 +11,4 @@ This file applies to the `supabase/` subtree. Root commands and global rules rem
 - Never hand-edit `src/lib/supabase/database.types.ts`; regenerate it from the local schema.
 - Use the exact local commands documented in the root `AGENTS.md`; do not duplicate a drifting command list here.
 - Never commit local `.temp`, branches, volumes, dumps, keys, secrets, or other generated runtime state.
+- Before User Created hooks keep operational invitation data in `private`, return generic denials, and grant only `supabase_auth_admin` the required access. Test Auth actors must remain local/CI-only and use non-routable `.test` addresses.

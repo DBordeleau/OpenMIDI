@@ -6,3 +6,7 @@ begin;
 -- Intentionally empty: PR 01 establishes the seed entry point only.
 
 commit;
+-- Reserved local/CI actor only. The .test TLD cannot receive real Google sign-ins.
+insert into private.signup_invitations (email_normalized, note)
+values ('jam-session-e2e@example.test', 'local and CI browser test actor')
+on conflict (email_normalized) do nothing;

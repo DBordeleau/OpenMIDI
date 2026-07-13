@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians will be able to share stems, propose contributions, and fork songs into new creative directions while preserving history and attribution.
 
-> **Current status:** early MVP foundation. The repository contains a responsive public product shell, a small semantic UI foundation, local Supabase Postgres development, typed client infrastructure, the database identity/authorization foundation, and quality tooling. OAuth/onboarding UI, projects, uploads, contributions, and OpenDAW are not implemented yet.
+> **Current status:** early MVP foundation. The repository contains a responsive public product shell, a small semantic UI foundation, local Supabase Postgres development, typed client infrastructure, the database identity/authorization foundation, and quality tooling. Projects, uploads, contributions, and the Waveform Playlist browser studio are not implemented yet.
 
 ## Planned MVP
 
@@ -21,7 +21,7 @@ The [product requirements](docs/PRD.md) describe the intended experience. The [t
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [Motion for React](https://motion.dev/docs/react) (formerly Framer Motion) for purposeful interaction animation
 - [Supabase](https://supabase.com/) for Postgres, Auth, and Storage once backend work begins
-- [OpenDAW](https://github.com/andremichelle/openDAW) behind a client-only adapter once the studio spike begins
+- [Waveform Playlist](https://github.com/naomiaro/waveform-playlist) behind a client-only adapter once the studio spike begins
 - [Vitest](https://vitest.dev/) and React Testing Library for unit/component tests
 - [Playwright](https://playwright.dev/) for browser tests
 - Vercel for eventual deployment
@@ -247,6 +247,14 @@ Stop the other local Supabase project or container using the reported port. The 
 
 Start Supabase, run `npm run db:reset`, then run `npm run db:types`. Commit the resulting `src/lib/supabase/database.types.ts` change with the migration that caused it.
 
+### Authentication development
+
+Use `npm run supabase:start:auth` when exercising Auth, PostgREST, and browser identity flows; database-only checks continue to use the lighter `npm run supabase:start`. Configure `.env.local` from `.env.example` with the local API URL, publishable key, and `SITE_URL`.
+
+Product sign-in is Google-only. Google Cloud, hosted Supabase, exact callback URLs, invitation provisioning, and the production smoke checklist are documented in [docs/setup/google-auth.md](docs/setup/google-auth.md). Local/CI browser automation can prepare the seeded `.test` actor with `npm run auth:e2e:setup`; it requires an ephemeral `TEST_AUTH_PASSWORD`, and the test route additionally requires `ENABLE_TEST_AUTH=true`.
+
+If OAuth reports a callback mismatch, compare the canonical `SITE_URL`, Supabase redirect allowlist, and Google/Supabase callback URI exactly. If an invited account is rejected, confirm the normalized invitation is active and the hosted Before User Created hook was enabled after the migration. Clear stale local cookies after resetting the Auth stack.
+
 ### Supabase configuration is missing
 
 The static application shell works without Supabase environment variables. When a later feature first requests a Supabase client, missing values produce an error naming the required variable. That feature's setup will provide the local API URL and Publishable key; restart the development server after adding them.
@@ -265,4 +273,4 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents must also follow [A
 
 ## License
 
-No project license has been selected yet. All rights are reserved unless explicitly stated otherwise. Do not redistribute OpenDAW-derived code or assets. Licensing will be revisited before external alpha or public distribution.
+No license has yet been selected for Jam Session's own source code; all rights are reserved unless explicitly stated otherwise. Third-party dependencies retain their own licenses and notices. Do not copy third-party demo audio or other assets without confirming redistribution rights.

@@ -113,6 +113,41 @@ export type Database = {
           username_normalized: string
         }[]
       }
+      get_viewer_profile: {
+        Args: never
+        Returns: {
+          bio: string
+          created_at: string
+          credit_name: string
+          display_name: string
+          id: string
+          last_active_at: string
+          profile_completed_at: string
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+          username: string
+          username_normalized: string
+        }[]
+      }
+      save_own_profile: {
+        Args: {
+          p_bio?: string
+          p_credit_name: string
+          p_display_name: string
+          p_username: string
+        }
+        Returns: {
+          bio: string
+          created_at: string
+          credit_name: string
+          display_name: string
+          id: string
+          profile_completed_at: string
+          updated_at: string
+          username: string
+          username_normalized: string
+        }[]
+      }
     }
     Enums: {
       account_status: "active" | "suspended" | "deleted"

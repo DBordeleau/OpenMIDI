@@ -6,7 +6,7 @@ This file is the operating contract for coding agents working in this repository
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and GitHub. Users create projects from audio stems, edit them in a browser workspace, submit contributions for review, and fork projects while preserving history and attribution.
 
-The MVP is a Next.js application backed by Supabase Auth, Postgres, and Storage, with OpenDAW isolated behind a browser-only integration boundary. It will eventually deploy to Vercel.
+The MVP is a Next.js application backed by Supabase Auth, Postgres, and Storage, with Waveform Playlist isolated behind a browser-only integration boundary. It will eventually deploy to Vercel.
 
 ## Read before changing code
 
@@ -63,9 +63,9 @@ Database commands require a running Docker-compatible container engine. `npm run
 
 ## Non-negotiable architecture rules
 
-- Keep OpenDAW and browser audio APIs inside `src/features/studio/opendaw-adapter` or its documented successor.
-- The studio is client-only and lazy-loaded. OpenDAW must not be imported by Server Components, server actions, route handlers, middleware, or shared server modules.
-- Persist both an exact-version OpenDAW-native snapshot and a validated, versioned Jam Session manifest.
+- Keep Waveform Playlist, Tone.js, and browser audio APIs inside `src/features/studio/waveform-playlist-adapter` or its documented successor.
+- The studio is client-only and lazy-loaded. Editor/audio packages must not be imported by Server Components, server actions, route handlers, proxy, or shared server modules.
+- Persist a validated, versioned Jam Session manifest as the MVP workspace authority; do not persist live editor objects or decoded audio.
 - Published project revisions and submitted contribution versions are immutable.
 - Autosave updates a private workspace draft using optimistic concurrency; it does not mutate published history.
 - Accepting a contribution creates a new project revision in one transaction. Do not implement automatic merging of divergent audio arrangements for MVP.
@@ -75,6 +75,7 @@ Database commands require a running Docker-compatible container engine. `npm run
 - All application-facing tables in exposed schemas have RLS enabled and policy tests. The service-role key is server-only and exceptional, not the normal application data path.
 - Email remains in Supabase Auth and must not be copied into publicly selectable profile data.
 - Provider metadata is untrusted for public identity; new Auth users begin with incomplete profiles that are not publicly visible.
+- Use verified Auth claims/user calls for identity decisions; never authorize from `getSession()` user data. Keep public layouts Auth-independent, sanitize callback destinations to explicit application-relative routes, and keep test Auth unreachable in production.
 - Read public profiles through a safe projection and never expose lifecycle or activity columns through broad base-table selects.
 - Store usernames without `@`; render them as `@username`. Normalize and claim usernames atomically in the database.
 - Database timestamps are UTC `timestamptz`; serialized application timestamps are ISO 8601 strings.
@@ -89,7 +90,7 @@ src/
   app/                         # routes, layouts, server actions, route handlers
   components/                  # reusable UI primitives
   features/                    # feature-owned UI, domain logic, and tests
-    studio/opendaw-adapter/    # sole OpenDAW dependency boundary
+    studio/waveform-playlist-adapter/ # sole browser editor/audio dependency boundary
   lib/                         # focused cross-feature infrastructure
   server/
     repositories/              # typed persistence access
@@ -154,7 +155,7 @@ For every RLS-sensitive feature, test at least: anonymous user, resource author,
 - Quotas count uniquely stored source assets, not revision or fork references.
 - Signed URLs are short-lived and must never be logged.
 - Asset deletion is reference-aware and follows the documented retention/legal-hold rules.
-- Changes to OpenDAW versions or manifest schemas require round-trip fixture tests for every supported persisted version.
+- Changes to Waveform Playlist/Tone.js versions or manifest schemas require deterministic round-trip fixture tests for every supported persisted version.
 
 ## Security, privacy, and moderation
 
@@ -173,16 +174,16 @@ Tests should prove behavior, not implementation details:
 - Unit tests for deterministic domain logic, manifest mapping/versioning, validation, and state machines.
 - Local-Supabase integration tests for RLS, transactions, constraints, concurrency, and retention/reference behavior.
 - Browser tests for critical user journeys: authentication/onboarding, upload, synchronized playback, save/reload, contribution review, acceptance, and fork lineage.
-- Contract fixtures for OpenDAW snapshots and Jam Session manifests.
+- Contract fixtures for Jam Session manifests and their Waveform Playlist adapter mapping.
 
 Mock external boundaries only when the real local dependency is impractical. Do not mock Postgres/RLS in tests intended to establish authorization correctness. Audio behavior requiring perception or browser capability should include a documented manual check alongside automated structural assertions.
 
 ## Dependency and licensing discipline
 
 - Add a dependency only when the platform or existing stack cannot reasonably provide the capability.
-- Pin OpenDAW packages exactly until compatibility policy is established; upgrades are deliberate tasks with fixture validation.
-- Preserve OpenDAW notices, attribution, license files, and a record of modifications during private MVP development.
-- Do not enable external alpha or public network access before the OpenDAW licensing decision in ADR-006 is resolved.
+- Pin Waveform Playlist and direct Tone.js packages exactly until compatibility policy is established; upgrades are deliberate tasks with fixture validation.
+- Preserve third-party notices and attribution. Do not copy upstream demo media or assets without verified redistribution terms.
+- OpenDAW is post-MVP and must not be introduced without a superseding ADR, integration plan, persisted-format compatibility plan, and licensing review.
 - Do not replace lockfiles, package managers, linting, formatting, or test frameworks incidentally.
 
 ## Git and review hygiene
@@ -214,7 +215,7 @@ Ask for direction before proceeding when a task requires:
 - A destructive migration or irreversible deletion outside established retention policy.
 - Weaker RLS, public source-audio access, service-role use in normal requests, or a new external data processor.
 - A change to immutable history, fork lineage, contribution acceptance semantics, or persisted manifest compatibility.
-- External/public deployment involving OpenDAW before ADR-006 is resolved.
+- Introducing OpenDAW or another browser editor outside the accepted adapter/ADR boundary.
 - A materially different stack, package manager, hosting provider, database, or authentication provider.
 
 Otherwise, make the smallest reasonable documented assumption and continue.
