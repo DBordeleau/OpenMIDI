@@ -14,6 +14,12 @@ The production browser studio uses these MIT-licensed packages without copying u
 
 Waveform Playlist is Copyright (c) Naomi Aro and contributors and is provided under the MIT License. The package distributions in `node_modules` contain their authoritative license text. Tone.js, dnd-kit, and styled-components are also provided under their respective MIT licenses.
 
+## MIDI feasibility and interchange
+
+The standalone MIDI interaction design uses Signal as an MIT-licensed behavioral and implementation reference pinned to commit `632de9685990c90d0be127994908cc43692ff82a` (Copyright (c) 2016 ryohey). Jam Session does not bundle Signal, its application state, Firebase integration, player, SoundFonts, or assets. The reviewed interaction vocabulary is translated into Jam Session-owned semantic commands and accessible controls. The preserved upstream notice is in [`docs/third-party/signal-LICENSE.txt`](docs/third-party/signal-LICENSE.txt).
+
+Browser-only Standard MIDI File parsing and writing uses the exactly pinned MIT-licensed `@tonejs/midi` 2.0.28 package (Copyright © 2016 Yotam Mann). Its locked transitive parser dependencies, `midi-file` 1.2.4 and `array-flatten` 3.0.0, are also MIT licensed. Package distributions in `node_modules` contain their authoritative license and package metadata.
+
 ## Browser lossless audio optimization
 
 The upload-only browser worker uses these exactly pinned packages without modifying their distributed source:
