@@ -5,8 +5,11 @@ export const MAX_SOURCE_AUDIO_DURATION_MS = 10 * 60 * 1000;
 export type TrustedMediaType = "audio/wav" | "audio/flac" | "audio/mpeg";
 
 export class PermanentVerificationError extends Error {
-  constructor(public readonly code: string) {
+  readonly code: string;
+
+  constructor(code: string) {
     super(code);
+    this.code = code;
     this.name = "PermanentVerificationError";
   }
 }

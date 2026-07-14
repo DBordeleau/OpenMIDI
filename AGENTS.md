@@ -62,6 +62,7 @@ Keep this section exact and runnable from the repository root.
 | Local E2E suite           | `npm run test:e2e:local`         |
 | Identity E2E              | `npm run test:e2e:identity`      |
 | Studio smoke E2E          | `npm run test:e2e:studio`        |
+| Upload optimization E2E   | `npm run test:e2e:upload`        |
 | Verify source asset       | `npm run assets:verify`          |
 | Preview asset cleanup     | `npm run assets:cleanup`         |
 | Process profile image     | `npm run avatars:process`        |
@@ -71,7 +72,9 @@ Keep this section exact and runnable from the repository root.
 
 Never invent a command in a handoff. Read `package.json` and tool configuration, run the narrowest relevant checks during iteration, then run `npm run check` before completion. When routes or browser-visible flows change, run the narrowest applicable local E2E command; use `npm run test:e2e:local` for cross-feature changes. Chromium must be installed once with `npx playwright install chromium`. The raw `npm run test:e2e` command is for an already-configured environment such as CI.
 
-Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth or Storage stack commands for their corresponding browser flows. Reset the database before validating migrations, and stop it when finished. Local E2E uses the Storage stack, reads its process-scoped keys automatically, prepares the gated actor, and runs one worker to prevent shared-fixture races. Its upload journey completes the real verification lease and credit-confirmation state deterministically because the reduced stack intentionally omits Edge Runtime. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. Source verification is normally automatic; `npm run assets:verify` is a trusted lease-aware operator fallback, never browser authority. `npm run check` intentionally remains independent of Docker.
+Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth or Storage stack commands for their corresponding browser flows. Reset the database before validating migrations, and stop it when finished. Local E2E uses the Storage stack, reads its process-scoped keys automatically, prepares the gated actor, runs one worker to prevent shared-fixture races, and owns an isolated `.next-e2e` development server that it cleans up on completion or interruption. Its upload journey completes the real verification lease and credit-confirmation state deterministically because the reduced stack intentionally omits Edge Runtime. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. Source verification is normally automatic; `npm run assets:verify` is a trusted lease-aware operator fallback, never browser authority. `npm run check` intentionally remains independent of Docker.
+
+The two-attempt ceiling applies when the same unresolved environment-dependent blocker repeats. A concrete correction to a selector, fixture, test query, or harness defect permits one validation run of the corrected path; do not count that as another attempt at the unchanged blocker, and do not continue looping if the corrected run exposes the same environmental condition.
 
 ### Supabase environment contract
 

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -15,37 +15,41 @@ test.describe("studio startup smoke", () => {
     page,
   }) => {
     test.setTimeout(60_000);
-    const projectId = await setupStudioFixture();
+    const fixture = await setupStudioFixture();
 
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
     await expect(page).toHaveURL(/\/settings\/profile$/);
 
-    const sourceResponses: Array<{ status: number; path: string }> = [];
-    page.on("response", (response) => {
-      const url = new URL(response.url());
-      if (url.pathname.startsWith("/storage/v1/object/"))
-        sourceResponses.push({ status: response.status(), path: url.pathname });
+    const networkEvents: NetworkEvent[] = [];
+    page.on("request", (request) => {
+      recordNetworkEvent(networkEvents, "request", request.url(), {
+        method: request.method(),
+      });
     });
-    await page.goto(`/projects/${projectId}/studio`);
+    page.on("response", (response) => {
+      recordNetworkEvent(networkEvents, "response", response.url(), {
+        method: response.request().method(),
+        status: response.status(),
+      });
+    });
+    page.on("requestfailed", (request) => {
+      recordNetworkEvent(networkEvents, "requestfailed", request.url(), {
+        method: request.method(),
+        error: request.failure()?.errorText ?? "unknown",
+      });
+    });
+    await page.goto(`/projects/${fixture.projectId}/studio`);
     await expect(page.getByText("Private draft from revision 1")).toBeVisible();
     await expect(page.getByLabel("Fixture stem label")).toBeVisible({
       timeout: 15_000,
     });
-    const loadState = await Promise.race([
-      page
-        .getByText("ready", { exact: true })
-        .waitFor({ timeout: 30_000 })
-        .then(() => "ready" as const),
-      page
-        .getByText("failed", { exact: true })
-        .waitFor({ timeout: 30_000 })
-        .then(() => "failed" as const),
-    ]);
+    const loadState = await waitForTrackLoad(page, 20_000);
+    const diagnostic = JSON.stringify({ fixture, networkEvents });
     if (loadState === "failed")
-      throw new Error(
-        `Fixture audio failed to load: ${JSON.stringify(sourceResponses)}`,
-      );
+      throw new Error(`Fixture audio failed to load: ${diagnostic}`);
+    if (loadState === "timeout")
+      throw new Error(`Fixture audio remained loading: ${diagnostic}`);
     await expect(
       page.getByRole("button", { name: "Play playback" }),
     ).toBeEnabled();
@@ -147,12 +151,63 @@ async function setupStudioFixture() {
     ],
     { encoding: "utf8" },
   );
+  const objectPath = `${actor.id}/${assetId}/source`;
   const { error: uploadError } = await admin.storage
     .from("source-audio")
-    .upload(`${actor.id}/${assetId}/source`, bytes, {
+    .upload(objectPath, bytes, {
       contentType: "audio/wav",
       upsert: true,
     });
   if (uploadError) throw uploadError;
-  return projectId;
+  const { data: stored, error: downloadError } = await admin.storage
+    .from("source-audio")
+    .download(objectPath);
+  if (downloadError || stored.size !== bytes.byteLength)
+    throw new Error(
+      `Studio fixture Storage preflight failed: ${JSON.stringify({ assetId, expectedBytes: bytes.byteLength, storedBytes: stored?.size, error: downloadError?.message })}`,
+    );
+  return {
+    projectId,
+    assetId,
+    databaseStatus: "ready",
+    storedBytes: stored.size,
+  };
+}
+
+type NetworkEvent = {
+  event: "request" | "response" | "requestfailed";
+  method: string;
+  path: string;
+  status?: number;
+  error?: string;
+};
+
+function recordNetworkEvent(
+  events: NetworkEvent[],
+  event: NetworkEvent["event"],
+  rawUrl: string,
+  details: Omit<NetworkEvent, "event" | "path">,
+) {
+  const { pathname } = new URL(rawUrl);
+  if (
+    !pathname.endsWith("/audio-sources") &&
+    !pathname.startsWith("/storage/v1/object/")
+  )
+    return;
+  events.push({ event, path: pathname, ...details });
+}
+
+async function waitForTrackLoad(
+  page: Page,
+  timeoutMs: number,
+): Promise<"ready" | "failed" | "timeout"> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await page.getByText("ready", { exact: true }).isVisible())
+      return "ready";
+    if (await page.getByText("failed", { exact: true }).isVisible())
+      return "failed";
+    await page.waitForTimeout(250);
+  }
+  return "timeout";
 }

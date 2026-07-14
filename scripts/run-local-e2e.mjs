@@ -1,4 +1,10 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
+import { existsSync, unlinkSync } from "node:fs";
+import path from "node:path";
+
+const baseUrl = "http://127.0.0.1:3100";
+const children = new Set();
+let interrupted = false;
 
 let output;
 try {
@@ -41,6 +47,13 @@ try {
 } catch {
   failPreflight("The local Storage API is not reachable.");
 }
+if (await isReachable(baseUrl))
+  failPreflight(
+    "Port 3100 is already serving another process. Stop that process before local E2E.",
+  );
+
+const e2eLock = path.join(process.cwd(), ".next-e2e", "dev", "lock");
+if (existsSync(e2eLock)) unlinkSync(e2eLock);
 
 const env = {
   ...process.env,
@@ -49,23 +62,109 @@ const env = {
   SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
   ENABLE_TEST_AUTH: "true",
   LOCAL_E2E: "true",
+  E2E_EXTERNAL_SERVER: "true",
+  NEXT_DIST_DIR: ".next-e2e",
   TEST_AUTH_EMAIL:
     process.env.TEST_AUTH_EMAIL ?? "jam-session-e2e@example.test",
   TEST_AUTH_PASSWORD:
     process.env.TEST_AUTH_PASSWORD ?? "jam-session-local-e2e-only",
 };
 
-run(process.execPath, ["scripts/setup-auth-e2e.mjs"], env);
-run(
-  process.execPath,
-  ["node_modules/@playwright/test/cli.js", "test", ...process.argv.slice(2)],
-  env,
-);
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.once(signal, () => {
+    void interrupt(signal);
+  });
+}
+
+let server;
+try {
+  const setupCode = await run(
+    process.execPath,
+    ["scripts/setup-auth-e2e.mjs"],
+    env,
+  );
+  if (setupCode !== 0)
+    throw new Error(`Local E2E Auth setup exited with ${setupCode}.`);
+  server = start(
+    process.execPath,
+    ["node_modules/next/dist/bin/next", "dev", "--port", "3100"],
+    env,
+  );
+  await waitForServer(server, baseUrl);
+  process.exitCode = await run(
+    process.execPath,
+    ["node_modules/@playwright/test/cli.js", "test", ...process.argv.slice(2)],
+    env,
+  );
+} finally {
+  if (server) await stopProcessTree(server);
+}
+
+function start(command, args, childEnv) {
+  const child = spawn(command, args, {
+    env: childEnv,
+    stdio: "inherit",
+    detached: process.platform !== "win32",
+  });
+  children.add(child);
+  child.once("close", () => children.delete(child));
+  return child;
+}
 
 function run(command, args, childEnv) {
-  const result = spawnSync(command, args, { env: childEnv, stdio: "inherit" });
-  if (result.error) throw result.error;
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  return new Promise((resolve, reject) => {
+    const child = start(command, args, childEnv);
+    child.once("error", reject);
+    child.once("close", (code) => resolve(code ?? 1));
+  });
+}
+
+async function waitForServer(child, url) {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null)
+      throw new Error(
+        `The local E2E Next.js server exited with ${child.exitCode}.`,
+      );
+    if (await isReachable(url)) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error("The local E2E Next.js server did not become ready in 120s.");
+}
+
+async function isReachable(url) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+    return response.status > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function interrupt(signal) {
+  if (interrupted) return;
+  interrupted = true;
+  await Promise.all([...children].map(stopProcessTree));
+  process.exit(signal === "SIGINT" ? 130 : 143);
+}
+
+function stopProcessTree(child) {
+  if (!child.pid || child.exitCode !== null) return Promise.resolve();
+  if (process.platform === "win32")
+    return new Promise((resolve) => {
+      execFile(
+        "taskkill",
+        ["/PID", String(child.pid), "/T", "/F"],
+        { windowsHide: true },
+        () => resolve(),
+      );
+    });
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {
+    // The process exited between the status check and signal.
+  }
+  return Promise.resolve();
 }
 
 function failPreflight(reason) {

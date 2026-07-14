@@ -55,11 +55,11 @@ npm run db:reset
 npm run test:e2e:studio
 ```
 
-Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for studio startup/save behavior, `npm run test:e2e:identity` for onboarding/upload/publish behavior, and `npm run test:e2e:local` for cross-feature or final browser validation. The runner configures local Supabase and the gated actor automatically; do not manually copy local keys into the shell. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
+Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for studio startup/save behavior, `npm run test:e2e:identity` for onboarding/upload/publish behavior, `npm run test:e2e:upload` for browser lossless conversion, and `npm run test:e2e:local` for cross-feature or final browser validation. The runner configures local Supabase and the gated actor automatically, uses an isolated `.next-e2e` development build, and cleans up its server process tree; do not manually copy local keys into the shell. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
 
 Report any check you could not run and why. Never claim a check passed without running it.
 
-Environment-dependent checks have a two-attempt troubleshooting ceiling by default. If Docker, Auth/Storage setup, Chromium installation, a test actor, or a fixture remains unavailable after two focused attempts, stop and report the observed cause instead of consuming unbounded time or resources. Manual multi-browser, audible-audio, Preview, performance, and extended interruption matrices should be agreed explicitly when they materially increase cost.
+Environment-dependent checks have a two-attempt troubleshooting ceiling by default. If the same Docker, Auth/Storage setup, Chromium installation, test-actor, or fixture condition remains unavailable after two focused attempts, stop and report the observed cause instead of consuming unbounded time or resources. Fixing a concrete selector, fixture, test-query, or harness defect permits one validation run of that corrected path; it is not another attempt at the unchanged environmental blocker. Manual multi-browser, audible-audio, Preview, performance, and extended interruption matrices should be agreed explicitly when they materially increase cost.
 
 For visible UI changes, also inspect the affected pages at 320, 768, 1280, and 1536 CSS pixels. Verify keyboard order, visible focus, reduced-motion behavior, readable zoom, and the absence of horizontal overflow. Keep public pages server-first; add a Client Component only around behavior that requires browser APIs or interaction.
 

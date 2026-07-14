@@ -155,12 +155,6 @@ test.describe("browser lossless upload optimization", () => {
     if (assetError) throw assetError;
     expect(asset.status).toBe("processing");
     expect(asset.original_filename).toBe("stem-a.flac");
-    const { data: stored, error: downloadError } = await actor.storage
-      .from(asset.bucket)
-      .download(asset.object_path);
-    if (downloadError) throw downloadError;
-    const flacBytes = Buffer.from(await stored.arrayBuffer());
-    expect(flacBytes.subarray(0, 4).toString("ascii")).toBe("fLaC");
 
     execFileSync(
       process.execPath,
@@ -184,6 +178,12 @@ test.describe("browser lossless upload optimization", () => {
       sample_rate_hz: 44_100,
       channels: 1,
     });
+    const { data: stored, error: downloadError } = await actor.storage
+      .from(asset.bucket)
+      .download(asset.object_path);
+    if (downloadError) throw downloadError;
+    const flacBytes = Buffer.from(await stored.arrayBuffer());
+    expect(flacBytes.subarray(0, 4).toString("ascii")).toBe("fLaC");
 
     const roundTrip = await page.evaluate(
       async ({ wavBase64, flacBase64 }) => {

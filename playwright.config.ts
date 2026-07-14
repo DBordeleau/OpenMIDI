@@ -17,10 +17,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "npm run dev -- --port 3100",
-    url: "http://localhost:3100",
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer:
+    process.env.E2E_EXTERNAL_SERVER === "true"
+      ? undefined
+      : {
+          command: "npm run dev -- --port 3100",
+          url: "http://localhost:3100",
+          reuseExistingServer: false,
+          timeout: 120_000,
+        },
 });

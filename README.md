@@ -160,6 +160,7 @@ Run commands from the repository root:
 | `npm run test:e2e:local`         | Configure and run the full local browser suite                  |
 | `npm run test:e2e:identity`      | Run the local onboarding/upload/publish journey                 |
 | `npm run test:e2e:studio`        | Run the fast fixture-backed studio startup smoke test           |
+| `npm run test:e2e:upload`        | Run the browser WAV-to-FLAC upload journey                      |
 | `npm run supabase:start`         | Start local Supabase Postgres only                              |
 | `npm run supabase:start:auth`    | Start the reduced local Auth stack                              |
 | `npm run supabase:start:storage` | Start the reduced local Storage/upload stack                    |
@@ -191,7 +192,7 @@ npm run db:reset
 npm run test:e2e:studio
 ```
 
-Use `npm run test:e2e:identity` for onboarding, upload, verification, and first publish, or `npm run test:e2e:local` for the complete browser suite. These local commands read the local Supabase values, prepare the test actor, and force one Playwright worker automatically. They refuse non-local Supabase targets and fail during preflight when Storage is unavailable. No copied environment variables or Edge Runtime process is required.
+Use `npm run test:e2e:identity` for onboarding, upload, verification, and first publish, `npm run test:e2e:upload` for browser lossless conversion, or `npm run test:e2e:local` for the complete browser suite. These local commands read the local Supabase values, prepare the test actor, force one Playwright worker, and run Next.js from the ignored `.next-e2e` directory so an ordinary development server does not share its lock or artifacts. The runner owns and cleans up that server process tree. It refuses non-local Supabase targets and fails during preflight when Storage or port 3100 is unavailable. No copied environment variables or Edge Runtime process is required.
 
 ### Audio-delivery benchmark fixtures
 

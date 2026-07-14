@@ -1,6 +1,6 @@
 # OPT-03 browser lossless upload evidence
 
-Status: Implementation complete; automated Chromium upload rerun unavailable after the repository's two-attempt environment ceiling  
+Status: Complete; focused Chromium upload and studio journeys pass after the local E2E harness repair
 Date: 2026-07-14  
 Environment: Windows, Node 24.18.0, npm 11.16.0, Next.js 16.2.10, Chromium via Playwright 1.61.1
 
@@ -40,12 +40,27 @@ The unit contract covers valid signature/metadata/peaks, signature mismatch, dur
 
 `tests/e2e/audio-upload-optimization.spec.ts` now describes the complete local journey: cancel conversion before reservation, fail a deceptive WAV before reservation, convert the tracked two-second WAV, upload only its FLAC object, invoke the trusted local verifier, assert ready FLAC metadata, and compare every browser-decoded sample with the WAV (`maxDelta = 0`). It inspects application rows and private Storage as the authenticated owner; service-role access is limited to the existing verifier script.
 
-The required command was attempted twice and then stopped under the repository's environment-dependent retry ceiling:
+The original OPT-03 validation was attempted twice and then stopped under the repository's environment-dependent retry ceiling:
 
 1. The first run checked onboarding before the test-auth server-action redirect settled and later timed out waiting for the upload input on the sign-in page. The spec now waits for navigation away from `/test-auth`.
 2. The second run reached the spec but its initial evidence query used direct `service_role` table SELECT, which this repository intentionally revokes. The spec now signs in a separate owner-scoped client for row/Storage evidence. The corrected journey was not rerun because the two-attempt ceiling had been reached.
 
-The independent `npm run test:e2e:studio` regression was also attempted twice. The first start was blocked by the stale Next dev process left by the timed-out upload run. After that repository-local process was removed, the journey rendered the manifest-first studio but its pre-existing WAV fixture remained in `loading` for 30 seconds. OPT-03 does not change studio source loading, signing, fixture Storage setup, or adapter code. The failure remains reported rather than retried beyond the ceiling.
+The independent `npm run test:e2e:studio` regression was also attempted twice. The first start was blocked by the stale Next dev process left by the timed-out upload run. After that repository-local process was removed, the journey rendered the manifest-first studio but its pre-existing WAV fixture remained in `loading` for 30 seconds.
+
+## Post-OPT-03 harness repair
+
+The local gated runner now owns one isolated Next dev process at a time, uses `.next-e2e` instead of competing for the interactive `.next` lock, verifies port availability before launch, and terminates the complete process tree after success, failure, or interruption. A stale isolated lock is removed only when the test port is free. Playwright skips its own `webServer` when invoked through this runner, preventing nested servers and orphaned processes.
+
+The upload journey has a dedicated `npm run test:e2e:upload` command. Its owner-scoped Storage download now occurs after the trusted verifier promotes the asset to `ready`, matching the source-read policy rather than incorrectly expecting a `processing` object to be readable. The shared verifier module also avoids TypeScript parameter-property syntax so the documented Node 24 operator command can execute it directly.
+
+The studio fixture now confirms the seeded Storage object is downloadable with the expected byte length before the browser starts. It polls the visible track state for a bounded 20 seconds and, on failure, reports the fixture asset ID, database status, stored byte count, and relevant source-signing/Storage request outcomes instead of waiting for a generic selector timeout.
+
+Fresh focused validation passed on 2026-07-14:
+
+- `npm run test:e2e:upload` — 1 Chromium test passed in 11.3 seconds.
+- `npm run test:e2e:studio` — 1 Chromium test passed in 12.6 seconds.
+
+The repository retry ceiling now distinguishes an unchanged environment failure from a concrete test, fixture, selector, query, or harness defect. Fixing a diagnosed defect permits one focused validation run; repeatedly rebuilding the same broken prerequisite state remains prohibited.
 
 ## Manual and deferred evidence
 
