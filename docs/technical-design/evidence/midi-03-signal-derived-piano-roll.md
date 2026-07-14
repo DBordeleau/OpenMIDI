@@ -28,7 +28,7 @@ Pending/conflicted content is also written to a validated owner/draft-scoped bro
 - Focused history, autosave, recovery, maximum-fixture, semantic-command, and stem-schema tests passed.
 - Touched-file ESLint passed.
 - TypeScript type checking passed during focused iteration.
-- `npm run test:e2e:local -- tests/e2e/midi-stems.spec.ts` passed. The Chromium journey creates a draft, edits through the inspector and keyboard, quantizes/undoes, double-clicks a new note, confirms autosave without losing the editor, hard-refreshes to exact canonical pitch/tick data, and verifies the updated My stems note count.
+- `npm run test:e2e:local -- tests/e2e/midi-stems.spec.ts` passed. The Chromium journey creates a draft, scrolls the piano-roll viewport without losing the editor, edits through the inspector and keyboard, quantizes/undoes, double-clicks a new note, confirms autosave without losing the editor, hard-refreshes to exact canonical pitch/tick data, and verifies the updated My stems note count.
 
 ## Deployment order and follow-up
 

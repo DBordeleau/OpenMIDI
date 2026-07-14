@@ -1226,13 +1226,14 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
         <div
           ref={rollRef}
           className="border-strong bg-canvas rounded-control mt-3 h-[28rem] max-h-[70vh] overflow-auto border"
-          onScroll={(event) =>
+          onScroll={(event) => {
+            const { scrollLeft, scrollTop } = event.currentTarget;
             setViewport((current) => ({
               ...current,
-              scrollLeft: event.currentTarget.scrollLeft,
-              scrollTop: event.currentTarget.scrollTop,
-            }))
-          }
+              scrollLeft,
+              scrollTop,
+            }));
+          }}
         >
           <div
             className="relative"

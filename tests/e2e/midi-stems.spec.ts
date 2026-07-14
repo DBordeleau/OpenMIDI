@@ -82,6 +82,10 @@ test.describe("standalone MIDI stem editor", () => {
     await expect(noteList.locator("option").first()).toContainText("D3");
 
     const roll = page.getByTestId("midi-piano-roll");
+    await roll.evaluate((element) => element.scrollTo(120, 110));
+    await expect(
+      page.getByRole("heading", { name: "Piano roll" }),
+    ).toBeVisible();
     await roll.focus();
     await roll.press("ArrowRight");
     await expect(noteList.locator("option").first()).toContainText("tick 120");
