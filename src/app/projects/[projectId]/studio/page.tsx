@@ -129,6 +129,7 @@ export default async function StudioPage({
             <CreateWorkspaceForm
               projectId={projectId}
               currentRevisionId={revision.revisionId}
+              autoStart
             />
           ) : revision ? (
             <StudioLauncher

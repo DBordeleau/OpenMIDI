@@ -2169,6 +2169,18 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      delete_project: {
+        Args: {
+          p_expected_lock_version: number
+          p_project_id: string
+          p_request_id: string
+        }
+        Returns: {
+          deleted_at: string
+          lock_version: number
+          project_id: string
+        }[]
+      }
       fork_project: {
         Args: {
           p_description: string
@@ -2187,6 +2199,10 @@ export type Database = {
       }
       get_contribution_project_context: {
         Args: { p_contribution_id: string }
+        Returns: Json
+      }
+      get_project_revision_preview: {
+        Args: { p_project_id: string; p_revision_id: string }
         Returns: Json
       }
       get_public_profile_history: {

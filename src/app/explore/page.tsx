@@ -6,6 +6,7 @@ import {
   parseDiscoveryFilters,
 } from "@/features/discovery/schema";
 import { musicalKeys } from "@/features/projects/schema";
+import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
 import {
   listDiscoveryOptions,
   searchPublicProjects,
@@ -251,6 +252,13 @@ export default async function ExplorePage({
                       value={String(project.tracks.length)}
                     />
                   </dl>
+                  <QuickPreviewPlayer
+                    compact
+                    projectId={project.projectId}
+                    revisionId={project.currentRevisionId}
+                    title={project.title}
+                    durationMs={project.durationMs}
+                  />
                   <Link
                     className="border-strong hover:border-accent-2 hover:text-accent-2 mt-6 inline-flex min-h-11 items-center justify-center rounded-full border px-5 font-semibold"
                     href={"/projects/" + project.projectId}

@@ -89,4 +89,9 @@ export const projectInputSchema = z
   );
 
 export const projectIdSchema = z.string().uuid();
+export const deleteProjectSchema = z.object({
+  projectId: projectIdSchema,
+  requestId: z.string().uuid(),
+  expectedLockVersion: z.number().int().positive(),
+});
 export type ProjectInput = z.infer<typeof projectInputSchema>;

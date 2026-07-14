@@ -25,8 +25,8 @@ flowchart LR
 
 - Receives Server Component HTML for public and authenticated product pages.
 - Uses Client Components only for interactive islands.
-- Loads the studio via `dynamic(..., { ssr: false })` after an explicit user action.
-- Runs Waveform Playlist, Web Audio, waveform work and local draft caching.
+- Loads the studio via `dynamic(..., { ssr: false })` after the user follows an Open studio action; an owner without a workspace gets an idempotently created draft and the editor in that same navigation.
+- Runs Waveform Playlist, Web Audio, waveform work, quick revision previews and local draft caching. Explore/project quick previews share a browser event so starting one pauses any other mounted preview.
 - Uploads large files directly to Supabase Storage using a short-lived authenticated session or signed upload flow. Audio bytes must not transit a Vercel Function.
 
 ### Next.js application
@@ -57,12 +57,12 @@ flowchart LR
 | Route                                     | State       | Rendering                         | Notes                                                      |
 | ----------------------------------------- | ----------- | --------------------------------- | ---------------------------------------------------------- |
 | `/`                                       | Implemented | Server-rendered                   | Public product shell                                       |
-| `/explore`                                | Implemented | Server-rendered, version-cached   | Bounded canonical GET filters and keyset pagination        |
+| `/explore`                                | Implemented | Server-rendered + client previews | Bounded canonical GET filters and keyset pagination        |
 | `/@{username}`                            | Implemented | Server-rendered                   | Canonical profile display uses `@`; database stores no `@` |
 | `/dashboard`                              | Implemented | Authenticated Server Component    | Bounded private work summaries and review count            |
 | `/projects`                               | Implemented | Authenticated Server Component    | RLS-scoped member project index and next-action links      |
-| `/projects/{projectId}`                   | Implemented | Public/member Server Component    | Safe anonymous metadata branch or full member presentation |
-| `/projects/{projectId}/studio`            | Implemented | Server shell + lazy client studio | Editor/Tone/browser audio load only after explicit open    |
+| `/projects/{projectId}`                   | Implemented | Public/member + client preview    | Safe anonymous metadata branch or full member presentation |
+| `/projects/{projectId}/studio`            | Implemented | Server shell + lazy client studio | One Open studio action prepares an owner draft and editor  |
 | `/contributions`                          | Implemented | Authenticated Server Component    | Author-owned contribution status and version index         |
 | `/projects/{projectId}/contributions`     | Implemented | Authenticated server page         | Owner review queue or contributor-owned submissions        |
 | `/projects/{projectId}/contributions/new` | Implemented | Authenticated server page         | Eligible non-owner contribution creation                   |

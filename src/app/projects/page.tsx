@@ -17,7 +17,12 @@ const statusLabels = {
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scope?: string; review?: string; after?: string }>;
+  searchParams: Promise<{
+    scope?: string;
+    review?: string;
+    after?: string;
+    deleted?: string;
+  }>;
 }) {
   const viewer = await requireViewer("/projects");
   const query = await searchParams;
@@ -47,6 +52,15 @@ export default async function ProjectsPage({
           </div>
           <ButtonLink href="/projects/new">New project</ButtonLink>
         </div>
+
+        {query.deleted === "1" && (
+          <p
+            role="status"
+            className="border-accent bg-surface rounded-control mt-8 border p-4"
+          >
+            Project deleted. Its history remains recoverable for 30 days.
+          </p>
+        )}
 
         {projects.length > 0 ? (
           <section className="mt-10" aria-labelledby="project-list-heading">
