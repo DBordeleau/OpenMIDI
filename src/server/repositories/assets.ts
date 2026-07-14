@@ -6,6 +6,11 @@ import type {
   OwnedSourceAsset,
 } from "@/features/assets/types";
 import type { Database } from "@/lib/supabase/database.types";
+import {
+  parseWaveformPeaks,
+  sha256Hex,
+  WAVEFORM_PEAKS_ALGORITHM_VERSION,
+} from "@/features/assets/waveform-peaks/contract";
 
 export async function listOwnedSourceAssets(): Promise<OwnedSourceAsset[]> {
   const db = await createSupabaseServerClient();
@@ -100,6 +105,70 @@ export async function completeSourceAsset(assetId: string) {
 export async function cancelSourceAsset(assetId: string) {
   const db = await createSupabaseServerClient();
   return db.rpc("cancel_source_upload", { p_asset_id: assetId } as never);
+}
+
+export async function reserveWaveformPeakDerivative(input: {
+  requestId: string;
+  sourceAssetId: string;
+  byteSize: number;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("reserve_waveform_peaks", {
+    p_request_id: input.requestId,
+    p_source_asset_id: input.sourceAssetId,
+    p_expected_byte_size: input.byteSize,
+  } as never);
+}
+
+export async function finalizeWaveformPeakDerivative(derivativeId: string) {
+  const db = await createSupabaseServerClient();
+  const { data: derivatives, error: derivativeError } = await db
+    .from("waveform_peak_derivatives")
+    .select("id,source_asset_id,bucket,object_path,status")
+    .eq("id", derivativeId)
+    .limit(1);
+  const derivative = derivatives?.[0];
+  if (derivativeError || !derivative)
+    return { error: new Error("waveform_peaks_not_found") };
+  if (derivative.status === "ready") return { error: null };
+
+  const { data: object, error: downloadError } = await db.storage
+    .from(derivative.bucket)
+    .download(derivative.object_path);
+  if (downloadError || !object)
+    return { error: new Error("waveform_peaks_object_unavailable") };
+
+  let bytes: Uint8Array;
+  let payload: ReturnType<typeof parseWaveformPeaks>;
+  try {
+    bytes = new Uint8Array(await object.arrayBuffer());
+    payload = parseWaveformPeaks(bytes);
+  } catch {
+    return { error: new Error("waveform_peaks_invalid_payload") };
+  }
+  if (payload.sourceAssetId !== derivative.source_asset_id)
+    return { error: new Error("waveform_peaks_source_mismatch") };
+
+  const sha256 = await sha256Hex(bytes);
+  const { error } = await db.rpc("finalize_waveform_peaks", {
+    p_derivative_id: derivativeId,
+    p_byte_size: bytes.byteLength,
+    p_sha256: sha256,
+    p_format_version: payload.formatVersion,
+    p_algorithm_version: WAVEFORM_PEAKS_ALGORITHM_VERSION,
+    p_channels: payload.channels,
+    p_duration_ms: payload.durationMs,
+    p_sample_rate_hz: payload.sampleRateHz,
+    p_bin_count: payload.binCount,
+  } as never);
+  return { error };
+}
+
+export async function cancelWaveformPeakDerivative(derivativeId: string) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("cancel_waveform_peaks", {
+    p_derivative_id: derivativeId,
+  } as never);
 }
 
 export async function getSourceVerificationStatus(

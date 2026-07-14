@@ -8,6 +8,8 @@ import {
   millisecondsToSamples,
   samplesToMilliseconds,
 } from "./mapping";
+import { createWaveformData } from "./persisted-peaks.client";
+import { WAVEFORM_PEAKS_BIN_COUNT } from "@/features/assets/waveform-peaks/contract";
 
 const buffer = { length: 96_000, sampleRate: 48_000 } as AudioBuffer;
 
@@ -45,5 +47,26 @@ describe("Waveform Playlist mapping", () => {
       pan: 0.75,
     });
     expect(exported.tracks[1]).toEqual(STUDIO_FIXTURE_MANIFEST.tracks[1]);
+  });
+
+  it("maps persisted peaks into a placeholder clip without audio authority", () => {
+    const waveform = createWaveformData({
+      sourceAssetId: STUDIO_FIXTURE_MANIFEST.tracks[0]!.assetId,
+      formatVersion: 1,
+      algorithmVersion: "pcm-minmax-v1",
+      channels: 1,
+      durationMs: 2_000,
+      sampleRateHz: 44_100,
+      binCount: WAVEFORM_PEAKS_BIN_COUNT,
+      values: new Int16Array(WAVEFORM_PEAKS_BIN_COUNT * 2),
+    });
+    const track = manifestTrackToClipTrack(
+      STUDIO_FIXTURE_MANIFEST.tracks[0]!,
+      undefined,
+      waveform,
+    );
+    expect(track.clips[0]?.audioBuffer).toBeUndefined();
+    expect(track.clips[0]?.waveformData).toBe(waveform);
+    expect(track.clips[0]?.sampleRate).toBe(44_100);
   });
 });

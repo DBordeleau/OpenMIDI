@@ -717,18 +717,24 @@ export type Database = {
       }
       global_storage_usage: {
         Row: {
+          derived_bytes: number
+          reserved_derived_bytes: number
           reserved_source_bytes: number
           singleton: boolean
           source_bytes: number
           updated_at: string
         }
         Insert: {
+          derived_bytes?: number
+          reserved_derived_bytes?: number
           reserved_source_bytes?: number
           singleton?: boolean
           source_bytes?: number
           updated_at?: string
         }
         Update: {
+          derived_bytes?: number
+          reserved_derived_bytes?: number
           reserved_source_bytes?: number
           singleton?: boolean
           source_bytes?: number
@@ -1863,6 +1869,100 @@ export type Database = {
           },
         ]
       }
+      waveform_peak_derivatives: {
+        Row: {
+          algorithm_version: string | null
+          bin_count: number | null
+          bucket: string
+          byte_size: number | null
+          channels: number | null
+          content_type: string
+          created_at: string
+          duration_ms: number | null
+          expected_byte_size: number
+          expires_at: string
+          failed_at: string | null
+          format_version: number | null
+          id: string
+          object_path: string
+          owner_id: string
+          ready_at: string | null
+          request_id: string
+          sample_rate_hz: number | null
+          sha256: string | null
+          source_asset_id: string
+          status: string
+        }
+        Insert: {
+          algorithm_version?: string | null
+          bin_count?: number | null
+          bucket?: string
+          byte_size?: number | null
+          channels?: number | null
+          content_type?: string
+          created_at?: string
+          duration_ms?: number | null
+          expected_byte_size: number
+          expires_at: string
+          failed_at?: string | null
+          format_version?: number | null
+          id: string
+          object_path: string
+          owner_id: string
+          ready_at?: string | null
+          request_id: string
+          sample_rate_hz?: number | null
+          sha256?: string | null
+          source_asset_id: string
+          status?: string
+        }
+        Update: {
+          algorithm_version?: string | null
+          bin_count?: number | null
+          bucket?: string
+          byte_size?: number | null
+          channels?: number | null
+          content_type?: string
+          created_at?: string
+          duration_ms?: number | null
+          expected_byte_size?: number
+          expires_at?: string
+          failed_at?: string | null
+          format_version?: number | null
+          id?: string
+          object_path?: string
+          owner_id?: string
+          ready_at?: string | null
+          request_id?: string
+          sample_rate_hz?: number | null
+          sha256?: string | null
+          source_asset_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waveform_peak_derivatives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waveform_peak_derivatives_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waveform_peak_derivatives_source_owner_fk"
+            columns: ["source_asset_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
       workspace_tracks: {
         Row: {
           asset_id: string
@@ -2098,6 +2198,10 @@ export type Database = {
         Args: { p_asset_id: string }
         Returns: Database["public"]["Enums"]["asset_status"]
       }
+      cancel_waveform_peaks: {
+        Args: { p_derivative_id: string }
+        Returns: string
+      }
       claim_username: {
         Args: { p_username: string }
         Returns: {
@@ -2180,6 +2284,20 @@ export type Database = {
           lock_version: number
           project_id: string
         }[]
+      }
+      finalize_waveform_peaks: {
+        Args: {
+          p_algorithm_version: string
+          p_bin_count: number
+          p_byte_size: number
+          p_channels: number
+          p_derivative_id: string
+          p_duration_ms: number
+          p_format_version: number
+          p_sample_rate_hz: number
+          p_sha256: string
+        }
+        Returns: string
       }
       fork_project: {
         Args: {
@@ -2471,6 +2589,21 @@ export type Database = {
           global_remaining_bytes: number
           object_path: string
           user_remaining_bytes: number
+        }[]
+      }
+      reserve_waveform_peaks: {
+        Args: {
+          p_expected_byte_size: number
+          p_request_id: string
+          p_source_asset_id: string
+        }
+        Returns: {
+          bucket: string
+          content_type: string
+          derivative_id: string
+          expires_at: string
+          object_path: string
+          source_asset_id: string
         }[]
       }
       reserve_workspace_snapshot: {

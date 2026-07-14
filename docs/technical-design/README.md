@@ -38,6 +38,7 @@ The following vertical slices are implemented and are the baseline for future wo
 - copy-on-write forks with exact lineage and no source-byte duplication; and
 - owner-controlled public visibility, anonymous metadata/credit pages, bounded Explore search/filtering, deterministic recent/trending ordering, and public fork/contribution entry without public source audio.
 - independently paginated public profile history, a bounded authenticated dashboard and private indexes, throttled recent activity, responsive disclosure navigation, and trusted private-original/public-derived profile avatars.
+- lossless browser WAV-to-FLAC optimization plus compact private persisted waveform peaks that render before canonical source decode without changing manifest or source authority.
 
 Profiles and private-work navigation are implemented through PR 17. Before moderation/retention and final release hardening, the roadmap inserts a $0 audio-delivery optimization pass followed by a MIDI-first expansion. MIDI becomes the active prototype creation path; new source-audio admission is disabled only after MIDI reaches end-to-end parity, while existing audio history remains supported. Historical PR 05 spike evidence is retained; the evidence directory records the production path through PR 17.
 

@@ -17,6 +17,7 @@ export type StudioTrackLoadState = {
   assetId: string;
   status: StudioTrackReadiness;
   message: string | null;
+  waveformStatus: "placeholder" | "persisted" | "decoded";
 };
 export type RetryStudioTrackInput = Pick<
   StudioLoadInput,

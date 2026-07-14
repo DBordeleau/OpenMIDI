@@ -73,12 +73,15 @@ Exit: **Met in PR 17** — fork lineage/discovery respect visibility/RLS, and pr
 - Instrument controlled cold/warm studio timing and bytes. **Implemented in OPT-01; baseline evidence records 29.352 s cold and 29.336 s same-session median readiness for the controlled uncompressed path.**
 - Render the arrangement shell and safe controls before complete source decoding. **Implemented in OPT-02; the controlled cold profile records a 7 ms median and 48 ms slowest harness shell mark.**
 - Progressively attach tracks with honest per-track/playback readiness and bounded in-session reuse. **Implemented in OPT-02 with isolated retry/cancellation, audible-track playback gating, and a 12-entry/384 MiB actor-scoped LRU.**
-- Add capable-browser lossless WAV-to-FLAC preprocessing. **Implemented in OPT-03 with a lazy dedicated worker, progress/cancellation/fallback, same-PCM transient peaks, exact passthrough for FLAC/MP3, and canonical-FLAC verification. Persisted private peaks remain OPT-04.**
+- Add capable-browser lossless WAV-to-FLAC preprocessing. **Implemented in OPT-03 with a lazy dedicated worker, progress/cancellation/fallback, same-PCM transient peaks, exact passthrough for FLAC/MP3, and canonical-FLAC verification. OPT-04 now persists those private peaks separately.**
+- Persist private browser-generated peaks without changing source authority. **Implemented in OPT-04 with compact source-bound `JSPK` v1 objects, direct owner upload, server-side byte validation, RLS/Storage actor coverage, global derived-capacity accounting, signed descriptors, and peaks-first adapter hydration with safe fallback.**
 - Preserve private source authority, exact export/download behavior, and a no-paid-worker architecture.
 
 OPT-01 selected pinned `mediabunny@1.50.8` + `@mediabunny/flac-encoder@1.50.8` after Chromium/Firefox round-trip, cancellation, peak-generation, and near-limit capability checks. OPT-03 installs those exact packages only in the lazy upload-worker graph and retains capability/failure fallback; Safari/macOS and measured peak memory remain manual release evidence. See [`evidence/opt-01-audio-delivery-baseline.md`](evidence/opt-01-audio-delivery-baseline.md) and [`evidence/opt-03-browser-lossless-upload.md`](evidence/opt-03-browser-lossless-upload.md).
 
 OPT-02 leaves source bytes, Storage/RLS, signed-URL authorization, manifests, and publication transactions unchanged. Its controlled WAV playback remains about 29.4 seconds cold because this slice does not transcode; after one unmeasured same-session prime, all five measured warm runs reuse decoded buffers without transfer or decode. See [`evidence/opt-02-progressive-studio.md`](evidence/opt-02-progressive-studio.md).
+
+OPT-04 leaves source verification, immutable history, manifest v1 and existing assets unchanged. Its fixed 2,048-bin peak object is a disposable initial waveform only; canonical audio decode replaces it for detailed zoom. See [`evidence/opt-04-persisted-waveform-peaks.md`](evidence/opt-04-persisted-waveform-peaks.md).
 
 Exit: the controlled cold studio shell is usable within two seconds; optimized three-stem playback targets 8–12 seconds cold and 2–4 seconds warm without quality loss; legacy audio compatibility evidence is retained for the MIDI transition.
 

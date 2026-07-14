@@ -141,9 +141,9 @@ test.describe("browser lossless upload optimization", () => {
     await expect(page.getByText(/Lossless FLAC ready/)).toBeVisible({
       timeout: 30_000,
     });
-    await expect(page.getByText(/Upload complete/).first()).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(
+      page.getByText(/Upload complete.*waveform is ready/i),
+    ).toBeVisible({ timeout: 30_000 });
 
     const { data: asset, error: assetError } = await actor
       .from("assets")
@@ -155,7 +155,26 @@ test.describe("browser lossless upload optimization", () => {
     if (assetError) throw assetError;
     expect(asset.status).toBe("processing");
     expect(asset.original_filename).toBe("stem-a.flac");
-
+    const { data: derivative, error: derivativeError } = await actor
+      .from("waveform_peak_derivatives")
+      .select(
+        "source_asset_id,bucket,object_path,status,format_version,algorithm_version,channels,duration_ms,sample_rate_hz,bin_count,byte_size",
+      )
+      .eq("source_asset_id", asset.id)
+      .single();
+    if (derivativeError) throw derivativeError;
+    expect(derivative).toMatchObject({
+      source_asset_id: asset.id,
+      bucket: "derived-assets",
+      status: "ready",
+      format_version: 1,
+      algorithm_version: "pcm-minmax-v1",
+      channels: 1,
+      duration_ms: 2_000,
+      sample_rate_hz: 44_100,
+      bin_count: 2_048,
+      byte_size: 8_232,
+    });
     execFileSync(
       process.execPath,
       ["scripts/verify-source-asset.mjs", asset.id],
@@ -178,6 +197,15 @@ test.describe("browser lossless upload optimization", () => {
       sample_rate_hz: 44_100,
       channels: 1,
     });
+    const { data: peakObject, error: peakDownloadError } = await actor.storage
+      .from(derivative.bucket)
+      .download(derivative.object_path);
+    if (peakDownloadError) throw peakDownloadError;
+    expect(
+      Buffer.from(await peakObject.arrayBuffer())
+        .subarray(0, 4)
+        .toString(),
+    ).toBe("JSPK");
     const { data: stored, error: downloadError } = await actor.storage
       .from(asset.bucket)
       .download(asset.object_path);

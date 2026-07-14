@@ -4,6 +4,7 @@ import { projectIdSchema } from "@/features/projects/schema";
 import { workspaceAudioSourcesRequestSchema } from "@/features/studio/source-contract";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
+import { signAudioSourceDescriptors } from "@/server/services/audio-source-delivery";
 
 const paramsSchema = z.object({
   projectId: projectIdSchema,
@@ -60,7 +61,9 @@ export async function POST(
 
   const { data: assets, error: assetError } = await db
     .from("assets")
-    .select("id,owner_id,bucket,object_path")
+    .select(
+      "id,owner_id,bucket,object_path,media_type,duration_ms,sample_rate_hz,channels",
+    )
     .in("id", requested)
     .eq("kind", "source_audio")
     .eq("status", "ready")
@@ -80,27 +83,7 @@ export async function POST(
 
   const byId = new Map(assets.map((asset) => [asset.id, asset]));
   const ordered = requested.map((id) => byId.get(id)!);
-  const { data: signed, error: signError } = await db.storage
-    .from("source-audio")
-    .createSignedUrls(
-      ordered.map((asset) => asset.object_path),
-      600,
-    );
-  if (
-    signError ||
-    signed.length !== ordered.length ||
-    signed.some((item) => item.error || !item.signedUrl)
-  )
-    return failure(503, "audio_access_unavailable");
-  const expiresAt = new Date(Date.now() + 600_000).toISOString();
-  return NextResponse.json(
-    {
-      sources: ordered.map((asset, index) => ({
-        assetId: asset.id,
-        signedUrl: signed[index]!.signedUrl,
-        expiresAt,
-      })),
-    },
-    { headers },
-  );
+  const delivery = await signAudioSourceDescriptors(db, ordered);
+  if (delivery.error) return failure(503, "audio_access_unavailable");
+  return NextResponse.json({ sources: delivery.sources }, { headers });
 }

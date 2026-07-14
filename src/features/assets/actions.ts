@@ -7,7 +7,11 @@ import {
   reserveSourceAsset,
   retrySourceAssetVerification,
   confirmSourceAssetCredits,
+  cancelWaveformPeakDerivative,
+  finalizeWaveformPeakDerivative,
+  reserveWaveformPeakDerivative,
 } from "@/server/repositories/assets";
+import { z } from "zod";
 
 export async function reserveUpload(input: unknown) {
   const parsed = sourceReservationSchema.safeParse(input);
@@ -46,6 +50,53 @@ export async function cancelUpload(assetId: string) {
   if (error) return { error: error.message };
   revalidatePath("/uploads");
   return { ok: true };
+}
+
+const waveformPeakReservationSchema = z
+  .object({
+    requestId: z.uuid(),
+    sourceAssetId: z.uuid(),
+    byteSize: z
+      .number()
+      .int()
+      .min(40)
+      .max(512 * 1_024),
+  })
+  .strict();
+
+export async function reserveWaveformPeaks(input: unknown) {
+  const parsed = waveformPeakReservationSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid waveform details." };
+  const { data, error } = await reserveWaveformPeakDerivative(parsed.data);
+  const row = (data as unknown as Record<string, unknown>[] | null)?.[0];
+  if (error || !row)
+    return { error: error?.message ?? "Could not reserve waveform storage." };
+  return {
+    instruction: {
+      derivativeId: String(row.derivative_id),
+      sourceAssetId: String(row.source_asset_id),
+      bucket: String(row.bucket),
+      objectPath: String(row.object_path),
+      contentType: String(row.content_type),
+      expiresAt: String(row.expires_at),
+    },
+  };
+}
+
+export async function finalizeWaveformPeaks(derivativeId: string) {
+  if (!z.uuid().safeParse(derivativeId).success)
+    return { error: "Invalid waveform upload." };
+  const { error } = await finalizeWaveformPeakDerivative(derivativeId);
+  return error
+    ? { error: "The waveform could not be verified. Audio remains available." }
+    : { ok: true };
+}
+
+export async function cancelWaveformPeaks(derivativeId: string) {
+  if (!z.uuid().safeParse(derivativeId).success)
+    return { error: "Invalid waveform upload." };
+  const { error } = await cancelWaveformPeakDerivative(derivativeId);
+  return error ? { error: error.message } : { ok: true };
 }
 
 export async function confirmAssetCredits(input: unknown) {

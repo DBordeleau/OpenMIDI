@@ -374,6 +374,11 @@ function PlaybackControls({
                 <FiLoader aria-hidden className="motion-safe:animate-spin" />
               )}
               {readiness?.status ?? "queued"}
+              {readiness?.waveformStatus === "persisted" && (
+                <span className="sr-only">
+                  Waveform ready from persisted peaks.
+                </span>
+              )}
             </p>
           </div>
           {editable && (
@@ -1270,15 +1275,12 @@ export function StudioSurface(props: StudioLauncherProps) {
     markStudioPerformance(studioPerformanceMarks.shellReady);
   }, [shellReady]);
   useEffect(() => {
-    if (
-      snapshot.trackLoadStates.length > 0 &&
-      snapshot.trackLoadStates.every((track) => track.status === "ready")
-    ) {
+    if (snapshot.waveformsReady) {
       if (peaksReadyMarked.current) return;
       peaksReadyMarked.current = true;
       markStudioPerformance(studioPerformanceMarks.peaksReady);
     }
-  }, [snapshot.trackLoadStates]);
+  }, [snapshot.waveformsReady]);
   useEffect(() => {
     if (snapshot.playbackReady && !playbackReadyMarked.current) {
       playbackReadyMarked.current = true;
