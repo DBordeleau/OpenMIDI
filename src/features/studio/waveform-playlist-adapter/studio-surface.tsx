@@ -1040,9 +1040,11 @@ export function StudioSurface(props: StudioLauncherProps) {
           message:
             result.code === "conflict"
               ? "The saved draft changed. Reload before publishing."
-              : result.code === "quota"
-                ? "This revision exceeds the project storage limit."
-                : "The workspace could not be published. Retry with the same saved draft.",
+              : result.code === "project_unavailable"
+                ? "This project is not currently available for publishing."
+                : result.code === "quota"
+                  ? "This revision exceeds the project storage limit."
+                  : "The workspace could not be published. Retry with the same saved draft.",
         });
       return;
     }

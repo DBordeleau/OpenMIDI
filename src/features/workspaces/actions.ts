@@ -102,11 +102,13 @@ export async function publishWorkspaceAction(
       code:
         message === "workspace_publish_stale_base"
           ? ("stale_base" as const)
-          : error?.code === "PT409"
-            ? ("conflict" as const)
-            : message === "publish_project_quota_exceeded"
-              ? ("quota" as const)
-              : ("unavailable" as const),
+          : message === "publish_project_unavailable"
+            ? ("project_unavailable" as const)
+            : error?.code === "PT409"
+              ? ("conflict" as const)
+              : message === "publish_project_quota_exceeded"
+                ? ("quota" as const)
+                : ("unavailable" as const),
     };
   }
   revalidatePath(`/projects/${projectId}`);

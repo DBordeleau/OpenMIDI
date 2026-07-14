@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,
@@ -54,6 +54,7 @@ grant select on publish_ids to authenticated;
 
 set local role authenticated;
 set local request.jwt.claim.sub='b0000000-0000-4000-8000-000000000001';
+select lives_ok($$select public.set_project_visibility('b1000000-0000-4000-8000-000000000001',(select lock_version from public.projects where id='b1000000-0000-4000-8000-000000000001'),'public')$$,'published project becomes public before later revision');
 select lives_ok($$select public.publish_workspace_revision((select workspace_id from publish_ids),'b6000000-0000-4000-8000-000000000001',1,(select base_revision_id from publish_ids),'Workspace checkpoint')$$,'publishes saved workspace');
 reset role;
 select is((select count(*) from public.project_revisions where project_id='b1000000-0000-4000-8000-000000000001'),2::bigint,'one later revision created');
