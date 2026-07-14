@@ -55,7 +55,7 @@ export function StemDownloadPanel({
   const [state, setState] = useState<DownloadState>({
     status: "idle",
     message:
-      "Original WAV, FLAC, or MP3 sources; mixer settings are in the manifest.",
+      "Canonical full-quality WAV, FLAC, or MP3 sources; mixer settings are in the manifest.",
   });
   const controller = useRef<AbortController | null>(null);
 
@@ -136,9 +136,11 @@ export function StemDownloadPanel({
   const active = state.status === "preparing" || state.status === "downloading";
   return (
     <section className="rounded-card border-subtle bg-surface border p-5">
-      <h2 className="font-bold">Download original stems</h2>
+      <h2 className="font-bold">Download full-quality stems</h2>
       <p className="text-muted mt-1 text-sm">
-        Downloads multiple original source files plus a Jam Session manifest.
+        Downloads canonical source files plus a Jam Session manifest. A WAV
+        optimized during upload downloads as lossless FLAC; its original WAV
+        container was not retained.
       </p>
       <p className="mt-3 text-sm" aria-live="polite">
         {state.message}

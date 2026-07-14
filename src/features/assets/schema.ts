@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const MAX_SOURCE_BYTES = 45 * 1024 * 1024;
+export type SourceFormat = "wav" | "flac" | "mp3";
 export const sourceReservationSchema = z.object({
   requestId: z.uuid(),
   byteSize: z.number().int().min(1).max(MAX_SOURCE_BYTES),
@@ -50,7 +51,8 @@ export const confirmAssetCreditsSchema = z.object({
 export async function preflightSourceFile(file: File) {
   if (!file.size || file.size > MAX_SOURCE_BYTES)
     throw new Error("Choose a file between 1 byte and 45 MiB.");
-  const extension = file.name.toLowerCase().match(/\.(wav|flac|mp3)$/)?.[1];
+  const extension = file.name.toLowerCase().match(/\.(wav|flac|mp3)$/)?.[1] as
+    SourceFormat | undefined;
   if (!extension) throw new Error("Choose a WAV, FLAC, or MP3 file.");
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   const ascii = String.fromCharCode(...bytes);
@@ -70,5 +72,6 @@ export async function preflightSourceFile(file: File) {
     filename: file.name.trim(),
     mediaType: file.type || null,
     durationMs: null,
+    format: extension,
   };
 }

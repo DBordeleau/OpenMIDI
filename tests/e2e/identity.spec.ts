@@ -209,12 +209,9 @@ test.describe("identity vertical slice", () => {
     await page
       .getByLabel("Choose source audio")
       .setInputFiles("public/fixtures/audio/stem-a.wav");
+    await page.getByRole("button", { name: "Upload original WAV" }).click();
     await expect(
-      page
-        .getByText("Upload complete. Starting audio verification…", {
-          exact: true,
-        })
-        .first(),
+      page.getByText("Upload complete.", { exact: true }).first(),
     ).toBeVisible({ timeout: 30_000 });
     await promoteLatestTestAsset();
 

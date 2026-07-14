@@ -205,7 +205,7 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 
 ## Roadmap interruption O — $0 audio optimization
 
-**Status:** In progress — OPT-01 and OPT-02 complete; OPT-03 next
+**Status:** In progress — OPT-01 through OPT-03 complete; OPT-04 next
 
 **Outcome:** Existing and legacy audio projects remain practical on free infrastructure: the studio becomes usable before complete stem decoding, WAV uploads can be optimized losslessly in capable browsers, and real waveform peaks plus honest readiness states improve perceived startup.
 
@@ -214,6 +214,8 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 **Delivered in OPT-01:** Reproducible ignored large-audio fixtures; development-only route/adapter/source/shell/peaks/playback timing marks; controlled/stress/boundary baseline evidence; and selection of pinned `mediabunny@1.50.8` + `@mediabunny/flac-encoder@1.50.8` for later worker integration. No production upload, schema, Storage, or caching behavior changed. See the [OPT-01 evidence](technical-design/evidence/opt-01-audio-delivery-baseline.md).
 
 **Delivered in OPT-02:** Manifest-first placeholder lanes and safe workspace controls; progressive per-track fetch/decode attachment; accessible readiness/failure states; audible-track playback gating; isolated retry/cancellation; and bounded actor-scoped in-memory promise/buffer reuse. The controlled cold WAV harness reaches shell-ready in 7 ms median/48 ms slowest while playback remains network-bound near 29.4 seconds; primed same-session repeats avoid transfer and decode. No schema, RLS, Storage object, source byte, manifest, or publication contract changed. See the [OPT-02 evidence](technical-design/evidence/opt-02-progressive-studio.md).
+
+**Delivered in OPT-03:** Exact-pinned Mediabunny/libFLAC encoding in a dynamically imported dedicated browser worker; an explicit WAV lossless-optimization choice with progress, cancellation, capability/memory/failure fallback; same-decoded-PCM transient peak generation for OPT-04; output signature/metadata/limit validation before reservation; unchanged FLAC/MP3 upload candidates; canonical FLAC direct resumable upload and trusted verification; and accurate full-quality download copy. No schema, RLS, Storage policy, quota, manifest, or existing asset changed. See the [OPT-03 evidence](technical-design/evidence/opt-03-browser-lossless-upload.md).
 
 **Acceptance gate:** A controlled cold three-stem project renders its editable shell within two seconds; audio quality and private authorization are unchanged; new losslessly optimized sources target 8–12 seconds to synchronized cold playback and 2–4 seconds warm; no paid worker or service is required.
 

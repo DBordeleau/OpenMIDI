@@ -246,7 +246,7 @@ MIDI clips/notes are relational history retained with their workspace, revision 
 | `status`                                        | `asset_status`         | reserved/uploading/processing/ready/failed/deleted lifecycle |
 | `bucket`                                        | `text`                 | `source-audio` or private `workspace-snapshots`              |
 | `object_path`                                   | `text`                 | unique, server-generated                                     |
-| `original_filename`                             | `text`                 | required sanitized display value                             |
+| `original_filename`                             | `text`                 | canonical display name; optimized WAV ends in `.flac`        |
 | `declared_media_type`, `reserved_byte_size`     | nullable/text + bigint | untrusted declaration and quota reservation                  |
 | `media_type`, `byte_size`, `sha256`             | nullable               | trusted verification output; required when ready             |
 | `duration_ms`, `sample_rate_hz`, `channels`     | nullable numeric       | verified audio metadata; required when ready                 |
@@ -268,6 +268,8 @@ future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
 ```
 
 Do not globally deduplicate uploads in MVP: identical hashes can belong to different access domains and deletion expectations. Hashes provide integrity and later dedupe analysis.
+
+OPT-03 changes no schema or quota authority. Reservation occurs only after browser preprocessing chooses the final candidate, so `reserved_byte_size`, `original_filename`, declared media type, trusted hash/metadata, and the single private object all describe the canonical FLAC for an optimized WAV. The selected WAV is never an asset or Storage object. Existing assets, unoptimized WAVs, FLACs, and MP3s retain their prior byte and filename semantics. The conversion version and transient peak payload stay browser-owned until OPT-04 adds a separately authorized derivative relation; they are not hidden in the source asset row or manifest.
 
 Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` stores ordered self/external display snapshots. Trusted verification creates only a provisional uploader suggestion; the active owner must atomically confirm 1–12 credits with at least one creator before the source can enter workspace, contribution-version, or revision tracks. Self names are derived from the verified profile in SQL, external names remain unlinked plain text, duplicate identity/role pairs are denied, and confirmed/referenced credits are immutable. Confirmation request ID plus normalized SHA-256 makes exact retries idempotent and conflicting reuse fail. `owner_id` is operational ownership, not authorship.
 

@@ -15,7 +15,25 @@ describe("source upload preflight", () => {
     await expect(preflightSourceFile(file)).resolves.toMatchObject({
       filename: "stem.wav",
       byteSize: 16,
+      format: "wav",
     });
+  });
+  it("passes accepted FLAC and MP3 bytes through without rewriting them", async () => {
+    const flacBytes = new Uint8Array([0x66, 0x4c, 0x61, 0x43, 1, 2, 3]);
+    const mp3Bytes = new Uint8Array([0x49, 0x44, 0x33, 4, 5, 6]);
+    const flac = new File([flacBytes], "stem.flac", { type: "audio/flac" });
+    const mp3 = new File([mp3Bytes], "stem.mp3", { type: "audio/mpeg" });
+
+    await expect(preflightSourceFile(flac)).resolves.toMatchObject({
+      format: "flac",
+      byteSize: flacBytes.byteLength,
+    });
+    await expect(preflightSourceFile(mp3)).resolves.toMatchObject({
+      format: "mp3",
+      byteSize: mp3Bytes.byteLength,
+    });
+    expect(new Uint8Array(await flac.arrayBuffer())).toEqual(flacBytes);
+    expect(new Uint8Array(await mp3.arrayBuffer())).toEqual(mp3Bytes);
   });
   it("rejects deceptive and oversize input", async () => {
     await expect(

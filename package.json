@@ -44,10 +44,12 @@
   },
   "dependencies": {
     "@dnd-kit/react": "0.3.2",
+    "@mediabunny/flac-encoder": "1.50.8",
     "@supabase/ssr": "0.12.0",
     "@supabase/supabase-js": "2.109.0",
     "@waveform-playlist/browser": "15.3.4",
     "@waveform-playlist/playout": "12.5.4",
+    "mediabunny": "1.50.8",
     "motion": "12.42.2",
     "music-metadata": "11.13.0",
     "next": "16.2.10",
