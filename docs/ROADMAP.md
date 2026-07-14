@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-14
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-02 complete; MIDI-03 is next, followed by MIDI-04–MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-03 complete; MIDI-04 is next, followed by MIDI-05–MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
 
 ## Purpose
 
@@ -227,9 +227,11 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap interruption M — MIDI-first MVP expansion
 
-**Status:** Active — MIDI-01–MIDI-02 are complete; MIDI-03 is the next implementation slice
+**Status:** Active — MIDI-01–MIDI-03 are complete; MIDI-04 is the next implementation slice
 
 **Delivered in MIDI-02:** Expand-only owner-scoped MIDI stem identities, conflict-safe mutable drafts, immutable-version schema foundations, private preset allowlist validation, exact read-only RLS/Data API grants, idempotent blank/import/derive draft creation, canonical bounded note saves, My stems navigation/library states, and a lazy standalone editor shell with basic accessible note controls and deterministic sample-free playback. Project manifests still cannot reference drafts or “latest” pointers; piano-roll editing begins in MIDI-03 and immutable stem publication remains in MIDI-04.
+
+**Delivered in MIDI-03:** A viewport-rendered, Signal-derived piano roll now translates note creation, selection, move, resize, duplicate, delete, velocity, and explicit quantize into Jam-owned semantic commands. The synchronized native note list/inspector and scoped keyboard shortcuts provide equivalent non-pointer editing; command history is bounded to 100 undo/redo snapshots and is never persisted. Draft commands debounce into the existing optimistic save RPC with offline/error/conflict states, automatic online retry, and validated private local recovery. The visible playhead, zoom/grid controls, preset-range guards, 2,048-note fixture coverage, and bounded payload evidence complete standalone composition editing without persisting canvas or Signal runtime state. Immutable publication, recording, and MIDI interchange remain MIDI-04.
 
 **Outcome:** MIDI becomes the prototype's active creation and collaboration path, with multiple deterministic synth tracks, accessible piano-roll editing, recording, immutable publication/contributions/forks, previews, and `.mid` export. New source-audio admission is disabled only after that complete path works.
 
