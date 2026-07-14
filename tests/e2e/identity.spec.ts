@@ -6,6 +6,16 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 function localSupabaseEnv() {
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.startsWith("http://127.0.0.1:") &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  )
+    return {
+      API_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    };
   const output =
     process.platform === "win32"
       ? execFileSync(
@@ -57,17 +67,95 @@ async function promoteLatestTestAsset() {
   const bytes = await readFile(
     path.join(process.cwd(), "public", "fixtures", "audio", "stem-a.wav"),
   );
-  const { error } = await admin.rpc("operator_promote_source_asset", {
-    p_asset_id: asset.id,
-    p_media_type: "audio/wav",
-    p_byte_size: bytes.byteLength,
-    p_sha256: createHash("sha256").update(bytes).digest("hex"),
-    p_duration_ms: 2_000,
-    p_sample_rate_hz: 44_100,
-    p_channels: 1,
-    p_verification_version: "playwright-fixture-v1",
+  const { data: claims, error: claimError } = await admin.rpc(
+    "operator_claim_source_verification",
+    { p_asset_id: asset.id, p_owner_id: null },
+  );
+  const claim = claims?.[0];
+  if (claimError || !claim)
+    throw new Error(
+      `Local source verification preflight failed for ${asset.id}: ${claimError?.message ?? "no claimable verification job"}`,
+    );
+  const { error: verificationError } = await admin.rpc(
+    "operator_complete_source_verification",
+    {
+      p_asset_id: asset.id,
+      p_lease_token: claim.lease_token,
+      p_media_type: "audio/wav",
+      p_byte_size: bytes.byteLength,
+      p_sha256: createHash("sha256").update(bytes).digest("hex"),
+      p_duration_ms: 2_000,
+      p_sample_rate_hz: 44_100,
+      p_channels: 1,
+      p_verification_version: "playwright-fixture-v1",
+    },
+  );
+  if (verificationError) throw verificationError;
+  const { error: creditsError } = await actor.rpc(
+    "confirm_source_asset_credits",
+    {
+      p_asset_id: asset.id,
+      p_request_id: crypto.randomUUID(),
+      p_credits: [{ kind: "self", role: "creator" }],
+    },
+  );
+  if (creditsError) throw creditsError;
+  const { data: publishable, error: stateError } = await actor
+    .from("assets")
+    .select("id,status,credits_confirmed_at")
+    .eq("id", asset.id)
+    .single();
+  if (
+    stateError ||
+    publishable.status !== "ready" ||
+    !publishable.credits_confirmed_at
+  )
+    throw new Error(
+      `Local source fixture is not publishable: ${JSON.stringify({ assetId: asset.id, status: publishable?.status, creditsConfirmed: Boolean(publishable?.credits_confirmed_at), queryError: stateError?.message })}`,
+    );
+}
+
+async function resetTestActorProfile() {
+  const env = localSupabaseEnv();
+  if (
+    !env.API_URL?.startsWith("http://127.0.0.1:") ||
+    !env.SERVICE_ROLE_KEY ||
+    !process.env.TEST_AUTH_EMAIL
+  )
+    throw new Error("Refusing E2E profile reset outside local Supabase.");
+  const admin = createClient(env.API_URL, env.SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  if (error) throw error;
+  const { data: users, error: usersError } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  if (usersError) throw usersError;
+  const actor = users.users.find(
+    (user) => user.email === process.env.TEST_AUTH_EMAIL,
+  );
+  if (!actor)
+    throw new Error("Local E2E actor setup did not create the actor.");
+  if (!/^[0-9a-f-]{36}$/.test(actor.id))
+    throw new Error("Local E2E actor has an invalid identifier.");
+  execFileSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "supabase_db_jam-session",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `update public.profiles set username=null, username_normalized=null, display_name=null, credit_name=null, bio=null, profile_completed_at=null where id='${actor.id}'`,
+    ],
+    { encoding: "utf8" },
+  );
 }
 
 test.describe("identity vertical slice", () => {
@@ -76,8 +164,11 @@ test.describe("identity vertical slice", () => {
     "requires the local gated Auth actor",
   );
 
-  test("onboards, publishes, edits, and signs out", async ({ page }) => {
+  test("onboards, publishes, edits the profile, and signs out", async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
+    await resetTestActorProfile();
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
     await expect(
@@ -128,57 +219,12 @@ test.describe("identity vertical slice", () => {
     await promoteLatestTestAsset();
 
     await page.goto(`${projectUrl}/publish`);
-    await page.getByRole("checkbox").check();
+    await page
+      .getByRole("checkbox", { name: /stem-a\.wav E2E Credit/ })
+      .first()
+      .check();
     await page.getByRole("button", { name: "Publish first revision" }).click();
     await expect(page.getByText("Published arrangement")).toBeVisible();
-    await page.getByRole("link", { name: "Open studio" }).click();
-    await page.getByRole("button", { name: "Create editable draft" }).click();
-    await expect(page.getByText("Private draft from revision 1")).toBeVisible();
-    let releaseSource: (() => void) | undefined;
-    let observeSource: (() => void) | undefined;
-    const sourceRequested = new Promise<void>((resolve) => {
-      observeSource = resolve;
-    });
-    const holdSource = new Promise<void>((resolve) => {
-      releaseSource = resolve;
-    });
-    await page.route("**/storage/v1/object/sign/**", async (route) => {
-      observeSource?.();
-      await holdSource;
-      await route.continue();
-    });
-    await page.getByRole("button", { name: "Open studio" }).click();
-    await sourceRequested;
-    await expect(page.getByLabel("Track label")).toBeVisible({
-      timeout: 2_000,
-    });
-    await expect(
-      page.getByRole("button", { name: "Play playback" }),
-    ).toBeDisabled();
-    await expect(
-      page.getByText(/0 of 1 tracks ready · loading audio/),
-    ).toBeVisible();
-    releaseSource?.();
-    await expect(
-      page.getByRole("button", { name: "Play playback" }),
-    ).toBeEnabled({
-      timeout: 30_000,
-    });
-    await page.unroute("**/storage/v1/object/sign/**");
-    await page.getByLabel("Track label").fill("Saved browser stem");
-    await page.getByLabel("Track label").press("Tab");
-    await expect(
-      page.getByText("Unsaved changes", { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText("Saved", { exact: true })).toBeVisible({
-      timeout: 30_000,
-    });
-    await page.reload();
-    await page.getByRole("button", { name: "Open studio" }).click();
-    await expect(page.getByLabel("Track label")).toHaveValue(
-      "Saved browser stem",
-      { timeout: 30_000 },
-    );
 
     await page.goto("/@E2EArtist");
     await expect(

@@ -157,6 +157,9 @@ Run commands from the repository root:
 | `npm run build`                  | Create a production Next.js build                               |
 | `npm run start`                  | Serve an existing production build                              |
 | `npm run test:e2e`               | Run Playwright browser tests                                    |
+| `npm run test:e2e:local`         | Configure and run the full local browser suite                  |
+| `npm run test:e2e:identity`      | Run the local onboarding/upload/publish journey                 |
+| `npm run test:e2e:studio`        | Run the fast fixture-backed studio startup smoke test           |
 | `npm run supabase:start`         | Start local Supabase Postgres only                              |
 | `npm run supabase:start:auth`    | Start the reduced local Auth stack                              |
 | `npm run supabase:start:storage` | Start the reduced local Storage/upload stack                    |
@@ -179,6 +182,16 @@ npx playwright install chromium
 ```
 
 That browser download is only needed for E2E tests, not normal development.
+
+For reliable local browser testing, start the reduced Storage stack and reset its database once, then use a targeted runner:
+
+```powershell
+npm run supabase:start:storage
+npm run db:reset
+npm run test:e2e:studio
+```
+
+Use `npm run test:e2e:identity` for onboarding, upload, verification, and first publish, or `npm run test:e2e:local` for the complete browser suite. These local commands read the local Supabase values, prepare the test actor, and force one Playwright worker automatically. They refuse non-local Supabase targets and fail during preflight when Storage is unavailable. No copied environment variables or Edge Runtime process is required.
 
 ### Audio-delivery benchmark fixtures
 

@@ -50,8 +50,12 @@ If routes or browser-visible flows changed, also install Chromium once and run E
 
 ```powershell
 npx playwright install chromium
-npm run test:e2e
+npm run supabase:start:storage
+npm run db:reset
+npm run test:e2e:studio
 ```
+
+Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for studio startup/save behavior, `npm run test:e2e:identity` for onboarding/upload/publish behavior, and `npm run test:e2e:local` for cross-feature or final browser validation. The runner configures local Supabase and the gated actor automatically; do not manually copy local keys into the shell. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
 
 Report any check you could not run and why. Never claim a check passed without running it.
 
