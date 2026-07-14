@@ -53,12 +53,12 @@ The local gated runner now owns one isolated Next dev process at a time, uses `.
 
 The upload journey has a dedicated `npm run test:e2e:upload` command. Its owner-scoped Storage download now occurs after the trusted verifier promotes the asset to `ready`, matching the source-read policy rather than incorrectly expecting a `processing` object to be readable. The shared verifier module also avoids TypeScript parameter-property syntax so the documented Node 24 operator command can execute it directly.
 
-The studio fixture now confirms the seeded Storage object is downloadable with the expected byte length before the browser starts. It polls the visible track state for a bounded 20 seconds and, on failure, reports the fixture asset ID, database status, stored byte count, and relevant source-signing/Storage request outcomes instead of waiting for a generic selector timeout.
+The studio fixture confirms the seeded Storage object is downloadable with the expected byte length before the browser starts. A later OPT-04 harness repair also verifies the persisted peak object and hash. Because local Windows/Docker signed-object responses can deliver HTTP 200 headers while stalling their bodies, the fixture substitutes those exact preflight-verified bytes inside browser `fetch`; this keeps real descriptor parsing, persisted-peak hydration, Web Audio decoding, playback readiness, autosave, and reload coverage without treating the local Storage transport as product evidence. The readiness assertion uses the user-visible playback control rather than an impossible exact-text match against a status element that also contains screen-reader copy.
 
 Fresh focused validation passed on 2026-07-14:
 
 - `npm run test:e2e:upload` — 1 Chromium test passed in 11.3 seconds.
-- `npm run test:e2e:studio` — 1 Chromium test passed in 12.6 seconds.
+- `npm run test:e2e:studio` — 1 Chromium test passed in 10.5 seconds after the OPT-04 harness repair.
 
 The repository retry ceiling now distinguishes an unchanged environment failure from a concrete test, fixture, selector, query, or harness defect. Fixing a diagnosed defect permits one focused validation run; repeatedly rebuilding the same broken prerequisite state remains prohibited.
 

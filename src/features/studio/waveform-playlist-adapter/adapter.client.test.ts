@@ -12,6 +12,11 @@ const sources = STUDIO_FIXTURE_ASSETS.map(({ assetId, url }) => ({
   assetId,
   signedUrl: url,
   expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  mediaType: "audio/wav",
+  durationMs: 2_000,
+  sampleRateHz: 44_100,
+  channels: 1,
+  peaks: null,
 }));
 const loadOptions = {
   actorId: "00000000-0000-4000-8000-000000000099",

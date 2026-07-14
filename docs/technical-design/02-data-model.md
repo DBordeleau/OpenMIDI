@@ -262,14 +262,22 @@ Storage paths must not embed mutable usernames:
 ```text
 source-audio bucket: {owner_uuid}/{asset_uuid}/source
 workspace-snapshots bucket: {owner_uuid}/workspaces/{workspace_uuid}/snapshots/{asset_uuid}/manifest-v1.json
-derived-assets bucket (planned objects): {asset_uuid}/preview.webm
-derived-assets bucket (planned objects): {asset_uuid}/peaks.v1.bin
+derived-assets peak: {owner_uuid}/{source_asset_uuid}/{derivative_uuid}/peaks.v1.bin
+derived-assets preview (planned): {asset_uuid}/preview.webm
 future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
 ```
 
 Do not globally deduplicate uploads in MVP: identical hashes can belong to different access domains and deletion expectations. Hashes provide integrity and later dedupe analysis.
 
-OPT-03 changes no schema or quota authority. Reservation occurs only after browser preprocessing chooses the final candidate, so `reserved_byte_size`, `original_filename`, declared media type, trusted hash/metadata, and the single private object all describe the canonical FLAC for an optimized WAV. The selected WAV is never an asset or Storage object. Existing assets, unoptimized WAVs, FLACs, and MP3s retain their prior byte and filename semantics. The conversion version and transient peak payload stay browser-owned until OPT-04 adds a separately authorized derivative relation; they are not hidden in the source asset row or manifest.
+OPT-03 changes no source schema or user quota authority. Reservation occurs only after browser preprocessing chooses the final candidate, so `reserved_byte_size`, `original_filename`, declared media type, trusted hash/metadata, and the single private object all describe the canonical FLAC for an optimized WAV. The selected WAV is never an asset or Storage object. Existing assets, unoptimized WAVs, FLACs, and MP3s retain their prior byte and filename semantics.
+
+### `waveform_peak_derivatives`
+
+OPT-04 adds one optional presentation derivative per source with `id`, exact `source_asset_id`, `owner_id`, owner-scoped idempotency `request_id`, lifecycle status, exact private bucket/path/content type, expected/actual byte size, SHA-256, format/algorithm version, channels, duration, sample rate, fixed 2,048-bin resolution, and reservation/ready/failure timestamps. The source foreign key cascades only when the canonical source row is eventually removed; deleting or failing a derivative cannot delete or change the source. Application roles receive no direct writes. Owner coordination uses narrow security-definer commands, and reads require ownership or `can_read_source_asset(source_asset_id)`.
+
+`JSPK` v1 stores one resolution of signed 16-bit min/max pairs for each channel. This is the existing OPT-03 summary and is intentionally a fast initial rendering hint, not full zoom authority. The route returns it only when its source ID and metadata exactly match the trusted ready source. The adapter replaces it with locally decoded waveform detail when canonical audio arrives. Existing sources remain valid without a derivative and are not automatically backfilled.
+
+`global_storage_usage` now records `derived_bytes` and `reserved_derived_bytes`; both participate in the 850 MiB global soft stop and 750 MiB warning. Peak bytes do not enter `user_storage_usage.source_bytes` or project source-byte accounting. Abandoned reservations expire after 24 hours and release reserved capacity; Storage object removal continues through the Storage API rather than direct `storage.objects` deletion.
 
 Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` stores ordered self/external display snapshots. Trusted verification creates only a provisional uploader suggestion; the active owner must atomically confirm 1–12 credits with at least one creator before the source can enter workspace, contribution-version, or revision tracks. Self names are derived from the verified profile in SQL, external names remain unlinked plain text, duplicate identity/role pairs are denied, and confirmed/referenced credits are immutable. Confirmation request ID plus normalized SHA-256 makes exact retries idempotent and conflicting reuse fail. `owner_id` is operational ownership, not authorship.
 

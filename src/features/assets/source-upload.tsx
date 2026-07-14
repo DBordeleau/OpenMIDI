@@ -8,7 +8,11 @@ import { getSupabasePublicEnv } from "@/lib/env/public";
 import { cancelUpload, completeUpload, reserveUpload } from "./actions";
 import { AssetVerificationStatus } from "./asset-verification-status";
 import { preflightSourceFile } from "./schema";
-import type { GeneratedPeaks } from "./browser-codec/contract";
+import type {
+  GeneratedPeaks,
+  LosslessAudioMetadata,
+} from "./browser-codec/contract";
+import { persistGeneratedWaveformPeaks } from "./waveform-peaks/persistence.client";
 
 type PendingWav = {
   file: File;
@@ -31,7 +35,10 @@ export function SourceUpload() {
   const activeUpload = useRef<Upload | null>(null);
   const activeAssetId = useRef<string | null>(null);
   const conversionAbort = useRef<AbortController | null>(null);
-  const generatedPeaks = useRef<GeneratedPeaks | null>(null);
+  const generatedPeaks = useRef<{
+    peaks: GeneratedPeaks;
+    metadata: LosslessAudioMetadata;
+  } | null>(null);
 
   useEffect(
     () => () => {
@@ -92,7 +99,10 @@ export function SourceUpload() {
         signal: abort.signal,
         onProgress: setConversionProgress,
       });
-      generatedPeaks.current = result.peaks;
+      generatedPeaks.current = {
+        peaks: result.peaks,
+        metadata: result.metadata,
+      };
       setPendingWav(null);
       setMessage(
         `Lossless FLAC ready (${formatBytes(original.size)} to ${formatBytes(result.file.size)}). Uploading the canonical FLAC; the original WAV bytes will not be stored.`,
@@ -178,9 +188,23 @@ export function SourceUpload() {
             setMessage(result.error);
             return;
           }
+          let waveformPersisted = false;
+          if (generatedPeaks.current) {
+            try {
+              await persistGeneratedWaveformPeaks({
+                sourceAssetId: reserved.instruction!.assetId,
+                ...generatedPeaks.current,
+              });
+              waveformPersisted = true;
+            } catch {
+              waveformPersisted = false;
+            }
+          }
           setMessage(
             generatedPeaks.current
-              ? "Upload complete. Lossless source verification is queued; its waveform is prepared for the persisted-peaks step."
+              ? waveformPersisted
+                ? "Upload complete. Lossless source verification is queued, and its waveform is ready."
+                : "Upload complete. Lossless source verification is queued. The waveform will appear after audio loads."
               : "Upload complete.",
           );
           generatedPeaks.current = null;

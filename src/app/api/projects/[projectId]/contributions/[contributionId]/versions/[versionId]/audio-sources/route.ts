@@ -3,6 +3,7 @@ import { z } from "zod";
 import { audioSourcesRequestSchema } from "@/features/studio/source-contract";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getContributionVersionPlayback } from "@/server/repositories/contributions";
+import { signAudioSourceDescriptors } from "@/server/services/audio-source-delivery";
 
 const paramsSchema = z.object({
   projectId: z.uuid(),
@@ -49,7 +50,9 @@ export async function POST(
     return failure(409, "asset_set_mismatch");
   const { data: assets, error } = await db
     .from("assets")
-    .select("id,bucket,object_path")
+    .select(
+      "id,bucket,object_path,media_type,duration_ms,sample_rate_hz,channels",
+    )
     .in("id", requested)
     .eq("kind", "source_audio")
     .eq("status", "ready")
@@ -63,27 +66,7 @@ export async function POST(
   const ordered = expected.map((id) =>
     assets.find((asset) => asset.id === id)!,
   );
-  const { data: signed, error: signError } = await db.storage
-    .from("source-audio")
-    .createSignedUrls(
-      ordered.map((asset) => asset.object_path),
-      600,
-    );
-  if (
-    signError ||
-    signed.length !== ordered.length ||
-    signed.some((item) => item.error || !item.signedUrl)
-  )
-    return failure(503, "audio_access_unavailable");
-  const expiresAt = new Date(Date.now() + 600_000).toISOString();
-  return NextResponse.json(
-    {
-      sources: ordered.map((asset, index) => ({
-        assetId: asset.id,
-        signedUrl: signed[index]!.signedUrl,
-        expiresAt,
-      })),
-    },
-    { headers },
-  );
+  const delivery = await signAudioSourceDescriptors(db, ordered);
+  if (delivery.error) return failure(503, "audio_access_unavailable");
+  return NextResponse.json({ sources: delivery.sources }, { headers });
 }

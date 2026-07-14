@@ -1,4 +1,4 @@
-import type { ClipTrack } from "@waveform-playlist/core";
+import type { ClipTrack, WaveformDataObject } from "@waveform-playlist/core";
 import type { WorkspaceManifestV1, WorkspaceTrackV1 } from "../manifest/schema";
 
 export const millisecondsToSamples = (
@@ -13,10 +13,15 @@ export const gainToDecibels = (gain: number) => 20 * Math.log10(gain);
 export function manifestTrackToClipTrack(
   track: WorkspaceTrackV1,
   audioBuffer?: AudioBuffer,
+  waveformData?: WaveformDataObject,
 ): ClipTrack {
-  const sampleRate = audioBuffer?.sampleRate ?? 48_000;
+  const sampleRate =
+    audioBuffer?.sampleRate ?? waveformData?.sample_rate ?? 48_000;
   const sourceDurationSamples =
     audioBuffer?.length ??
+    (waveformData
+      ? Math.round(waveformData.duration * waveformData.sample_rate)
+      : undefined) ??
     millisecondsToSamples(track.trimStartMs + track.durationMs, sampleRate);
   return {
     id: track.trackId,
@@ -29,6 +34,7 @@ export function manifestTrackToClipTrack(
       {
         id: `${track.trackId}:${track.assetId}`,
         ...(audioBuffer ? { audioBuffer } : {}),
+        ...(!audioBuffer && waveformData ? { waveformData } : {}),
         startSample: millisecondsToSamples(track.positionMs, sampleRate),
         durationSamples: millisecondsToSamples(track.durationMs, sampleRate),
         offsetSamples: millisecondsToSamples(track.trimStartMs, sampleRate),

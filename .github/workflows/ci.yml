@@ -69,8 +69,28 @@ jobs:
         run: npm run supabase:start
       - name: Reset local database
         run: npm run db:reset
-      - name: Run database checks
-        run: npm run db:check
+      - name: Run database lint and tests
+        run: npm run db:lint && npm run db:test
+      - name: Check generated database types
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if output="$(npm run db:types:check 2>&1)"; then
+              printf '%s\n' "$output"
+              exit 0
+            else
+              status=$?
+              printf '%s\n' "$output"
+            fi
+
+            if ! grep -Eiq 'toomanyrequests|Rate exceeded' <<<"$output" || [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            delay=$((attempt * 15))
+            echo "Transient container registry rate limit; retrying database type check in ${delay}s."
+            sleep "$delay"
+          done
       - name: Stop local Supabase
         if: always()
         run: npm run supabase:stop

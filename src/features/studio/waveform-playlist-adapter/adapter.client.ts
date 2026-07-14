@@ -19,6 +19,7 @@ import {
 } from "../studio-adapter.types";
 import { editorTracksToManifest, manifestTrackToClipTrack } from "./mapping";
 import { loadSources } from "./source-loader.client";
+import { loadPersistedPeaks } from "./persisted-peaks.client";
 import { studioSourceBufferRegistry } from "./source-buffer-registry.client";
 
 type RuntimeBridge = {
@@ -34,6 +35,7 @@ export type StudioAdapterSnapshot = {
   manifest: WorkspaceManifestV1 | null;
   trackLoadStates: StudioTrackLoadState[];
   playbackReady: boolean;
+  waveformsReady: boolean;
 };
 
 export class WaveformPlaylistStudioAdapter implements StudioAdapter {
@@ -53,6 +55,7 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
     manifest: this.manifest,
     trackLoadStates: [],
     playbackReady: false,
+    waveformsReady: false,
   };
 
   subscribe = (listener: () => void) => {
@@ -79,6 +82,7 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
           assetId: track.assetId,
           status: "queued" as const,
           message: null,
+          waveformStatus: "placeholder" as const,
         },
       ]),
     );
@@ -117,7 +121,13 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
     this.assertBrowserAudio();
     this.decodeContext ??= new AudioContext();
     const generation = ++this.loadGeneration;
-    await loadSources({
+    const peakLoad = loadPersistedPeaks({
+      sources,
+      signal,
+      onWaveform: (assetId, waveform) =>
+        this.attachWaveform(generation, signal, assetId, waveform),
+    });
+    const sourceLoad = loadSources({
       actorId,
       assetIds: this.manifest!.tracks.map((track) => track.assetId),
       sources,
@@ -129,6 +139,7 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
       onBuffer: (assetId, buffer) =>
         this.attachBuffer(generation, signal, assetId, buffer),
     });
+    await Promise.all([peakLoad, sourceLoad]);
     if (signal.aborted || generation !== this.loadGeneration) return;
     this.finishLoadAttempt();
   }
@@ -235,6 +246,7 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
         assetId: track.assetId,
         status: "ready",
         message: null,
+        waveformStatus: "decoded",
       });
       this.emit();
       return { trackId: track.trackId, assetId: track.assetId };
@@ -390,6 +402,41 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
         ? manifestTrackToClipTrack(track, buffer)
         : existing!;
     });
+    const hydratedFromPersistedPeaks = this.manifest.tracks.some(
+      (track) =>
+        track.assetId === assetId &&
+        this.trackLoadStates.get(track.trackId)?.waveformStatus === "persisted",
+    );
+    this.setWaveformStatus(
+      assetId,
+      hydratedFromPersistedPeaks ? "persisted" : "decoded",
+      false,
+    );
+    this.emit();
+  }
+
+  private attachWaveform(
+    generation: number,
+    signal: AbortSignal,
+    assetId: string,
+    waveform: import("@waveform-playlist/core").WaveformDataObject,
+  ) {
+    if (signal.aborted || generation !== this.loadGeneration || !this.manifest)
+      return;
+    const shouldAttach = this.manifest.tracks.some(
+      (track) =>
+        track.assetId === assetId &&
+        this.trackLoadStates.get(track.trackId)?.waveformStatus ===
+          "placeholder",
+    );
+    if (!shouldAttach) return;
+    this.tracks = this.manifest.tracks.map((track) => {
+      const existing = this.tracks.find(({ id }) => id === track.trackId);
+      return track.assetId === assetId
+        ? manifestTrackToClipTrack(track, undefined, waveform)
+        : existing!;
+    });
+    this.setWaveformStatus(assetId, "persisted", false);
     this.emit();
   }
 
@@ -405,9 +452,26 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
         assetId,
         status,
         message,
+        waveformStatus:
+          this.trackLoadStates.get(track.trackId)?.waveformStatus ??
+          "placeholder",
       });
     }
     this.emit();
+  }
+
+  private setWaveformStatus(
+    assetId: string,
+    waveformStatus: StudioTrackLoadState["waveformStatus"],
+    emit = true,
+  ) {
+    for (const track of this.manifest?.tracks ?? []) {
+      if (track.assetId !== assetId) continue;
+      const current = this.trackLoadStates.get(track.trackId);
+      if (current)
+        this.trackLoadStates.set(track.trackId, { ...current, waveformStatus });
+    }
+    if (emit) this.emit();
   }
 
   private finishLoadAttempt() {
@@ -484,6 +548,11 @@ export class WaveformPlaylistStudioAdapter implements StudioAdapter {
       manifest: this.manifest,
       trackLoadStates: [...this.trackLoadStates.values()],
       playbackReady: this.computePlaybackReady(),
+      waveformsReady:
+        this.trackLoadStates.size > 0 &&
+        [...this.trackLoadStates.values()].every(
+          (track) => track.waveformStatus !== "placeholder",
+        ),
     };
     for (const listener of this.listeners) listener();
   }

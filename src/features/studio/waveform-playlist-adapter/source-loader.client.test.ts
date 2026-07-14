@@ -13,6 +13,11 @@ const signed = (suffix = "initial") =>
     assetId,
     signedUrl: `https://example.test/${suffix}/${assetId}`,
     expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    mediaType: "audio/wav",
+    durationMs: 2_000,
+    sampleRateHz: 44_100,
+    channels: 1,
+    peaks: null,
   }));
 
 describe("loadSources", () => {

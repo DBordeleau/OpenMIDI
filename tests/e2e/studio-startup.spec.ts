@@ -1,9 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import {
+  serializeWaveformPeaks,
+  WAVEFORM_PEAKS_BIN_COUNT,
+} from "../../src/features/assets/waveform-peaks/contract";
 
 test.describe("studio startup smoke", () => {
   test.skip(
@@ -15,11 +19,55 @@ test.describe("studio startup smoke", () => {
     page,
   }) => {
     test.setTimeout(60_000);
-    const fixture = await setupStudioFixture();
+    const { peakBase64, sourceBase64, ...fixture } = await setupStudioFixture();
 
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
     await expect(page).toHaveURL(/\/settings\/profile$/);
+
+    // Local Storage on Windows/Docker can return signed-object headers while
+    // stalling the response body. The preflight below verifies both real
+    // objects; substitute those exact bytes at fetch so this journey retains
+    // real descriptor parsing, peak hydration, source decode, and playback.
+    await page.addInitScript(
+      ({ assetId, peak, source }) => {
+        const originalFetch = window.fetch.bind(window);
+        const decode = (value: string) =>
+          Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+
+        window.fetch = async (input, init) => {
+          const rawUrl =
+            typeof input === "string"
+              ? input
+              : input instanceof URL
+                ? input.href
+                : input.url;
+          const pathname = new URL(rawUrl, window.location.origin).pathname;
+          if (
+            pathname.includes("/object/sign/derived-assets/") &&
+            pathname.includes(`/${assetId}/`)
+          )
+            return new Response(decode(peak), {
+              status: 200,
+              headers: {
+                "content-type": "application/vnd.jam-session.waveform-peaks",
+              },
+            });
+          if (
+            pathname.includes("/object/sign/source-audio/") &&
+            pathname.endsWith(`/${assetId}/source`)
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 1_500));
+            return new Response(decode(source), {
+              status: 200,
+              headers: { "content-type": "audio/wav" },
+            });
+          }
+          return originalFetch(input, init);
+        };
+      },
+      { assetId: fixture.assetId, peak: peakBase64, source: sourceBase64 },
+    );
 
     const networkEvents: NetworkEvent[] = [];
     page.on("request", (request) => {
@@ -44,15 +92,13 @@ test.describe("studio startup smoke", () => {
     await expect(page.getByLabel("Fixture stem label")).toBeVisible({
       timeout: 15_000,
     });
-    const loadState = await waitForTrackLoad(page, 20_000);
-    const diagnostic = JSON.stringify({ fixture, networkEvents });
-    if (loadState === "failed")
-      throw new Error(`Fixture audio failed to load: ${diagnostic}`);
-    if (loadState === "timeout")
-      throw new Error(`Fixture audio remained loading: ${diagnostic}`);
+    await expect(
+      page.getByText("Waveform ready from persisted peaks."),
+    ).toBeAttached({ timeout: 10_000 });
     await expect(
       page.getByRole("button", { name: "Play playback" }),
-    ).toBeEnabled();
+      `Fixture audio did not become playable: ${JSON.stringify({ fixture, networkEvents })}`,
+    ).toBeEnabled({ timeout: 15_000 });
 
     const trackLabel = page.getByLabel("Fixture stem label");
     await trackLabel.fill("Saved browser stem");
@@ -91,11 +137,28 @@ async function setupStudioFixture() {
   const projectId = randomUUID();
   const revisionId = randomUUID();
   const assetId = randomUUID();
+  const derivativeId = randomUUID();
   const trackId = randomUUID();
-  const bytes = await readFile(
-    path.join(process.cwd(), "public", "fixtures", "audio", "stem-a.wav"),
+  const sourcePath = path.join(
+    process.cwd(),
+    "public",
+    "fixtures",
+    "audio",
+    "stem-a.wav",
   );
+  const bytes = await readFile(sourcePath);
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const peakValues = new Float32Array(WAVEFORM_PEAKS_BIN_COUNT * 2);
+  const peakBytes = serializeWaveformPeaks({
+    sourceAssetId: assetId,
+    channels: 1,
+    durationMs: 2_000,
+    sampleRateHz: 44_100,
+    binCount: WAVEFORM_PEAKS_BIN_COUNT,
+    values: peakValues,
+  });
+  const peakSha256 = createHash("sha256").update(peakBytes).digest("hex");
+  const peakObjectPath = `${actor.id}/${assetId}/${derivativeId}/peaks.v1.bin`;
   const manifest = JSON.stringify({
     manifestVersion: 1,
     engine: "waveform-playlist",
@@ -132,6 +195,9 @@ async function setupStudioFixture() {
     insert into public.project_asset_references(project_id,asset_id,first_revision_id,added_by) values('${projectId}','${assetId}','${revisionId}','${actor.id}');
     insert into public.project_storage_usage(project_id,source_bytes,unique_source_count) values('${projectId}',${bytes.byteLength},1);
     update public.projects set status='active',current_revision_id='${revisionId}',published_at=now(),lock_version=2 where id='${projectId}';
+    insert into public.waveform_peak_derivatives(id,source_asset_id,owner_id,request_id,status,object_path,expected_byte_size,byte_size,sha256,format_version,algorithm_version,channels,duration_ms,sample_rate_hz,bin_count,expires_at,ready_at)
+    values('${derivativeId}','${assetId}','${actor.id}','${randomUUID()}','ready','${peakObjectPath}',${peakBytes.byteLength},${peakBytes.byteLength},'${peakSha256}',1,'pcm-minmax-v1',1,2000,44100,2048,now()+interval '24 hours',now());
+    update public.global_storage_usage set derived_bytes=derived_bytes+${peakBytes.byteLength} where singleton;
     commit;`;
   execFileSync(
     "docker",
@@ -159,6 +225,13 @@ async function setupStudioFixture() {
       upsert: true,
     });
   if (uploadError) throw uploadError;
+  const { error: peakUploadError } = await admin.storage
+    .from("derived-assets")
+    .upload(peakObjectPath, peakBytes, {
+      contentType: "application/vnd.jam-session.waveform-peaks",
+      upsert: true,
+    });
+  if (peakUploadError) throw peakUploadError;
   const { data: stored, error: downloadError } = await admin.storage
     .from("source-audio")
     .download(objectPath);
@@ -166,11 +239,28 @@ async function setupStudioFixture() {
     throw new Error(
       `Studio fixture Storage preflight failed: ${JSON.stringify({ assetId, expectedBytes: bytes.byteLength, storedBytes: stored?.size, error: downloadError?.message })}`,
     );
+  const { data: storedPeak, error: peakDownloadError } = await admin.storage
+    .from("derived-assets")
+    .download(peakObjectPath);
+  const storedPeakBytes = storedPeak
+    ? Buffer.from(await storedPeak.arrayBuffer())
+    : null;
+  if (
+    peakDownloadError ||
+    !storedPeakBytes ||
+    storedPeakBytes.byteLength !== peakBytes.byteLength ||
+    createHash("sha256").update(storedPeakBytes).digest("hex") !== peakSha256
+  )
+    throw new Error(
+      `Studio peak fixture Storage preflight failed: ${JSON.stringify({ assetId, expectedBytes: peakBytes.byteLength, storedBytes: storedPeakBytes?.byteLength, error: peakDownloadError?.message })}`,
+    );
   return {
     projectId,
     assetId,
     databaseStatus: "ready",
     storedBytes: stored.size,
+    peakBase64: Buffer.from(peakBytes).toString("base64"),
+    sourceBase64: bytes.toString("base64"),
   };
 }
 
@@ -195,19 +285,4 @@ function recordNetworkEvent(
   )
     return;
   events.push({ event, path: pathname, ...details });
-}
-
-async function waitForTrackLoad(
-  page: Page,
-  timeoutMs: number,
-): Promise<"ready" | "failed" | "timeout"> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (await page.getByText("ready", { exact: true }).isVisible())
-      return "ready";
-    if (await page.getByText("failed", { exact: true }).isVisible())
-      return "failed";
-    await page.waitForTimeout(250);
-  }
-  return "timeout";
 }

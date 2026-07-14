@@ -31,4 +31,19 @@ export type SignedAudioSource = {
   assetId: string;
   signedUrl: string;
   expiresAt: string;
+  mediaType: string | null;
+  durationMs: number;
+  sampleRateHz: number;
+  channels: number;
+  peaks: {
+    signedUrl: string;
+    expiresAt: string;
+    sha256: string;
+    formatVersion: number;
+    algorithmVersion: string;
+    channels: number;
+    durationMs: number;
+    sampleRateHz: number;
+    binCount: number;
+  } | null;
 };

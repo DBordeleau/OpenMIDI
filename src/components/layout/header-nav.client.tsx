@@ -65,7 +65,7 @@ export function HeaderNav() {
     <>
       <nav
         aria-label="Sections"
-        className="order-3 flex w-full items-center gap-1 overflow-x-auto text-sm sm:order-2 sm:w-auto"
+        className="order-3 flex w-full min-w-0 items-center gap-1 overflow-x-auto text-sm sm:order-2 sm:w-auto"
       >
         {sectionLinks.map((link) => (
           <Link
@@ -79,7 +79,7 @@ export function HeaderNav() {
       </nav>
       <Link
         href="/sign-in"
-        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-11 shrink-0 items-center rounded-full border px-5 text-sm font-semibold transition-colors sm:order-3"
+        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-semibold transition-colors sm:order-3 sm:px-5"
       >
         Sign in
       </Link>
