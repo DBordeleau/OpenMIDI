@@ -65,7 +65,7 @@ test.describe("anonymous public discovery", () => {
     "requires explicit local discovery fixture authorization",
   );
 
-  test("filters and opens a safe metadata-only public project", async ({
+  test("filters and opens a public project with an on-demand preview", async ({
     page,
   }) => {
     seedDiscoveryFixture();
@@ -93,13 +93,16 @@ test.describe("anonymous public discovery", () => {
     await expect(
       page.getByRole("link", { name: "Midnight Discovery Signal" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Play Midnight Discovery Signal" }),
+    ).toBeVisible();
     await page.reload();
     await page.getByRole("link", { name: "Midnight Discovery Signal" }).click();
     await expect(
       page.getByRole("heading", { name: "Midnight Discovery Signal" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Audio preview is not available yet", { exact: false }),
+      page.getByRole("button", { name: "Play Midnight Discovery Signal" }),
     ).toBeVisible();
     await expect(
       page.getByText("Analog pulse", { exact: false }),

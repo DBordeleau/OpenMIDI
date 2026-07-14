@@ -4,6 +4,7 @@ import type {
   PublicProject,
   PublicProjectLineage,
 } from "@/features/discovery/types";
+import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
 
 export function PublicProjectPage({
   project,
@@ -80,10 +81,12 @@ export function PublicProjectPage({
               {project.tracks.length === 1 ? "track" : "tracks"} ·{" "}
               {(project.durationMs / 1000).toFixed(1)} seconds
             </p>
-            <p className="rounded-control border-subtle bg-canvas mt-5 border p-4">
-              Audio preview is not available yet. Public pages expose project
-              metadata and credits, not source-audio URLs.
-            </p>
+            <QuickPreviewPlayer
+              projectId={project.projectId}
+              revisionId={project.currentRevisionId}
+              title={project.title}
+              durationMs={project.durationMs}
+            />
             <ol className="mt-5 space-y-3">
               {project.tracks.map((track) => (
                 <li

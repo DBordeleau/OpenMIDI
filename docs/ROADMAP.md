@@ -28,8 +28,9 @@ The current MVP supports:
 - immutable publisher/contributor/track credit snapshots;
 - copy-on-write forks with exact lineage and no source-byte duplication;
 - owner-controlled public projects, bounded Explore search/filtering, and privacy-safe public project pages;
-- independently paginated public profile history, sanitized avatars, bounded private indexes, and an authenticated dashboard; and
-- responsive shared navigation following the landing-page brand system.
+- independently paginated public profile history, sanitized avatars, bounded private indexes, and an authenticated dashboard;
+- responsive shared navigation following the landing-page brand system; and
+- branded latest-revision previews on Explore and project pages, one-action studio entry, and owner soft deletion with a 30-day recovery window.
 
 The next slice is **PR 18 — Moderation, retention, quotas, and storage operations**. It completes Phase E by adding manual community-safety operations and reference-safe cleanup. PRs 19–20 are final hardening and release gates, not buckets for known feature debt.
 

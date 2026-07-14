@@ -8,7 +8,9 @@ import { CreditList } from "@/features/credits/credit-list";
 import { aggregateCredits } from "@/features/credits/types";
 import { PublicProjectPage } from "@/features/discovery/public-project-page";
 import { projectIdSchema } from "@/features/projects/schema";
+import { DeleteProjectForm } from "@/features/projects/delete-project-form";
 import { ProjectVisibilityForm } from "@/features/projects/project-visibility-form";
+import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
 import { getProjectLineage } from "@/server/repositories/forks";
 import { getProjectForViewer } from "@/server/repositories/projects";
@@ -285,6 +287,12 @@ export default async function ProjectPage({
               {current.message && (
                 <p className="mt-3 whitespace-pre-wrap">{current.message}</p>
               )}
+              <QuickPreviewPlayer
+                projectId={project.id}
+                revisionId={current.id}
+                title={project.title}
+                durationMs={current.durationMs}
+              />
               <ol className="mt-5 space-y-3">
                 {current.tracks.map((track) => (
                   <li
@@ -311,14 +319,14 @@ export default async function ProjectPage({
                 </div>
               </div>
               <Link
-                className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
+                className="cta-gradient text-accent-contrast mt-6 inline-flex min-h-11 items-center rounded-full px-5 font-semibold transition-transform hover:-translate-y-px"
                 href={`/projects/${project.id}/studio`}
               >
                 Open studio
               </Link>
               {project.license.allowsDerivatives ? (
                 <Link
-                  className="rounded-control border-strong ml-3 inline-flex min-h-11 items-center border px-5 font-semibold"
+                  className="border-strong hover:border-accent ml-3 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
                   href={`/projects/${project.id}/fork?revision=${current.id}`}
                 >
                   Fork this revision
@@ -387,6 +395,13 @@ export default async function ProjectPage({
                 ))}
               </ul>
             </section>
+          )}
+          {project.ownerId === viewer.id && (
+            <DeleteProjectForm
+              projectId={project.id}
+              projectTitle={project.title}
+              lockVersion={project.lockVersion}
+            />
           )}
           {lineage.directForks.length > 0 && (
             <section className="mt-8">

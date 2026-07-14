@@ -1,7 +1,8 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(29);
+select has_function('public','delete_project',array['uuid','uuid','integer'],'delete command exists');
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','40000000-0000-0000-0000-000000000001','authenticated','authenticated','owner@example.test','','{}','{}',now(),now()),
 ('00000000-0000-0000-0000-000000000000','40000000-0000-0000-0000-000000000002','authenticated','authenticated','other@example.test','','{}','{}',now(),now()),
@@ -33,4 +34,26 @@ select throws_ok($$select public.create_project(gen_random_uuid(),'Nope',null,nu
 reset role; set local role anon;
 select throws_ok($$select count(*) from public.projects$$,'42501',null,'anonymous cannot read projects');
 select throws_ok($$select public.create_project(gen_random_uuid(),'Nope',null,null,null,4::smallint,4::smallint,'all-rights-reserved','{}',null,'{}')$$,'42501',null,'anonymous cannot execute create');
+select throws_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000002',1)$$,'42501',null,'anonymous cannot execute delete');
+
+reset role;
+insert into public.projects(id,owner_id,create_request_id,title,license_code)
+values('51000000-0000-4000-8000-000000000001','40000000-0000-0000-0000-000000000001','51000000-0000-4000-8000-000000000003','Delete me','all-rights-reserved');
+insert into public.project_members(project_id,user_id,role,created_by)
+values('51000000-0000-4000-8000-000000000001','40000000-0000-0000-0000-000000000001','owner','40000000-0000-0000-0000-000000000001');
+set local role authenticated;
+set local request.jwt.claim.sub='40000000-0000-0000-0000-000000000002';
+select throws_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000004',1)$$,'PT404','project_delete_not_found','foreign delete is non-disclosing');
+set local request.jwt.claim.sub='40000000-0000-0000-0000-000000000003';
+select throws_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000005',1)$$,'PT403','project_delete_actor_ineligible','incomplete actor cannot delete');
+set local request.jwt.claim.sub='40000000-0000-0000-0000-000000000004';
+select throws_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000006',1)$$,'PT403','project_delete_actor_ineligible','suspended actor cannot delete');
+set local request.jwt.claim.sub='40000000-0000-0000-0000-000000000001';
+select throws_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000007',2)$$,'PT409','project_delete_conflict','stale delete is rejected');
+select lives_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000008',1)$$,'owner deletes project');
+select lives_ok($$select public.delete_project('51000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000008',1)$$,'identical delete retry succeeds');
+reset role;
+select ok((select status='deleted' and visibility='private' and not open_to_contributions and deleted_at is not null from public.projects where id='51000000-0000-4000-8000-000000000001'),'delete immediately hides and timestamps project');
+select is((select lock_version from public.projects where id='51000000-0000-4000-8000-000000000001'),2,'delete increments lock version');
+select is((select count(*) from private.project_deletion_requests where project_id='51000000-0000-4000-8000-000000000001'),1::bigint,'delete retry creates one request record');
 select * from finish(); rollback;

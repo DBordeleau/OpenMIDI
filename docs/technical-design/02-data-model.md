@@ -374,10 +374,14 @@ Avoid permissive direct updates to lifecycle columns. Expose functions such as:
 - `withdraw_contribution(...)`
 - `review_contribution(...)`
 - `fork_project(...)`
+- `get_project_revision_preview(...)`
+- `delete_project(...)`
 
 Each function verifies `auth.uid()`, validates current state, uses row locks where needed and returns the created/updated IDs.
 
 `fork_project(...)` uses an actor-scoped request UUID for idempotency, verifies exact source membership and derivative-license permission under a row lock, creates the target project/revision/owner membership atomically, reuses asset references without inserting `assets`, preserves track authors and immutable credit/attribution snapshots, and creates no workspace until the studio is opened.
+
+`get_project_revision_preview(...)` exposes only the current immutable revision to active members or visitors when the project is present in the public catalog. It returns exact private Storage paths to the server route that creates short-lived signed URLs; it does not make the source bucket public. `delete_project(...)` is an owner-only, optimistic and idempotent soft-delete command that closes contributions, removes public visibility and timestamps the 30-day recovery window without mutating revision history.
 
 ## Deletion and retention
 

@@ -158,6 +158,19 @@ export async function setProjectVisibility(input: {
   });
 }
 
+export async function deleteProject(input: {
+  projectId: string;
+  requestId: string;
+  expectedLockVersion: number;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("delete_project", {
+    p_project_id: input.projectId,
+    p_request_id: input.requestId,
+    p_expected_lock_version: input.expectedLockVersion,
+  });
+}
+
 export async function getProjectForViewer(
   projectId: string,
 ): Promise<ProjectDetail | null> {
@@ -168,6 +181,7 @@ export async function getProjectForViewer(
       "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,project_members(role)",
     )
     .eq("id", projectId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error || !project) return null;
   const [license, genres, tags] = await Promise.all([
