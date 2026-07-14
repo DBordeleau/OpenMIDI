@@ -1,6 +1,6 @@
 # Jam Session Technical Design
 
-Status: Accepted MVP design; implemented through PR 17 with optimization and MIDI-first expansion planned before PR 18
+Status: Accepted MVP design; implemented through PR 17 and OPT-05 with MIDI-first expansion planned before PR 18
 
 Last updated: 2026-07-14
 
@@ -38,9 +38,9 @@ The following vertical slices are implemented and are the baseline for future wo
 - copy-on-write forks with exact lineage and no source-byte duplication; and
 - owner-controlled public visibility, anonymous metadata/credit pages, bounded Explore search/filtering, deterministic recent/trending ordering, and public fork/contribution entry without public source audio.
 - independently paginated public profile history, a bounded authenticated dashboard and private indexes, throttled recent activity, responsive disclosure navigation, and trusted private-original/public-derived profile avatars.
-- lossless browser WAV-to-FLAC optimization plus compact private persisted waveform peaks that render before canonical source decode without changing manifest or source authority.
+- manifest-first progressive audio delivery, bounded actor-scoped reuse, lossless browser WAV-to-FLAC optimization, and compact private persisted waveform peaks that render before canonical source decode without changing manifest or source authority.
 
-Profiles and private-work navigation are implemented through PR 17. Before moderation/retention and final release hardening, the roadmap inserts a $0 audio-delivery optimization pass followed by a MIDI-first expansion. MIDI becomes the active prototype creation path; new source-audio admission is disabled only after MIDI reaches end-to-end parity, while existing audio history remains supported. Historical PR 05 spike evidence is retained; the evidence directory records the production path through PR 17.
+Profiles and private-work navigation are implemented through PR 17, and the five-slice $0 audio-delivery optimization is complete. The controlled studio shell is ready in milliseconds; browser-generated FLAC reduces the synthetic three-stem fixture by 40.24%, while its 17.709-second cold playback remains bounded by 42.7 MB at 20 Mbit/s. The roadmap now proceeds to MIDI-first expansion before moderation/retention and final release hardening. MIDI becomes the active prototype creation path; new source-audio admission is disabled only after MIDI reaches end-to-end parity, while existing audio history remains supported. A stored legacy-audio mix preview remains a separate future delivery decision, not part of MIDI-native preview playback. Historical evidence remains indexed under [`evidence/`](evidence/).
 
 ## Executive recommendation
 

@@ -83,7 +83,9 @@ OPT-02 leaves source bytes, Storage/RLS, signed-URL authorization, manifests, an
 
 OPT-04 leaves source verification, immutable history, manifest v1 and existing assets unchanged. Its fixed 2,048-bin peak object is a disposable initial waveform only; canonical audio decode replaces it for detailed zoom. See [`evidence/opt-04-persisted-waveform-peaks.md`](evidence/opt-04-persisted-waveform-peaks.md).
 
-Exit: the controlled cold studio shell is usable within two seconds; optimized three-stem playback targets 8–12 seconds cold and 2–4 seconds warm without quality loss; legacy audio compatibility evidence is retained for the MIDI transition.
+OPT-05 completes M5.5. The controlled browser-generated FLAC set retains 59.76% of the synthetic WAV bytes, improves five-run median cold playback from 29.267 s to 17.709 s, and keeps median shell readiness at 5 ms; primed same-session reuse remains transfer-free and ready in under 5 ms. Full browser-decoded PCM equality passed for every controlled, stress and boundary sample. The 8–12 s cold target is not met because the controlled FLAC bytes alone require 17.078 s at 20 Mbit/s. No lossy proxy or stored audio mix preview is introduced. The latter remains a separate future legacy-audio delivery decision rather than MIDI-05 scope. See [`evidence/opt-05-audio-delivery-rollout.md`](evidence/opt-05-audio-delivery-rollout.md).
+
+Exit: **Met with a documented cold-playback exception** — the controlled cold studio shell is usable within two seconds, warm playback is immediate after the session prime, lossless/private behavior is unchanged, and the remaining cold delay is quantified as network-bound for the MIDI compatibility handoff.
 
 ### M5.6 — MIDI-first MVP expansion
 

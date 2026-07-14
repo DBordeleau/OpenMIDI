@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-14
 
-Repository checkpoint: PRs 01–17 complete; the audio-optimization and MIDI-first interruption slices precede PR 18
+Repository checkpoint: PRs 01–17 and OPT-01–OPT-05 complete; the MIDI-first interruption precedes PR 18
 
 ## Purpose
 
@@ -15,7 +15,7 @@ Implementation status here refers to the merged repository. It does not prove th
 
 ## Current checkpoint
 
-Jam Session has completed the product foundation, browser workspace, collaboration graph, public discovery, profiles, dashboard, and navigation slices.
+Jam Session has completed the product foundation, browser workspace, collaboration graph, public discovery, profiles, dashboard, navigation, and $0 audio-optimization slices.
 
 The current MVP supports:
 
@@ -33,25 +33,24 @@ The current MVP supports:
 - responsive shared navigation following the landing-page brand system; and
 - branded latest-revision previews on Explore and project pages, one-action studio entry, and owner soft deletion with a 30-day recovery window.
 
-The next work is a deliberate two-part roadmap interruption before PR 18:
+The remaining roadmap interruption before PR 18 is:
 
-1. **`OPT-01`–`OPT-05` — $0 audio-delivery optimization:** measure the current path, render the studio before audio finishes, progressively load stems, add lossless browser WAV-to-FLAC optimization and persisted peaks, and verify realistic cold/warm budgets.
-2. **`MIDI-01`–`MIDI-07` — MIDI-first MVP expansion:** add a versioned MIDI workspace, deterministic bundled synth presets, piano-roll editing and recording, immutable MIDI collaboration/history, then disable admission of new source audio without breaking existing audio history.
+1. **`MIDI-01`–`MIDI-07` — MIDI-first MVP expansion:** add a versioned MIDI workspace, deterministic bundled synth presets, piano-roll editing and recording, immutable MIDI collaboration/history, then disable admission of new source audio without breaking existing audio history.
 
-After both interruptions complete, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks/previews, and MIDI relational history included in its reference and capacity model. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
+After MIDI completes, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
 
 ### Progress at a glance
 
-| Phase | Theme                          | PRs             | Status            | Exit outcome                                                                              |
-| ----- | ------------------------------ | --------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| A     | Backend and product foundation | 01–04           | Complete          | Local/remote Supabase foundation, responsive shell, tested identity/RLS, and onboarding   |
-| B     | Feasibility and core domain    | 05–08           | Complete          | Browser-audio risk retired; private projects, assets, and immutable first publishing work |
-| C     | Browser workspace              | 09–11.5         | Complete          | Users can play, edit, autosave, reopen, export, publish, and recover source verification  |
-| D     | Collaboration graph            | 12–15           | Complete          | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end    |
-| O     | $0 audio optimization          | OPT-01–OPT-05   | In progress (4/5) | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
-| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Pending after O   | MIDI is the active creation path; new audio admission is disabled without history loss    |
-| E     | Discovery and community safety | 16–18           | Paused (2/3)      | Public discovery/profiles are complete; PR 18 resumes after the interruption slices       |
-| F     | MVP hardening and release      | 19–20           | Pending           | Measured hardening and a rehearsed invited-user deployment                                |
+| Phase | Theme                          | PRs             | Status          | Exit outcome                                                                              |
+| ----- | ------------------------------ | --------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| A     | Backend and product foundation | 01–04           | Complete        | Local/remote Supabase foundation, responsive shell, tested identity/RLS, and onboarding   |
+| B     | Feasibility and core domain    | 05–08           | Complete        | Browser-audio risk retired; private projects, assets, and immutable first publishing work |
+| C     | Browser workspace              | 09–11.5         | Complete        | Users can play, edit, autosave, reopen, export, publish, and recover source verification  |
+| D     | Collaboration graph            | 12–15           | Complete        | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end    |
+| O     | $0 audio optimization          | OPT-01–OPT-05   | Complete        | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
+| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Pending after O | MIDI is the active creation path; new audio admission is disabled without history loss    |
+| E     | Discovery and community safety | 16–18           | Paused (2/3)    | Public discovery/profiles are complete; PR 18 resumes after the interruption slices       |
+| F     | MVP hardening and release      | 19–20           | Pending         | Measured hardening and a rehearsed invited-user deployment                                |
 
 ## Delivery principles
 
@@ -205,7 +204,7 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 
 ## Roadmap interruption O — $0 audio optimization
 
-**Status:** In progress — OPT-01 through OPT-04 complete; OPT-05 next
+**Status:** Complete — OPT-01 through OPT-05
 
 **Outcome:** Existing and legacy audio projects remain practical on free infrastructure: the studio becomes usable before complete stem decoding, WAV uploads can be optimized losslessly in capable browsers, and real waveform peaks plus honest readiness states improve perceived startup.
 
@@ -219,7 +218,9 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 
 **Delivered in OPT-04:** Compact source-bound `JSPK` v1 peak derivatives; owner-only direct private upload coordination and server-side byte finalization; exact RLS/Storage authorization inherited from canonical source access; global derived-capacity accounting outside user source quota; signed small peak descriptors; and peaks-first adapter hydration with malformed/missing/stale fallback to placeholders and decoded audio. Existing assets require no backfill, source verification remains authoritative, and manifests remain unchanged. See the [OPT-04 evidence](technical-design/evidence/opt-04-persisted-waveform-peaks.md).
 
-**Acceptance gate:** A controlled cold three-stem project renders its editable shell within two seconds; audio quality and private authorization are unchanged; new losslessly optimized sources target 8–12 seconds to synchronized cold playback and 2–4 seconds warm; no paid worker or service is required.
+**Delivered in OPT-05:** Exact production-pinned browser FLAC fixture generation with source/output metadata and full decoded-PCM equality proof; final five-run WAV/FLAC cold and same-session measurements; 12-stem and near-10-minute capability results; Free-plan capacity/egress monitoring guidance; and the compatibility handoff to MIDI. The controlled FLAC path is 40.24% smaller and improves median cold playback from 29.267 s to 17.709 s while retaining a 5 ms median shell and zero-byte warm reuse. It misses the 8–12 s cold target because 42.7 MB has a 17.078 s transfer floor at 20 Mbit/s. Lossy proxies remain unapproved. A stored legacy-audio mix preview is a separate deferred audio-preview decision, not MIDI-05. See the [OPT-05 evidence](technical-design/evidence/opt-05-audio-delivery-rollout.md).
+
+**Acceptance gate:** Met for the non-negotiable shell, privacy, lossless-quality, warm-reuse and $0 requirements. The optimized cold playback target remains an evidence-backed exception: 17.709 s median for the controlled synthetic FLAC set, bounded by its bytes rather than a shell/decode barrier. Any lossy proxy experiment requires a separate decision.
 
 ## Roadmap interruption M — MIDI-first MVP expansion
 
@@ -246,7 +247,7 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 - a bounded manual administrator queue and explicit hide/restore/suspend/reject operations;
 - actual Storage usage by bucket, a 750 MiB administrator warning, and conservative 850 MiB admission enforcement;
 - dry-run-first cleanup for incomplete uploads (24 hours), abandoned workspaces and recoverable deletion (30 days), and eligible moderation/audit metadata (180 days);
-- centralized reference/hold checks covering audio/MIDI revisions, workspaces, contribution versions, forks, avatars, derived peaks/previews, and processing jobs;
+- centralized reference/hold checks covering audio/MIDI revisions, workspaces, contribution versions, forks, avatars, derived peaks, any separately implemented previews, and processing jobs;
 - separate database-growth reporting for MIDI relational data and Storage reporting for retained legacy audio/derived objects, while explaining that new source admission is disabled;
 - community rules, reporting/deletion/recovery copy, and an administrator runbook; and
 - a manual-first idempotent operator command, with Supabase Cron optional rather than required for launch.

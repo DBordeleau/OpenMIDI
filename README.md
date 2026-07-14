@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians create projects from stems, preserve immutable revision history, propose contributions with durable attribution, and create copy-on-write forks with navigable lineage.
 
-> **Current status:** PRs 01–17 are complete. Global responsive navigation, invite-only identity, private immutable audio/history, synchronized workspaces, contribution review/acceptance, durable attribution, copy-on-write forks, public discovery, paginated profiles, bounded private dashboards/indexes, throttled activity, and trusted sanitized avatars are implemented. PR 18 (moderation, retention, quotas, and storage operations) is next; release hardening follows.
+> **Current status:** PRs 01–17 and the five-slice $0 audio-delivery optimization are complete. The studio now renders saved arrangements before private stems finish, supports progressive readiness and actor-scoped reuse, can convert new WAVs to canonical lossless FLAC in a browser worker, and persists private waveform peaks. The MIDI-first expansion is next; PR 18 resumes after MIDI.
 
 ## MVP scope
 
@@ -196,7 +196,17 @@ Use `npm run test:e2e:identity` for onboarding, upload, verification, and first 
 
 ### Audio-delivery benchmark fixtures
 
-OPT-01 adds deterministic large WAV generation and local browser benchmarks without committing media. OPT-02 extends the delivery harness with `--loader progressive` so shell timing and actor-scoped warm reuse are measured separately from full WAV playback readiness. OPT-03 adds an optional lossless WAV-to-FLAC step that loads only after a WAV is selected and optimization is requested; the dedicated worker reports progress, supports cancellation/fallback, and prepares transient waveform peaks without reserving an asset until the final upload candidate exists. The generated FLAC is the canonical immutable source and download, not a duplicate of the selected WAV. FLAC and MP3 selections pass through unchanged. Generated fixtures, disposable codec packages, and raw results remain under ignored `local/`. The checked-in method and bounded results are in the [OPT-01 baseline](docs/technical-design/evidence/opt-01-audio-delivery-baseline.md), [OPT-02 progressive evidence](docs/technical-design/evidence/opt-02-progressive-studio.md), and [OPT-03 lossless-upload evidence](docs/technical-design/evidence/opt-03-browser-lossless-upload.md). Start with `node scripts/generate-studio-audio-fixtures.mjs --profile controlled`; neither benchmark reads or mutates hosted Supabase.
+OPT-01 adds deterministic large WAV generation and local browser benchmarks without committing media. OPT-02 extends the delivery harness with `--loader progressive` so shell timing and actor-scoped warm reuse are measured separately from full WAV playback readiness. OPT-03 adds an optional lossless WAV-to-FLAC worker with progress, cancellation/fallback and same-PCM transient peak generation; OPT-04 persists those small private peaks. The generated FLAC is the canonical immutable source and download, not a duplicate of the selected WAV. FLAC and MP3 selections pass through unchanged.
+
+OPT-05 adds `scripts/generate-studio-flac-fixtures.mjs`, which uses the exact pinned production encoder/settings and rejects metadata or decoded-PCM drift, plus `--format wav|flac` delivery comparisons. Compression ratios are controlled synthetic-fixture evidence, not promises for recorded music. Generated media and raw results remain under ignored `local/`. See the [OPT-01 baseline](docs/technical-design/evidence/opt-01-audio-delivery-baseline.md), [OPT-02 progressive evidence](docs/technical-design/evidence/opt-02-progressive-studio.md), [OPT-03 lossless-upload evidence](docs/technical-design/evidence/opt-03-browser-lossless-upload.md), [OPT-04 persisted-peaks evidence](docs/technical-design/evidence/opt-04-persisted-waveform-peaks.md), and [OPT-05 rollout evidence](docs/technical-design/evidence/opt-05-audio-delivery-rollout.md). Start with:
+
+```powershell
+node scripts/generate-studio-audio-fixtures.mjs --profile controlled
+node scripts/generate-studio-flac-fixtures.mjs --profile controlled
+node scripts/benchmark-studio-audio.mjs --profile controlled --format flac --loader progressive --phase both --repetitions 5
+```
+
+These commands use loopback only and do not read or mutate hosted Supabase.
 
 ## Repository map
 

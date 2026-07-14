@@ -222,15 +222,15 @@ export default function Home() {
           </Reveal>
           <div className="mt-12 grid gap-5 lg:grid-cols-[1.32fr_0.68fr]">
             <Reveal
-              className="rounded-card border-subtle overflow-hidden border p-2 shadow-[0_34px_90px_-46px_#000]"
+              className="rounded-card border-subtle min-w-0 overflow-hidden border p-2 shadow-[0_34px_90px_-46px_#000]"
               style={{
                 background:
                   "linear-gradient(180deg,var(--color-surface-raised),var(--color-surface-soft))",
               }}
             >
-              <div className="border-subtle flex items-center gap-3 border-b px-[18px] pt-3.5 pb-3">
+              <div className="border-subtle flex flex-col items-start gap-1.5 border-b px-3 pt-3.5 pb-3 sm:flex-row sm:items-center sm:gap-3 sm:px-[18px]">
                 <b className="text-sm font-semibold">Midnight Loop</b>
-                <span className="text-muted ml-auto font-mono text-[10px] tracking-[0.12em] uppercase">
+                <span className="text-muted font-mono text-[10px] leading-relaxed tracking-[0.12em] uppercase sm:ml-auto sm:text-right">
                   <span className="text-accent-2 inline-flex items-center gap-1.5">
                     <span className="bg-accent-2 h-[7px] w-[7px] rounded-full shadow-[0_0_10px_var(--color-accent-2)]" />
                     Live mix
@@ -241,11 +241,11 @@ export default function Home() {
               {tracks.map((t, ti) => (
                 <div
                   key={t.name}
-                  className={`grid grid-cols-[120px_1fr_auto] items-center gap-3.5 px-4 py-3.5 ${
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:gap-3.5 sm:px-4 sm:py-3.5 ${
                     ti > 0 ? "border-subtle border-t" : ""
                   }`}
                 >
-                  <div className="flex flex-col gap-[3px]">
+                  <div className="flex min-w-0 flex-col gap-[3px]">
                     <b className="text-sm font-semibold tracking-[-0.01em]">
                       {t.name}
                     </b>
@@ -257,7 +257,7 @@ export default function Home() {
                       {t.who}
                     </span>
                   </div>
-                  <span className="flex h-[30px] items-center gap-[2px]">
+                  <span className="col-span-2 row-start-2 flex h-[30px] min-w-0 items-center gap-[2px] sm:col-span-1 sm:col-start-2 sm:row-start-1">
                     {trackBars(t.seed).map((height, bi) => (
                       <i
                         key={bi}
@@ -270,7 +270,7 @@ export default function Home() {
                       />
                     ))}
                   </span>
-                  <span className="flex gap-1.5">
+                  <span className="col-start-2 row-start-1 flex gap-1.5 sm:col-start-3">
                     <span
                       className={`grid h-[27px] w-[27px] place-items-center rounded-lg font-mono text-[10px] ${
                         t.mute

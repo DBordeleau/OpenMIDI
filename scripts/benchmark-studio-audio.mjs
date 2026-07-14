@@ -14,6 +14,7 @@ const profileName = argument("--profile", "controlled");
 const repetitions = Number(argument("--repetitions", "5"));
 const phase = argument("--phase", "both");
 const loader = argument("--loader", "current");
+const format = argument("--format", "wav");
 const output = resolve(
   argument(
     "--output",
@@ -43,22 +44,38 @@ if (!["both", "cold", "warm"].includes(phase))
   throw new Error("Phase must be both, cold, or warm.");
 if (!["current", "progressive"].includes(loader))
   throw new Error("Loader must be current or progressive.");
+if (!["wav", "flac"].includes(format))
+  throw new Error("Format must be wav or flac.");
 
 function argument(name, fallback) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : fallback;
 }
 
-const fixtureDirectory = resolve("local", "opt01-audio-fixtures", profileName);
+const fixtureDirectory = resolve(
+  "local",
+  format === "wav" ? "opt01-audio-fixtures" : "opt05-audio-fixtures",
+  profileName,
+);
 const expected = Array.from({ length: profile.stems }, (_, index) =>
-  resolve(fixtureDirectory, `stem-${String(index + 1).padStart(2, "0")}.wav`),
+  resolve(
+    fixtureDirectory,
+    `stem-${String(index + 1).padStart(2, "0")}.${format}`,
+  ),
 );
 if (expected.some((file) => !existsSync(file))) {
+  if (format === "flac") {
+    throw new Error(
+      `Generate the browser FLAC fixtures first: node scripts/generate-studio-flac-fixtures.mjs --profile ${profileName}`,
+    );
+  }
   generateFixtureProfile({ profileName, output: fixtureDirectory, ...profile });
 }
 
 const server = createServer((request, response) => {
-  const match = /^\/audio\/(stem-\d{2}\.wav)$/.exec(request.url ?? "");
+  const match = new RegExp(`^/audio/(stem-\\d{2}\\.${format})$`).exec(
+    request.url ?? "",
+  );
   if (!match) {
     response.writeHead(404).end();
     return;
@@ -73,7 +90,7 @@ const server = createServer((request, response) => {
     "Access-Control-Allow-Origin": "*",
     "Cache-Control": "private, max-age=3600",
     "Content-Length": size,
-    "Content-Type": "audio/wav",
+    "Content-Type": format === "wav" ? "audio/wav" : "audio/flac",
   });
   createReadStream(file).pipe(response);
 });
@@ -141,10 +158,12 @@ const evidence = {
     upstreamBitsPerSecond: 5_000_000,
     latencyMilliseconds: 50,
     loader,
+    sourceFormat: format,
     fetchCacheMode: loader === "current" ? "no-store" : "default",
   },
   profile: {
     name: profileName,
+    format,
     ...profile,
     files: expected.map((file) => ({
       name: basename(file),

@@ -263,7 +263,7 @@ Storage paths must not embed mutable usernames:
 source-audio bucket: {owner_uuid}/{asset_uuid}/source
 workspace-snapshots bucket: {owner_uuid}/workspaces/{workspace_uuid}/snapshots/{asset_uuid}/manifest-v1.json
 derived-assets peak: {owner_uuid}/{source_asset_uuid}/{derivative_uuid}/peaks.v1.bin
-derived-assets preview (planned): {asset_uuid}/preview.webm
+derived-assets audio mix preview (separate future decision): exact path/version not yet approved
 future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
 ```
 
@@ -278,6 +278,8 @@ OPT-04 adds one optional presentation derivative per source with `id`, exact `so
 `JSPK` v1 stores one resolution of signed 16-bit min/max pairs for each channel. This is the existing OPT-03 summary and is intentionally a fast initial rendering hint, not full zoom authority. The route returns it only when its source ID and metadata exactly match the trusted ready source. The adapter replaces it with locally decoded waveform detail when canonical audio arrives. Existing sources remain valid without a derivative and are not automatically backfilled.
 
 `global_storage_usage` now records `derived_bytes` and `reserved_derived_bytes`; both participate in the 850 MiB global soft stop and 750 MiB warning. Peak bytes do not enter `user_storage_usage.source_bytes` or project source-byte accounting. Abandoned reservations expire after 24 hours and release reserved capacity; Storage object removal continues through the Storage API rather than direct `storage.objects` deletion.
+
+This singleton is currently registered-domain accounting, not an actual-object inventory for snapshots, avatars, orphaned bytes or cleanup lag. Operators use the Supabase organization usage dashboard as the provider-level capacity/egress check until PR 18 adds a bounded `storage.objects` reconciliation. The deferred browser-produced legacy-audio mix preview has no approved table, revision foreign key, path or lifecycle; it must arrive as its own future decision and is not covered by MIDI-native preview playback.
 
 Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` stores ordered self/external display snapshots. Trusted verification creates only a provisional uploader suggestion; the active owner must atomically confirm 1–12 credits with at least one creator before the source can enter workspace, contribution-version, or revision tracks. Self names are derived from the verified profile in SQL, external names remain unlinked plain text, duplicate identity/role pairs are denied, and confirmed/referenced credits are immutable. Confirmation request ID plus normalized SHA-256 makes exact retries idempotent and conflicting reuse fail. `owner_id` is operational ownership, not authorship.
 
