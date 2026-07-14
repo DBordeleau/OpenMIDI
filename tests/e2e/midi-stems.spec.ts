@@ -1,19 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 async function prepareMidiActor() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const email = process.env.TEST_AUTH_EMAIL;
-  const password = process.env.TEST_AUTH_PASSWORD;
-  if (
-    !url?.startsWith("http://127.0.0.1:") ||
-    !serviceRoleKey ||
-    !publishableKey ||
-    !email ||
-    !password
-  )
+  if (!url?.startsWith("http://127.0.0.1:") || !serviceRoleKey || !email)
     throw new Error(
       "MIDI stem E2E requires the targeted local Auth/Storage runner.",
     );
@@ -27,26 +20,26 @@ async function prepareMidiActor() {
   if (error) throw error;
   const actor = data.users.find((user) => user.email === email);
   if (!actor) throw new Error("Local E2E actor is missing.");
-  const actorClient = createClient(url, publishableKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { error: signInError } = await actorClient.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (signInError) throw signInError;
-  const { error: profileError } = await actorClient
-    .from("profiles")
-    .update({
-      username: "MidiStemE2E",
-      username_normalized: "midisteme2e",
-      display_name: "MIDI Stem E2E",
-      credit_name: "MIDI Stem E2E",
-      profile_completed_at: new Date().toISOString(),
-      status: "active",
-    })
-    .eq("id", actor.id);
-  if (profileError) throw profileError;
+  if (!/^[0-9a-f-]{36}$/.test(actor.id))
+    throw new Error("Local E2E actor has an invalid identifier.");
+  execFileSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "supabase_db_jam-session",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `update public.profiles set username='MidiStemE2E', username_normalized='midisteme2e', display_name='MIDI Stem E2E', credit_name='MIDI Stem E2E', profile_completed_at=coalesce(profile_completed_at, statement_timestamp()), status='active' where id='${actor.id}'`,
+    ],
+    { encoding: "utf8" },
+  );
 }
 
 test.describe("standalone MIDI stem editor", () => {
@@ -62,6 +55,9 @@ test.describe("standalone MIDI stem editor", () => {
     await prepareMidiActor();
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Edit profile" }),
+    ).toBeVisible();
     await page.goto("/stems");
     await expect(page.getByRole("heading", { name: "My stems" })).toBeVisible();
     await expect(page.getByText("A quiet canvas.")).not.toBeVisible();
@@ -83,7 +79,7 @@ test.describe("standalone MIDI stem editor", () => {
     const pitch = page.getByLabel("MIDI pitch");
     await pitch.fill("50");
     await pitch.press("Enter");
-    await expect(noteList.locator("option").first()).toContainText("D2");
+    await expect(noteList.locator("option").first()).toContainText("D3");
 
     const roll = page.getByTestId("midi-piano-roll");
     await roll.focus();
@@ -106,12 +102,12 @@ test.describe("standalone MIDI stem editor", () => {
     await expect(page.getByText(/5 of 2,048 notes/)).toBeVisible();
     await expect(
       page.getByLabel("Notes in stem").locator("option").first(),
-    ).toContainText("D2 · tick 120");
+    ).toContainText("D3 · tick 120");
 
     await page.getByRole("link", { name: "Back to My stems" }).click();
     await expect(
-      page.getByRole("link", { name: "E2E night chords" }),
+      page.getByRole("link", { name: "E2E night chords" }).first(),
     ).toBeVisible();
-    await expect(page.getByText("Warm Poly · 5 notes")).toBeVisible();
+    await expect(page.getByText("Warm Poly · 5 notes").first()).toBeVisible();
   });
 });

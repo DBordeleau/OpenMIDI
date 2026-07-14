@@ -66,7 +66,6 @@ export async function saveMidiStemDraftAction(input: unknown) {
               : ("unavailable" as const),
     };
   }
-  revalidatePath("/stems");
   return {
     ok: true as const,
     lockVersion: saved.lock_version,
