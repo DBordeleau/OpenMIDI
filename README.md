@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians create projects from stems, preserve immutable revision history, propose contributions with durable attribution, and create copy-on-write forks with navigable lineage.
 
-> **Current status:** PRs 01–17 are complete. Global responsive navigation, invite-only identity, private immutable audio/history, synchronized workspaces, contribution review/acceptance, durable attribution, copy-on-write forks, public discovery, paginated profiles, bounded private dashboards/indexes, throttled activity, and trusted sanitized avatars are implemented. Moderation, retention operations, and release hardening remain planned.
+> **Current status:** PRs 01–17 are complete. Global responsive navigation, invite-only identity, private immutable audio/history, synchronized workspaces, contribution review/acceptance, durable attribution, copy-on-write forks, public discovery, paginated profiles, bounded private dashboards/indexes, throttled activity, and trusted sanitized avatars are implemented. PR 18 (moderation, retention, quotas, and storage operations) is next; release hardening follows.
 
 ## MVP scope
 
@@ -13,7 +13,7 @@ Jam Session is an asynchronous music-collaboration platform inspired by Git and 
 - Fork a project while preserving its source and contributor credits.
 - Discover public projects by musical metadata.
 
-The [product requirements](docs/PRD.md) describe the intended experience. The [technical-design index](docs/technical-design/README.md) explains how it will be built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces.
+The [product requirements](docs/PRD.md) describe the intended experience, the tracked [MVP roadmap](docs/ROADMAP.md) shows what is complete and what comes next, the [technical-design index](docs/technical-design/README.md) explains how it is built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces.
 
 ## Technology
 
@@ -193,7 +193,7 @@ supabase/          Local stack configuration, seed entry point, and pgTAP tests
 scripts/           Cross-platform repository automation
 tests/e2e/         Playwright browser journeys
 public/            Static files served by Next.js
-docs/              Product requirements, brand guidance, technical design, and decisions
+docs/              Product requirements, roadmap, brand guidance, technical design, and decisions
 local/             Untracked personal implementation plans; never committed
 ```
 

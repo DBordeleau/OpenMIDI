@@ -1,10 +1,10 @@
 # Jam Session Technical Design
 
-Status: Accepted MVP design; implemented through PR 16
+Status: Accepted MVP design; implemented through PR 17
 
 Last updated: 2026-07-13
 
-Companions: [`PRD.md`](../PRD.md) for product intent and [`design/brand.md`](../design/brand.md) for user-facing voice and visual design
+Companions: [`PRD.md`](../PRD.md) for product intent, [`ROADMAP.md`](../ROADMAP.md) for delivery status/sequence, and [`design/brand.md`](../design/brand.md) for user-facing voice and visual design
 
 ## Purpose
 

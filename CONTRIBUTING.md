@@ -7,6 +7,7 @@ Thanks for helping build Jam Session. The project is early, so focused changes a
 1. Follow the setup steps in [README.md](README.md).
 2. Read the relevant product and technical context:
    - [Product requirements](docs/PRD.md)
+   - [MVP roadmap and current status](docs/ROADMAP.md)
    - [Technical-design index](docs/technical-design/README.md)
    - [Architecture decisions](docs/technical-design/decisions/README.md)
    - [Brand and visual design](docs/design/brand.md) for any user-facing change
