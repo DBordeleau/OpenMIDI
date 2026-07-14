@@ -7,6 +7,7 @@ export const MAX_MIDI_TRACKS = 16;
 export const MAX_AUDIO_TRACKS = 12;
 export const MAX_CLIPS_PER_TRACK = 32;
 export const MAX_PROJECT_MINUTES = 10;
+export const MAX_MIDI_STEM_DURATION_TICKS = 86_400_000;
 export const COMPOSITE_STUDIO_ENGINE_VERSION =
   "jam-session-composite-2_tone-15.1.22";
 
@@ -27,7 +28,7 @@ export const midiNoteV1Schema = z
     pitch: z.number().int().min(0).max(127),
     velocity: z.number().int().min(1).max(127),
     startTick: tickSchema,
-    durationTicks: positiveTickSchema,
+    durationTicks: positiveTickSchema.max(MAX_MIDI_STEM_DURATION_TICKS),
   })
   .strict();
 
@@ -80,6 +81,7 @@ export const midiStemVersionV1Schema = stemContentSchema.safeExtend({
 });
 
 export type MidiNoteV1 = z.infer<typeof midiNoteV1Schema>;
+export type MidiStemContentV1 = z.infer<typeof stemContentSchema>;
 export type MidiStemDraftV1 = z.infer<typeof midiStemDraftV1Schema>;
 export type MidiStemVersionV1 = z.infer<typeof midiStemVersionV1Schema>;
 
@@ -280,10 +282,14 @@ function compareNotes(left: MidiNoteV1, right: MidiNoteV1) {
   );
 }
 
+export function canonicalizeMidiNotes(notes: readonly MidiNoteV1[]) {
+  return [...notes].sort(compareNotes);
+}
+
 export function canonicalizeStemContent<
   T extends MidiStemDraftV1 | MidiStemVersionV1,
 >(stem: T): T {
-  return { ...stem, notes: [...stem.notes].sort(compareNotes) };
+  return { ...stem, notes: canonicalizeMidiNotes(stem.notes) };
 }
 
 export function parseMidiStemDraft(input: unknown): MidiStemDraftV1 {

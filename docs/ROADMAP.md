@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-14
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01 complete; MIDI-02 is next, followed by MIDI-03–MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-02 complete; MIDI-03 is next, followed by MIDI-04–MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
 
 ## Purpose
 
@@ -32,6 +32,7 @@ The current MVP supports:
 - independently paginated public profile history, sanitized avatars, bounded private indexes, and an authenticated dashboard;
 - responsive shared navigation following the landing-page brand system; and
 - branded latest-revision previews on Explore and project pages, one-action studio entry, and owner soft deletion with a 30-day recovery window.
+- executable MIDI v2/session/scheduler contracts, deterministic sample-free presets, and owner-only conflict-safe standalone MIDI stem drafts with My stems save/reload/playback.
 
 The remaining roadmap programs before PR 18 are:
 
@@ -49,7 +50,7 @@ After both programs complete, **PR 18 — Moderation, retention, quotas, and sto
 | C     | Browser workspace              | 09–11.5         | Complete        | Users can play, edit, autosave, reopen, export, publish, and recover source verification  |
 | D     | Collaboration graph            | 12–15           | Complete        | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end    |
 | O     | $0 audio optimization          | OPT-01–OPT-05   | Complete        | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
-| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Active (1/7)    | MIDI is the active creation path; new audio admission is disabled without history loss    |
+| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Active (2/7)    | MIDI is the active creation path; new audio admission is disabled without history loss    |
 | S     | Studio-forward workspace       | STUDIO-01–04    | Pending after M | Studio becomes the safe project-independent creation and arrangement shell                |
 | E     | Discovery and community safety | 16–18           | Paused (2/3)    | Public discovery/profiles are complete; PR 18 resumes after the interruption slices       |
 | F     | MVP hardening and release      | 19–20           | Pending         | Measured hardening and a rehearsed invited-user deployment                                |
@@ -226,7 +227,9 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap interruption M — MIDI-first MVP expansion
 
-**Status:** Active — MIDI-01 is complete; MIDI-02 is the next implementation slice
+**Status:** Active — MIDI-01–MIDI-02 are complete; MIDI-03 is the next implementation slice
+
+**Delivered in MIDI-02:** Expand-only owner-scoped MIDI stem identities, conflict-safe mutable drafts, immutable-version schema foundations, private preset allowlist validation, exact read-only RLS/Data API grants, idempotent blank/import/derive draft creation, canonical bounded note saves, My stems navigation/library states, and a lazy standalone editor shell with basic accessible note controls and deterministic sample-free playback. Project manifests still cannot reference drafts or “latest” pointers; piano-roll editing begins in MIDI-03 and immutable stem publication remains in MIDI-04.
 
 **Outcome:** MIDI becomes the prototype's active creation and collaboration path, with multiple deterministic synth tracks, accessible piano-roll editing, recording, immutable publication/contributions/forks, previews, and `.mid` export. New source-audio admission is disabled only after that complete path works.
 

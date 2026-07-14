@@ -28,7 +28,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PRs 01–17, OPT-01–OPT-05, and MIDI-01 are implemented. In addition to the complete collaboration/discovery and optimized legacy-audio foundation, executable MIDI stem/manifest/session/scheduler contracts, sample-free preset v1, and the Signal/SMF feasibility decisions are frozen. MIDI-02 is next, followed by MIDI-03–MIDI-07, the four-slice studio-forward program, and then PR 18. Source audio remains private and participant-scoped even for public projects; new source admission remains enabled until the MIDI parity gate. User upload history intentionally excludes internal workspace snapshots. Moderation/retention operations and release hardening are not implemented. npm is the sole package manager and Node.js 24 LTS is required.
+PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-02 are implemented. In addition to the complete collaboration/discovery and optimized legacy-audio foundation, executable MIDI stem/manifest/session/scheduler contracts, sample-free preset v1, owner-only conflict-safe MIDI stem drafts, and the standalone My stems foundation are in place. MIDI-03 is next, followed by MIDI-04–MIDI-07, the four-slice studio-forward program, and then PR 18. Source audio remains private and participant-scoped even for public projects; new source admission remains enabled until the MIDI parity gate. User upload history intentionally excludes internal workspace snapshots. Moderation/retention operations and release hardening are not implemented. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 

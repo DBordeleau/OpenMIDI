@@ -819,6 +819,223 @@ export type Database = {
         }
         Relationships: []
       }
+      midi_stem_drafts: {
+        Row: {
+          content_sha256: string
+          created_at: string
+          default_preset_id: string
+          default_preset_version: number
+          duration_ticks: number
+          entry_mode: string
+          id: string
+          last_save_expected_lock_version: number | null
+          last_save_request_id: string | null
+          lock_version: number
+          name: string
+          note_count: number
+          notes: Json
+          owner_id: string
+          parent_stem_version_id: string | null
+          ppq: number
+          stem_id: string
+          updated_at: string
+        }
+        Insert: {
+          content_sha256: string
+          created_at?: string
+          default_preset_id: string
+          default_preset_version: number
+          duration_ticks: number
+          entry_mode: string
+          id?: string
+          last_save_expected_lock_version?: number | null
+          last_save_request_id?: string | null
+          lock_version?: number
+          name: string
+          note_count?: number
+          notes?: Json
+          owner_id: string
+          parent_stem_version_id?: string | null
+          ppq: number
+          stem_id: string
+          updated_at?: string
+        }
+        Update: {
+          content_sha256?: string
+          created_at?: string
+          default_preset_id?: string
+          default_preset_version?: number
+          duration_ticks?: number
+          entry_mode?: string
+          id?: string
+          last_save_expected_lock_version?: number | null
+          last_save_request_id?: string | null
+          lock_version?: number
+          name?: string
+          note_count?: number
+          notes?: Json
+          owner_id?: string
+          parent_stem_version_id?: string | null
+          ppq?: number
+          stem_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "midi_stem_drafts_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_drafts_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_drafts_parent_stem_version_id_fkey"
+            columns: ["parent_stem_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stem_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_drafts_stem_id_owner_id_fkey"
+            columns: ["stem_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stems"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      midi_stem_versions: {
+        Row: {
+          content_sha256: string
+          created_at: string
+          creator_credit_name: string
+          default_preset_id: string
+          default_preset_version: number
+          duration_ticks: number
+          id: string
+          name: string
+          note_count: number
+          notes: Json
+          owner_id: string
+          parent_stem_version_id: string | null
+          ppq: number
+          stem_id: string
+          version: number
+        }
+        Insert: {
+          content_sha256: string
+          created_at?: string
+          creator_credit_name: string
+          default_preset_id: string
+          default_preset_version: number
+          duration_ticks: number
+          id?: string
+          name: string
+          note_count: number
+          notes: Json
+          owner_id: string
+          parent_stem_version_id?: string | null
+          ppq: number
+          stem_id: string
+          version: number
+        }
+        Update: {
+          content_sha256?: string
+          created_at?: string
+          creator_credit_name?: string
+          default_preset_id?: string
+          default_preset_version?: number
+          duration_ticks?: number
+          id?: string
+          name?: string
+          note_count?: number
+          notes?: Json
+          owner_id?: string
+          parent_stem_version_id?: string | null
+          ppq?: number
+          stem_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "midi_stem_versions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_versions_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_versions_parent_stem_version_id_fkey"
+            columns: ["parent_stem_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stem_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stem_versions_stem_id_owner_id_fkey"
+            columns: ["stem_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stems"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      midi_stems: {
+        Row: {
+          create_request_id: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          create_request_id: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          create_request_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "midi_stems_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_stems_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_avatar_versions: {
         Row: {
           byte_size: number | null
@@ -2240,6 +2457,22 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      create_midi_stem_draft: {
+        Args: {
+          p_default_preset_id?: string
+          p_default_preset_version?: number
+          p_entry_mode?: string
+          p_name: string
+          p_parent_stem_version_id?: string
+          p_request_id: string
+        }
+        Returns: {
+          created_at: string
+          draft_id: string
+          lock_version: number
+          stem_id: string
+        }[]
+      }
       create_project: {
         Args: {
           p_bpm: number
@@ -2665,6 +2898,20 @@ export type Database = {
       revision_manifest_checksum_valid: {
         Args: { p_project_id: string; p_revision_id: string }
         Returns: boolean
+      }
+      save_midi_stem_draft: {
+        Args: {
+          p_content: Json
+          p_draft_id: string
+          p_expected_lock_version: number
+          p_request_id: string
+        }
+        Returns: {
+          content_sha256: string
+          draft_id: string
+          lock_version: number
+          updated_at: string
+        }[]
       }
       save_own_profile: {
         Args: {
