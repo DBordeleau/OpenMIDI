@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Container } from "@/components/layout/container";
+import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
-import { Aurora } from "./_components/aurora.client";
 import { FloatingCta } from "./_components/floating-cta.client";
 import { HeroWaveform } from "./_components/hero-waveform.client";
-import { Reveal } from "./_components/reveal.client";
 
 const ctaPrimary =
   "cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-[22px] py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px";
@@ -94,9 +93,7 @@ function trackBars(seed: number) {
 export default function Home() {
   return (
     <>
-      <Aurora />
-
-      <div className="relative z-10">
+      <div className="relative">
         {/* HERO */}
         <Container className="relative pt-8 pb-20 sm:pt-10 sm:pb-28">
           <section aria-labelledby="page-title">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layout/container";
 import { ButtonLink } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { getViewerDashboard } from "@/server/repositories/dashboard";
 
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
   return (
     <main id="main-content">
       <Container className="py-12 sm:py-16">
-        <div className="flex flex-wrap items-end justify-between gap-6">
+        <Reveal className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-accent-2 font-mono text-xs font-semibold tracking-[0.18em] uppercase">
               Your session
@@ -45,8 +46,10 @@ export default async function DashboardPage() {
             </p>
           </div>
           <ButtonLink href="/projects/new">New project</ButtonLink>
-        </div>
-        <section
+        </Reveal>
+        <Reveal
+          as="section"
+          delay={0.08}
           className="rounded-card border-strong mt-10 border p-6"
           style={{
             background:
@@ -67,8 +70,8 @@ export default async function DashboardPage() {
           >
             Open projects needing review →
           </Link>
-        </section>
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        </Reveal>
+        <Reveal delay={0.12} className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-card border-subtle bg-surface border p-6">
             <div className="flex justify-between gap-4">
               <h2 className="text-2xl font-semibold">Owned projects</h2>
@@ -170,7 +173,7 @@ export default async function DashboardPage() {
               </Empty>
             )}
           </section>
-        </div>
+        </Reveal>
       </Container>
     </main>
   );

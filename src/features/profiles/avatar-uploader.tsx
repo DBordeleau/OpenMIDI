@@ -153,7 +153,7 @@ export function AvatarUploader({
             type="button"
             disabled={pending}
             onClick={() => void remove()}
-            className="border-strong min-h-11 rounded-full border px-5 font-semibold disabled:opacity-60"
+            className="border-strong hover:border-accent hover:text-accent min-h-11 rounded-full border px-5 font-semibold transition-colors disabled:opacity-60"
           >
             Remove
           </button>

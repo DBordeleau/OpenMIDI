@@ -40,6 +40,13 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 - **Why:** It supplies the MVP's multitrack timeline, synchronized playback, mixer and export capabilities through modular React/TypeScript packages under the MIT license.
 - **Consequence:** Jam Session owns serialization, product-specific controls, accessibility integration and manifest migrations. OpenDAW remains a post-MVP alternative and cannot be introduced without superseding this ADR.
 
+### ADR-007: MIDI-first prototype with dormant new-audio admission
+
+- **Decision:** After the $0 audio-optimization pass, add a versioned MIDI project/workspace path using deterministic bundled Tone.js synthesis behind a Jam Session-owned composite client-only adapter. When the complete MIDI creation/collaboration parity gate passes, disable new `source_audio` reservation globally for the prototype without adding billing or entitlements.
+- **Why:** MIDI notes and synth parameters are small enough for the $0 prototype budget and support meaningful browser-native composition, recording, revision, contribution and fork workflows without requiring uploaded media for every new project.
+- **Consequence:** Manifest v1 and all existing audio history remain supported and immutable. Manifest v2 adds discriminated audio/MIDI tracks, bounded clips/notes and immutable preset versions. Existing projects may retain legacy audio and add MIDI, but new source bytes are rejected at reservation authority after transition. Hardware Web MIDI is optional; manual piano-roll/on-screen/keyboard input is required. Sample libraries, payments and arbitrary user synth graphs remain out of scope.
+- **Validation:** The MIDI expansion must prove deterministic save/reload/playback, accessible editing/recording, immutable publish/contribution/accept/fork behavior, bounded public preview and `.mid` export before the audio-admission capability is disabled. Legacy audio playback/download/export/publish regressions and old-client admission-bypass tests must pass.
+
 ## ADR template
 
 ```md

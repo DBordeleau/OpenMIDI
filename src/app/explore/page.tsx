@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/layout/container";
+import { Reveal } from "@/components/ui/reveal.client";
 import {
   discoverySearchParams,
   parseDiscoveryFilters,
 } from "@/features/discovery/schema";
+import { formatMusicalKey } from "@/features/projects/musical-key";
 import { musicalKeys } from "@/features/projects/schema";
 import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
 import {
@@ -62,7 +64,7 @@ export default async function ExplorePage({
   return (
     <main id="main-content">
       <Container className="py-16 sm:py-20">
-        <header className="max-w-3xl">
+        <Reveal as="header" className="max-w-3xl">
           <p className="text-accent-2 font-mono text-xs tracking-[0.2em] uppercase">
             Open sessions
           </p>
@@ -74,7 +76,7 @@ export default async function ExplorePage({
             Browse public works in progress by tempo, key, style, and the parts
             already in the mix.
           </p>
-        </header>
+        </Reveal>
 
         <form
           action="/explore"
@@ -125,7 +127,7 @@ export default async function ExplorePage({
                   <option value="">Any key</option>
                   {musicalKeys.map((key) => (
                     <option key={key} value={key}>
-                      {key.replaceAll("-", " ")}
+                      {formatMusicalKey(key)}
                     </option>
                   ))}
                 </select>
@@ -187,7 +189,11 @@ export default async function ExplorePage({
             message={error}
           />
         ) : result?.projects.length ? (
-          <section className="mt-12" aria-labelledby="results-heading">
+          <Reveal
+            as="section"
+            className="mt-12"
+            aria-labelledby="results-heading"
+          >
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-accent font-mono text-[11px] tracking-[0.18em] uppercase">
@@ -204,9 +210,11 @@ export default async function ExplorePage({
               </p>
             </div>
             <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {result.projects.map((project) => (
-                <article
+              {result.projects.map((project, index) => (
+                <Reveal
+                  as="article"
                   key={project.projectId}
+                  delay={Math.min(index, 8) * 0.05}
                   className="rounded-card border-subtle bg-surface-raised flex flex-col border p-6 shadow-[0_24px_60px_-40px_#000]"
                 >
                   <div className="flex flex-wrap gap-2 font-mono text-[10px] tracking-wider uppercase">
@@ -245,7 +253,11 @@ export default async function ExplorePage({
                     />
                     <Metric
                       label="Key"
-                      value={project.musicalKey?.replaceAll("-", " ") ?? "—"}
+                      value={
+                        project.musicalKey
+                          ? formatMusicalKey(project.musicalKey)
+                          : "—"
+                      }
                     />
                     <Metric
                       label="Tracks"
@@ -265,7 +277,7 @@ export default async function ExplorePage({
                   >
                     Open project
                   </Link>
-                </article>
+                </Reveal>
               ))}
             </div>
             {nextHref && (
@@ -278,7 +290,7 @@ export default async function ExplorePage({
                 </Link>
               </div>
             )}
-          </section>
+          </Reveal>
         ) : (
           <MessageState
             title="No projects in that pocket yet."

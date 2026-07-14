@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Aurora } from "@/components/layout/aurora.client";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
@@ -20,11 +21,14 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col">
-        <SkipLink />
-        <SiteHeader />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+      <body className="min-h-screen">
+        <Aurora />
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <SkipLink />
+          <SiteHeader />
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );

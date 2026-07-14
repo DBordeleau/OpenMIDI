@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
+import { Reveal } from "@/components/ui/reveal.client";
 import { signOut } from "@/features/auth/actions";
 import { requireViewer } from "@/features/auth/guards";
 import { ProfileForm } from "@/features/profiles/profile-form";
@@ -26,7 +27,7 @@ export default async function ProfileSettingsPage({
     <main id="main-content">
       <Container className="py-16">
         <section className="mx-auto max-w-2xl">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <Reveal className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-accent-2 font-mono text-[11px] font-semibold tracking-[0.2em] uppercase">
                 Account settings
@@ -48,7 +49,7 @@ export default async function ProfileSettingsPage({
                 Sign out
               </button>
             </form>
-          </div>
+          </Reveal>
           {saved && (
             <p
               role="status"
@@ -64,14 +65,22 @@ export default async function ProfileSettingsPage({
               </Link>
             </p>
           )}
-          <AvatarUploader
-            profileId={profile.id}
-            name={profile.displayName ?? "Jam Session member"}
-            avatarUrl={getPublicAvatarUrl(profile.avatarPath)}
-            avatarVersionId={profile.avatarVersionId}
-          />
-          <ProfileForm profile={profile} />
-          <section className="border-subtle mt-10 border-t pt-8">
+          <Reveal delay={0.08}>
+            <AvatarUploader
+              profileId={profile.id}
+              name={profile.displayName ?? "Jam Session member"}
+              avatarUrl={getPublicAvatarUrl(profile.avatarPath)}
+              avatarVersionId={profile.avatarVersionId}
+            />
+          </Reveal>
+          <Reveal delay={0.12}>
+            <ProfileForm profile={profile} />
+          </Reveal>
+          <Reveal
+            as="section"
+            delay={0.16}
+            className="border-subtle mt-10 border-t pt-8"
+          >
             <h2 className="text-2xl font-bold">Accepted contributions</h2>
             {acceptedContributions.length ? (
               <ol className="mt-4 space-y-3">
@@ -96,7 +105,7 @@ export default async function ProfileSettingsPage({
             ) : (
               <p className="text-muted mt-3">No accepted contributions yet.</p>
             )}
-          </section>
+          </Reveal>
         </section>
       </Container>
     </main>

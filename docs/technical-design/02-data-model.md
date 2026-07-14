@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 16
+Status: Accepted MVP design; implemented through PR 17 with additive MIDI model planned before PR 18
 
 Database: Supabase Postgres
 
@@ -8,7 +8,7 @@ Database: Supabase Postgres
 
 - Keep mutable collaboration metadata separate from immutable musical history.
 - Normalize relationships needed for authorization, discovery and attribution.
-- Use JSONB only for versioned vendor manifests or flexible event payloads, not primary relationships.
+- Use JSONB only for versioned Jam Session/engine manifests or bounded flexible event payloads, not primary relationships.
 - Store large binary objects in Storage and their identity/authorization metadata in Postgres.
 - Prefer restrictive constraints and explicit state transitions over application convention.
 
@@ -163,8 +163,8 @@ Do not encode genres/instruments as enums; the vocabulary will evolve.
 | `message`                          | `text null`   | max 500 chars                                                                  |
 | `snapshot_asset_id`                | `uuid null`   | reserved for a future engine-native artifact; null for published MVP revisions |
 | `manifest`                         | `jsonb`       | validated canonical versioned subset                                           |
-| `manifest_version`                 | `smallint`    | currently `1`                                                                  |
-| `engine`                           | `text`        | MVP value `waveform-playlist`                                                  |
+| `manifest_version`                 | `smallint`    | implemented `1`; planned additive MIDI/audio union is `2`                      |
+| `engine`                           | `text`        | v1 `waveform-playlist`; v2 Jam Session composite studio identifier             |
 | `engine_version`                   | `text`        | exact adapter/package compatibility version                                    |
 | `manifest_sha256`                  | `text`        | canonical lowercase SHA-256 integrity checksum                                 |
 | `duration_ms`                      | `integer`     | non-negative derived duration                                                  |
@@ -199,7 +199,40 @@ Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks
 
 `project_asset_references` is the append-only reference graph from a project to every unique immutable source asset retained by any surviving revision. `project_storage_usage` is a locked projection of that graph and counts each ready source asset once, regardless of revision reuse. First publish creates the revision, exact ordered track projection, missing asset references, usage projection, bounded activity event, lifecycle timestamp, and current pointer in one transaction.
 
-MVP supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
+Implemented manifest v1 supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
+
+## Planned MIDI-first additive model
+
+The MIDI expansion is expand-only. Do not rewrite manifest v1, published revisions, submitted contribution versions, credit snapshots, or source references.
+
+### Project compatibility and source admission
+
+Add a constrained project compatibility field equivalent to `midi` and `legacy_hybrid`. Backfill every existing project to `legacy_hybrid`; new projects default to `midi` only after the MIDI creation flow is deployed. Compatibility is a workflow invariant, not a subscription tier.
+
+Add one trusted global prototype capability for new source admission. `reserve_source_asset` checks it before asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
+
+### Manifest v2 and track projection
+
+Manifest v2 is a discriminated union:
+
+- `kind = 'audio'` preserves the exact v1 asset, timing, mixer, taxonomy and ordering contract;
+- `kind = 'midi'` has no asset ID and instead references an immutable allowed synth `preset_id`/`preset_version` plus bounded tick-based clips and notes.
+
+Generalize `revision_tracks`, `workspace_tracks`, and `contribution_version_tracks` with a required kind discriminator and kind-aware nullability/check constraints. Existing rows backfill to audio. Audio rows require one valid source asset and prohibit MIDI preset/clip state. MIDI rows prohibit `asset_id`, require one supported preset version, and own bounded clip projections.
+
+Normalize workspace/revision/contribution-version/track/clip parent relationships. A recommended compact representation stores one row per clip with canonical validated note-event JSONB, note count, duration, and checksum. Notes are bounded value events, not hidden authorization or cross-domain relationships. If implementation instead chooses row-per-note storage, record measured database/query evidence before migration.
+
+Workspace clip rows change only through optimistic complete-manifest save commands. Revision and submitted-version clip rows are immutable. Save, publish, submit, accept and fork must prove manifest/projection equivalence. Forks copy MIDI relational state and create no Storage object or source-byte quota usage.
+
+### Timing, presets, and credits
+
+The initial format uses integer ticks at 480 PPQ, one project BPM/time signature, bounded clips/notes, and the existing ten-minute project/export boundary. Persist stable synth preset ID/version only; arbitrary user synth JSON, URLs and samples are prohibited. Preset definitions are code-owned, immutable by version, and mirrored through a narrow database allowlist/validation contract as required by publish commands.
+
+MIDI track credits snapshot the confirmed track creator/composer directly and do not fabricate `asset_credits`. Existing audio credit derivation remains unchanged. Public catalog/profile projections combine safe MIDI/audio credit snapshots but never expose raw note payloads or private actor fields.
+
+### Retention and capacity
+
+MIDI clips/notes are relational history retained with their workspace, revision or contribution version. They are not user uploads and do not enter `source_bytes`. PR 18 must report MIDI database growth separately from actual Storage bytes and must continue reference-safe retention for dormant legacy audio, waveform peaks/previews, snapshots, avatars and jobs. Disabling source admission is never a deletion signal.
 
 ## Assets and storage
 

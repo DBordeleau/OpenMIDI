@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; M0–M3 complete and M4 implemented through PR 14 attribution
+Status: Accepted; implemented through PR 17 with optimization and MIDI-first milestones inserted before M6
 
 ## Delivery strategy
 
@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M5 are implemented. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Conditional manual browser/audio/Preview checks remain recorded as such. M6 hardening remains planned.
+M0–M5 are implemented. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Before M6, complete M5.5 ($0 audio optimization) and M5.6 (MIDI-first expansion and new-audio-admission transition). Conditional manual browser/audio/MIDI/Preview checks remain recorded as such. M6 hardening remains planned.
 
 ### M0 — Decisions and feasibility
 
@@ -68,6 +68,27 @@ Exit: a second account can contribute a stem and the owner can accept it without
 
 Exit: **Met in PR 17** — fork lineage/discovery respect visibility/RLS, and profile/private work is efficiently navigable.
 
+### M5.5 — $0 audio-delivery optimization
+
+- Instrument controlled cold/warm studio timing and bytes.
+- Render the arrangement shell and safe controls before complete source decoding.
+- Progressively attach tracks with honest per-track/playback readiness and bounded in-session reuse.
+- Add capable-browser lossless WAV-to-FLAC preprocessing and versioned private waveform peaks.
+- Preserve private source authority, exact export/download behavior, and a no-paid-worker architecture.
+
+Exit: the controlled cold studio shell is usable within two seconds; optimized three-stem playback targets 8–12 seconds cold and 2–4 seconds warm without quality loss; legacy audio compatibility evidence is retained for the MIDI transition.
+
+### M5.6 — MIDI-first MVP expansion
+
+- Add manifest v2 with discriminated audio/MIDI tracks and bounded tick-based clips/notes.
+- Add deterministic versioned Tone.js synth/drum presets without hosted samples.
+- Add accessible piano-roll/clip editing, on-screen/QWERTY recording, and optional permission-gated hardware Web MIDI.
+- Extend immutable workspace, publish, preview, contribution, acceptance, credit, fork and export paths to MIDI.
+- Default new projects to MIDI after parity and disable new source reservation at database authority without implementing billing.
+- Preserve every existing audio project, reference, private access path, download/export and immutable snapshot.
+
+Exit: a new user completes MIDI creation through collaboration/fork/export without uploaded audio; old clients cannot bypass the audio lock; legacy audio regressions pass; PR 18 can include MIDI relational retention and dormant audio Storage.
+
 ### M6 — Launch hardening
 
 - Enforced MVP storage quotas, abuse rate limits, reporting/manual moderation queue and retention job.
@@ -82,6 +103,7 @@ Exit: **Met in PR 17** — fork lineage/discovery respect visibility/RLS, and pr
 
 - Username normalization and validation.
 - Manifest parser/migrations and Waveform Playlist adapter mapping.
+- Manifest v2 canonicalization/migration, tick-time conversion, synth preset versioning, MIDI editor commands, quantize/undo/redo, and Standard MIDI File mapping.
 - Contribution state machine and permissions.
 - Discovery query parsing and trending formula.
 
@@ -95,6 +117,8 @@ Run against local Supabase, not mocks:
 - Acceptance is atomic and rejects an outdated base.
 - Fork retention survives source soft-deletion.
 - Unreferenced asset collector never removes referenced bytes.
+- MIDI workspace/revision/contribution projections match the canonical manifest, remain RLS-scoped and immutable where required, and never increment source-byte quotas.
+- Disabled source admission rejects before asset or quota mutation while existing source references remain valid.
 
 ### Browser/E2E
 
@@ -103,10 +127,12 @@ Run against local Supabase, not mocks:
 - Expired signed URL refresh during a long studio session.
 - Network interruption and resume during upload/autosave.
 - Web Audio permission/suspension recovery and unsupported-browser messaging.
+- MIDI piano-roll/record/save/reload/publish/preview/export and optional Web MIDI denied/unavailable fallback.
+- Full legacy audio journey after the source-admission lock.
 
 ### Contract fixtures
 
-Commit small, redistributable manifest and audio fixtures for every supported manifest/adapter compatibility version. CI must hydrate the editor model and round-trip the manifest deterministically. A package upgrade is incomplete until fixtures and migration compatibility pass.
+Commit small, redistributable manifest, audio and MIDI fixtures for every supported manifest/adapter compatibility version. CI must hydrate the editor model and round-trip the manifest deterministically. A package upgrade or preset change is incomplete until fixtures and migration compatibility pass.
 
 ## Non-functional targets for MVP
 
@@ -114,6 +140,8 @@ Targets should be validated with product analytics and adjusted deliberately:
 
 - Public pages: Core Web Vitals “good” at the 75th percentile on supported devices.
 - Product shell excludes Waveform Playlist, Tone.js and browser-audio code; the studio bundle loads only on the studio route.
+- MIDI preview/editor code remains lazy; public pages do not load the full studio or audio editor merely to render metadata.
+- A controlled MIDI studio with 8 tracks/2,000 notes becomes playback-ready within two seconds after the explicit audio-context gesture.
 - API/server mutation p95 under 750 ms excluding uploads and media processing.
 - Workspace autosave is debounced, conflict-aware and visibly reports `saved`, `saving`, `offline` or `conflict`.
 - No loss of an acknowledged published revision or submitted contribution.
@@ -129,6 +157,7 @@ Key metrics:
 - OAuth/onboarding completion and username-claim failures.
 - Upload started/completed/failed, bytes and processing latency.
 - Studio boot success, engine version, load time and categorized failure.
+- MIDI project/track creation, schedule construction, recording capability/permission outcome, publish/export success, manifest byte/note counts, and categorized failure without raw note payloads or device identity.
 - Autosave success/conflict/failure.
 - Publish, submit, accept, reject and fork success/failure.
 - Signed URL authorization denial rate.
@@ -185,3 +214,6 @@ A change is done when:
 | Forks/deletes break asset ownership               | Data loss                    | Immutable asset IDs, reference-aware retention, copy-on-write lineage                                               |
 | “Merge” semantics are ambiguous for audio         | User confusion               | Snapshot acceptance; reject stale bases; no automatic merge in MVP                                                  |
 | Browser memory/CPU limits                         | Poor studio UX               | Published limits, lazy loading, measured browser matrix, graceful block                                             |
+| MIDI format or preset drift                       | Historical playback changes  | Immutable manifest/preset versions, canonical fixtures, exact Tone pin, additive migrations                         |
+| Web MIDI unavailable or denied                    | Hardware recording missing   | Complete piano-roll/on-screen/QWERTY path; permission only from explicit gesture; no SysEx                          |
+| Audio lock breaks existing history                | Data loss/product regression | Enforce only new reservation, retain all readers/references, old-client bypass tests, staged enable/rollback        |

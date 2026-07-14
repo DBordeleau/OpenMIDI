@@ -18,8 +18,9 @@ const BLOBS: readonly Blob[] = [
 ];
 
 /**
- * Ambient warm aurora painted behind the landing page. Fixed to the viewport
- * and pinned below content (-z-10) so the glow drifts as the page scrolls.
+ * Ambient warm aurora painted behind the whole app. Rendered once in the root
+ * layout and fixed to the viewport (below content at z-0) so every page shares
+ * the landing's living warmth. Static single frame under reduced motion.
  */
 export function Aurora() {
   const ref = useRef<HTMLCanvasElement>(null);

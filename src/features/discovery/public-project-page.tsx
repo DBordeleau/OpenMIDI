@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/layout/container";
+import { formatMusicalKey } from "@/features/projects/musical-key";
 import type {
   PublicProject,
   PublicProjectLineage,
@@ -40,7 +41,10 @@ export function PublicProjectPage({
             <div>
               <dt className="text-muted">Key / signature</dt>
               <dd>
-                {project.musicalKey ?? "Not set"} ·{" "}
+                {project.musicalKey
+                  ? formatMusicalKey(project.musicalKey)
+                  : "Not set"}{" "}
+                ·{" "}
                 {project.timeSignature
                   ? `${project.timeSignature.numerator}/${project.timeSignature.denominator}`
                   : "Not set"}

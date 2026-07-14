@@ -90,8 +90,9 @@ linear-gradient(120deg, var(--color-accent), var(--color-accent-2))
 
 Codified as the `.cta-gradient` utility in `globals.css`. The ambient page glow
 (coral, gold, berry radial blobs) is rendered on canvas by
-[`Aurora`](<../../src/app/(public)/_components/aurora.client.tsx>); the static body
-gradient in `globals.css` provides the same warmth app-wide.
+[`Aurora`](../../src/components/layout/aurora.client.tsx), mounted **once in the
+root layout** so every page shares it; a fixed body gradient in `globals.css`
+backs it up. See §5 (Ambient background).
 
 ### Cascade layers (do not override utilities)
 
@@ -152,7 +153,7 @@ kickers. This distinction is meaningful — keep it consistent.
 
 Motion should feel like a smooth fade-up into place, never busy or bouncy.
 
-- **Scroll reveals** — the [`Reveal`](<../../src/app/(public)/_components/reveal.client.tsx>)
+- **Scroll reveals** — the [`Reveal`](../../src/components/ui/reveal.client.tsx)
   component (built on `motion/react`) fades content up 22px on enter, `once`, with
   `cubic-bezier(0.2, 0.8, 0.2, 1)` over 0.6s. Stagger sibling groups by ~0.06s via
   the `delay` prop.
@@ -162,6 +163,12 @@ Motion should feel like a smooth fade-up into place, never busy or bouncy.
   describing it.
 - **Micro-interactions** — primary/secondary buttons lift `-translate-y-px` on
   hover with a softening shadow.
+- **Page transitions** — every route fades in via
+  [`src/app/template.tsx`](../../src/app/template.tsx) so navigations feel smooth,
+  not stiff. It animates **opacity only** on purpose: a `transform` on this
+  wrapper would reparent `position: fixed` overlays (sign-in modal, aurora,
+  floating CTA) and break them. For richer per-section entrances, wrap content in
+  `Reveal` (see the landing).
 
 **Reduced motion is mandatory.** Every animated component checks
 `prefers-reduced-motion`: `Reveal` renders content immediately, and the canvas
@@ -242,6 +249,28 @@ collapsible "Details" for instrument + start position). The transport uses react
 buttons (play/pause, skip, zoom, "Follow" auto-scroll). Keep lanes short so more
 tracks fit without scrolling.
 
+**Cursors & hover feedback** — interactive controls must feel interactive.
+`globals.css` gives `button`/`summary`/`select`/checkbox/radio/range/`[role=button]`
+and checkbox/radio labels `cursor: pointer` via a base-layer rule (so `cursor-*`
+utilities still win). Beyond the cursor, give controls a visible hover: buttons use
+the pill hover states above; bordered/selectable rows (filter chips, checkbox cards)
+`hover:border-accent-2 transition-colors`; inputs `focus:border-accent`.
+
+**Ambient background** — two layers, both app-wide, so no page reads as flat "dark
+mode". (1) The animated [`Aurora`](../../src/components/layout/aurora.client.tsx)
+canvas is mounted **once in the root layout** at `z-0`, with all content lifted into
+a `relative z-10` wrapper above it — this is the visible warmth and it drifts as you
+navigate. (2) A fixed `body` gradient (`background-attachment: fixed`) in
+`globals.css` backs it up. When adding a new full-bleed fixed layer, remember the
+layout's `z-10` content wrapper — negative/zero z-index behind it, not in front.
+
+**Musical keys** — never render raw slugs (`f-sharp-minor`) or naive text
+("f sharp minor"). Use
+[`formatMusicalKey`](../../src/features/projects/musical-key.ts) for readable output
+with real accidentals ("F♯ minor", "E♭ major") or `formatMusicalKeyShort` for
+compact badges ("F♯m"). Applies everywhere a key appears — cards, filters, project
+pages, the create/edit form.
+
 **Labels** — see §3.
 
 ---
@@ -271,19 +300,21 @@ tracks fit without scrolling.
 
 ## 8. Implementation map
 
-| Concern                  | File                                                               |
-| ------------------------ | ------------------------------------------------------------------ |
-| Tokens, gradient, resets | `src/app/globals.css`                                              |
-| Shared buttons           | `src/components/ui/button.tsx`                                     |
-| Landing page             | `src/app/(public)/page.tsx`                                        |
-| Reveal animation         | `src/app/(public)/_components/reveal.client.tsx`                   |
-| Ambient aurora           | `src/app/(public)/_components/aurora.client.tsx`                   |
-| Hero waveform            | `src/app/(public)/_components/hero-waveform.client.tsx`            |
-| Floating CTA             | `src/app/(public)/_components/floating-cta.client.tsx`             |
-| Header / nav             | `src/components/layout/header-nav.client.tsx`                      |
-| Sign-in modal            | `src/app/sign-in/_components/sign-in-modal.client.tsx`             |
-| Studio surface + theme   | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx` |
-| Icons                    | `react-icons` (Feather set, `react-icons/fi`)                      |
+| Concern                   | File                                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| Tokens, gradient, resets  | `src/app/globals.css`                                              |
+| Shared buttons            | `src/components/ui/button.tsx`                                     |
+| Landing page              | `src/app/(public)/page.tsx`                                        |
+| Reveal (entrance anim)    | `src/components/ui/reveal.client.tsx`                              |
+| Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout) |
+| Hero waveform             | `src/app/(public)/_components/hero-waveform.client.tsx`            |
+| Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`             |
+| Header / nav              | `src/components/layout/header-nav.client.tsx`                      |
+| Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`             |
+| Studio surface + theme    | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx` |
+| Icons                     | `react-icons` (Feather set, `react-icons/fi`)                      |
+| Page-transition wrapper   | `src/app/template.tsx`                                             |
+| Musical key formatting    | `src/features/projects/musical-key.ts`                             |
 
 ---
 

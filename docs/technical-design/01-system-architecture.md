@@ -1,6 +1,6 @@
 # System Architecture
 
-Status: Accepted MVP design; implemented through PR 14
+Status: Accepted MVP design; implemented through PR 17 with optimization and MIDI-first expansion planned before PR 18
 
 Audience: engineers and coding agents
 
@@ -15,7 +15,7 @@ flowchart LR
   U["Browser"] --> N["Next.js on Vercel"]
   U --> S["Supabase Auth, Postgres, Storage"]
   N --> S
-  U --> O["Waveform Playlist adapter and Web Audio"]
+  U --> O["Composite MIDI/audio studio adapter and Web Audio"]
   O --> S
   S --> E["Supabase Edge verification worker"]
   E --> S
@@ -26,7 +26,7 @@ flowchart LR
 - Receives Server Component HTML for public and authenticated product pages.
 - Uses Client Components only for interactive islands.
 - Loads the studio via `dynamic(..., { ssr: false })` after the user follows an Open studio action; an owner without a workspace gets an idempotently created draft and the editor in that same navigation.
-- Runs Waveform Playlist, Web Audio, waveform work, quick revision previews and local draft caching. Explore/project quick previews share a browser event so starting one pauses any other mounted preview.
+- Runs the client-only studio boundary: Waveform Playlist for legacy audio, the planned Tone.js MIDI scheduler/synth, Web Audio, waveform/piano-roll work, quick revision previews and local draft caching. Explore/project quick previews share a browser event so starting one pauses any other mounted MIDI or audio preview.
 - Uploads large files directly to Supabase Storage using a short-lived authenticated session or signed upload flow. Audio bytes must not transit a Vercel Function.
 
 ### Next.js application
@@ -49,7 +49,7 @@ flowchart LR
 
 - Auth: Google OIDC identities; `auth.users` is private identity authority. Additional providers are post-MVP.
 - Postgres: domain state, relationships, search metadata and authorization policies.
-- Storage: immutable source audio, revision workspace snapshots, artwork/avatars and derived previews.
+- Storage: immutable legacy source audio, revision workspace snapshots, artwork/avatars and derived previews/peaks. MIDI notes and synth parameters remain bounded relational/manifest data rather than Storage objects.
 - RLS: final enforcement for browser-accessible data.
 
 ## Rendering and route map
@@ -182,6 +182,16 @@ The selected React package surface passed the automated gate. If later editable-
 
 Waveform Playlist and Tone.js are MIT-licensed. Preserve their notices, retain the exact direct version pins and validated lockfile, and rerun manifest/adapter fixtures for deliberate upgrades. Do not copy demo audio, styles, or other repository assets unless their redistribution terms are known. Any later OpenDAW integration must resolve its AGPL/commercial licensing path before network deployment.
 
+### Planned MIDI-first composite successor
+
+After the $0 audio optimization pass, evolve—but do not bypass—the `StudioAdapter` boundary into a composite implementation. Waveform Playlist remains responsible for existing audio tracks. A MIDI controller inside the same client-only feature boundary uses the pinned Tone.js runtime for transport-clock scheduling and versioned synthesis presets. Piano-roll UI and recording emit Jam Session MIDI commands; Tone.js objects, Web MIDI ports/messages, audio nodes, and device identifiers never cross into server code or persisted state.
+
+Manifest v1 remains the immutable compatibility contract for existing audio history. Add manifest v2 as a discriminated union of audio and MIDI tracks. MIDI tracks contain bounded tick-based clips/notes and an immutable preset ID/version; they never fabricate source-asset IDs. Existing workspaces upgrade only when an owner intentionally saves MIDI content, copying audio track references exactly. Published v1 revisions are not rewritten.
+
+The MIDI editor must work with pointer, keyboard and an on-screen piano. Hardware Web MIDI is optional progressive enhancement requested only from an explicit gesture in a secure context, without System Exclusive access. Initial sounds are code-owned synthesis presets without remote samples. A preset change creates a new version so historical playback does not drift.
+
+Only after MIDI creation, save/reload, publication, preview, contribution acceptance, fork and `.mid` export pass their end-to-end gate may the prototype disable new source admission. The lock is enforced in `reserve_source_asset` before reservation/quota mutation and represented as a global prototype capability—not a subscription or user entitlement. Existing ready audio, valid in-flight reservations during the documented deployment grace period, private signing, downloads, export, publication and forks remain supported.
+
 ## Upload and asset processing
 
 - Use resumable uploads for large audio files.
@@ -196,6 +206,7 @@ Waveform Playlist and Tone.js are MIT-licensed. Preserve their notices, retain t
 - Generate waveform peaks and an optional compressed preview asynchronously. Do not make Vercel request duration the processing contract.
 - A job table/outbox can trigger an external worker later; the MVP may compute peaks client-side if results are validated and the original remains authoritative.
 - The user-facing upload history selects only `assets.kind = 'source_audio'`. Workspace snapshot manifests and future derived assets are internal implementation records, not user uploads, even though RLS may permit their owner to select the rows for authorized workflows.
+- During the MIDI transition, do not remove upload/verification schema or Storage policies needed by existing history. After the capability lock, new reservation fails before creating an asset or changing quota; already ready sources remain visible in upload history and authorized legacy workflows.
 
 ## Security and privacy
 

@@ -1,18 +1,12 @@
 "use client";
 import { useActionState } from "react";
+import { formatMusicalKey } from "./musical-key";
 import { musicalKeys } from "./schema";
 import type { ProjectDetail, ProjectFormOptions } from "./types";
 import type { ProjectFormState } from "./actions";
 
 const inputClass =
-  "mt-2 min-h-11 w-full rounded-control border border-strong bg-surface px-3 py-2";
-const keyLabel = (key: string) =>
-  key
-    .split("-")
-    .map((part) =>
-      part === "sharp" ? "♯" : part.charAt(0).toUpperCase() + part.slice(1),
-    )
-    .join(" ");
+  "focus:border-accent mt-2 min-h-11 w-full rounded-control border border-strong bg-surface px-3 py-2 transition-colors";
 export function ProjectForm({
   action,
   options,
@@ -86,7 +80,7 @@ export function ProjectForm({
             <option value="">Not set</option>
             {musicalKeys.map((key) => (
               <option key={key} value={key}>
-                {keyLabel(key)}
+                {formatMusicalKey(key)}
               </option>
             ))}
           </select>
@@ -145,7 +139,7 @@ export function ProjectForm({
           {options.genres.map((item) => (
             <label
               key={item.id}
-              className="rounded-control border-subtle flex min-h-11 items-center gap-3 border px-3"
+              className="rounded-control border-subtle hover:border-accent-2 flex min-h-11 items-center gap-3 border px-3 transition-colors"
             >
               <input
                 type="checkbox"
@@ -179,7 +173,7 @@ export function ProjectForm({
           {options.tags.map((item) => (
             <label
               key={item.id}
-              className="rounded-control border-subtle flex min-h-11 items-center gap-3 border px-3"
+              className="rounded-control border-subtle hover:border-accent-2 flex min-h-11 items-center gap-3 border px-3 transition-colors"
             >
               <input
                 type="checkbox"
@@ -194,7 +188,7 @@ export function ProjectForm({
       </fieldset>
       <button
         disabled={pending}
-        className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950 disabled:opacity-60"
+        className="cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
       >
         {pending ? "Saving…" : project ? "Save project" : "Create project"}
       </button>

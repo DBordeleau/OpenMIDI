@@ -2,7 +2,7 @@
 
 ## Elevator Pitch
 
-**Jam Session** is a collaborative music production platform inspired by Git and open-source software development. Musicians can upload stems to create projects that others can contribute to, remix, or fork into entirely new works. Instead of collaborating through scattered cloud drives and messaging apps, creators work together in a shared, versioned workspace designed specifically for music.
+**Jam Session** is a collaborative music production platform inspired by Git and open-source software development. Musicians create versioned MIDI arrangements—and, when sustainable storage is available, audio-stem projects—that others can contribute to, remix, or fork into entirely new works. Instead of collaborating through scattered files and messaging apps, creators work together in a shared, versioned workspace designed specifically for music.
 
 ---
 
@@ -10,7 +10,7 @@
 
 Modern music production is more accessible than ever, but it remains a largely solitary hobby. Many producers and musicians struggle to find collaborators with compatible interests, schedules, or technical ability. Remote collaboration is often fragmented across file-sharing services, messaging apps, and DAWs with little visibility into project history or contributor attribution.
 
-Jam Session makes collaboration asynchronous and accessible by treating songs like open-source projects. Musicians can contribute stems, propose changes, remix existing work, and receive credit for their contributions without needing to coordinate traditional studio sessions.
+Jam Session makes collaboration asynchronous and accessible by treating songs like open-source projects. Musicians can compose and record MIDI tracks in the browser, propose arrangement changes, contribute compatible material, remix existing work, and receive credit without needing to coordinate traditional studio sessions or share one desktop DAW.
 
 ---
 
@@ -32,12 +32,12 @@ And to a lesser extent:
 
 ## Goals
 
-- Make remote, asynchronous music collaboration as simple as uploading a stem to a project, or editing some tracks and submitting a PR.
+- Make remote, asynchronous music collaboration as simple as recording/editing MIDI tracks—or, when audio admission is available, uploading a stem—and submitting the result like a PR.
 - Reduce the friction involved in finding collaborators.
 - Encourage experimentation through remixing and project forking.
-- Allow musicians to create, audition, and mix project stems without requiring every collaborator to own the same desktop DAW.
+- Allow musicians to create, audition, and mix MIDI arrangements and compatible project stems without requiring every collaborator to own the same desktop DAW.
 - Give contributors enough in-browser production tooling to understand a project and make meaningful changes.
-- Reduce the friction involved in downloading, organizing, synchronizing, and re-uploading stems.
+- Reduce the friction involved in exchanging project files, synchronizing arrangements, and reproducing collaborators' instrument parts.
 - Preserve clear attribution and project lineage across contributions, revisions, and forks.
 
 ---
@@ -81,20 +81,29 @@ The browser workspace should support the Jam Session collaboration workflow, rat
 ### Music Projects
 
 - Create a new project
-- Upload stems
+- Create multiple MIDI instrument tracks
+- Upload stems when audio admission is available
 - Add project description, genre, BPM, key, and tags
 - Mark projects as open for collaboration
 
-### Stem Management
+### MIDI Composition
 
-- Upload stems
-- Preview stems
-- Download stems
-- Label stems by instrument or role
+- Choose from versioned built-in synth and drum sounds
+- Draw and edit notes in a piano roll
+- Organize notes into clips and loops
+- Record from an on-screen piano or computer keyboard
+- Record from supported hardware MIDI devices as an optional enhancement
+- Import and export a bounded Standard MIDI File subset
 
-### Browser Mixer
+### Legacy Audio Management
 
-- Play all stems in sync
+- Preserve authorized playback, preview, download, export, attribution, and arrangement of existing stems
+- Label retained stems by instrument or role
+- Re-enable new stem admission only after a sustainable storage decision; it is unavailable after the MIDI transition during the prototype
+
+### Browser Track Mixer
+
+- Play MIDI and compatible legacy audio tracks in sync
 - Individual volume controls
 - Mute and solo tracks
 - Pan controls
@@ -102,7 +111,7 @@ The browser workspace should support the Jam Session collaboration workflow, rat
 
 ### Contributions
 
-- Submit additional stems to an existing project
+- Submit MIDI arrangement/track changes and compatible changes to legacy projects
 - Project owner reviews submissions
 - Accept or reject contributions
 
@@ -122,35 +131,42 @@ The browser workspace should support the Jam Session collaboration workflow, rat
 
 Users can open a project in a browser-based music workspace where they can:
 
-- Play project stems in sync
-- View and arrange audio regions on a timeline
+- Play MIDI and compatible legacy audio tracks in sync
+- View and arrange MIDI clips and compatible audio regions on a timeline
+- Draw, move, resize, duplicate, delete, velocity-edit, and quantize MIDI notes
+- Record MIDI notes into an armed track
+- Choose deterministic versioned instrument sounds
 - Adjust volume and stereo position
 - Mute and solo tracks
-- Add, remove, and reposition compatible audio material
+- Add, remove, and reposition compatible MIDI material
 - Save the resulting project state
 - Export or submit their work through Jam Session's contribution workflow
 
-Additional editing, recording, effects, MIDI, and automation capabilities may be exposed where they are stable and appropriate, but they are not all required for the initial release.
+Additional audio editing/recording, effects, automation, advanced MIDI expression, and notation capabilities may be exposed where they are stable and appropriate, but they are not all required for the initial release.
 
-For the MVP, this workspace will be built on the MIT-licensed Waveform Playlist packages behind a Jam Session-owned adapter. Jam Session's versioned manifest remains the persisted authority; the application must not depend on an editor-specific opaque project format. A fuller OpenDAW integration is a post-MVP option and is not an MVP dependency.
+For the MVP, this workspace uses a Jam Session-owned composite client-only adapter: the pinned MIT-licensed Tone.js runtime schedules MIDI synthesis, while Waveform Playlist retains compatibility with existing audio projects. Jam Session's versioned manifest remains the persisted authority; the application must not depend on editor objects or an opaque project format. A fuller OpenDAW integration is a post-MVP option and is not an MVP dependency.
 
 ---
 
 ## MVP Scope
 
-The MVP will include an integrated browser-based workspace sufficient for asynchronous stem collaboration.
+The active prototype creation path is MIDI-first so the application can remain inside a $0 infrastructure budget. New source-audio admission is disabled only after the complete MIDI creation and collaboration journey is available. This is a global prototype capability, not a payment or entitlement system.
+
+Existing audio projects and immutable history remain private, playable, downloadable, exportable, forkable, and compatible with publication/contribution workflows. They are not deleted, hidden, converted to MIDI, or made public. New projects default to MIDI; a legacy project may combine its already-referenced audio with newly created MIDI tracks.
 
 At minimum, users must be able to:
 
 - Open a Jam Session project in the browser
-- Load its stems into synchronized tracks
+- Create multiple MIDI tracks with deterministic built-in instrument sounds
+- Draw and edit notes and clips in an accessible piano roll
+- Record notes from on-screen/computer-keyboard input and supported hardware MIDI input
+- Load MIDI and compatible legacy audio tracks into synchronized playback
 - Play, pause, seek, mute, solo, pan, and adjust track volume
-- Add a new audio stem
-- Position compatible stems on the project timeline
+- Add, remove, position, loop, and quantize compatible MIDI material
 - Save the project's editable workspace state
 - Create a contribution from their changes
 - Fork a project while preserving its attribution and lineage
-- Export or download the relevant audio files for use in an external DAW
+- Export a standard MIDI file and retain authorized downloads/exports for existing audio projects
 
 Advanced capabilities available through the underlying browser audio technology are optional for the MVP unless explicitly promoted into scope.
 
@@ -160,7 +176,8 @@ Advanced capabilities available through the underlying browser audio technology 
 
 ### As a producer
 
-- I can create a project and upload my stems.
+- I can create a MIDI project, choose sounds, and compose or record multiple tracks.
+- When audio admission is available in a future storage model, I can create projects from uploaded stems.
 - I can invite the community to contribute new ideas.
 - I can review submissions before accepting them.
 - I can fork someone else's project and create my own version.
@@ -168,8 +185,9 @@ Advanced capabilities available through the underlying browser audio technology 
 ### As a musician
 
 - I can discover projects looking for contributions.
-- I can download stems to work inside my preferred DAW.
-- I can upload new stems to contribute.
+- I can edit or record MIDI parts without owning the creator's desktop DAW.
+- I can export MIDI for use inside my preferred DAW.
+- I retain authorized stem downloads for existing audio projects.
 - I receive credit when my contribution is accepted.
 
 ### As a listener
@@ -191,8 +209,8 @@ Advanced capabilities available through the underlying browser audio technology 
 
 ### DAW
 
-- Browser recording
-- MIDI editing
+- Audio recording
+- Advanced MIDI expression and controllers
 - Effects chains
 - Automation
 - Plugin support

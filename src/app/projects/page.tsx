@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/layout/container";
 import { ButtonLink } from "@/components/ui/button";
+import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { listProjectsForViewer } from "@/server/repositories/projects";
 
@@ -37,7 +38,7 @@ export default async function ProjectsPage({
   return (
     <main id="main-content">
       <Container className="py-12 sm:py-16">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <Reveal className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-accent-2 font-mono text-xs font-semibold tracking-[0.18em] uppercase">
               Your music workspace
@@ -51,7 +52,7 @@ export default async function ProjectsPage({
             </p>
           </div>
           <ButtonLink href="/projects/new">New project</ButtonLink>
-        </div>
+        </Reveal>
 
         {query.deleted === "1" && (
           <p
@@ -63,7 +64,11 @@ export default async function ProjectsPage({
         )}
 
         {projects.length > 0 ? (
-          <section className="mt-10" aria-labelledby="project-list-heading">
+          <Reveal
+            as="section"
+            className="mt-10"
+            aria-labelledby="project-list-heading"
+          >
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 id="project-list-heading" className="text-xl font-semibold">
                 Recent projects
@@ -74,9 +79,11 @@ export default async function ProjectsPage({
               </p>
             </div>
             <ul className="grid gap-4 lg:grid-cols-2">
-              {projects.map((project) => (
-                <li
+              {projects.map((project, index) => (
+                <Reveal
+                  as="li"
                   key={project.id}
+                  delay={Math.min(index, 8) * 0.05}
                   className="rounded-card border-subtle bg-surface shadow-raised flex min-h-64 flex-col border p-6"
                 >
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold tracking-wide uppercase">
@@ -144,7 +151,7 @@ export default async function ProjectsPage({
                       ) : null}
                     </div>
                   </div>
-                </li>
+                </Reveal>
               ))}
             </ul>
             {nextCursor && (
@@ -157,7 +164,7 @@ export default async function ProjectsPage({
                 </ButtonLink>
               </div>
             )}
-          </section>
+          </Reveal>
         ) : (
           <section className="rounded-card border-strong bg-surface mt-10 border border-dashed p-8 text-center sm:p-12">
             <p className="text-accent font-mono text-xs uppercase">
