@@ -220,7 +220,7 @@ export default function Home() {
               space that autosaves as you go.
             </p>
           </Reveal>
-          <div className="mt-12 grid gap-5 lg:grid-cols-[1.32fr_0.68fr]">
+          <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.32fr)_minmax(0,0.68fr)]">
             <Reveal
               className="rounded-card border-subtle min-w-0 overflow-hidden border p-2 shadow-[0_34px_90px_-46px_#000]"
               style={{
@@ -293,7 +293,7 @@ export default function Home() {
                 </div>
               ))}
             </Reveal>
-            <div className="flex flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-4">
               <Reveal
                 delay={0.08}
                 className="rounded-card border-subtle border p-6"

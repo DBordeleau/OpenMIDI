@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -10,16 +11,26 @@ import {
 } from "../../src/features/assets/waveform-peaks/contract";
 
 test.describe("studio startup smoke", () => {
+  let closeFixtureDelivery: (() => Promise<void>) | null = null;
+
   test.skip(
     process.env.ENABLE_TEST_AUTH !== "true",
     "requires the local gated Auth actor",
   );
 
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await closeFixtureDelivery?.();
+    closeFixtureDelivery = null;
+  });
+
   test("opens an editable published revision in one navigation", async ({
     page,
   }) => {
     test.setTimeout(60_000);
-    const { peakBase64, sourceBase64, ...fixture } = await setupStudioFixture();
+    const { peakBytes, sourceBytes, ...fixture } = await setupStudioFixture();
+    const delivery = await startFixtureDelivery(sourceBytes, peakBytes);
+    closeFixtureDelivery = delivery.close;
 
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
@@ -27,46 +38,48 @@ test.describe("studio startup smoke", () => {
 
     // Local Storage on Windows/Docker can return signed-object headers while
     // stalling the response body. The preflight below verifies both real
-    // objects; substitute those exact bytes at fetch so this journey retains
-    // real descriptor parsing, peak hydration, source decode, and playback.
-    await page.addInitScript(
-      ({ assetId, peak, source }) => {
-        const originalFetch = window.fetch.bind(window);
-        const decode = (value: string) =>
-          Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
-
-        window.fetch = async (input, init) => {
-          const rawUrl =
-            typeof input === "string"
-              ? input
-              : input instanceof URL
-                ? input.href
-                : input.url;
-          const pathname = new URL(rawUrl, window.location.origin).pathname;
-          if (
-            pathname.includes("/object/sign/derived-assets/") &&
-            pathname.includes(`/${assetId}/`)
-          )
-            return new Response(decode(peak), {
-              status: 200,
-              headers: {
-                "content-type": "application/vnd.jam-session.waveform-peaks",
-              },
-            });
-          if (
-            pathname.includes("/object/sign/source-audio/") &&
-            pathname.endsWith(`/${assetId}/source`)
-          ) {
-            await new Promise((resolve) => setTimeout(resolve, 1_500));
-            return new Response(decode(source), {
-              status: 200,
-              headers: { "content-type": "audio/wav" },
-            });
-          }
-          return originalFetch(input, init);
+    // objects. Keep the real authorized descriptor/signing request, assert its
+    // private paths, then point only this fixture at deterministic loopback
+    // responses containing those exact bytes.
+    const fixtureSourceUrl = delivery.sourceUrl;
+    const fixturePeakUrl = delivery.peakUrl;
+    await page.route(
+      new RegExp(
+        `/api/projects/${fixture.projectId}/workspaces/[^/]+/audio-sources$`,
+      ),
+      async (route) => {
+        const response = await route.fetch();
+        if (!response.ok()) {
+          await route.fulfill({ response });
+          return;
+        }
+        const payload = (await response.json()) as {
+          sources?: Array<{
+            assetId: string;
+            signedUrl: string;
+            peaks: { signedUrl: string } | null;
+          }>;
         };
+        const source = payload.sources?.find(
+          (candidate) => candidate.assetId === fixture.assetId,
+        );
+        if (!source?.peaks)
+          throw new Error("The authorized fixture descriptor omitted peaks.");
+        const sourcePath = new URL(source.signedUrl).pathname;
+        const peakPath = new URL(source.peaks.signedUrl).pathname;
+        if (
+          !sourcePath.includes("/object/sign/source-audio/") ||
+          !sourcePath.endsWith(`/${fixture.assetId}/source`) ||
+          !peakPath.includes("/object/sign/derived-assets/") ||
+          !peakPath.includes(`/${fixture.assetId}/`)
+        )
+          throw new Error(
+            `The fixture descriptor returned unexpected private paths: ${JSON.stringify({ sourcePath, peakPath })}`,
+          );
+        source.signedUrl = fixtureSourceUrl;
+        source.peaks.signedUrl = fixturePeakUrl;
+        await route.fulfill({ response, json: payload });
       },
-      { assetId: fixture.assetId, peak: peakBase64, source: sourceBase64 },
     );
 
     const networkEvents: NetworkEvent[] = [];
@@ -259,8 +272,49 @@ async function setupStudioFixture() {
     assetId,
     databaseStatus: "ready",
     storedBytes: stored.size,
-    peakBase64: Buffer.from(peakBytes).toString("base64"),
-    sourceBase64: bytes.toString("base64"),
+    peakBytes: Buffer.from(peakBytes),
+    sourceBytes: bytes,
+  };
+}
+
+async function startFixtureDelivery(sourceBytes: Buffer, peakBytes: Buffer) {
+  const server = createServer((request, response) => {
+    const send = (body: Buffer, contentType: string) => {
+      response.writeHead(200, {
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-store",
+        "Content-Length": body.byteLength,
+        "Content-Type": contentType,
+      });
+      response.end(body);
+    };
+    if (request.url === "/peaks") {
+      send(peakBytes, "application/vnd.jam-session.waveform-peaks");
+      return;
+    }
+    if (request.url === "/source") {
+      setTimeout(() => send(sourceBytes, "audio/wav"), 1_500);
+      return;
+    }
+    response.writeHead(404).end();
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    server.close();
+    throw new Error("The studio fixture delivery server did not bind.");
+  }
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+  return {
+    sourceUrl: `${baseUrl}/source`,
+    peakUrl: `${baseUrl}/peaks`,
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
   };
 }
 
