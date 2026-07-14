@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadSources } from "./source-loader.client";
+import { clearStudioSourceBufferRegistry } from "./source-buffer-registry.client";
 
 const ids = [
   "00000000-0000-4000-8000-000000000001",
@@ -15,7 +16,12 @@ const signed = (suffix = "initial") =>
   }));
 
 describe("loadSources", () => {
-  it("limits source work to three and reports atomic progress", async () => {
+  afterEach(() => {
+    clearStudioSourceBufferRegistry();
+    vi.unstubAllGlobals();
+  });
+
+  it("limits source work to three and reports progressive status", async () => {
     let active = 0;
     let maximum = 0;
     vi.stubGlobal(
@@ -28,19 +34,21 @@ describe("loadSources", () => {
         return new Response(new Uint8Array([1]));
       }),
     );
-    const progress = vi.fn();
+    const status = vi.fn();
     const result = await loadSources({
+      actorId: "00000000-0000-4000-8000-000000000099",
       assetIds: ids,
       sources: signed(),
       refresh: async () => signed("refresh"),
       decode: async () => ({}) as AudioBuffer,
       signal: new AbortController().signal,
-      onProgress: progress,
+      onStatus: status,
     });
     expect(maximum).toBeLessThanOrEqual(3);
     expect(result.size).toBe(4);
-    expect(progress).toHaveBeenLastCalledWith(4, 4);
-    vi.unstubAllGlobals();
+    expect(status).toHaveBeenCalledWith(ids[0], "loading");
+    expect(status).toHaveBeenCalledWith(ids[0], "decoding");
+    expect(status).toHaveBeenCalledWith(ids[0], "ready");
   });
 
   it("deduplicates one refresh for concurrent authorization failures", async () => {
@@ -55,6 +63,7 @@ describe("loadSources", () => {
       ),
     );
     await loadSources({
+      actorId: "00000000-0000-4000-8000-000000000099",
       assetIds: ids,
       sources: signed(),
       refresh,
@@ -62,6 +71,27 @@ describe("loadSources", () => {
       signal: new AbortController().signal,
     });
     expect(refresh).toHaveBeenCalledTimes(1);
-    vi.unstubAllGlobals();
+  });
+
+  it("isolates one failure and keeps successfully decoded sources", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL | Request) =>
+        String(url).includes(ids[1]!)
+          ? new Response(null, { status: 404 })
+          : new Response(new Uint8Array([1])),
+      ),
+    );
+    const result = await loadSources({
+      actorId: "00000000-0000-4000-8000-000000000099",
+      assetIds: ids.slice(0, 3),
+      sources: signed(),
+      refresh: async () => signed("refresh"),
+      decode: async () => ({}) as AudioBuffer,
+      signal: new AbortController().signal,
+    });
+    expect(result.get(ids[0])).toMatchObject({ status: "ready" });
+    expect(result.get(ids[1])).toMatchObject({ status: "failed" });
+    expect(result.get(ids[2])).toMatchObject({ status: "ready" });
   });
 });

@@ -12,8 +12,12 @@ export const gainToDecibels = (gain: number) => 20 * Math.log10(gain);
 
 export function manifestTrackToClipTrack(
   track: WorkspaceTrackV1,
-  audioBuffer: AudioBuffer,
+  audioBuffer?: AudioBuffer,
 ): ClipTrack {
+  const sampleRate = audioBuffer?.sampleRate ?? 48_000;
+  const sourceDurationSamples =
+    audioBuffer?.length ??
+    millisecondsToSamples(track.trimStartMs + track.durationMs, sampleRate);
   return {
     id: track.trackId,
     name: track.name,
@@ -24,21 +28,12 @@ export function manifestTrackToClipTrack(
     clips: [
       {
         id: `${track.trackId}:${track.assetId}`,
-        audioBuffer,
-        startSample: millisecondsToSamples(
-          track.positionMs,
-          audioBuffer.sampleRate,
-        ),
-        durationSamples: millisecondsToSamples(
-          track.durationMs,
-          audioBuffer.sampleRate,
-        ),
-        offsetSamples: millisecondsToSamples(
-          track.trimStartMs,
-          audioBuffer.sampleRate,
-        ),
-        sourceDurationSamples: audioBuffer.length,
-        sampleRate: audioBuffer.sampleRate,
+        ...(audioBuffer ? { audioBuffer } : {}),
+        startSample: millisecondsToSamples(track.positionMs, sampleRate),
+        durationSamples: millisecondsToSamples(track.durationMs, sampleRate),
+        offsetSamples: millisecondsToSamples(track.trimStartMs, sampleRate),
+        sourceDurationSamples,
+        sampleRate,
         gain: 1,
         name: track.name,
       },

@@ -48,7 +48,7 @@ After both interruptions complete, **PR 18 — Moderation, retention, quotas, an
 | B     | Feasibility and core domain    | 05–08           | Complete          | Browser-audio risk retired; private projects, assets, and immutable first publishing work |
 | C     | Browser workspace              | 09–11.5         | Complete          | Users can play, edit, autosave, reopen, export, publish, and recover source verification  |
 | D     | Collaboration graph            | 12–15           | Complete          | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end    |
-| O     | $0 audio optimization          | OPT-01–OPT-05   | In progress (1/5) | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
+| O     | $0 audio optimization          | OPT-01–OPT-05   | In progress (2/5) | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
 | M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Pending after O   | MIDI is the active creation path; new audio admission is disabled without history loss    |
 | E     | Discovery and community safety | 16–18           | Paused (2/3)      | Public discovery/profiles are complete; PR 18 resumes after the interruption slices       |
 | F     | MVP hardening and release      | 19–20           | Pending           | Measured hardening and a rehearsed invited-user deployment                                |
@@ -205,13 +205,15 @@ Status: Paused — PRs 16–17 complete; optimization and MIDI expansion precede
 
 ## Roadmap interruption O — $0 audio optimization
 
-**Status:** In progress — OPT-01 complete; OPT-02 next
+**Status:** In progress — OPT-01 and OPT-02 complete; OPT-03 next
 
 **Outcome:** Existing and legacy audio projects remain practical on free infrastructure: the studio becomes usable before complete stem decoding, WAV uploads can be optimized losslessly in capable browsers, and real waveform peaks plus honest readiness states improve perceived startup.
 
 **Slices:** `OPT-01` baseline/instrumentation; `OPT-02` immediate progressive studio; `OPT-03` browser WAV-to-FLAC; `OPT-04` persisted peaks; `OPT-05` measurement, hardening, and optional browser-produced revision preview.
 
 **Delivered in OPT-01:** Reproducible ignored large-audio fixtures; development-only route/adapter/source/shell/peaks/playback timing marks; controlled/stress/boundary baseline evidence; and selection of pinned `mediabunny@1.50.8` + `@mediabunny/flac-encoder@1.50.8` for later worker integration. No production upload, schema, Storage, or caching behavior changed. See the [OPT-01 evidence](technical-design/evidence/opt-01-audio-delivery-baseline.md).
+
+**Delivered in OPT-02:** Manifest-first placeholder lanes and safe workspace controls; progressive per-track fetch/decode attachment; accessible readiness/failure states; audible-track playback gating; isolated retry/cancellation; and bounded actor-scoped in-memory promise/buffer reuse. The controlled cold WAV harness reaches shell-ready in 7 ms median/48 ms slowest while playback remains network-bound near 29.4 seconds; primed same-session repeats avoid transfer and decode. No schema, RLS, Storage object, source byte, manifest, or publication contract changed. See the [OPT-02 evidence](technical-design/evidence/opt-02-progressive-studio.md).
 
 **Acceptance gate:** A controlled cold three-stem project renders its editable shell within two seconds; audio quality and private authorization are unchanged; new losslessly optimized sources target 8–12 seconds to synchronized cold playback and 2–4 seconds warm; no paid worker or service is required.
 

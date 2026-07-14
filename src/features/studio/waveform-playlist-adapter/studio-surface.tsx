@@ -26,6 +26,9 @@ import {
   FiChevronUp,
   FiCrosshair,
   FiFastForward,
+  FiAlertCircle,
+  FiCheckCircle,
+  FiLoader,
   FiPause,
   FiPlay,
   FiRewind,
@@ -71,7 +74,11 @@ import {
   markStudioPerformance,
   studioPerformanceMarks,
 } from "./performance-marks.client";
-import { WaveformPlaylistStudioAdapter } from "./adapter.client";
+import {
+  WaveformPlaylistStudioAdapter,
+  type StudioAdapterSnapshot,
+} from "./adapter.client";
+import { clearStudioSourceBufferRegistry } from "./source-buffer-registry.client";
 
 type TrackMeta = StudioLauncherProps["tracks"][number];
 type WorkspaceProps = Extract<
@@ -123,18 +130,28 @@ const studioTheme: Partial<WaveformPlaylistTheme> = {
   textColorMuted: "#c6adb4",
 };
 
+function createPreparedAdapter(manifest: WorkspaceManifestV1, actorId: string) {
+  const adapter = new WaveformPlaylistStudioAdapter();
+  adapter.prepare(manifest, actorId);
+  return adapter;
+}
+
 function PlaybackControls({
   adapter,
+  snapshot,
   tracks,
   editable,
   onEdited,
+  onRetryTrack,
   projectTitle,
   revisionNumber,
 }: {
   adapter: WaveformPlaylistStudioAdapter;
+  snapshot: StudioAdapterSnapshot;
   tracks: TrackMeta[];
   editable: EditableProps | null;
   onEdited: () => void;
+  onRetryTrack: (trackId: string) => void;
   projectTitle: string;
   revisionNumber?: number;
 }) {
@@ -151,24 +168,27 @@ function PlaybackControls({
   );
   const cancelledMix = useRef(false);
   const manifest = adapter.exportManifest();
-  const mixerReady = hasAlignedMixerState({
-    trackIds: data.tracks.map((track) => track.id),
-    trackStateCount: data.trackStates.length,
-    persistedTrackIds: manifest.tracks.map((track) => track.trackId),
-  });
+  const mixerReady =
+    snapshot.trackLoadStates.every((track) => track.status === "ready") &&
+    hasAlignedMixerState({
+      trackIds: data.tracks.map((track) => track.id),
+      trackStateCount: data.trackStates.length,
+      persistedTrackIds: manifest.tracks.map((track) => track.trackId),
+    });
   const duration = Math.max(
     ...manifest.tracks.map(
       (track) => (track.positionMs + track.durationMs) / 1000,
     ),
   );
   const attemptPlay = useCallback(async () => {
+    if (!snapshot.playbackReady) return;
     try {
       await adapter.play();
       setAudioIssue(false);
     } catch {
       setAudioIssue(true);
     }
-  }, [adapter]);
+  }, [adapter, snapshot.playbackReady]);
   const updateTrack = (
     trackId: string,
     patch: Parameters<typeof adapter.updateTrack>[1],
@@ -288,9 +308,22 @@ function PlaybackControls({
     if (!track) return null;
     const meta = tracks.find((item) => item.trackId === track.id);
     const persisted = manifest.tracks.find((item) => item.trackId === track.id);
-    const current = data.trackStates[trackIndex];
+    const current =
+      data.trackStates[trackIndex] ??
+      (persisted
+        ? {
+            name: persisted.name,
+            muted: persisted.muted,
+            soloed: persisted.soloed,
+            volume: Math.pow(10, persisted.gainDb / 20),
+            pan: persisted.pan,
+          }
+        : null);
     if (!persisted || !current)
       return <div className="text-muted p-3 text-xs">Preparing…</div>;
+    const readiness = snapshot.trackLoadStates.find(
+      (item) => item.trackId === track.id,
+    );
     const displayedGainDb = editable
       ? persisted.gainDb
       : Number(gainToDecibels(current.volume).toFixed(1));
@@ -323,6 +356,24 @@ function PlaybackControls({
             )}
             <p className="text-muted truncate text-[11px]">
               {instrumentName} · {meta?.creditName ?? "Unknown creator"}
+            </p>
+            <p
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold tracking-wide uppercase ${
+                readiness?.status === "ready"
+                  ? "text-accent-2"
+                  : readiness?.status === "failed"
+                    ? "text-danger"
+                    : "text-muted"
+              }`}
+            >
+              {readiness?.status === "ready" ? (
+                <FiCheckCircle />
+              ) : readiness?.status === "failed" ? (
+                <FiAlertCircle />
+              ) : (
+                <FiLoader aria-hidden className="motion-safe:animate-spin" />
+              )}
+              {readiness?.status ?? "queued"}
             </p>
           </div>
           {editable && (
@@ -377,8 +428,10 @@ function PlaybackControls({
             value={displayedGainDb}
             onChange={(event) => {
               const gainDb = Number(event.target.value);
-              controls.setTrackVolume(trackIndex, Math.pow(10, gainDb / 20));
-              if (editable) updateTrack(track.id, { gainDb });
+              if (snapshot.playbackReady)
+                controls.setTrackVolume(trackIndex, Math.pow(10, gainDb / 20));
+              adapter.updateTrack(track.id, { gainDb });
+              if (editable) onEdited();
             }}
           />
         </div>
@@ -399,8 +452,9 @@ function PlaybackControls({
             value={current.pan}
             onChange={(event) => {
               const pan = Number(event.target.value);
-              controls.setTrackPan(trackIndex, pan);
-              if (editable) updateTrack(track.id, { pan });
+              if (snapshot.playbackReady) controls.setTrackPan(trackIndex, pan);
+              adapter.updateTrack(track.id, { pan });
+              if (editable) onEdited();
             }}
           />
         </div>
@@ -411,8 +465,10 @@ function PlaybackControls({
             aria-pressed={current.muted}
             className={trackChip(current.muted, "mute")}
             onClick={() => {
-              controls.setTrackMute(trackIndex, !current.muted);
-              if (editable) updateTrack(track.id, { muted: !current.muted });
+              if (snapshot.playbackReady)
+                controls.setTrackMute(trackIndex, !current.muted);
+              adapter.updateTrack(track.id, { muted: !current.muted });
+              if (editable) onEdited();
             }}
           >
             M
@@ -423,8 +479,10 @@ function PlaybackControls({
             aria-pressed={current.soloed}
             className={trackChip(current.soloed, "solo")}
             onClick={() => {
-              controls.setTrackSolo(trackIndex, !current.soloed);
-              if (editable) updateTrack(track.id, { soloed: !current.soloed });
+              if (snapshot.playbackReady)
+                controls.setTrackSolo(trackIndex, !current.soloed);
+              adapter.updateTrack(track.id, { soloed: !current.soloed });
+              if (editable) onEdited();
             }}
           >
             S
@@ -478,6 +536,15 @@ function PlaybackControls({
             </div>
           </details>
         )}
+        {readiness?.status === "failed" && (
+          <button
+            type="button"
+            className="border-danger text-danger hover:bg-danger/10 min-h-8 rounded-full border px-3 text-xs font-semibold"
+            onClick={() => onRetryTrack(track.id)}
+          >
+            Retry audio
+          </button>
+        )}
       </div>
     );
   };
@@ -492,6 +559,7 @@ function PlaybackControls({
           className={studioBtnPrimary}
           type="button"
           aria-label={isPlaying ? "Pause playback" : "Play playback"}
+          disabled={!snapshot.playbackReady}
           onClick={() => (isPlaying ? adapter.pause() : void attemptPlay())}
         >
           {isPlaying ? <FiPause /> : <FiPlay />}
@@ -562,6 +630,12 @@ function PlaybackControls({
           </button>
         </div>
       </div>
+      {!snapshot.playbackReady && (
+        <p className="text-muted text-sm" role="status">
+          Play unlocks when every audible track is ready. Muted tracks do not
+          hold up playback.
+        </p>
+      )}
       <label className="block">
         <span className="sr-only">Seek playback position</span>
         <input
@@ -626,8 +700,8 @@ export function StudioSurface(props: StudioLauncherProps) {
     (props.mode === "contribution" && props.canEdit)
       ? props
       : null;
-  const [adapter, setAdapter] = useState(
-    () => new WaveformPlaylistStudioAdapter(),
+  const [adapter, setAdapter] = useState(() =>
+    createPreparedAdapter(props.manifest, props.viewerId),
   );
   const snapshot = useSyncExternalStore(
     adapter.subscribe,
@@ -635,6 +709,7 @@ export function StudioSurface(props: StudioLauncherProps) {
     adapter.getSnapshot,
   );
   const [message, setMessage] = useState("Requesting private audio access…");
+  const [authorizationFailed, setAuthorizationFailed] = useState(false);
   const [trackMeta, setTrackMeta] = useState(props.tracks);
   const [autosave, dispatchAutosave] = useReducer(
     reduceAutosave,
@@ -664,12 +739,23 @@ export function StudioSurface(props: StudioLauncherProps) {
   >({ status: "idle" });
   const publishRequestId = useRef<string | null>(null);
   const adapterMountMarked = useRef(false);
+  const shellReadyMarked = useRef(false);
+  const peaksReadyMarked = useRef(false);
+  const playbackReadyMarked = useRef(false);
   useEffect(() => {
     if (!adapterMountMarked.current) {
       markStudioPerformance(studioPerformanceMarks.adapterMounted);
       adapterMountMarked.current = true;
     }
   }, []);
+  useEffect(() => {
+    const db = createSupabaseBrowserClient();
+    const { data } = db.auth.onAuthStateChange((_event, session) => {
+      if (!session || session.user.id !== props.viewerId)
+        clearStudioSourceBufferRegistry();
+    });
+    return () => data.subscription.unsubscribe();
+  }, [props.viewerId]);
   useEffect(() => {
     autosaveStatus.current = autosave.status;
   }, [autosave.status]);
@@ -894,19 +980,22 @@ export function StudioSurface(props: StudioLauncherProps) {
     window.addEventListener("pagehide", pagehide);
     void (async () => {
       try {
+        setAuthorizationFailed(false);
         const sources = await signLoad();
         await adapter.load({
           manifest: props.manifest,
+          actorId: props.viewerId,
           sources,
           refreshSources: signLoad,
           signal: abort.signal,
-          onProgress: (loaded, total) =>
-            setMessage(`Loading ${loaded} of ${total} stems`),
         });
+        const loaded = adapter.getSnapshot();
         setMessage(
-          editable
-            ? "Ready. Draft edits autosave privately."
-            : "Ready. Listening changes are session-only.",
+          loaded.playbackReady
+            ? editable
+              ? "Playback ready. Draft edits autosave privately."
+              : "Playback ready. Listening changes are session-only."
+            : "Some tracks need attention before synchronized playback.",
         );
         if (editable) {
           const local = readLocalRecovery(
@@ -919,10 +1008,12 @@ export function StudioSurface(props: StudioLauncherProps) {
             clearLocalRecovery(editable.viewerId, editable.workspaceId);
         }
       } catch (error) {
-        if (!abort.signal.aborted)
+        if (!abort.signal.aborted) {
+          setAuthorizationFailed(true);
           setMessage(
             error instanceof Error ? error.message : "Studio could not open.",
           );
+        }
       }
     })();
     return () => {
@@ -930,7 +1021,71 @@ export function StudioSurface(props: StudioLauncherProps) {
       abort.abort();
       disposalTimer.current = setTimeout(() => void adapter.dispose(), 0);
     };
-  }, [adapter, cachePending, editable, props.manifest, signLoad]);
+  }, [
+    adapter,
+    cachePending,
+    editable,
+    props.manifest,
+    props.viewerId,
+    signLoad,
+  ]);
+
+  const retryTrack = useCallback(
+    async (trackId: string) => {
+      const signal = controller.current?.signal;
+      if (!signal || signal.aborted) return;
+      setMessage("Refreshing private audio access for one track…");
+      try {
+        const sources = await signLoad();
+        await adapter.retryTrack({
+          trackId,
+          actorId: props.viewerId,
+          sources,
+          refreshSources: signLoad,
+          signal,
+        });
+        setMessage(
+          adapter.getSnapshot().playbackReady
+            ? "Playback ready."
+            : "Track retry finished. Other audible tracks are still loading.",
+        );
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "This track could not be retried.",
+        );
+      }
+    },
+    [adapter, props.viewerId, signLoad],
+  );
+
+  const retryAuthorization = useCallback(async () => {
+    const signal = controller.current?.signal;
+    if (!signal || signal.aborted) return;
+    setAuthorizationFailed(false);
+    setMessage("Requesting private audio access…");
+    try {
+      const sources = await signLoad();
+      await adapter.load({
+        manifest: adapter.exportManifest(),
+        actorId: props.viewerId,
+        sources,
+        refreshSources: signLoad,
+        signal,
+      });
+      setMessage(
+        adapter.getSnapshot().playbackReady
+          ? "Playback ready."
+          : "Some tracks need attention before synchronized playback.",
+      );
+    } catch (error) {
+      setAuthorizationFailed(true);
+      setMessage(
+        error instanceof Error ? error.message : "Studio could not open.",
+      );
+    }
+  }, [adapter, props.viewerId, signLoad]);
 
   const restoreRecovery = async () => {
     if (!editable || !recovery) return;
@@ -1097,16 +1252,39 @@ export function StudioSurface(props: StudioLauncherProps) {
     location.reload();
   };
 
-  const ready = ["ready", "playing", "paused"].includes(snapshot.status);
+  const shellReady = snapshot.manifest !== null && snapshot.tracks.length > 0;
+  const readyTrackCount = snapshot.trackLoadStates.filter(
+    (track) => track.status === "ready",
+  ).length;
+  const failedTrackCount = snapshot.trackLoadStates.filter(
+    (track) => track.status === "failed",
+  ).length;
+  const audioSummary = snapshot.playbackReady
+    ? `Playback ready · ${readyTrackCount} of ${snapshot.trackLoadStates.length} tracks decoded`
+    : failedTrackCount > 0
+      ? `${readyTrackCount} of ${snapshot.trackLoadStates.length} tracks ready · ${failedTrackCount} need attention`
+      : `${readyTrackCount} of ${snapshot.trackLoadStates.length} tracks ready · loading audio`;
   useEffect(() => {
-    if (!ready) return;
-    // In the baseline loader, waveform construction and playback readiness are
-    // both gated on the final source decode. Later slices intentionally split
-    // these marks as the UI becomes manifest-first and peaks-aware.
+    if (!shellReady || shellReadyMarked.current) return;
+    shellReadyMarked.current = true;
     markStudioPerformance(studioPerformanceMarks.shellReady);
-    markStudioPerformance(studioPerformanceMarks.peaksReady);
-    markStudioPerformance(studioPerformanceMarks.playbackReady);
-  }, [ready]);
+  }, [shellReady]);
+  useEffect(() => {
+    if (
+      snapshot.trackLoadStates.length > 0 &&
+      snapshot.trackLoadStates.every((track) => track.status === "ready")
+    ) {
+      if (peaksReadyMarked.current) return;
+      peaksReadyMarked.current = true;
+      markStudioPerformance(studioPerformanceMarks.peaksReady);
+    }
+  }, [snapshot.trackLoadStates]);
+  useEffect(() => {
+    if (snapshot.playbackReady && !playbackReadyMarked.current) {
+      playbackReadyMarked.current = true;
+      markStudioPerformance(studioPerformanceMarks.playbackReady);
+    }
+  }, [snapshot.playbackReady]);
   const addedAssetIds = new Set(
     snapshot.manifest?.tracks.map((track) => track.assetId) ?? [],
   );
@@ -1150,7 +1328,21 @@ export function StudioSurface(props: StudioLauncherProps) {
           </span>
         )}
         {editable && (
-          <span className="text-muted block text-sm">Audio: {message}</span>
+          <span className="text-muted block text-sm">
+            Audio: {audioSummary}
+          </span>
+        )}
+        {!editable && (
+          <span className="text-muted block text-sm">{audioSummary}</span>
+        )}
+        {authorizationFailed && (
+          <button
+            type="button"
+            className={`${studioBtnGhost} mt-3`}
+            onClick={() => void retryAuthorization()}
+          >
+            Retry private audio access
+          </button>
         )}
       </div>
       {recovery && (
@@ -1205,13 +1397,13 @@ export function StudioSurface(props: StudioLauncherProps) {
           </button>
         </div>
       )}
-      {!ready ? (
+      {!shellReady ? (
         <button
           type="button"
           className="rounded-control border-strong min-h-11 border px-5"
           onClick={() => {
             controller.current?.abort();
-            setAdapter(new WaveformPlaylistStudioAdapter());
+            setAdapter(createPreparedAdapter(props.manifest, props.viewerId));
           }}
         >
           Retry
@@ -1261,12 +1453,21 @@ export function StudioSurface(props: StudioLauncherProps) {
               samplesPerPixel={512}
               zoomLevels={[128, 256, 512, 1024, 2048]}
               automaticScroll
+              deferEngineRebuild={!snapshot.playbackReady}
+              onError={() =>
+                setMessage(
+                  "The playback engine could not start. Retry the studio.",
+                )
+              }
+              onTracksChange={(tracks) => adapter.acceptEditorTracks(tracks)}
             >
               <PlaybackControls
                 adapter={adapter}
+                snapshot={snapshot}
                 tracks={trackMeta}
                 editable={editable}
                 onEdited={markEdited}
+                onRetryTrack={(trackId) => void retryTrack(trackId)}
                 projectTitle={props.projectTitle}
                 revisionNumber={
                   props.mode === "revision" ? props.revisionNumber : undefined

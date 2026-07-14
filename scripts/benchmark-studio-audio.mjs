@@ -13,6 +13,7 @@ import { generateFixtureProfile } from "./generate-studio-audio-fixtures.mjs";
 const profileName = argument("--profile", "controlled");
 const repetitions = Number(argument("--repetitions", "5"));
 const phase = argument("--phase", "both");
+const loader = argument("--loader", "current");
 const output = resolve(
   argument(
     "--output",
@@ -40,6 +41,8 @@ if (!Number.isInteger(repetitions) || repetitions < 1 || repetitions > 10)
   throw new Error("Repetitions must be an integer from 1 to 10.");
 if (!["both", "cold", "warm"].includes(phase))
   throw new Error("Phase must be both, cold, or warm.");
+if (!["current", "progressive"].includes(loader))
+  throw new Error("Loader must be current or progressive.");
 
 function argument(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -101,7 +104,7 @@ try {
         uploadThroughput: 625_000,
         connectionType: "cellular4g",
       });
-      results.cold.push(await runCurrentLoader(page, urls));
+      results.cold.push(await runLoader(page, urls, loader));
       await context.close();
     }
   }
@@ -119,8 +122,9 @@ try {
       uploadThroughput: 625_000,
       connectionType: "cellular4g",
     });
+    if (loader === "progressive") await runLoader(page, urls, loader);
     for (let index = 0; index < repetitions; index += 1) {
-      results.warm.push(await runCurrentLoader(page, urls));
+      results.warm.push(await runLoader(page, urls, loader));
     }
     await context.close();
   }
@@ -136,7 +140,8 @@ const evidence = {
     downstreamBitsPerSecond: 20_000_000,
     upstreamBitsPerSecond: 5_000_000,
     latencyMilliseconds: 50,
-    fetchCacheMode: "no-store",
+    loader,
+    fetchCacheMode: loader === "current" ? "no-store" : "default",
   },
   profile: {
     name: profileName,
@@ -160,69 +165,93 @@ process.stdout.write(
   `${JSON.stringify({ output, summary: evidence.summary }, null, 2)}\n`,
 );
 
-async function runCurrentLoader(page, sourceUrls) {
-  return page.evaluate(async (inputUrls) => {
-    const startedAt = performance.now();
-    const longTasks = [];
-    const observer =
-      typeof PerformanceObserver !== "undefined"
-        ? new PerformanceObserver((list) => {
-            for (const entry of list.getEntries())
-              longTasks.push(entry.duration);
-          })
-        : null;
-    try {
-      observer?.observe({ type: "longtask", buffered: true });
-    } catch {
-      // Long-task entries are optional capability evidence.
-    }
-    const context = new AudioContext();
-    let cursor = 0;
-    const sources = [];
-    const worker = async () => {
-      while (true) {
-        const sourceIndex = cursor++;
-        const url = inputUrls[sourceIndex];
-        if (!url) return;
-        const fetchStart = performance.now();
-        const response = await fetch(url, { cache: "no-store" });
-        const bytes = await response.arrayBuffer();
-        const fetchEnd = performance.now();
-        const decodeStart = performance.now();
-        const buffer = await context.decodeAudioData(bytes);
-        const decodeEnd = performance.now();
-        sources.push({
-          sourceIndex,
-          bytes: bytes.byteLength,
-          fetchMilliseconds: fetchEnd - fetchStart,
-          decodeMilliseconds: decodeEnd - decodeStart,
-          readyMilliseconds: decodeEnd - startedAt,
-          channels: buffer.numberOfChannels,
-          sampleRate: buffer.sampleRate,
-          durationSeconds: buffer.duration,
-        });
+async function runLoader(page, sourceUrls, loaderName) {
+  return page.evaluate(
+    async ({ inputUrls, loaderName: selectedLoader }) => {
+      const startedAt = performance.now();
+      const longTasks = [];
+      const observer =
+        typeof PerformanceObserver !== "undefined"
+          ? new PerformanceObserver((list) => {
+              for (const entry of list.getEntries())
+                longTasks.push(entry.duration);
+            })
+          : null;
+      try {
+        observer?.observe({ type: "longtask", buffered: true });
+      } catch {
+        // Long-task entries are optional capability evidence.
       }
-    };
-    await Promise.all(
-      Array.from({ length: Math.min(3, inputUrls.length) }, () => worker()),
-    );
-    const readyAt = performance.now();
-    await context.close();
-    observer?.disconnect();
-    return {
-      // The current production surface gates all three states on the complete
-      // fetch/decode group, so these values intentionally match at baseline.
-      shellReadyMilliseconds: readyAt - startedAt,
-      peaksReadyMilliseconds: readyAt - startedAt,
-      playbackReadyMilliseconds: readyAt - startedAt,
-      slowestLongTaskMilliseconds: Math.max(0, ...longTasks),
-      usedJsHeapBytes:
-        "memory" in performance ? performance.memory.usedJSHeapSize : null,
-      sources: sources.sort(
-        (left, right) => left.sourceIndex - right.sourceIndex,
-      ),
-    };
-  }, sourceUrls);
+      const context = new AudioContext();
+      const shellReadyAt =
+        selectedLoader === "progressive" ? performance.now() : null;
+      const registry =
+        selectedLoader === "progressive"
+          ? (window.__jamSessionBenchmarkRegistry ??= new Map())
+          : null;
+      let cursor = 0;
+      const sources = [];
+      const worker = async () => {
+        while (true) {
+          const sourceIndex = cursor++;
+          const url = inputUrls[sourceIndex];
+          if (!url) return;
+          let reused = false;
+          let transferredBytes = 0;
+          const fetchStart = performance.now();
+          let sourcePromise = registry?.get(url);
+          if (sourcePromise) reused = true;
+          else {
+            sourcePromise = (async () => {
+              const response = await fetch(url, {
+                cache: selectedLoader === "current" ? "no-store" : "default",
+              });
+              const bytes = await response.arrayBuffer();
+              const byteLength = bytes.byteLength;
+              const fetchEnd = performance.now();
+              const decodeStart = performance.now();
+              const buffer = await context.decodeAudioData(bytes);
+              return { buffer, bytes: byteLength, fetchEnd, decodeStart };
+            })();
+            registry?.set(url, sourcePromise);
+          }
+          const loaded = await sourcePromise;
+          if (!reused) transferredBytes = loaded.bytes;
+          const decodeEnd = performance.now();
+          sources.push({
+            sourceIndex,
+            bytes: loaded.bytes,
+            transferredBytes,
+            reused,
+            fetchMilliseconds: reused ? 0 : loaded.fetchEnd - fetchStart,
+            decodeMilliseconds: reused ? 0 : decodeEnd - loaded.decodeStart,
+            readyMilliseconds: decodeEnd - startedAt,
+            channels: loaded.buffer.numberOfChannels,
+            sampleRate: loaded.buffer.sampleRate,
+            durationSeconds: loaded.buffer.duration,
+          });
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(3, inputUrls.length) }, () => worker()),
+      );
+      const readyAt = performance.now();
+      await context.close();
+      observer?.disconnect();
+      return {
+        shellReadyMilliseconds: (shellReadyAt ?? readyAt) - startedAt,
+        peaksReadyMilliseconds: readyAt - startedAt,
+        playbackReadyMilliseconds: readyAt - startedAt,
+        slowestLongTaskMilliseconds: Math.max(0, ...longTasks),
+        usedJsHeapBytes:
+          "memory" in performance ? performance.memory.usedJSHeapSize : null,
+        sources: sources.sort(
+          (left, right) => left.sourceIndex - right.sourceIndex,
+        ),
+      };
+    },
+    { inputUrls: sourceUrls, loaderName },
+  );
 }
 
 function summarize(runs) {
@@ -230,14 +259,21 @@ function summarize(runs) {
     .map((run) => run.playbackReadyMilliseconds)
     .sort((left, right) => left - right);
   const median = playback[Math.floor(playback.length / 2)];
+  const shell = runs
+    .map((run) => run.shellReadyMilliseconds)
+    .sort((left, right) => left - right);
   return {
     medianPlaybackReadyMilliseconds: Math.round(median),
     slowestPlaybackReadyMilliseconds: Math.round(playback.at(-1)),
-    medianShellReadyMilliseconds: Math.round(median),
-    transferredBytesPerRun: expected.reduce(
-      (sum, file) => sum + statSync(file).size,
-      0,
+    medianShellReadyMilliseconds: Math.round(
+      shell[Math.floor(shell.length / 2)],
     ),
+    slowestShellReadyMilliseconds: Math.round(shell.at(-1)),
+    medianTransferredBytesPerRun: runs
+      .map((run) =>
+        run.sources.reduce((sum, source) => sum + source.transferredBytes, 0),
+      )
+      .sort((left, right) => left - right)[Math.floor(runs.length / 2)],
     slowestLongTaskMilliseconds: Math.round(
       Math.max(...runs.map((run) => run.slowestLongTaskMilliseconds)),
     ),

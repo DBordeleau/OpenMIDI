@@ -124,6 +124,7 @@ export default async function ContributionDetailPage({
               <ReviewComparison
                 submitted={{
                   mode: "contributionVersion",
+                  viewerId: viewer.id,
                   projectId,
                   projectTitle: contribution.projectTitle,
                   contributionId,
@@ -139,6 +140,7 @@ export default async function ContributionDetailPage({
                 }}
                 current={{
                   mode: "revision",
+                  viewerId: viewer.id,
                   projectId,
                   projectTitle: contribution.projectTitle,
                   revisionId: currentPlayback.revisionId,

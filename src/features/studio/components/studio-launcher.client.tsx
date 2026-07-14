@@ -21,6 +21,7 @@ const StudioSurface = dynamic(
 );
 
 type CommonProps = {
+  viewerId: string;
   projectId: string;
   projectTitle: string;
   manifest: WorkspaceManifestV1;
@@ -43,7 +44,6 @@ export type StudioLauncherProps = CommonProps &
       }
     | {
         mode: "workspace";
-        viewerId: string;
         workspaceId: string;
         baseRevisionId: string;
         currentRevisionId: string;
@@ -66,7 +66,6 @@ export type StudioLauncherProps = CommonProps &
           | "rejected"
           | "withdrawn";
         canEdit: boolean;
-        viewerId: string;
         workspaceId: string;
         baseRevisionId: string;
         currentRevisionId: string;

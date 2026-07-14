@@ -134,6 +134,7 @@ export default async function StudioPage({
           ) : revision ? (
             <StudioLauncher
               mode="revision"
+              viewerId={viewer.id}
               projectId={projectId}
               projectTitle={project.title}
               revisionId={revision.revisionId}

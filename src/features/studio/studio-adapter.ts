@@ -2,12 +2,15 @@ import type { WorkspaceManifestV1 } from "./manifest/schema";
 import type {
   AddAudioAssetInput,
   StudioLoadInput,
+  RetryStudioTrackInput,
   TrackPatch,
   TrackRef,
 } from "./studio-adapter.types";
 
 export interface StudioAdapter {
+  prepare(manifest: WorkspaceManifestV1, actorId: string): void;
   load(input: StudioLoadInput): Promise<void>;
+  retryTrack(input: RetryStudioTrackInput): Promise<void>;
   play(): Promise<void>;
   pause(): void;
   seek(seconds: number): void;

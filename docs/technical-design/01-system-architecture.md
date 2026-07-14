@@ -146,7 +146,9 @@ Create a Jam Session `StudioAdapter` interface and one `WaveformPlaylistStudioAd
 
 ```ts
 interface StudioAdapter {
+  prepare(manifest: WorkspaceManifestV1, actorId: string): void;
   load(input: StudioLoadInput): Promise<void>;
+  retryTrack(input: RetryStudioTrackInput): Promise<void>;
   play(): Promise<void>;
   pause(): void;
   seek(seconds: number): void;
@@ -161,6 +163,10 @@ interface StudioAdapter {
 ```
 
 Persist a versioned **Jam Session manifest** containing asset IDs, stable track IDs, positions, trims, labels, gain, pan, mute/solo, order and basic tempo metadata. It is the authoritative collaboration subset, supports server validation and migrations, and prevents the editor library from becoming the data model. Each saved workspace records `engine = 'waveform-playlist'`, an exact adapter/package compatibility version, `manifest_version`, and a checksum. A future engine-native artifact may be added as an optional fidelity aid but is not required for MVP reopen.
+
+OPT-02 makes hydration manifest-first. `prepare()` creates placeholder clips and exposes arrangement/mixer controls before private source signing or transfer completes; `load()` then attaches decoded buffers to the matching stable track IDs without replacing the manifest. Each track reports `queued`, `loading`, `decoding`, `ready`, or `failed`, and synchronized play is unavailable until every currently audible track is ready. Failed tracks retry independently, navigation/removal ignores late work, and save/publish continue to serialize only the validated manifest while audio is pending.
+
+Decoded buffers may be reused only through the bounded in-memory registry inside the client adapter. It is keyed by verified viewer ID plus immutable asset ID, clears on actor change/sign-out, evicts failed work and least-recently-used decoded buffers, and is capped at 12 entries/384 MiB. Signed URLs are never cache identities, and decoded bytes are never persisted across browser sessions. Source fetches use normal browser caching for the same signed URL; authorization responses and signed-source descriptors remain `private, no-store`.
 
 ### Completed integration spike and productionization gate
 

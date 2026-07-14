@@ -4,11 +4,24 @@ import type { SignedAudioSource } from "./source-contract";
 export type StudioAssetSource = { assetId: string; url: string };
 export type StudioLoadInput = {
   manifest: WorkspaceManifestV1;
+  actorId: string;
   sources: readonly SignedAudioSource[];
   refreshSources: () => Promise<readonly SignedAudioSource[]>;
   signal: AbortSignal;
   onProgress?: (loaded: number, total: number) => void;
 };
+export type StudioTrackReadiness =
+  "queued" | "loading" | "decoding" | "ready" | "failed";
+export type StudioTrackLoadState = {
+  trackId: string;
+  assetId: string;
+  status: StudioTrackReadiness;
+  message: string | null;
+};
+export type RetryStudioTrackInput = Pick<
+  StudioLoadInput,
+  "actorId" | "sources" | "refreshSources" | "signal"
+> & { trackId: string };
 export type AddAudioAssetInput = {
   asset: StudioAssetSource;
   track: WorkspaceTrackV1;

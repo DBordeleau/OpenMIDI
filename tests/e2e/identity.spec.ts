@@ -77,6 +77,7 @@ test.describe("identity vertical slice", () => {
   );
 
   test("onboards, publishes, edits, and signs out", async ({ page }) => {
+    test.setTimeout(120_000);
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
     await expect(
@@ -118,9 +119,11 @@ test.describe("identity vertical slice", () => {
       .getByLabel("Choose source audio")
       .setInputFiles("public/fixtures/audio/stem-a.wav");
     await expect(
-      page.getByText("Uploaded; awaiting trusted verification.", {
-        exact: true,
-      }),
+      page
+        .getByText("Upload complete. Starting audio verification…", {
+          exact: true,
+        })
+        .first(),
     ).toBeVisible({ timeout: 30_000 });
     await promoteLatestTestAsset();
 
@@ -131,10 +134,37 @@ test.describe("identity vertical slice", () => {
     await page.getByRole("link", { name: "Open studio" }).click();
     await page.getByRole("button", { name: "Create editable draft" }).click();
     await expect(page.getByText("Private draft from revision 1")).toBeVisible();
+    let releaseSource: (() => void) | undefined;
+    let observeSource: (() => void) | undefined;
+    const sourceRequested = new Promise<void>((resolve) => {
+      observeSource = resolve;
+    });
+    const holdSource = new Promise<void>((resolve) => {
+      releaseSource = resolve;
+    });
+    await page.route("**/storage/v1/object/sign/**", async (route) => {
+      observeSource?.();
+      await holdSource;
+      await route.continue();
+    });
     await page.getByRole("button", { name: "Open studio" }).click();
+    await sourceRequested;
     await expect(page.getByLabel("Track label")).toBeVisible({
+      timeout: 2_000,
+    });
+    await expect(
+      page.getByRole("button", { name: "Play playback" }),
+    ).toBeDisabled();
+    await expect(
+      page.getByText(/0 of 1 tracks ready · loading audio/),
+    ).toBeVisible();
+    releaseSource?.();
+    await expect(
+      page.getByRole("button", { name: "Play playback" }),
+    ).toBeEnabled({
       timeout: 30_000,
     });
+    await page.unroute("**/storage/v1/object/sign/**");
     await page.getByLabel("Track label").fill("Saved browser stem");
     await page.getByLabel("Track label").press("Tab");
     await expect(
