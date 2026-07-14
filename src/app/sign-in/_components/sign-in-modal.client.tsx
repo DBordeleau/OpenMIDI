@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { FiX } from "react-icons/fi";
 
 /**
  * Presents the sign-in card as a focused modal over the app shell, with a warm
@@ -61,7 +62,7 @@ export function SignInModal({ children }: Readonly<{ children: ReactNode }>) {
               aria-label="Close and return home"
               className="text-muted hover:text-accent hover:border-accent border-strong absolute top-5 right-5 grid h-9 w-9 place-items-center rounded-full border transition-colors"
             >
-              <span aria-hidden="true">✕</span>
+              <FiX aria-hidden="true" />
             </button>
             {children}
           </motion.div>

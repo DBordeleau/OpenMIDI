@@ -1,14 +1,16 @@
 # Jam Session — Brand & Visual Design
 
-Status: Adopted with the landing-page redesign (2026-07-13)
+Status: Adopted 2026-07-13 with the landing redesign; extended across the app
+(header, sign-in, dashboard, projects, profile, studio) 2026-07-14.
 
 Audience: designers, engineers, and coding agents working on any user-facing
 surface.
 
 This document specifies the "warm studio night" visual identity introduced with
-the marketing landing page. The design tokens live in
-[`src/app/globals.css`](../../src/app/globals.css); this doc explains the intent
-behind them so future styling sessions start with shared context.
+the marketing landing page and now applied across the whole product. The design
+tokens live in [`src/app/globals.css`](../../src/app/globals.css); this doc
+explains the intent behind them so future styling sessions start with shared
+context.
 
 ---
 
@@ -91,6 +93,17 @@ Codified as the `.cta-gradient` utility in `globals.css`. The ambient page glow
 [`Aurora`](<../../src/app/(public)/_components/aurora.client.tsx>); the static body
 gradient in `globals.css` provides the same warmth app-wide.
 
+### Cascade layers (do not override utilities)
+
+Tailwind v4 (`@import "tailwindcss"`) puts every utility in the `utilities`
+cascade layer, and **unlayered CSS beats layered CSS regardless of specificity.**
+A bare element rule in `globals.css` — e.g. `a { color: inherit }` — therefore
+silently overrides `text-*` / `hover:text-*` on that element _everywhere_ (this
+broke every nav hover until it was found). Keep `globals.css` custom rules to
+genuinely global concerns (tokens, `body`, focus, `::selection`), and never add an
+unlayered element rule that sets a property utilities are expected to control.
+Preflight already resets `a`, `button`, etc. in its base layer.
+
 ---
 
 ## 3. Typography
@@ -167,13 +180,22 @@ Shared application buttons and button links use the landing page's pill shape
 not revert to the older `rounded-control` button silhouette. Form fields and
 other compact controls continue to use `rounded-control`.
 
+**Icons & symbols** — use [`react-icons`](https://react-icons.github.io/react-icons/)
+for any glyph or symbol (transport controls, zoom, reorder, delete, close, chevrons,
+etc.). The house set is **Feather** (`react-icons/fi`) for its clean, uniform stroke;
+reach for another set only when Feather lacks the mark. **Never use emoji as UI
+symbols** — they render inconsistently across platforms and clash with the type. A
+short typographic arrow (`→`) inside link text is fine; a glyph that acts as a
+_control_ (a close button, a toolbar action) must be a react-icon. Icons scale to
+`1em`, so size them with `text-*` on the button; give every icon-only button an
+`aria-label` and a `title`, and text buttons with a leading icon add `gap-2`.
+
 **Primary CTA** — pill, `.cta-gradient`, dark foreground, hover lift. On the
 landing it is auth-aware (`AuthAwareLink`): signed-out → `/sign-in`, signed-in →
 `/projects/new`, both labeled "Create something".
 
-**Secondary CTA** — pill, `border-strong`, transparent fill, hover to gold border
-
-- gold text.
+**Secondary CTA** — pill, `border-strong`, transparent fill, hover to accent border
+and accent text.
 
 **Floating CTA** — [`FloatingCta`](<../../src/app/(public)/_components/floating-cta.client.tsx>):
 a persistent, blurred, bottom-right dock so the sign-up action follows the reader.
@@ -196,6 +218,29 @@ column (coral rev, muted author) beside a serif title (with gold italic accent) 
 a **bright** (`text-ink/90`) change summary. Fork nodes indent with a berry
 connector. The brightness split — muted author vs. bright summary — is intentional
 hierarchy; preserve it.
+
+**Header** — the logo is soft sans-bold with a coral→gold gradient dot; the logo
+and nav links hover to `text-accent`. The header is auth-aware
+([`HeaderNav`](../../src/components/layout/header-nav.client.tsx)): signed-out
+visitors get marketing section links (`/#how`, `/#console`, `/#credits`) that
+smooth-scroll the landing plus a single "Sign in" pill; signed-in members get the
+app workspace nav and an "Account" action. Never show the app nav to signed-out
+visitors.
+
+**Sign-in modal** — [`SignInModal`](../../src/app/sign-in/_components/sign-in-modal.client.tsx)
+presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
+entrance and a fade-out on close (Escape, backdrop, or the icon button) that routes
+home. The Google button is a white pill with the 4-colour Google mark.
+
+**Studio surface** — the waveform is a `<canvas>`, so its colours come from the
+engine `theme` (`studioTheme` in
+[`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx)),
+**not CSS** — coral peaks and gold progress on dark plum lanes. Per-track controls
+render in the left gutter as a compact channel strip (inline-editable name, gain/pan
+sliders with live values, coral/gold `M`/`S` chips, react-icon reorder/delete, and a
+collapsible "Details" for instrument + start position). The transport uses react-icon
+buttons (play/pause, skip, zoom, "Follow" auto-scroll). Keep lanes short so more
+tracks fit without scrolling.
 
 **Labels** — see §3.
 
@@ -226,14 +271,19 @@ hierarchy; preserve it.
 
 ## 8. Implementation map
 
-| Concern                  | File                                                    |
-| ------------------------ | ------------------------------------------------------- |
-| Tokens, gradient, resets | `src/app/globals.css`                                   |
-| Landing page             | `src/app/(public)/page.tsx`                             |
-| Reveal animation         | `src/app/(public)/_components/reveal.client.tsx`        |
-| Ambient aurora           | `src/app/(public)/_components/aurora.client.tsx`        |
-| Hero waveform            | `src/app/(public)/_components/hero-waveform.client.tsx` |
-| Floating CTA             | `src/app/(public)/_components/floating-cta.client.tsx`  |
+| Concern                  | File                                                               |
+| ------------------------ | ------------------------------------------------------------------ |
+| Tokens, gradient, resets | `src/app/globals.css`                                              |
+| Shared buttons           | `src/components/ui/button.tsx`                                     |
+| Landing page             | `src/app/(public)/page.tsx`                                        |
+| Reveal animation         | `src/app/(public)/_components/reveal.client.tsx`                   |
+| Ambient aurora           | `src/app/(public)/_components/aurora.client.tsx`                   |
+| Hero waveform            | `src/app/(public)/_components/hero-waveform.client.tsx`            |
+| Floating CTA             | `src/app/(public)/_components/floating-cta.client.tsx`             |
+| Header / nav             | `src/components/layout/header-nav.client.tsx`                      |
+| Sign-in modal            | `src/app/sign-in/_components/sign-in-modal.client.tsx`             |
+| Studio surface + theme   | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx` |
+| Icons                    | `react-icons` (Feather set, `react-icons/fi`)                      |
 
 ---
 
