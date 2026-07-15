@@ -1,13 +1,15 @@
 -- MIDI-05: MIDI-capable projects, normalized v2 project clips, immutable
 -- publication, and a public-safe current-revision preview contract.
 
-alter table public.projects add column compatibility text;
-update public.projects set compatibility = 'legacy_hybrid';
+-- Backfill existing projects through the column default so the deferred owner
+-- invariant trigger has no pending row events before the follow-up ALTER.
 alter table public.projects
-  alter column compatibility set default 'midi',
-  alter column compatibility set not null,
+  add column compatibility text not null default 'legacy_hybrid',
   add constraint projects_compatibility_check
     check (compatibility in ('midi', 'legacy_hybrid'));
+
+alter table public.projects
+  alter column compatibility set default 'midi';
 
 alter table public.workspaces
   drop constraint workspaces_manifest_version_check,
