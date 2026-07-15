@@ -6,6 +6,14 @@ import StudioStartPage from "./page";
 import { requireViewer } from "@/features/auth/guards";
 
 vi.mock("@/features/auth/guards", () => ({ requireViewer: vi.fn() }));
+vi.mock("@/features/studio/components/studio-shell.client", () => ({
+  StudioStartActions: () => (
+    <div>
+      <button>New project</button>
+      <button>Open project</button>
+    </div>
+  ),
+}));
 
 describe("Studio start center", () => {
   it("authorizes the canonical destination and offers project directions", async () => {
@@ -17,14 +25,8 @@ describe("Studio start center", () => {
         name: "Open the music you want to shape.",
       }),
     ).toBeVisible();
-    expect(screen.getByRole("link", { name: "New project" })).toHaveAttribute(
-      "href",
-      "/projects/new",
-    );
-    expect(screen.getByRole("link", { name: "Open project" })).toHaveAttribute(
-      "href",
-      "/projects",
-    );
+    expect(screen.getByRole("button", { name: "New project" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open project" })).toBeVisible();
   });
 
   it("keeps the empty route outside the editor and browser-audio graph", () => {

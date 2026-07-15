@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { requireViewer } from "@/features/auth/guards";
+import { StudioStartActions } from "@/features/studio/components/studio-shell.client";
 
 export default async function StudioStartPage() {
   await requireViewer("/studio");
@@ -17,20 +17,7 @@ export default async function StudioStartPage() {
           Choose an existing project or begin a new one. Studio only starts its
           editing and audio engine after you open a project.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/projects/new"
-            className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center rounded-full px-5 py-3 font-semibold transition-transform hover:-translate-y-px"
-          >
-            New project
-          </Link>
-          <Link
-            href="/projects"
-            className="border-strong bg-surface-raised hover:border-accent hover:text-accent inline-flex min-h-11 items-center rounded-full border px-5 py-3 font-semibold transition-colors"
-          >
-            Open project
-          </Link>
-        </div>
+        <StudioStartActions />
       </div>
       <div className="grid gap-6 px-6 py-8 sm:grid-cols-2 sm:px-10">
         <div>

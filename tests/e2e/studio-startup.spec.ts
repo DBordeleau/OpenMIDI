@@ -70,10 +70,10 @@ test.describe("studio startup smoke", () => {
       page.getByRole("heading", { name: "Open the music you want to shape." }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "New project" }).first(),
+      page.getByRole("button", { name: "New project" }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Open project" }).first(),
+      page.getByRole("button", { name: "Open project" }).first(),
     ).toBeVisible();
     expect(privateSourceRequests).toEqual([]);
     expect(
@@ -83,6 +83,38 @@ test.describe("studio startup smoke", () => {
             .__jamAudioContextConstructions ?? 0,
       ),
     ).toBe(0);
+  });
+
+  test("creates projects inside Studio and switches clean sessions", async ({
+    page,
+  }) => {
+    await ensureStudioActorProfile();
+    await page.goto("/test-auth");
+    await page.getByRole("button", { name: "Sign in test actor" }).click();
+    await expect(page).toHaveURL(/\/settings\/profile$/);
+    await page.goto("/studio");
+
+    const firstTitle = `Studio project ${randomUUID().slice(0, 8)}`;
+    const secondTitle = `Studio switch ${randomUUID().slice(0, 8)}`;
+    await createProjectInStudio(page, firstTitle);
+    const firstUrl = page.url();
+    await expect(
+      page.getByRole("heading", { name: `${firstTitle} studio` }),
+    ).toBeVisible();
+
+    await createProjectInStudio(page, secondTitle);
+    await page
+      .getByRole("navigation", { name: "Studio" })
+      .getByRole("button", { name: "Open project" })
+      .click();
+    const firstProject = page
+      .getByRole("listitem")
+      .filter({ hasText: firstTitle });
+    await expect(
+      firstProject.getByText("Private owner workspace"),
+    ).toBeVisible();
+    await firstProject.getByRole("button", { name: "Open in Studio" }).click();
+    await expect(page).toHaveURL(firstUrl);
   });
 
   test("opens an editable published revision in one navigation", async ({
@@ -96,6 +128,11 @@ test.describe("studio startup smoke", () => {
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
     await expect(page).toHaveURL(/\/settings\/profile$/);
+
+    const switchTitle = `Safe switch ${randomUUID().slice(0, 8)}`;
+    await page.goto("/studio");
+    await createProjectInStudio(page, switchTitle);
+    const switchUrl = page.url();
 
     // Local Storage on Windows/Docker can return signed-object headers while
     // stalling the response body. The preflight below verifies both real
@@ -164,6 +201,19 @@ test.describe("studio startup smoke", () => {
     await page.goto(`/projects/${fixture.projectId}/studio`);
     await expect(page).toHaveURL(`/studio/${fixture.projectId}`);
     await expect(page.getByText("Private draft from revision 1")).toBeVisible();
+
+    await page
+      .getByRole("navigation", { name: "Studio" })
+      .getByRole("button", { name: "Open project" })
+      .click();
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: switchTitle })
+      .getByRole("button", { name: "Open in Studio" })
+      .click();
+    await expect(page).toHaveURL(switchUrl);
+
+    await page.goto(`/studio/${fixture.projectId}`);
     await expect(page.getByLabel("Fixture stem label")).toBeVisible({
       timeout: 15_000,
     });
@@ -179,16 +229,80 @@ test.describe("studio startup smoke", () => {
     const trackLabel = page.getByLabel("Fixture stem label");
     await trackLabel.fill("Saved browser stem");
     await trackLabel.press("Tab");
-    await expect(
-      page.locator('[aria-live="polite"]').filter({ hasText: "Status: Saved" }),
-    ).toBeVisible({ timeout: 30_000 });
-    await page.reload();
+    await page
+      .getByRole("navigation", { name: "Studio" })
+      .getByRole("button", { name: "Open project" })
+      .click();
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: switchTitle })
+      .getByRole("button", { name: "Open in Studio" })
+      .click();
+    await expect(page).toHaveURL(switchUrl);
+
+    await page.goto(`/studio/${fixture.projectId}`);
     await expect(page.getByLabel("Saved browser stem label")).toHaveValue(
       "Saved browser stem",
       { timeout: 30_000 },
     );
+
+    execFileSync(
+      "docker",
+      [
+        "exec",
+        "-i",
+        "supabase_db_jam-session",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `update public.workspaces set lock_version=lock_version+1 where project_id='${fixture.projectId}' and status='active'`,
+      ],
+      { encoding: "utf8" },
+    );
+    const savedTrackLabel = page.getByLabel("Saved browser stem label");
+    await savedTrackLabel.fill("Conflict recovery stem");
+    await savedTrackLabel.press("Tab");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "changed in another tab" }),
+    ).toBeVisible({ timeout: 30_000 });
+    await page
+      .getByRole("navigation", { name: "Studio" })
+      .getByRole("button", { name: "Open project" })
+      .click();
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: switchTitle })
+      .getByRole("button", { name: "Open in Studio" })
+      .click();
+    await page.getByRole("button", { name: "Leave with recovery" }).click();
+    await expect(page).toHaveURL(switchUrl);
+    await page.goto(`/studio/${fixture.projectId}`);
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Pending changes found" }),
+    ).toBeVisible();
   });
 });
+
+async function createProjectInStudio(
+  page: import("@playwright/test").Page,
+  title: string,
+) {
+  await page
+    .getByRole("navigation", { name: "Studio" })
+    .getByRole("button", { name: "New project" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Create a project" });
+  await dialog.getByLabel("Title").fill(title);
+  await dialog
+    .getByRole("button", { name: "Create project and open Studio" })
+    .click();
+  await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+$/);
+}
 
 async function ensureStudioActorProfile() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

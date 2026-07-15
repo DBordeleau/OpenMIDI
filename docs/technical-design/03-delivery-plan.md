@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-01 with STUDIO-02 next before M6
+Status: Accepted; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-02 with STUDIO-03 next before M6
 
 ## Delivery strategy
 
@@ -105,7 +105,7 @@ Exit: the MIDI format, standalone editor foundation, immutable collaboration gra
 ### M5.7 — Studio-forward workspace
 
 - `STUDIO-01` (complete): add `/studio` start center and canonical `/studio/{projectId}` route using the route-neutral authorized session resolver; retain the nested route as a compatibility redirect.
-- `STUDIO-02`: add the bounded project browser, safe serial switching, and Studio-owned project creation using the atomic command introduced with MIDI.
+- `STUDIO-02` (complete): add the bounded project browser, safe serial switching, and Studio-owned project creation using the atomic command introduced with MIDI.
 - `STUDIO-03`: replace the form-like composite surface with one coherent arranger shell: shared ruler/playhead, audio waveform lanes, MIDI note-summary lanes, channel headers, mixer controls, selection, inspector, and transport.
 - `STUDIO-04`: add accessible reorder, clip move, duplicate/copy/paste, trim, loop, snap, and session undo/redo; enable audio split only after exact v2 projection round trips pass.
 - `STUDIO-05`: integrate the existing piano roll and recorder into Studio so users create/derive drafts, compose or record against project transport, then explicitly freeze a version and atomically add or replace the selected clip without putting draft IDs in manifests.

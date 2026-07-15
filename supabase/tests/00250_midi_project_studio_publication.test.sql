@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(36);
+select plan(37);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','aa000000-0000-4000-8000-000000000001','authenticated','authenticated','midi-project-owner@example.test','','{}','{}',now(),now()),
@@ -51,6 +51,10 @@ select throws_ok($$select public.create_midi_project_workspace(
   'ac000000-0000-4000-8000-000000000001','Different title','',120::numeric,null::text,4::smallint,4::smallint,
   'all-rights-reserved','{}'::uuid[],null::uuid,'{}'::uuid[]
 )$$,'PT409','project_request_conflict','conflicting creation retry is rejected');
+select throws_ok($$select public.create_midi_project_workspace(
+  'ac000000-0000-4000-8000-000000000001','MIDI Studio project','Changed description',120::numeric,null::text,4::smallint,4::smallint,
+  'all-rights-reserved','{}'::uuid[],null::uuid,'{}'::uuid[]
+)$$,'PT409','project_request_conflict','creation retry rejects changed non-title metadata');
 
 select lives_ok($$select public.save_midi_workspace(
   (select id from public.workspaces where owner_id='aa000000-0000-4000-8000-000000000001'),

@@ -44,6 +44,7 @@ export async function createProjectAction(
           ? "This creation request was already used with different details."
           : "We couldn’t create the project. Please try again.",
     };
+  revalidatePath("/studio", "layout");
   redirect(`/studio/${data[0].project_id}`);
 }
 export async function updateProjectAction(

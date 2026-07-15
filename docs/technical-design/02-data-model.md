@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-07 with STUDIO-01 next before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-02 with STUDIO-03 next before PR 18
 
 Database: Supabase Postgres
 
@@ -105,6 +105,10 @@ PR 06 implemented the private metadata foundation as `projects`, `project_member
 `project_genres`, and `project_tags`, with explicit `lock_version` optimistic
 concurrency and `(owner_id, create_request_id)` idempotency. The initial controlled
 catalog is 4 licenses, 12 genres, 16 tags, and 16 instruments with fixed IDs.
+STUDIO-02 repairs the atomic MIDI project/workspace command so an exact retry
+compares every normalized metadata, taxonomy, and license input before returning
+the existing project; reuse of the request UUID with any different detail raises
+`project_request_conflict`.
 PR 08 added `current_revision_id` with a same-project composite foreign key when
 immutable revisions landed. PR 15 added the immutable `source_project_id` and
 `source_revision_id` pair plus a same-project source-revision foreign key for

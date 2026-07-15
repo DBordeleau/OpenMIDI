@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01 complete; STUDIO-02 is next, followed by STUDIO-03–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-02 complete; STUDIO-03 is next, followed by STUDIO-04–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
 
 ## Purpose
 
@@ -37,7 +37,7 @@ The current MVP supports:
 The remaining roadmap programs before PR 18 are:
 
 1. **`MIDI-01`–`MIDI-07` — MIDI-first foundation and transition readiness:** complete. The versioned stem/editor/runtime/collaboration path and reversible source-admission capability are implemented and tested while admission remains enabled.
-2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** next. Make Studio the project-independent shell, add safe project switching/creation, replace the form-like composite UI with a unified audio/MIDI timeline, add clip editing, integrate MIDI composition/recording, and enable the audio lock only after parity/hardening.
+2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** active. The project-independent shell and safe switching/creation are complete; next replace the form-like composite UI with a unified audio/MIDI timeline, add clip editing, integrate MIDI composition/recording, and enable the audio lock only after parity/hardening.
 
 After both programs complete, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
 
@@ -51,7 +51,7 @@ After both programs complete, **PR 18 — Moderation, retention, quotas, and sto
 | D     | Collaboration graph            | 12–15           | Complete     | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end     |
 | O     | $0 audio optimization          | OPT-01–OPT-05   | Complete     | Studio is usable before stems finish and legacy audio has measured efficient delivery      |
 | M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Complete     | MIDI foundations and reversible transition control are complete; admission remains enabled |
-| S     | Studio-forward workspace       | STUDIO-01–06    | Active (1/6) | Studio becomes the primary creation/arrangement path; parity then enables the audio lock   |
+| S     | Studio-forward workspace       | STUDIO-01–06    | Active (2/6) | Studio becomes the primary creation/arrangement path; parity then enables the audio lock   |
 | E     | Discovery and community safety | 16–18           | Paused (2/3) | Public discovery/profiles are complete; PR 18 resumes after the interruption slices        |
 | F     | MVP hardening and release      | 19–20           | Pending      | Measured hardening and a rehearsed invited-user deployment                                 |
 
@@ -251,7 +251,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program S — Studio-forward workspace
 
-**Status:** Active — STUDIO-01 is complete and STUDIO-02 is next; six slices are required before PR 18 and final audio-lock enablement
+**Status:** Active — STUDIO-01–STUDIO-02 are complete and STUDIO-03 is next; six slices are required before PR 18 and final audio-lock enablement
 
 **Outcome:** Jam Session Studio becomes the primary authenticated music-making workspace where users create, open, close, and safely switch one authorized project; arrange audio and MIDI on one timeline; and compose or record MIDI in project context. Projects/workspaces and immutable stem versions remain authority while the editor/audio runtime stays lazy, client-only, and disposable.
 
@@ -266,6 +266,8 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 ### STUDIO-02 — Project browser, safe switching, and Studio-owned creation
 
 **Outcome:** Users can create, open, close, and serially switch authorized projects from Studio without losing an acknowledged draft or leaking runtime state between sessions.
+
+**Delivered:** The persistent shell provides a bounded cursor-backed authorized project browser and shared project-creation dialog; `/projects/new` and Studio reuse the same validation/action/RPC contract. Selected audio and MIDI sessions register a minimal generation-aware save, recovery, and disposal port so clean, dirty, saving, offline/error, conflict, and source-loading exits coordinate before canonical navigation and route reauthorization.
 
 ### STUDIO-03 — Unified arranger layout and visualization
 

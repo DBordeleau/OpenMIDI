@@ -85,6 +85,21 @@ export async function listProjectsForViewer(
     )
     .parse(data);
   const visible = rows.slice(0, 24);
+  const { data: workspaces, error: workspaceError } = visible.length
+    ? await db
+        .from("workspaces")
+        .select("project_id,contribution_id")
+        .eq("owner_id", viewerId)
+        .eq("status", "active")
+        .in(
+          "project_id",
+          visible.map((project) => project.project_id),
+        )
+    : { data: [], error: null };
+  if (workspaceError) throw new Error("projects_unavailable");
+  const workspaceByProject = new Map(
+    workspaces.map((workspace) => [workspace.project_id, workspace]),
+  );
   const projects: ProjectSummary[] = visible.map((project) => ({
     id: project.project_id,
     title: project.title,
@@ -94,6 +109,13 @@ export async function listProjectsForViewer(
     currentRevisionId: project.current_revision_id,
     updatedAt: project.updated_at,
     needsReview: project.needs_review,
+    studioAccess: workspaceByProject.has(project.project_id)
+      ? workspaceByProject.get(project.project_id)!.contribution_id
+        ? "contribution_workspace"
+        : "owner_workspace"
+      : project.role === "owner"
+        ? "workspace_available"
+        : "read_only",
   }));
   const last = rows.length > 24 ? visible.at(-1) : null;
   return {
@@ -128,6 +150,7 @@ export async function createProject(input: ProjectInput, requestId: string) {
   const args = {
     p_request_id: requestId,
     ...rpcArgs(input),
+    p_description: input.description ?? "",
   } as unknown as Database["public"]["Functions"]["create_project"]["Args"];
   return db.rpc("create_midi_project_workspace", args);
 }

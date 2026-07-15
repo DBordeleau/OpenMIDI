@@ -1,6 +1,6 @@
 # System Architecture
 
-Status: Accepted MVP design; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-01 with STUDIO-02 next before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-02 with STUDIO-03 next before PR 18
 
 Audience: engineers and coding agents
 
@@ -208,7 +208,7 @@ The standalone MIDI editor delivered in MIDI-02–MIDI-04 is a reusable editor f
 
 Manifest v1 remains the immutable compatibility contract for existing audio history. Add manifest v2 as a discriminated union of audio and MIDI tracks with stable clips for both kinds. A v1 audio track maps deterministically to one v2 audio track with one clip referencing the same source asset; the initial audio model keeps one source asset per track so credits and retention remain coherent. MIDI tracks contain bounded tick-based immutable stem-version references and an immutable preset ID/version; they never fabricate source-asset IDs. Existing workspaces upgrade only when an owner intentionally saves v2 content, copying audio references exactly. Published v1 revisions are not rewritten. Splitting remains unavailable until normalized clip projections round-trip through save, publish, submit, accept, and fork.
 
-MIDI-07 prepared the transition controls, and STUDIO-01 makes `/studio` the authenticated start center and `/studio/{projectId}` the canonical selected-session route. The current nested route redirects compatibly. The persistent shell owns lightweight navigation state only; every selected route reauthorizes and remounts one session subtree keyed by project/session authority so audio graphs, abort controllers, autosave generations, and recovery keys cannot cross projects. No `studios` table is introduced.
+MIDI-07 prepared the transition controls, STUDIO-01 makes `/studio` the authenticated start center and `/studio/{projectId}` the canonical selected-session route, and STUDIO-02 adds bounded project browsing plus shared creation inside the persistent shell. The current nested route redirects compatibly. Every destination route reauthorizes and remounts one session subtree keyed by project/session authority. The selected subtree registers only a framework-light lifecycle port (`status`, edit/acknowledged generations, recovery availability, requested save, and idempotent disposal); the shell never reaches into Waveform, Tone, decoded buffers, or signed URLs. Switch and close intents serialize through that port, save the exact acknowledged generation, preserve actor/workspace-scoped recovery on offline/error/conflict exits, abort loading, silence playback/MIDI, and dispose before navigation. Decoded-source reuse remains actor/asset scoped and occurs only after the destination independently authorizes the same immutable asset. No `studios` table is introduced.
 
 The MIDI editor must work with pointer, keyboard and an on-screen piano. Hardware Web MIDI is optional progressive enhancement requested only from an explicit gesture in a secure context, without System Exclusive access. Initial sounds are code-owned synthesis presets without remote samples. A preset change creates a new version so historical playback does not drift.
 
