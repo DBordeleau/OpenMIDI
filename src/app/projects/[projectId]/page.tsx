@@ -339,7 +339,9 @@ export default async function ProjectPage({
               <div className="mt-6">
                 <MemberStemDownloads
                   endpoint={`/api/projects/${project.id}/revisions/${current.id}/downloads/stems`}
-                  assetIds={current.tracks.map((track) => track.assetId)}
+                  assetIds={current.tracks.flatMap((track) =>
+                    track.assetId ? [track.assetId] : [],
+                  )}
                 />
               </div>
             </section>

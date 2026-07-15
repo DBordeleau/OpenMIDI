@@ -11,7 +11,8 @@ export type PublishAssetOption = {
 export type InstrumentOption = { id: string; name: string };
 export type RevisionPlaybackTrack = {
   trackId: string;
-  assetId: string;
+  kind: "audio" | "midi";
+  assetId: string | null;
   displayName: string;
   verifiedDurationMs: number;
   instrumentName: string | null;
@@ -20,7 +21,8 @@ export type RevisionPlaybackTrack = {
 };
 export type RevisionTrack = {
   id: string;
-  assetId: string;
+  kind: "audio" | "midi";
+  assetId: string | null;
   instrumentName: string | null;
   name: string;
   durationMs: number;

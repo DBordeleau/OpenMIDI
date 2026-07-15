@@ -40,9 +40,16 @@ import type { StudioLauncherProps } from "../components/studio-launcher.client";
 import {
   serializePostgresJsonb,
   sha256PostgresJsonb,
+  parseWorkspaceManifest,
   type WorkspaceManifestV1,
   type WorkspaceTrackV1,
 } from "../manifest/schema";
+import {
+  COMPOSITE_STUDIO_ENGINE_VERSION,
+  MIDI_PPQ,
+  parseWorkspaceManifestV2,
+  type WorkspaceManifestV2,
+} from "../manifest/v2";
 import type { SignedAudioSource } from "../source-contract";
 import { StudioAdapterError } from "../studio-adapter.types";
 import {
@@ -52,6 +59,7 @@ import {
 } from "@/features/workspaces/autosave-machine";
 import {
   reserveWorkspaceSnapshotAction,
+  saveMidiWorkspaceAction,
   saveWorkspaceAction,
 } from "@/features/workspaces/actions";
 import {
@@ -698,6 +706,10 @@ function PlaybackControls({
 }
 
 export function StudioSurface(props: StudioLauncherProps) {
+  const initialManifest = useMemo(
+    () => parseWorkspaceManifest(props.manifest),
+    [props.manifest],
+  );
   const workspaceAuthority =
     props.mode === "workspace" || props.mode === "contribution" ? props : null;
   const editable =
@@ -706,7 +718,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       ? props
       : null;
   const [adapter, setAdapter] = useState(() =>
-    createPreparedAdapter(props.manifest, props.viewerId),
+    createPreparedAdapter(initialManifest, props.viewerId),
   );
   const snapshot = useSyncExternalStore(
     adapter.subscribe,
@@ -733,6 +745,8 @@ export function StudioSurface(props: StudioLauncherProps) {
   const controller = useRef<AbortController | null>(null);
   const disposalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [selectedMidiVersionId, setSelectedMidiVersionId] = useState("");
+  const [importingMidi, setImportingMidi] = useState(false);
   const [recovery, setRecovery] = useState<LocalRecoveryEnvelope | null>(null);
   const [publishMessage, setPublishMessage] = useState("");
   const [publishState, setPublishState] = useState<
@@ -765,8 +779,8 @@ export function StudioSurface(props: StudioLauncherProps) {
     autosaveStatus.current = autosave.status;
   }, [autosave.status]);
   const initialAssetIds = useMemo(
-    () => props.manifest.tracks.map((track) => track.assetId),
-    [props.manifest],
+    () => initialManifest.tracks.map((track) => track.assetId),
+    [initialManifest],
   );
 
   const sourceEndpoint =
@@ -988,7 +1002,7 @@ export function StudioSurface(props: StudioLauncherProps) {
         setAuthorizationFailed(false);
         const sources = await signLoad();
         await adapter.load({
-          manifest: props.manifest,
+          manifest: initialManifest,
           actorId: props.viewerId,
           sources,
           refreshSources: signLoad,
@@ -1030,7 +1044,7 @@ export function StudioSurface(props: StudioLauncherProps) {
     adapter,
     cachePending,
     editable,
-    props.manifest,
+    initialManifest,
     props.viewerId,
     signLoad,
   ]);
@@ -1190,6 +1204,102 @@ export function StudioSurface(props: StudioLauncherProps) {
         error instanceof Error ? error.message : "The stem could not be added.",
       );
     }
+  };
+
+  const importMidiVersion = async () => {
+    if (props.mode !== "workspace" || !selectedMidiVersionId) return;
+    const version = props.midiVersions?.find(
+      (candidate) => candidate.stemVersionId === selectedMidiVersionId,
+    );
+    if (!version) return;
+    setImportingMidi(true);
+    const durationMs = Math.max(
+      ...initialManifest.tracks.map(
+        (track) => track.positionMs + track.durationMs,
+      ),
+    );
+    const durationTicks = Math.max(
+      MIDI_PPQ,
+      Math.ceil((durationMs * initialManifest.tempoBpm * MIDI_PPQ) / 60_000),
+      version.durationTicks,
+    );
+    const next = parseWorkspaceManifestV2({
+      manifestVersion: 2,
+      engine: "jam-session-composite",
+      engineVersion: COMPOSITE_STUDIO_ENGINE_VERSION,
+      projectId: props.projectId,
+      tempoBpm: initialManifest.tempoBpm,
+      timeSignature: {
+        numerator: props.projectTimeSignature?.numerator ?? 4,
+        denominator:
+          ([1, 2, 4, 8, 16, 32] as const).find(
+            (value) => value === props.projectTimeSignature?.denominator,
+          ) ?? 4,
+      },
+      durationTicks,
+      tracks: [
+        ...initialManifest.tracks.map((track) => ({
+          kind: "audio" as const,
+          trackId: track.trackId,
+          assetId: track.assetId,
+          name: track.name,
+          instrumentId: track.instrumentId,
+          gainDb: track.gainDb,
+          pan: track.pan,
+          muted: track.muted,
+          soloed: track.soloed,
+          sortOrder: track.sortOrder,
+          clips: [
+            {
+              clipId: crypto.randomUUID(),
+              positionMs: track.positionMs,
+              trimStartMs: track.trimStartMs,
+              durationMs: track.durationMs,
+            },
+          ],
+        })),
+        {
+          kind: "midi" as const,
+          trackId: crypto.randomUUID(),
+          name: version.name,
+          instrumentId: null,
+          presetId: version.defaultPresetId,
+          presetVersion: version.defaultPresetVersion,
+          gainDb: 0,
+          pan: 0,
+          muted: false,
+          soloed: false,
+          sortOrder: initialManifest.tracks.length,
+          clips: [
+            {
+              clipId: crypto.randomUUID(),
+              midiStemVersionId: version.stemVersionId,
+              startTick: 0,
+              durationTicks: version.durationTicks,
+              sourceStartTick: 0,
+              loop: false,
+            },
+          ],
+        },
+      ],
+    } satisfies WorkspaceManifestV2);
+    const result = await saveMidiWorkspaceAction({
+      workspaceId: props.workspaceId,
+      requestId: crypto.randomUUID(),
+      expectedLockVersion: props.lockVersion,
+      manifest: next,
+    });
+    if (!result.ok) {
+      setImportingMidi(false);
+      setMessage(
+        result.code === "conflict"
+          ? "This draft changed elsewhere. Reload before importing the MIDI version."
+          : "That MIDI version could not be imported into this arrangement.",
+      );
+      return;
+    }
+    clearLocalRecovery(props.viewerId, props.workspaceId);
+    location.reload();
   };
 
   const publishWorkspace = async () => {
@@ -1405,7 +1515,7 @@ export function StudioSurface(props: StudioLauncherProps) {
           className="rounded-control border-strong min-h-11 border px-5"
           onClick={() => {
             controller.current?.abort();
-            setAdapter(createPreparedAdapter(props.manifest, props.viewerId));
+            setAdapter(createPreparedAdapter(initialManifest, props.viewerId));
           }}
         >
           Retry
@@ -1446,6 +1556,43 @@ export function StudioSurface(props: StudioLauncherProps) {
                 </Link>
               </div>
             )}
+            {props.mode === "workspace" &&
+              Boolean(props.midiVersions?.length) && (
+                <div className="rounded-card border-subtle bg-surface flex flex-wrap items-end gap-3 border p-5">
+                  <label className="min-w-64 flex-1">
+                    Add an immutable MIDI version from My stems
+                    <select
+                      className="border-subtle mt-1 block min-h-11 w-full border px-3"
+                      value={selectedMidiVersionId}
+                      onChange={(event) =>
+                        setSelectedMidiVersionId(event.target.value)
+                      }
+                    >
+                      <option value="">Choose a MIDI version</option>
+                      {props.midiVersions?.map((version) => (
+                        <option
+                          key={version.stemVersionId}
+                          value={version.stemVersionId}
+                        >
+                          {version.name} - v{version.version} -{" "}
+                          {version.creatorCreditName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className={studioBtnPrimary}
+                    disabled={!selectedMidiVersionId || importingMidi}
+                    onClick={() => void importMidiVersion()}
+                  >
+                    {importingMidi ? "Importing..." : "Import exact version"}
+                  </button>
+                  <Link className="min-h-11 py-2 underline" href="/stems">
+                    Open My stems
+                  </Link>
+                </div>
+              )}
             <WaveformPlaylistProvider
               tracks={snapshot.tracks}
               timescale

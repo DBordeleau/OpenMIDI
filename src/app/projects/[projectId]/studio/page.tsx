@@ -6,12 +6,10 @@ import { projectIdSchema } from "@/features/projects/schema";
 import { StudioLauncher } from "@/features/studio/components/studio-launcher.client";
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form";
 import { getContributionForViewer } from "@/server/repositories/contributions";
-import { getProjectForViewer } from "@/server/repositories/projects";
-import {
-  getRevisionPlayback,
-  listWorkspaceAssetOptions,
-} from "@/server/repositories/revisions";
-import { getActiveWorkspace } from "@/server/repositories/workspaces";
+import { listWorkspaceAssetOptions } from "@/server/repositories/revisions";
+import { listMidiStemVersionsForStudio } from "@/server/repositories/midi-stems";
+import { MIDI_PPQ } from "@/features/studio/manifest/v2";
+import { resolveStudioSession } from "@/server/services/studio-session";
 
 // Intentionally omit this segment's loading.tsx while using Next.js 16.2.
 // Its dev debug channel misidentifies Firefox streaming navigations as cache
@@ -25,26 +23,33 @@ export default async function StudioPage({
   const { projectId } = await params;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
   const viewer = await requireViewer(`/projects/${projectId}/studio`);
-  const project = await getProjectForViewer(projectId);
-  if (!project) notFound();
-  const workspace = await getActiveWorkspace(projectId);
+  const session = await resolveStudioSession(projectId, viewer.id);
+  if (!session) notFound();
+  const { project, workspace, revision } = session;
   const contribution = workspace?.contributionId
     ? await getContributionForViewer(workspace.contributionId)
     : null;
   const editable = project.ownerId === viewer.id;
-  const revision = project.currentRevisionId
-    ? await getRevisionPlayback({
-        projectId,
-        revisionId: project.currentRevisionId,
-      })
-    : null;
-  const options = workspace ? await listWorkspaceAssetOptions() : null;
+  const options =
+    workspace?.manifest.manifestVersion === 1
+      ? await listWorkspaceAssetOptions()
+      : null;
+  const midiVersions =
+    (workspace && project.ownerId === viewer.id) ||
+    revision?.manifest.manifestVersion === 2
+      ? await listMidiStemVersionsForStudio()
+      : [];
   const workspaceDurationMs = workspace
-    ? Math.max(
-        ...workspace.manifest.tracks.map(
-          (track) => track.positionMs + track.durationMs,
-        ),
-      )
+    ? workspace.manifest.manifestVersion === 1
+      ? Math.max(
+          ...workspace.manifest.tracks.map(
+            (track) => track.positionMs + track.durationMs,
+          ),
+        )
+      : Math.ceil(
+          (workspace.manifest.durationTicks * 60_000) /
+            (workspace.manifest.tempoBpm * MIDI_PPQ),
+        )
     : 0;
 
   return (
@@ -70,7 +75,7 @@ export default async function StudioPage({
                 : "Synchronized playback of the immutable published arrangement."}
             </p>
           </div>
-          {workspace && options && contribution ? (
+          {workspace && contribution ? (
             <StudioLauncher
               mode="contribution"
               projectId={projectId}
@@ -84,24 +89,26 @@ export default async function StudioPage({
               }
               viewerId={viewer.id}
               workspaceId={workspace.id}
-              baseRevisionId={workspace.baseRevisionId}
+              baseRevisionId={workspace.baseRevisionId!}
               currentRevisionId={revision!.revisionId}
               currentRevisionNumber={revision!.revisionNumber}
               lockVersion={workspace.lockVersion}
               manifestSha256={workspace.manifestSha256}
               updatedAt={workspace.updatedAt}
               manifest={workspace.manifest}
+              projectTimeSignature={project.timeSignature}
               durationMs={workspaceDurationMs}
               tracks={workspace.tracks}
-              assets={options.assets.map((asset) => ({
+              assets={(options?.assets ?? []).map((asset) => ({
                 id: asset.id,
                 filename: asset.filename,
                 durationMs: asset.durationMs,
                 creditName: asset.creditName,
               }))}
-              instruments={options.instruments}
+              instruments={options?.instruments ?? []}
+              midiVersions={midiVersions}
             />
-          ) : workspace && options ? (
+          ) : workspace ? (
             <StudioLauncher
               mode="workspace"
               projectId={projectId}
@@ -109,21 +116,23 @@ export default async function StudioPage({
               viewerId={viewer.id}
               workspaceId={workspace.id}
               baseRevisionId={workspace.baseRevisionId}
-              currentRevisionId={revision!.revisionId}
-              currentRevisionNumber={revision!.revisionNumber}
+              currentRevisionId={revision?.revisionId ?? null}
+              currentRevisionNumber={revision?.revisionNumber ?? null}
               lockVersion={workspace.lockVersion}
               manifestSha256={workspace.manifestSha256}
               updatedAt={workspace.updatedAt}
               manifest={workspace.manifest}
+              projectTimeSignature={project.timeSignature}
               durationMs={workspaceDurationMs}
               tracks={workspace.tracks}
-              assets={options.assets.map((asset) => ({
+              assets={(options?.assets ?? []).map((asset) => ({
                 id: asset.id,
                 filename: asset.filename,
                 durationMs: asset.durationMs,
                 creditName: asset.creditName,
               }))}
-              instruments={options.instruments}
+              instruments={options?.instruments ?? []}
+              midiVersions={midiVersions}
             />
           ) : revision && editable ? (
             <CreateWorkspaceForm
@@ -140,14 +149,17 @@ export default async function StudioPage({
               revisionId={revision.revisionId}
               revisionNumber={revision.revisionNumber}
               manifest={revision.manifest}
+              projectTimeSignature={project.timeSignature}
               durationMs={revision.durationMs}
               tracks={revision.tracks.map(
-                ({ trackId, instrumentName, creditName }) => ({
+                ({ trackId, kind, instrumentName, creditName }) => ({
                   trackId,
+                  kind,
                   instrumentName,
                   creditName,
                 }),
               )}
+              midiVersions={midiVersions}
             />
           ) : (
             <section className="rounded-card border-strong border border-dashed p-8">

@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import type { WorkspaceManifestV1 } from "../manifest/schema";
+import type { VersionedWorkspaceManifest } from "../manifest/schema";
+import type { MidiStemVersion } from "@/features/midi/stems/types";
 import {
   markStudioPerformance,
   studioPerformanceMarks,
@@ -19,15 +20,25 @@ const StudioSurface = dynamic(
     ),
   { ssr: false, loading: () => <p role="status">Loading studio controls…</p> },
 );
+const MidiStudioSurface = dynamic(
+  () =>
+    import("../midi-adapter/midi-studio-surface.client").then(
+      (module) => module.MidiStudioSurface,
+    ),
+  { ssr: false, loading: () => <p role="status">Loading MIDI Studio…</p> },
+);
 
 type CommonProps = {
   viewerId: string;
   projectId: string;
   projectTitle: string;
-  manifest: WorkspaceManifestV1;
+  manifest: VersionedWorkspaceManifest;
+  projectTimeSignature?: { numerator: number; denominator: number };
   durationMs: number;
+  midiVersions?: MidiStemVersion[];
   tracks: Array<{
     trackId: string;
+    kind?: "audio" | "midi";
     instrumentName: string | null;
     creditName: string;
   }>;
@@ -45,9 +56,9 @@ export type StudioLauncherProps = CommonProps &
     | {
         mode: "workspace";
         workspaceId: string;
-        baseRevisionId: string;
-        currentRevisionId: string;
-        currentRevisionNumber: number;
+        baseRevisionId: string | null;
+        currentRevisionId: string | null;
+        currentRevisionNumber: number | null;
         lockVersion: number;
         manifestSha256: string;
         updatedAt: string;
@@ -102,7 +113,11 @@ export function StudioLauncher(props: StudioLauncherProps) {
         </p>
       </div>
     );
-  return <StudioSurface {...props} />;
+  return props.manifest.manifestVersion === 2 ? (
+    <MidiStudioSurface {...props} manifest={props.manifest} />
+  ) : (
+    <StudioSurface {...props} manifest={props.manifest} />
+  );
 }
 
 function getStudioSupport(): "ready" | string {

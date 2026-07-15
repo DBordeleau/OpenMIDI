@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 17 and OPT-05 with additive MIDI/studio-forward model planned before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-05 with contribution/fork MIDI projections and studio-forward work still planned before PR 18
 
 Database: Supabase Postgres
 
@@ -201,7 +201,7 @@ Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks
 
 Implemented manifest v1 supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
 
-## Planned MIDI-first additive model
+## MIDI-first additive model
 
 The MIDI expansion is expand-only. Do not rewrite manifest v1, published revisions, submitted contribution versions, credit snapshots, or source references.
 

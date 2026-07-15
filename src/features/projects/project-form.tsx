@@ -67,7 +67,7 @@ export function ProjectForm({
             className={inputClass}
             name="bpm"
             inputMode="decimal"
-            defaultValue={project?.bpm ?? ""}
+            defaultValue={project?.bpm ?? 120}
           />
         </label>
         <label className="block font-semibold">
@@ -190,7 +190,11 @@ export function ProjectForm({
         disabled={pending}
         className="cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-6 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
       >
-        {pending ? "Saving…" : project ? "Save project" : "Create project"}
+        {pending
+          ? "Saving…"
+          : project
+            ? "Save project"
+            : "Create project and open Studio"}
       </button>
     </form>
   );

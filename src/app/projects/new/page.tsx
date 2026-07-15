@@ -23,8 +23,8 @@ export default async function NewProjectPage() {
               Create a project
             </h1>
             <p className="text-muted mt-3">
-              Start with the musical context. Stems and the studio arrive in the
-              next phase.
+              Set the musical context, then bring an exact version from My stems
+              into your new private Studio workspace.
             </p>
           </Reveal>
           <Reveal delay={0.08}>

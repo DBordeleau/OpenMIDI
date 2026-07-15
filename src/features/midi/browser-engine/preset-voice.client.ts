@@ -48,10 +48,14 @@ export function watchMidiAudioContextSuspension(onSuspended: () => void) {
 export async function createPresetVoice(
   presetId: string,
   version: number,
+  mixer: { gainDb: number; pan: number } = { gainDb: 0, pan: 0 },
 ): Promise<PresetVoice> {
   const preset = resolveSynthPreset(presetId, version);
   const Tone = await import("tone");
-  const outputSafety = new Tone.Gain(Tone.dbToGain(-6)).toDestination();
+  const panner = new Tone.Panner(mixer.pan).toDestination();
+  const outputSafety = new Tone.Gain(Tone.dbToGain(-6 + mixer.gainDb)).connect(
+    panner,
+  );
   const limiter = new Tone.Limiter(-3).connect(outputSafety);
   const gain = new Tone.Gain(Tone.dbToGain(preset.gainDb)).connect(limiter);
   const reverb = new Tone.Reverb({ decay: 1.4, wet: preset.reverbWet }).connect(
@@ -113,6 +117,7 @@ export async function createPresetVoice(
       gain.dispose();
       limiter.dispose();
       outputSafety.dispose();
+      panner.dispose();
     },
   };
 }

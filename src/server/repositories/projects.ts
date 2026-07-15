@@ -129,7 +129,7 @@ export async function createProject(input: ProjectInput, requestId: string) {
     p_request_id: requestId,
     ...rpcArgs(input),
   } as unknown as Database["public"]["Functions"]["create_project"]["Args"];
-  return db.rpc("create_project", args);
+  return db.rpc("create_midi_project_workspace", args);
 }
 export async function updateProjectMetadata(
   projectId: string,
@@ -178,7 +178,7 @@ export async function getProjectForViewer(
   const { data: project, error } = await db
     .from("projects")
     .select(
-      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,project_members(role)",
+      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,compatibility,project_members(role)",
     )
     .eq("id", projectId)
     .is("deleted_at", null)
@@ -243,5 +243,6 @@ export async function getProjectForViewer(
     publishedAt: project.published_at,
     createdAt: project.created_at,
     updatedAt: project.updated_at,
+    compatibility: project.compatibility as ProjectDetail["compatibility"],
   };
 }

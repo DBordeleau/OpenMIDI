@@ -39,6 +39,8 @@ export async function POST(
   if (authError || !claims?.claims?.sub) return failure(401, "unauthenticated");
   const playback = await getContributionVersionPlayback(params.data);
   if (!playback) return failure(404, "contribution_version_not_found");
+  if (playback.manifest.manifestVersion !== 1)
+    return failure(409, "contribution_has_no_audio_sources");
   const expected = playback.manifest.tracks
     .map((track) => track.assetId)
     .sort();

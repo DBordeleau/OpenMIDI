@@ -71,7 +71,7 @@ export async function listMidiStemVersions(): Promise<
   const { data, error } = await db
     .from("midi_stem_versions")
     .select(
-      "id,stem_id,version,name,note_count,default_preset_id,default_preset_version,parent_stem_version_id,creator_credit_name,created_at",
+      "id,stem_id,version,name,note_count,duration_ticks,default_preset_id,default_preset_version,parent_stem_version_id,creator_credit_name,created_at",
     )
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
@@ -83,6 +83,7 @@ export async function listMidiStemVersions(): Promise<
     version: row.version,
     name: row.name,
     noteCount: row.note_count,
+    durationTicks: row.duration_ticks,
     defaultPresetId: row.default_preset_id,
     defaultPresetVersion: row.default_preset_version,
     parentStemVersionId: row.parent_stem_version_id,
@@ -134,6 +135,18 @@ export async function getMidiStemVersion(
     contentSha256: data.content_sha256,
     createdAt: data.created_at,
   };
+}
+
+export async function listMidiStemVersionsForStudio(): Promise<
+  MidiStemVersion[]
+> {
+  const summaries = await listMidiStemVersions();
+  const versions = await Promise.all(
+    summaries.map(({ stemVersionId }) => getMidiStemVersion(stemVersionId)),
+  );
+  return versions.filter(
+    (version): version is MidiStemVersion => version !== null,
+  );
 }
 
 export async function getMidiStemDraft(

@@ -26,6 +26,7 @@ export type MidiStemVersionSummary = {
   version: number;
   name: string;
   noteCount: number;
+  durationTicks: number;
   defaultPresetId: string;
   defaultPresetVersion: number;
   parentStemVersionId: string | null;

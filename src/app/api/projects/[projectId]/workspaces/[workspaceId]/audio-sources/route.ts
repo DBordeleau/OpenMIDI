@@ -38,11 +38,18 @@ export async function POST(
   const workspace = await getActiveWorkspace(params.data.projectId);
   if (!workspace || workspace.id !== params.data.workspaceId)
     return failure(404, "workspace_not_found");
-
   const requested =
     parsed.data.mode === "load" ? parsed.data.assetIds : [parsed.data.assetId];
   if (parsed.data.mode === "load") {
-    const expected = workspace.manifest.tracks.map((track) => track.assetId);
+    const expected = [
+      ...new Set(
+        workspace.manifest.manifestVersion === 1
+          ? workspace.manifest.tracks.map((track) => track.assetId)
+          : workspace.manifest.tracks.flatMap((track) =>
+              track.kind === "audio" ? [track.assetId] : [],
+            ),
+      ),
+    ];
     const left = [...requested].sort();
     const right = [...expected].sort();
     if (
@@ -51,6 +58,8 @@ export async function POST(
     )
       return failure(409, "workspace_asset_set_mismatch");
   } else {
+    if (workspace.manifest.manifestVersion !== 1)
+      return failure(409, "asset_not_addable");
     const assetId = parsed.data.assetId;
     if (
       workspace.manifest.tracks.length >= 12 ||

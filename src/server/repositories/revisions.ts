@@ -7,22 +7,24 @@ import type {
   RevisionSummary,
 } from "@/features/revisions/types";
 import {
-  parseVersionedWorkspaceManifest,
+  parseAnyWorkspaceManifest,
   STUDIO_ENGINE_VERSION,
-  type WorkspaceManifestV1,
+  type VersionedWorkspaceManifest,
 } from "@/features/studio/manifest/schema";
+import { COMPOSITE_STUDIO_ENGINE_VERSION } from "@/features/studio/manifest/v2";
 import type { CreditSnapshot } from "@/features/credits/types";
 
 export type RevisionPlayback = {
   projectId: string;
   revisionId: string;
   revisionNumber: number;
-  manifest: WorkspaceManifestV1;
+  manifest: VersionedWorkspaceManifest;
   manifestSha256: string;
   durationMs: number;
   tracks: Array<{
     trackId: string;
-    assetId: string;
+    kind: "audio" | "midi";
+    assetId: string | null;
     displayName: string;
     verifiedDurationMs: number;
     instrumentName: string | null;
@@ -39,26 +41,31 @@ export async function getRevisionPlayback(input: {
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),assets(duration_ms),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)))",
+      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),assets(duration_ms),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(midi_stem_version_id,creator_credit_name,profiles!revision_midi_track_credits_creator_id_fkey(username)),revision_clips(clip_id,kind,position_ms,trim_start_ms,duration_ms,midi_stem_version_id,start_tick,duration_ticks,source_start_tick,loop))",
     )
     .eq("project_id", input.projectId)
     .eq("id", input.revisionId)
     .maybeSingle();
   if (error) throw new Error("revision_playback_unavailable");
   if (!data) return null;
-  if (
-    data.manifest_version !== 1 ||
-    data.engine !== "waveform-playlist" ||
-    data.engine_version !== STUDIO_ENGINE_VERSION
-  )
-    throw new Error("revision_playback_invalid");
-  const manifest = parseVersionedWorkspaceManifest(data.manifest);
+  const v1 =
+    data.manifest_version === 1 &&
+    data.engine === "waveform-playlist" &&
+    data.engine_version === STUDIO_ENGINE_VERSION;
+  const v2 =
+    data.manifest_version === 2 &&
+    data.engine === "jam-session-composite" &&
+    data.engine_version === COMPOSITE_STUDIO_ENGINE_VERSION;
+  if (!v1 && !v2) throw new Error("revision_playback_invalid");
+  const manifest = parseAnyWorkspaceManifest(data.manifest);
   const { data: checksumValid, error: checksumError } = await db.rpc(
     "revision_manifest_checksum_valid",
     { p_project_id: input.projectId, p_revision_id: input.revisionId },
   );
   if (
-    manifest.workspaceId !== input.projectId ||
+    (manifest.manifestVersion === 1
+      ? manifest.workspaceId !== input.projectId
+      : manifest.projectId !== input.projectId) ||
     checksumError ||
     checksumValid !== true
   )
@@ -70,14 +77,29 @@ export async function getRevisionPlayback(input: {
     normalized.length !== manifest.tracks.length ||
     normalized.some((track, index) => {
       const item = manifest.tracks[index];
+      if (manifest.manifestVersion === 1)
+        return (
+          !item ||
+          !("positionMs" in item) ||
+          item.trackId !== track.id ||
+          item.assetId !== track.asset_id ||
+          item.name !== track.name ||
+          item.durationMs !== track.duration_ms ||
+          item.sortOrder !== track.sort_order ||
+          track.assets?.duration_ms === null
+        );
       return (
         !item ||
+        !("kind" in item) ||
         item.trackId !== track.id ||
-        item.assetId !== track.asset_id ||
+        item.kind !== track.kind ||
         item.name !== track.name ||
-        item.durationMs !== track.duration_ms ||
         item.sortOrder !== track.sort_order ||
-        track.assets.duration_ms === null
+        (item.kind === "audio"
+          ? item.assetId !== track.asset_id
+          : item.presetId !== track.preset_id ||
+            item.presetVersion !== track.preset_version) ||
+        item.clips.length !== track.revision_clips.length
       );
     })
   )
@@ -91,21 +113,34 @@ export async function getRevisionPlayback(input: {
     durationMs: data.duration_ms,
     tracks: normalized.map((track) => ({
       trackId: track.id,
+      kind: track.kind as "audio" | "midi",
       assetId: track.asset_id,
       displayName: track.name,
-      verifiedDurationMs: track.assets.duration_ms!,
+      verifiedDurationMs: track.assets?.duration_ms ?? track.duration_ms,
       instrumentName: track.instruments?.name ?? null,
-      credits: [...track.revision_track_credits]
-        .sort((a, b) => a.position - b.position)
-        .map((credit) => ({
-          creditName: credit.credit_name,
-          role: credit.role,
-          position: credit.position,
-          profileUsername: credit.profiles?.username ?? null,
-        })),
-      creditName: track.revision_track_credits.find(
-        (credit) => credit.position === 0,
-      )!.credit_name,
+      credits:
+        track.kind === "midi"
+          ? track.revision_midi_track_credits.map((credit, position) => ({
+              creditName: credit.creator_credit_name,
+              role: "creator" as const,
+              position,
+              profileUsername: credit.profiles?.username ?? null,
+            }))
+          : [...track.revision_track_credits]
+              .sort((a, b) => a.position - b.position)
+              .map((credit) => ({
+                creditName: credit.credit_name,
+                role: credit.role,
+                position: credit.position,
+                profileUsername: credit.profiles?.username ?? null,
+              })),
+      creditName:
+        track.kind === "midi"
+          ? (track.revision_midi_track_credits[0]?.creator_credit_name ??
+            "Unknown creator")
+          : track.revision_track_credits.find(
+              (credit) => credit.position === 0,
+            )!.credit_name,
     })),
   };
 }
@@ -167,7 +202,7 @@ export async function publishRevision(input: {
   requestId: string;
   expectedCurrentRevisionId: string | null;
   message: string | null;
-  manifest: WorkspaceManifestV1;
+  manifest: import("@/features/studio/manifest/schema").WorkspaceManifestV1;
 }) {
   const db = await createSupabaseServerClient();
   return db.rpc("publish_project_revision", {
@@ -186,7 +221,7 @@ export async function getRevisionHistory(
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,revision_number,message,duration_ms,created_at,revision_attributions(kind,credit_name,profiles!revision_attributions_user_id_fkey(username)),revision_tracks(id,asset_id,name,duration_ms,sort_order,instruments(name),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)))",
+      "id,revision_number,message,duration_ms,created_at,revision_attributions(kind,credit_name,profiles!revision_attributions_user_id_fkey(username)),revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(creator_credit_name,profiles!revision_midi_track_credits_creator_id_fkey(username)))",
     )
     .eq("project_id", projectId)
     .order("revision_number", { ascending: false })
@@ -220,17 +255,26 @@ export async function getRevisionHistory(
       tracks: row.revision_tracks
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((track) => {
-          const credits = [...track.revision_track_credits]
-            .sort((a, b) => a.position - b.position)
-            .map((credit) => ({
-              creditName: credit.credit_name,
-              role: credit.role,
-              position: credit.position,
-              profileUsername: credit.profiles?.username ?? null,
-            }));
+          const credits =
+            track.kind === "midi"
+              ? track.revision_midi_track_credits.map((credit, position) => ({
+                  creditName: credit.creator_credit_name,
+                  role: "creator" as const,
+                  position,
+                  profileUsername: credit.profiles?.username ?? null,
+                }))
+              : [...track.revision_track_credits]
+                  .sort((a, b) => a.position - b.position)
+                  .map((credit) => ({
+                    creditName: credit.credit_name,
+                    role: credit.role,
+                    position: credit.position,
+                    profileUsername: credit.profiles?.username ?? null,
+                  }));
           if (!credits[0]) throw new Error("revision_credit_missing");
           return {
             id: track.id,
+            kind: track.kind as "audio" | "midi",
             assetId: track.asset_id,
             instrumentName: track.instruments?.name ?? null,
             name: track.name,

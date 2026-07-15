@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildPreviewSchedule } from "./preview-schedule";
-import type { QuickPreviewResponse } from "../preview-contract";
+import type { AudioQuickPreviewResponse } from "../preview-contract";
 
-const tracks: QuickPreviewResponse["tracks"] = [
+const tracks: AudioQuickPreviewResponse["tracks"] = [
   {
     trackId: "10000000-0000-4000-8000-000000000001",
     signedUrl: "https://example.test/one",

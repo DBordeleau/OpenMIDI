@@ -1,4 +1,4 @@
-import type { QuickPreviewResponse } from "../preview-contract";
+import type { AudioQuickPreviewResponse } from "../preview-contract";
 
 export type PreviewScheduleItem = {
   trackIndex: number;
@@ -10,7 +10,7 @@ export type PreviewScheduleItem = {
 };
 
 export function buildPreviewSchedule(
-  tracks: QuickPreviewResponse["tracks"],
+  tracks: AudioQuickPreviewResponse["tracks"],
   playheadMs: number,
 ): PreviewScheduleItem[] {
   const hasSolo = tracks.some((track) => track.soloed);

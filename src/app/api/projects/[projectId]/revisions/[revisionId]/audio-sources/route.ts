@@ -36,9 +36,15 @@ export async function POST(
   const playback = await getRevisionPlayback({ projectId, revisionId });
   if (!playback) return failure(404, "revision_not_found");
   const requested = [...parsedBody.data.assetIds].sort();
-  const expected = playback.manifest.tracks
-    .map((track) => track.assetId)
-    .sort();
+  const expected = [
+    ...new Set(
+      playback.manifest.manifestVersion === 1
+        ? playback.manifest.tracks.map((track) => track.assetId)
+        : playback.manifest.tracks.flatMap((track) =>
+            track.kind === "audio" ? [track.assetId] : [],
+          ),
+    ),
+  ].sort();
   if (
     requested.length !== expected.length ||
     requested.some((id, i) => id !== expected[i])
