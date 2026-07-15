@@ -119,12 +119,12 @@ The selected project should open as one coherent horizontal arrangement rather t
 - MIDI clips rendered with bounded note-density or miniature piano-roll summaries derived from the referenced immutable version;
 - a selected track/clip inspector for exact values and keyboard-accessible editing;
 - drag and keyboard movement with an explicit grid/snap policy;
-- duplicate, copy, paste, trim, loop, delete, and session undo/redo; and
+- duplicate tracks; copy, paste, trim, loop, and delete clips; and session undo/redo; and
 - clear distinction between workspace edits, a private MIDI draft, and immutable published history.
 
 Waveforms are correct for audio. MIDI must not pretend to be audio: its lane visualization should communicate note timing, pitch range, density, clip length, loop state, and preset color without synthesizing or storing a fake waveform. Both clip types still share position, selection, mixer, and transport behavior.
 
-Copying or duplicating a MIDI clip reuses its exact immutable stem-version reference and consumes no new Storage. Editing a copy does not mutate that version. The default replacement scope is the selected clip only; replacing every clip that references the old version must be a separate, clearly labelled command. Audio copy/split remains constrained to the same immutable source asset and existing credit/retention boundary.
+Copying and pasting a MIDI clip or duplicating its complete track reuses exact immutable stem-version references and consumes no new Storage. A duplicated track receives fresh stable track/clip IDs while retaining clip timing, preset, and mixer state. Editing a copy does not mutate the referenced version. The default replacement scope is the selected clip only; replacing every clip that references the old version must be a separate, clearly labelled command. Audio copy/split remains constrained to the same immutable source asset and existing credit/retention boundary.
 
 ### Composing and recording MIDI inside Studio
 
@@ -331,7 +331,7 @@ Continue using the brand's warm studio-night tokens, semantic colors, pill actio
 | Split audio                                        | Technically high, integration medium | Library engine and v2 projections support clips; the Jam adapter/UI must stop discarding secondary clips and prove all immutable collaboration round trips                                             | Implement in STUDIO-04 after exact adapter/projection fixtures pass        |
 | Undo/redo                                          | High for session state               | Waveform engine supports transaction history; must integrate with autosave/recovery and not imply revision-history undo                                                                                | Add with move/trim/split, session-local only                               |
 | Render MIDI clip summaries                         | High                                 | Resolve bounded immutable note events already needed for playback; derive viewport summaries without persisting fake waveforms                                                                         | Render note-density/piano-roll thumbnails in the shared lane               |
-| Copy/paste or duplicate MIDI clips                 | High                                 | Reuse exact immutable version IDs; define selected-clip replacement scope, new stable clip IDs, collision/snap behavior, and bounded clipboard data                                                    | Implement in core clip-interaction slice                                   |
+| Copy/paste MIDI clips or duplicate MIDI tracks     | High                                 | Reuse exact immutable version IDs; define selected-clip replacement scope, fresh stable IDs, collision/snap behavior, and bounded clipboard data                                                       | Implement in core clip-interaction slice                                   |
 | Compose/record MIDI within Studio                  | High with existing foundation        | Reuse piano roll/recorder, coordinate project transport and draft/workspace locks, keep audition overlays out of manifests, and make finalization/application atomic                                   | Required before the Studio parity gate                                     |
 | Simple per-track varispeed that also changes pitch | Medium                               | Current public multitrack adapter does not expose it; custom playout scheduling, waveform duration, seeking, export, and persistence all change                                                        | Spike only; label honestly as coupled speed/pitch if adopted               |
 | Speed change while preserving pitch                | Low-to-medium                        | The pinned single-track MediaElement mode supports pitch-preserving rate, but the multitrack Tone playout does not expose equivalent per-track stretching; robust time stretching needs additional DSP | Defer unless a measured DSP spike meets quality/CPU/export gates           |
@@ -478,7 +478,7 @@ Scope:
 
 - vertical drag reorder plus keyboard up/down commands;
 - clip selection, horizontal move, grid snapping with a modifier/explicit no-snap path, and inspector fallback;
-- MIDI duplicate, copy, paste, delete, trim/source offset, duration, and loop interactions with stable new clip IDs;
+- MIDI track duplication plus clip copy, paste, delete, trim/source offset, duration, and loop interactions with stable new IDs;
 - audio move/trim and duplicate/split only within the same immutable source-asset track and only after projection round-trip fixtures pass;
 - an explicit compatible-target rule for cross-track operations; do not silently change source ownership or MIDI preset semantics;
 - selected-clip-only MIDI version replacement by default, with any “replace all references” command separately confirmed;
@@ -537,7 +537,7 @@ Implemented in the repository: the complete Studio-native create-to-export path 
 
 ### UX-03 usability outcome — inline tracks and clip containers
 
-Implemented: the unified arranger pins an Add a track row below the channels and represents its one named empty MIDI lane only in selected-session UI state. Blank piano-roll and validated local `.mid` entry create private drafts directly; the existing replay-safe finalization transaction alone freezes a version and materializes the pending track/clip, after which Studio closes the editor, selects the clip, and restores lane focus. MIDI duplicate/paste stays on the selected track at the playhead or next opening, and semantic move/copy accepts compatible MIDI destinations in both axes while retaining exact immutable version IDs and credit lineage; audio remains same-asset only. No manifest, schema, RPC, or source-admission change was required.
+Implemented: the unified arranger pins an Add a track row below the channels and represents its one named empty MIDI lane only in selected-session UI state. Blank piano-roll and validated local `.mid` entry create private drafts directly; the existing replay-safe finalization transaction alone freezes a version and materializes the pending track/clip, after which Studio closes the editor, selects the clip, and restores lane focus. MIDI Copy/Paste adds clips at the playhead or next opening, Duplicate clones the complete MIDI track into a new lane with fresh stable IDs, and semantic move/copy accepts compatible MIDI destinations in both axes while retaining exact immutable version IDs and credit lineage. Moving a non-overlapping clip may extend the timeline, so silence between clips is preserved; audio remains same-asset only. No manifest, schema, RPC, or source-admission change was required.
 
 ### Post-MVP DSP research — not sequenced delivery
 

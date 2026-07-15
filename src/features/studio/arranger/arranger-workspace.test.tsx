@@ -213,6 +213,7 @@ describe("ArrangerWorkspace", () => {
 
   it("opens the selected MIDI clip from Enter and double-click", () => {
     const onEditMidiClip = vi.fn();
+    const onCommand = vi.fn(() => true);
     const versionId = uuid(8);
     const manifest = parseWorkspaceManifestV2({
       manifestVersion: 2,
@@ -282,7 +283,7 @@ describe("ArrangerWorkspace", () => {
         onRemoveTrack={vi.fn()}
         onReplaceVersion={vi.fn()}
         onEditMidiClip={onEditMidiClip}
-        onCommand={vi.fn()}
+        onCommand={onCommand}
         pendingMidiLane={null}
         onAddMidiLane={vi.fn()}
         onPendingMidiLaneNameChange={vi.fn()}
@@ -299,6 +300,16 @@ describe("ArrangerWorkspace", () => {
       />,
     );
     const scoped = within(view.container);
+    fireEvent.click(
+      scoped.getByRole("button", { name: "Duplicate MIDI track" }),
+    );
+    expect(onCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "duplicateMidiTrack",
+        trackId: uuid(2),
+        newClipIds: [expect.any(String)],
+      }),
+    );
     const clip = scoped.getByRole("button", { name: /MIDI clip on Keys/ });
     fireEvent.click(clip);
     fireEvent.keyDown(

@@ -58,10 +58,10 @@ export type ArrangementCommand =
       startTick: number;
     }
   | {
-      type: "duplicateClip";
+      type: "duplicateMidiTrack";
       trackId: string;
-      clipId: string;
-      newClipId: string;
+      newTrackId: string;
+      newClipIds: readonly string[];
     }
   | {
       type: "pasteClip";
@@ -240,14 +240,32 @@ export function applyArrangementCommand(
       );
       break;
     }
-    case "duplicateClip": {
+    case "duplicateMidiTrack": {
       const track = findTrack(manifest, command.trackId);
-      const clip = findClip(track, command.clipId);
-      next = appendClip(
-        manifest,
-        track,
-        duplicateAtNextOpening(manifest, track, clip, command.newClipId),
-      );
+      if (track.kind !== "midi")
+        throw new ArrangementCommandError(
+          "Only MIDI tracks can be duplicated.",
+        );
+      if (command.newClipIds.length !== track.clips.length)
+        throw new ArrangementCommandError(
+          "Every duplicated clip needs a fresh stable ID.",
+        );
+      next = {
+        ...manifest,
+        tracks: [
+          ...manifest.tracks,
+          {
+            ...track,
+            trackId: command.newTrackId,
+            name: `${track.name.slice(0, 115)} copy`,
+            sortOrder: manifest.tracks.length,
+            clips: track.clips.map((clip, index) => ({
+              ...clip,
+              clipId: command.newClipIds[index]!,
+            })),
+          },
+        ],
+      };
       break;
     }
     case "pasteClip": {
@@ -416,7 +434,7 @@ export function applyArrangementCommand(
       break;
     }
   }
-  return validateArrangement(next, context);
+  return validateArrangement(expandManifestDuration(next), context);
 }
 
 export function snapArrangementTick(tick: number, gridTicks: number | null) {
@@ -588,6 +606,30 @@ function appendClip(
         : candidate,
     ) as WorkspaceTrackV2[],
   };
+}
+
+function expandManifestDuration(
+  manifest: WorkspaceManifestV2,
+): WorkspaceManifestV2 {
+  const requiredDuration = manifest.tracks.reduce(
+    (projectEnd, track) =>
+      track.clips.reduce((trackEnd, clip) => {
+        const clipEnd =
+          "startTick" in clip
+            ? clip.startTick + clip.durationTicks
+            : Math.ceil(
+                ((clip.positionMs + clip.durationMs) *
+                  manifest.tempoBpm *
+                  MIDI_PPQ) /
+                  60_000,
+              );
+        return Math.max(trackEnd, clipEnd);
+      }, projectEnd),
+    manifest.durationTicks,
+  );
+  return requiredDuration === manifest.durationTicks
+    ? manifest
+    : { ...manifest, durationTicks: requiredDuration };
 }
 
 function mapClip(

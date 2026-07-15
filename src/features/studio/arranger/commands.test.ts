@@ -106,18 +106,8 @@ describe("arrangement commands", () => {
     expect(manifest.tracks[0]?.clips[0]).toMatchObject({ positionMs: 500 });
   });
 
-  it("duplicates, copies, pastes, splits, and deletes with fresh stable IDs", () => {
+  it("copies, pastes, splits, and deletes with fresh stable IDs", () => {
     let manifest = fixture();
-    manifest = applyArrangementCommand(
-      manifest,
-      {
-        type: "duplicateClip",
-        trackId: uuid(2),
-        clipId: uuid(3),
-        newClipId: uuid(6),
-      },
-      context,
-    );
     const clipboard = copyArrangementClip(manifest, uuid(2), uuid(3));
     manifest = applyArrangementCommand(
       manifest,
@@ -142,21 +132,46 @@ describe("arrangement commands", () => {
     );
     manifest = applyArrangementCommand(
       manifest,
-      { type: "deleteMidiClip", trackId: uuid(2), clipId: uuid(6) },
+      { type: "deleteMidiClip", trackId: uuid(2), clipId: uuid(7) },
       context,
     );
 
     const midi = manifest.tracks.find((track) => track.trackId === uuid(2))!;
     const audio = manifest.tracks.find((track) => track.trackId === uuid(4))!;
-    expect(midi.clips.map(({ clipId }) => clipId)).toEqual([uuid(3), uuid(7)]);
-    expect(midi.clips[1]).toMatchObject({
-      startTick: 960,
-      midiStemVersionId: midiVersionId,
-    });
+    expect(midi.clips.map(({ clipId }) => clipId)).toEqual([uuid(3)]);
     expect(audio.clips).toEqual([
       { clipId: uuid(5), positionMs: 0, trimStartMs: 0, durationMs: 400 },
       { clipId: uuid(8), positionMs: 400, trimStartMs: 400, durationMs: 600 },
     ]);
+  });
+
+  it("duplicates a complete MIDI track into a new lane with fresh stable IDs", () => {
+    const manifest = applyArrangementCommand(
+      fixture(),
+      {
+        type: "duplicateMidiTrack",
+        trackId: uuid(2),
+        newTrackId: uuid(6),
+        newClipIds: [uuid(7)],
+      },
+      context,
+    );
+
+    expect(manifest.tracks[2]).toMatchObject({
+      kind: "midi",
+      trackId: uuid(6),
+      name: "Keys copy",
+      presetId: "warm-poly-v1",
+      gainDb: 0,
+      sortOrder: 2,
+      clips: [
+        {
+          clipId: uuid(7),
+          midiStemVersionId: midiVersionId,
+          startTick: 0,
+        },
+      ],
+    });
   });
 
   it("materializes a pending MIDI lane and honors an explicit paste position", () => {
@@ -198,18 +213,19 @@ describe("arrangement commands", () => {
     ]);
   });
 
-  it("extends the project duration when a duplicate uses the next opening", () => {
+  it("extends the project duration when paste uses the next opening", () => {
     let manifest = parseWorkspaceManifestV2({
       ...fixture(),
       durationTicks: 960,
     });
+    const clipboard = copyArrangementClip(manifest, uuid(2), uuid(3));
     for (const clipId of [uuid(13), uuid(14)]) {
       manifest = applyArrangementCommand(
         manifest,
         {
-          type: "duplicateClip",
-          trackId: uuid(2),
-          clipId: uuid(3),
+          type: "pasteClip",
+          targetTrackId: uuid(2),
+          clipboard,
           newClipId: clipId,
         },
         context,
@@ -218,6 +234,37 @@ describe("arrangement commands", () => {
 
     expect(manifest.durationTicks).toBe(1_440);
     expect(manifest.tracks[0]?.clips).toHaveLength(3);
+  });
+
+  it("extends the timeline when a clip is moved right to leave silence", () => {
+    const source = parseWorkspaceManifestV2({
+      ...fixture(),
+      durationTicks: 960,
+    });
+    const clipboard = copyArrangementClip(source, uuid(2), uuid(3));
+    const adjacent = applyArrangementCommand(
+      source,
+      {
+        type: "pasteClip",
+        targetTrackId: uuid(2),
+        clipboard,
+        newClipId: uuid(13),
+      },
+      context,
+    );
+    const moved = applyArrangementCommand(
+      adjacent,
+      {
+        type: "moveClip",
+        trackId: uuid(2),
+        clipId: uuid(13),
+        startTick: 1_440,
+      },
+      context,
+    );
+
+    expect(moved.durationTicks).toBe(1_920);
+    expect(moved.tracks[0]?.clips[1]).toMatchObject({ startTick: 1_440 });
   });
 
   it("moves and copies MIDI clips across tracks while retaining immutable lineage", () => {
@@ -277,12 +324,13 @@ describe("arrangement commands", () => {
   });
 
   it("rejects overlap, source-bound, incompatible-target, and project-bound changes", () => {
+    const source = fixture();
     const manifest = applyArrangementCommand(
-      fixture(),
+      source,
       {
-        type: "duplicateClip",
-        trackId: uuid(2),
-        clipId: uuid(3),
+        type: "pasteClip",
+        targetTrackId: uuid(2),
+        clipboard: copyArrangementClip(source, uuid(2), uuid(3)),
         newClipId: uuid(6),
       },
       context,
@@ -326,11 +374,11 @@ describe("arrangement commands", () => {
           type: "moveClip",
           trackId: uuid(2),
           clipId: uuid(3),
-          startTick: 4_560,
+          startTick: 34_560_000,
         },
         context,
       ),
-    ).toThrow(/project duration/);
+    ).toThrow(/ten-minute duration/);
   });
 
   it("trims and loops MIDI only within the immutable version bounds", () => {

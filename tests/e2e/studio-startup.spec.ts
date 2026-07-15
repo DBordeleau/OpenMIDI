@@ -204,7 +204,8 @@ test.describe("studio startup smoke", () => {
       name: /MIDI clip on New MIDI part/,
     });
     await expect(arrangedClip).toBeFocused();
-    await page.keyboard.press("Control+d");
+    await page.keyboard.press("Control+c");
+    await page.keyboard.press("Control+v");
     await expect(arrangedClip).toHaveCount(2);
     await expect(page.getByText("Arrangement saved.")).toBeVisible({
       timeout: 10_000,
@@ -217,6 +218,13 @@ test.describe("studio startup smoke", () => {
     await expect(clips).toHaveCount(2);
     const clip = clips.first();
     await expect(clip).toBeVisible();
+    await page
+      .getByRole("button", { name: /Select track New MIDI part\./ })
+      .click();
+    await page.getByRole("button", { name: "Duplicate MIDI track" }).click();
+    await expect(
+      page.getByRole("button", { name: /MIDI clip on New MIDI part copy/ }),
+    ).toHaveCount(2);
     await clip.click();
     await page.keyboard.press("Control+c");
     await page.getByRole("button", { name: "Add a track" }).click();
@@ -229,8 +237,11 @@ test.describe("studio startup smoke", () => {
     await clips.nth(1).scrollIntoViewIfNeeded();
     const sourceBox = await clips.nth(1).boundingBox();
     const targetLaneBox = await page
+      .getByRole("listitem")
+      .filter({
+        has: page.getByRole("button", { name: /Select track Layered keys\./ }),
+      })
       .locator("[data-arranger-track-id]")
-      .nth(1)
       .boundingBox();
     if (!sourceBox || !targetLaneBox)
       throw new Error("Track lanes not laid out");
@@ -248,6 +259,24 @@ test.describe("studio startup smoke", () => {
     await expect(
       page.getByRole("button", { name: /MIDI clip on Layered keys/ }),
     ).toHaveCount(2);
+    const spacedClip = page
+      .getByRole("button", { name: /MIDI clip on Layered keys/ })
+      .nth(1);
+    await spacedClip.scrollIntoViewIfNeeded();
+    const spacedClipBox = await spacedClip.boundingBox();
+    if (!spacedClipBox) throw new Error("MIDI clip not laid out");
+    await page.mouse.move(
+      spacedClipBox.x + spacedClipBox.width / 2,
+      spacedClipBox.y + spacedClipBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      spacedClipBox.x + spacedClipBox.width / 2 + 50,
+      spacedClipBox.y + spacedClipBox.height / 2,
+      { steps: 4 },
+    );
+    await page.mouse.up();
+    await expect(page.getByLabel("Start tick")).toHaveValue("7920");
     await expect(page.getByText("Arrangement saved.")).toBeVisible({
       timeout: 10_000,
     });
@@ -255,6 +284,11 @@ test.describe("studio startup smoke", () => {
     await expect(
       page.getByRole("button", { name: /MIDI clip on Layered keys/ }),
     ).toHaveCount(2);
+    await page
+      .getByRole("button", { name: /MIDI clip on Layered keys/ })
+      .nth(1)
+      .click();
+    await expect(page.getByLabel("Start tick")).toHaveValue("7920");
 
     await clip.dblclick();
     await expect(
@@ -274,7 +308,7 @@ test.describe("studio startup smoke", () => {
       page.getByText(/immutable and replaced only the selected clip/),
     ).toBeVisible({ timeout: 10_000 });
     await expect(
-      page.getByRole("button", { name: /MIDI clip on New MIDI part/ }),
+      page.getByRole("button", { name: /^MIDI clip on New MIDI part,/ }),
     ).toHaveCount(1);
 
     await page.getByLabel("New MIDI part compact gain").fill("-3");

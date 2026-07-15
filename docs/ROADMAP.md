@@ -279,9 +279,9 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ### STUDIO-04 — Core arrangement interactions
 
-**Outcome:** Pointer and keyboard users can reorder tracks and move, duplicate/copy/paste, trim, loop, delete, and undo/redo clips. Audio split is enabled only after manifest-v2 projections survive save/publish/submit/accept/fork exactly.
+**Outcome:** Pointer and keyboard users can reorder or duplicate tracks and move, copy/paste, trim, loop, delete, and undo/redo clips. Audio split is enabled only after manifest-v2 projections survive save/publish/submit/accept/fork exactly.
 
-**Delivered:** A deterministic validated command/history layer now drives pointer drag, keyboard, snap/no-snap, and exact inspector edits. MIDI clips support source trim, duration, loop, duplicate/copy/paste/delete and selected-clip-only version replacement; audio clips support bounded move/trim/duplicate/split inside their immutable asset track. Semantic edits feed debounced conflict-safe workspace saves and local recovery, while adapter and pgTAP fixtures prove every secondary MIDI/audio clip survives publication, contribution acceptance, and fork projections.
+**Delivered:** A deterministic validated command/history layer now drives pointer drag, keyboard, snap/no-snap, and exact inspector edits. MIDI tracks duplicate into new lanes with fresh stable IDs; MIDI clips support source trim, duration, loop, copy/paste/delete and selected-clip-only version replacement. Audio clips support bounded move/trim/split inside their immutable asset track. Semantic edits feed debounced conflict-safe workspace saves and local recovery, while adapter and pgTAP fixtures prove every secondary MIDI/audio clip survives publication, contribution acceptance, and fork projections.
 
 ### STUDIO-05 — Integrated MIDI composition and recording
 
@@ -307,7 +307,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 **Slices:** `UX-01` transport, live mixer, drag, and continuous timeline correctness; `UX-02` DAW shell and blank Studio; `UX-03` inline track creation and track-as-container workflow; `UX-04` piano feel, labels, initial viewport, active-note feedback, and pointer glissando; `UX-05` marquee selection and block editing.
 
-**Delivered through UX-03:** Playback now follows one browser-audio clock through live mixer changes, continuous seeking, and clip drag completion. `/studio` renders a runtime-free blank workstation with a compact File menu. Selected sessions keep an in-context Add a track row, session-only named pending lanes, direct blank/imported piano-roll drafts, atomic immutable finalization with focus return, same-track multi-clip duplication/paste, and compatible two-axis MIDI move/copy while exact version and credit lineage remain authoritative.
+**Delivered through UX-03:** Playback now follows one browser-audio clock through live mixer changes, continuous seeking, and clip drag completion. `/studio` renders a runtime-free blank workstation with a compact File menu. Selected sessions keep an in-context Add a track row, session-only named pending lanes, direct blank/imported piano-roll drafts, atomic immutable finalization with focus return, same-track multi-clip copy/paste, full MIDI-track duplication, freely spaced non-overlapping clips, and compatible two-axis MIDI move/copy while exact version and credit lineage remain authoritative.
 
 **Implementation authority:** The detailed slice plan is intentionally local at `local/implementation-plans/023-studio-midi-usability-pass.md`. Tracked architecture, design, evidence, and this roadmap are updated as each behavior lands. Signal is an MIT-licensed interaction reference pinned in the plan and existing third-party notice; Jam Session retains its own state, persistence, authorization, collaboration, styling, and browser-runtime boundaries.
 

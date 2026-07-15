@@ -272,6 +272,21 @@ export function ArrangerWorkspace(props: Props) {
     return lane?.getAttribute("data-arranger-track-id") ?? null;
   }
 
+  function duplicateMidiTrack(trackId: string) {
+    const track = props.manifest.tracks.find(
+      (candidate) => candidate.trackId === trackId,
+    );
+    if (track?.kind !== "midi") return;
+    const newTrackId = crypto.randomUUID();
+    const applied = props.onCommand({
+      type: "duplicateMidiTrack",
+      trackId,
+      newTrackId,
+      newClipIds: track.clips.map(() => crypto.randomUUID()),
+    });
+    if (applied) setSelection({ kind: "track", trackId: newTrackId });
+  }
+
   function cancelClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
     setClipDrag(null);
@@ -349,6 +364,16 @@ export function ArrangerWorkspace(props: Props) {
           props.onRedo();
           return;
         }
+        if (
+          selection &&
+          modifier &&
+          event.key.toLowerCase() === "d" &&
+          selectedTrack?.kind === "midi"
+        ) {
+          event.preventDefault();
+          duplicateMidiTrack(selection.trackId);
+          return;
+        }
         if (selection?.kind === "clip" && modifier) {
           const key = event.key.toLowerCase();
           if (key === "c") {
@@ -370,16 +395,6 @@ export function ArrangerWorkspace(props: Props) {
               clipboard,
               newClipId: crypto.randomUUID(),
               startTick: props.playheadTick,
-            });
-            return;
-          }
-          if (key === "d") {
-            event.preventDefault();
-            props.onCommand({
-              type: "duplicateClip",
-              trackId: selection.trackId,
-              clipId: selection.clipId,
-              newClipId: crypto.randomUUID(),
             });
             return;
           }
@@ -1011,14 +1026,6 @@ export function ArrangerWorkspace(props: Props) {
                   startTick: props.playheadTick,
                 });
               }}
-              onDuplicate={() =>
-                props.onCommand({
-                  type: "duplicateClip",
-                  trackId: selectedTrack.trackId,
-                  clipId: selectedClip.clipId,
-                  newClipId: crypto.randomUUID(),
-                })
-              }
               onDelete={() => {
                 props.onCommand({
                   type: "deleteMidiClip",
@@ -1048,6 +1055,7 @@ export function ArrangerWorkspace(props: Props) {
                 props.onTrackPatch(selectedTrack.trackId, patch)
               }
               onRemove={() => props.onRemoveTrack(selectedTrack.trackId)}
+              onDuplicate={() => duplicateMidiTrack(selectedTrack.trackId)}
             />
           )}
         </aside>
@@ -1152,11 +1160,13 @@ function TrackInspector({
   editable,
   onPatch,
   onRemove,
+  onDuplicate,
 }: {
   track: ReturnType<typeof buildArrangerViewModel>["tracks"][number];
   editable: boolean;
   onPatch: (patch: Partial<WorkspaceTrackV2>) => void;
   onRemove: () => void;
+  onDuplicate: () => void;
 }) {
   return (
     <div className="mt-3 space-y-3">
@@ -1193,13 +1203,24 @@ function TrackInspector({
         />
       </label>
       {editable && (
-        <button
-          className="text-danger inline-flex items-center gap-2 text-sm underline"
-          type="button"
-          onClick={onRemove}
-        >
-          <FiTrash2 /> Remove track
-        </button>
+        <div className="flex flex-wrap gap-3">
+          {track.kind === "midi" && (
+            <button
+              className="border-strong hover:border-accent inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold"
+              type="button"
+              onClick={onDuplicate}
+            >
+              <FiLayers /> Duplicate MIDI track
+            </button>
+          )}
+          <button
+            className="text-danger inline-flex items-center gap-2 text-sm underline"
+            type="button"
+            onClick={onRemove}
+          >
+            <FiTrash2 /> Remove track
+          </button>
+        </div>
       )}
     </div>
   );
@@ -1216,7 +1237,6 @@ function ClipInspector({
   canPaste,
   onCopy,
   onPaste,
-  onDuplicate,
   onDelete,
   onSplit,
 }: {
@@ -1232,7 +1252,6 @@ function ClipInspector({
   canPaste: boolean;
   onCopy: () => void;
   onPaste: () => void;
-  onDuplicate: () => void;
   onDelete: () => void;
   onSplit: (splitOffsetMs: number) => void;
 }) {
@@ -1265,15 +1284,6 @@ function ClipInspector({
             onClick={onPaste}
           >
             <FiLayers />
-          </button>
-          <button
-            type="button"
-            className={iconButton}
-            aria-label="Duplicate selected clip"
-            title="Duplicate selected clip"
-            onClick={onDuplicate}
-          >
-            <FiCopy />
           </button>
           {clip.kind === "midi" && (
             <button
