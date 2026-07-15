@@ -8,12 +8,13 @@ import { ReviewContributionForm } from "@/features/contributions/review-contribu
 import { SubmissionPanel } from "@/features/contributions/submission-panel.client";
 import { WithdrawContributionForm } from "@/features/contributions/withdraw-contribution-form";
 import { projectIdSchema } from "@/features/projects/schema";
+import type { VersionedWorkspaceManifest } from "@/features/studio/manifest/schema";
 import {
   getContributionForViewer,
   getContributionVersionPlayback,
 } from "@/server/repositories/contributions";
 import { getRevisionPlayback } from "@/server/repositories/revisions";
-import { listMidiStemVersionsForStudio } from "@/server/repositories/midi-stems";
+import { getMidiStemVersionsByIds } from "@/server/repositories/midi-stems";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
 const labels = {
@@ -64,7 +65,7 @@ export default async function ContributionDetailPage({
   const currentVersion = contribution.versions.find(
     (version) => version.id === contribution.currentVersionId,
   );
-  const [submittedPlayback, currentPlayback, midiVersions] =
+  const [submittedPlayback, currentPlayback] =
     isOwner && currentVersion && contribution.currentProjectRevisionId
       ? await Promise.all([
           getContributionVersionPlayback({
@@ -76,9 +77,15 @@ export default async function ContributionDetailPage({
             projectId,
             revisionId: contribution.currentProjectRevisionId,
           }),
-          listMidiStemVersionsForStudio(),
         ])
-      : [null, null, []];
+      : [null, null];
+  const midiVersions =
+    submittedPlayback && currentPlayback
+      ? await getMidiStemVersionsByIds([
+          ...collectMidiStemVersionIds(submittedPlayback.manifest),
+          ...collectMidiStemVersionIds(currentPlayback.manifest),
+        ])
+      : [];
   const stale =
     contribution.currentProjectRevisionId !== contribution.baseRevisionId;
   return (
@@ -285,4 +292,14 @@ export default async function ContributionDetailPage({
       </Container>
     </main>
   );
+}
+
+function collectMidiStemVersionIds(manifest: VersionedWorkspaceManifest) {
+  return manifest.manifestVersion === 2
+    ? manifest.tracks.flatMap((track) =>
+        track.kind === "midi"
+          ? track.clips.map((clip) => clip.midiStemVersionId)
+          : [],
+      )
+    : [];
 }

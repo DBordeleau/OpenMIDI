@@ -125,12 +125,31 @@ test.describe("studio startup smoke", () => {
     ).toBeVisible();
     await firstProject.getByRole("button", { name: "Open in Studio" }).click();
     await expect(page).toHaveURL(firstUrl);
+
+    for (const title of [secondTitle, firstTitle, secondTitle, firstTitle]) {
+      await page
+        .getByRole("navigation", { name: "Studio" })
+        .getByRole("button", { name: "Open project" })
+        .click();
+      await page
+        .getByRole("listitem")
+        .filter({ hasText: title })
+        .getByRole("button", { name: "Open in Studio" })
+        .click();
+      await expect(
+        page.getByRole("region", { name: "Arrangement workspace" }),
+      ).toHaveCount(1);
+      await expect(
+        page.getByRole("heading", { name: "Perform a take" }),
+      ).toHaveCount(0);
+    }
+    await expect(page).toHaveURL(firstUrl);
   });
 
   test("composes, records, and atomically replaces one MIDI clip in Studio", async ({
     page,
   }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
     await ensureStudioActorProfile();
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
@@ -201,6 +220,40 @@ test.describe("studio startup smoke", () => {
     await expect(
       page.getByRole("button", { name: /MIDI clip on New MIDI part/ }),
     ).toHaveCount(1);
+
+    await page.getByLabel("New MIDI part compact gain").fill("-3");
+    await expect(page.getByText("Arrangement saved.")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.locator("summary").filter({ hasText: "Actions" }).click();
+    const exportPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export .mid" }).first().click();
+    const exportedMidi = await exportPromise;
+    expect(exportedMidi.suggestedFilename()).toMatch(/\.mid$/);
+
+    await page
+      .getByRole("button", { name: "Publish immutable revision" })
+      .click();
+    await expect(
+      page.getByText("Revision 1 published with exact MIDI stem references."),
+    ).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("link", { name: "Return to project" }).click();
+    await expect(page.getByText("Current revision 1")).toBeVisible();
+    await page.getByRole("button", { name: /Play Integrated MIDI/ }).click();
+    await expect(page.getByText("Now playing")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByRole("link", { name: "Fork this revision" }).click();
+    await page.getByLabel("Project title").fill("Integrated MIDI fork");
+    await page.getByRole("button", { name: "Create private fork" }).click();
+    await expect(page.getByText("Private fork created.")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(
+      page.getByRole("heading", { name: "Integrated MIDI fork" }),
+    ).toBeVisible();
   });
 
   test("opens an editable published revision in one navigation", async ({
@@ -384,6 +437,7 @@ async function createProjectInStudio(
     .click();
   const dialog = page.getByRole("dialog", { name: "Create a project" });
   await dialog.getByLabel("Title").fill(title);
+  await dialog.getByLabel("License").selectOption("cc-by-4.0");
   await dialog
     .getByRole("button", { name: "Create project and open Studio" })
     .click();

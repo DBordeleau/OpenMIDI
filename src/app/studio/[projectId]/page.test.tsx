@@ -17,6 +17,7 @@ vi.mock("@/server/repositories/contributions", () => ({
   getContributionForViewer: vi.fn(),
 }));
 vi.mock("@/server/repositories/midi-stems", () => ({
+  getMidiStemVersionsByIds: vi.fn(),
   listMidiStemVersionsForStudio: vi.fn(),
 }));
 vi.mock("@/server/repositories/revisions", () => ({

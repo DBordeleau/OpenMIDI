@@ -157,6 +157,8 @@ For the MVP, this workspace uses a Jam Session-owned composite client-only adapt
 
 The active prototype creation path is MIDI-first so the application can remain inside a $0 infrastructure budget. New source-audio admission is disabled only after the complete MIDI creation and collaboration journey is available. This is a global prototype capability, not a payment or entitlement system.
 
+Repository implementation now covers that Studio-native journey and its compatibility regressions. The hosted capability remains enabled until an authorized operator accepts the parity evidence and performs the separately approved transition; repository completion is not authority to mutate hosted admission.
+
 Existing audio projects and immutable history remain private, playable, downloadable, exportable, forkable, and compatible with publication/contribution workflows. They are not deleted, hidden, converted to MIDI, or made public. New projects default to MIDI; a legacy project may combine its already-referenced audio with newly created MIDI tracks.
 
 At minimum, users must be able to:

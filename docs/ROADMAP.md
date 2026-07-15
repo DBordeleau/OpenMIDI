@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-05 complete; STUDIO-06 and the Studio-native parity/audio-lock gate are next before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-06 complete; hosted evidence acceptance and the separately authorized audio-lock transition remain before PR 18
 
 ## Purpose
 
@@ -37,23 +37,23 @@ The current MVP supports:
 The remaining roadmap programs before PR 18 are:
 
 1. **`MIDI-01`–`MIDI-07` — MIDI-first foundation and transition readiness:** complete. The versioned stem/editor/runtime/collaboration path and reversible source-admission capability are implemented and tested while admission remains enabled.
-2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** active. The project-independent shell and safe switching/creation are complete; next replace the form-like composite UI with a unified audio/MIDI timeline, add clip editing, integrate MIDI composition/recording, and enable the audio lock only after parity/hardening.
+2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** repository complete. Hosted parity acceptance and the separately authorized source-admission transition remain operational gates.
 
 After both programs complete, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
 
 ### Progress at a glance
 
-| Phase | Theme                          | PRs             | Status       | Exit outcome                                                                               |
-| ----- | ------------------------------ | --------------- | ------------ | ------------------------------------------------------------------------------------------ |
-| A     | Backend and product foundation | 01–04           | Complete     | Local/remote Supabase foundation, responsive shell, tested identity/RLS, and onboarding    |
-| B     | Feasibility and core domain    | 05–08           | Complete     | Browser-audio risk retired; private projects, assets, and immutable first publishing work  |
-| C     | Browser workspace              | 09–11.5         | Complete     | Users can play, edit, autosave, reopen, export, publish, and recover source verification   |
-| D     | Collaboration graph            | 12–15           | Complete     | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end     |
-| O     | $0 audio optimization          | OPT-01–OPT-05   | Complete     | Studio is usable before stems finish and legacy audio has measured efficient delivery      |
-| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Complete     | MIDI foundations and reversible transition control are complete; admission remains enabled |
-| S     | Studio-forward workspace       | STUDIO-01–06    | Active (2/6) | Studio becomes the primary creation/arrangement path; parity then enables the audio lock   |
-| E     | Discovery and community safety | 16–18           | Paused (2/3) | Public discovery/profiles are complete; PR 18 resumes after the interruption slices        |
-| F     | MVP hardening and release      | 19–20           | Pending      | Measured hardening and a rehearsed invited-user deployment                                 |
+| Phase | Theme                          | PRs             | Status              | Exit outcome                                                                               |
+| ----- | ------------------------------ | --------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| A     | Backend and product foundation | 01–04           | Complete            | Local/remote Supabase foundation, responsive shell, tested identity/RLS, and onboarding    |
+| B     | Feasibility and core domain    | 05–08           | Complete            | Browser-audio risk retired; private projects, assets, and immutable first publishing work  |
+| C     | Browser workspace              | 09–11.5         | Complete            | Users can play, edit, autosave, reopen, export, publish, and recover source verification   |
+| D     | Collaboration graph            | 12–15           | Complete            | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end     |
+| O     | $0 audio optimization          | OPT-01–OPT-05   | Complete            | Studio is usable before stems finish and legacy audio has measured efficient delivery      |
+| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Complete            | MIDI foundations and reversible transition control are complete; admission remains enabled |
+| S     | Studio-forward workspace       | STUDIO-01–06    | Repository complete | Studio is the primary creation path; hosted acceptance and lock transition remain          |
+| E     | Discovery and community safety | 16–18           | Paused (2/3)        | Public discovery/profiles are complete; PR 18 resumes after the interruption slices        |
+| F     | MVP hardening and release      | 19–20           | Pending             | Measured hardening and a rehearsed invited-user deployment                                 |
 
 ## Delivery principles
 
@@ -251,7 +251,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program S — Studio-forward workspace
 
-**Status:** Active — STUDIO-01–STUDIO-05 are complete and STUDIO-06 is next; six slices are required before PR 18 and final audio-lock enablement
+**Status:** Repository complete — STUDIO-01–STUDIO-06 are implemented; hosted evidence acceptance and the separately authorized audio-lock transition remain before PR 18
 
 **Outcome:** Jam Session Studio becomes the primary authenticated music-making workspace where users create, open, close, and safely switch one authorized project; arrange audio and MIDI on one timeline; and compose or record MIDI in project context. Projects/workspaces and immutable stem versions remain authority while the editor/audio runtime stays lazy, client-only, and disposable.
 
@@ -291,13 +291,15 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 **Outcome:** Route/deep-link compatibility, session and MIDI-draft disposal, signed-source refresh, performance, accessibility, browser behavior, collaboration, exports, and legacy regressions pass. Only then is new source admission disabled at database authority with a rehearsed rollback.
 
+**Delivered:** The broad local journey covers Studio-owned creation, integrated MIDI composition/recording, arrangement/mix persistence, publication/preview/export, contributions, acceptance, and forks. Exact referenced MIDI versions now load for read-only revision and contribution surfaces, alternate Studio surfaces no longer require the canonical shell provider, repeated switching proves one live workspace, and stale clients rely on the atomic reservation RPC for authoritative lock denial. The 8-track/2,000-note benchmark and disabled-mode transition are recorded in the [STUDIO-06 evidence](technical-design/evidence/studio-06-parity-hardening.md). Hosted admission remains enabled pending separate authorization.
+
 **Deferred outside this program:** pitch shift, coupled varispeed, pitch-preserving time stretch, multiple simultaneous live projects, OpenDAW integration, plugins/effects/automation, and professional-DAW parity. These require separate evidence and product/format decisions and do not block the invited MVP.
 
 **Acceptance gate:** `/studio` is useful without a selected project; selected routes reauthorize; acknowledged arrangement and MIDI-draft edits are preserved or explicitly recovered; only one project graph and one armed draft remain live; supported clip state is deterministic across immutable collaboration flows; a musician completes creation/recording/arranging without leaving Studio; v1 audio and standalone MIDI routes remain compatible; and the audio lock is enabled only after this evidence is accepted.
 
 ### PR 18 — Moderation, retention, quotas, and storage operations
 
-**Status:** Pending after programs M and S
+**Status:** Pending operational handoff — programs M and S are repository-complete; record the deployed hosted parity review and final source-admission capability state before implementation
 
 **Outcome:** The invited demo can be operated safely within Supabase Free limits using manual reports and deterministic cleanup that cannot break surviving history.
 
@@ -359,9 +361,9 @@ Status: Pending
 ## Dependency and sequencing rules
 
 - PRs within a phase or named interruption are ordered unless a tracked decision explicitly says otherwise.
-- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` complete before PR 18.
+- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` and its recorded hosted capability handoff complete before PR 18.
 - MIDI-01 owns the route-neutral session/adapter and manifest-v2 clip contracts; MIDI-05 owns the composite runtime, normalized clip foundations, and atomic empty-workspace creation required by the later Studio slices.
-- MIDI-07 installs/tests the source-admission capability while leaving it enabled. STUDIO-06 enables the lock only after the complete Studio-native MIDI parity gate; source reservation authority, not hidden controls, enforces it.
+- MIDI-07 installs/tests the source-admission capability while leaving it enabled. STUDIO-06 provides the repository parity evidence; an authorized hosted review and separately approved mutation determine and record the final capability state. Source reservation authority, not hidden controls, enforces any lock.
 - PR 18 follows all audio, derived-asset, and MIDI reference types so retention can prove that surviving history is safe.
 - PR 19 begins only after functional PR 18 correctness is complete; it is not a place to defer known authorization or retention debt.
 - PR 20 begins only after PR 19 hardening evidence and all required hosted configuration decisions are available.

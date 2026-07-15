@@ -133,5 +133,13 @@ test.describe("source-admission transition", () => {
       );
       if (enableError) throw enableError;
     }
+
+    await page.reload();
+    await expect(page.getByLabel("Choose source audio")).toBeEnabled();
+    await expect(
+      page.getByText(
+        /Audio uploads are unavailable during the prototype while Jam Session evaluates sustainable storage/i,
+      ),
+    ).toHaveCount(0);
   });
 });

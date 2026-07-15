@@ -3,11 +3,17 @@ import { notFound } from "next/navigation";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { StudioLauncher } from "@/features/studio/components/studio-launcher.client";
-import { MIDI_PPQ } from "@/features/studio/manifest/v2";
+import {
+  MIDI_PPQ,
+  type WorkspaceManifestV2,
+} from "@/features/studio/manifest/v2";
 import type { StudioSessionDescriptor } from "@/features/studio/session-contract";
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form";
 import { getContributionForViewer } from "@/server/repositories/contributions";
-import { listMidiStemVersionsForStudio } from "@/server/repositories/midi-stems";
+import {
+  getMidiStemVersionsByIds,
+  listMidiStemVersionsForStudio,
+} from "@/server/repositories/midi-stems";
 import { listWorkspaceAssetOptions } from "@/server/repositories/revisions";
 import { resolveStudioSession } from "@/server/services/studio-session";
 
@@ -34,12 +40,26 @@ export default async function StudioProjectPage({
     workspace?.manifest.manifestVersion === 1
       ? await listWorkspaceAssetOptions()
       : null;
-  const midiVersions =
-    (workspace &&
-      (project.ownerId === viewer.id || workspace.contributionId !== null)) ||
-    revision?.manifest.manifestVersion === 2
+  const sessionManifest = workspace?.manifest ?? revision?.manifest;
+  const referencedMidiVersions =
+    sessionManifest?.manifestVersion === 2
+      ? await getMidiStemVersionsByIds(
+          collectMidiStemVersionIds(sessionManifest),
+        )
+      : [];
+  const ownedMidiVersions =
+    workspace &&
+    (project.ownerId === viewer.id || workspace.contributionId !== null)
       ? await listMidiStemVersionsForStudio()
       : [];
+  const midiVersions = [
+    ...new Map(
+      [...referencedMidiVersions, ...ownedMidiVersions].map((version) => [
+        version.stemVersionId,
+        version,
+      ]),
+    ).values(),
+  ];
   const workspaceDurationMs = workspace
     ? workspace.manifest.manifestVersion === 1
       ? Math.max(
@@ -185,4 +205,12 @@ function sessionAuthorityKey(descriptor: StudioSessionDescriptor) {
     case "contributionVersionReview":
       return `${descriptor.project.projectId}:${descriptor.authority.versionId}`;
   }
+}
+
+function collectMidiStemVersionIds(manifest: WorkspaceManifestV2) {
+  return manifest.tracks.flatMap((track) =>
+    track.kind === "midi"
+      ? track.clips.map((clip) => clip.midiStemVersionId)
+      : [],
+  );
 }

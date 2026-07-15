@@ -300,8 +300,9 @@ export function StudioStartActions() {
 export function useStudioLifecycleRegistration(
   port: StudioSessionLifecyclePort,
 ) {
-  const { registerLifecycle } = useStudioShell();
-  useEffect(() => registerLifecycle(port), [port, registerLifecycle]);
+  const shell = useContext(StudioShellContext);
+  const registerLifecycle = shell?.registerLifecycle;
+  useEffect(() => registerLifecycle?.(port), [port, registerLifecycle]);
 }
 
 function useStudioShell() {

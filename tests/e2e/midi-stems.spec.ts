@@ -147,7 +147,11 @@ test.describe("standalone MIDI stem editor", () => {
     await expect(page.getByText("Warm Poly · 6 notes").first()).toBeVisible();
     await expect(page.getByText(/6 notes · immutable/)).toBeVisible();
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download .mid" }).click();
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "E2E night chords" })
+      .getByRole("button", { name: "Download .mid" })
+      .click();
     const download = await downloadPromise;
     const midiPath = await download.path();
     expect(midiPath).toBeTruthy();

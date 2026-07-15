@@ -16,6 +16,8 @@ import type {
 import { resolveSynthPreset } from "@/features/midi/presets";
 
 type DraftRow = Database["public"]["Tables"]["midi_stem_drafts"]["Row"];
+type VersionRow = Database["public"]["Tables"]["midi_stem_versions"]["Row"];
+const MIDI_VERSION_ID_QUERY_BATCH_SIZE = 100;
 
 function mapDraft(row: DraftRow): MidiStemDraft {
   const parsed = parseMidiStemDraft({
@@ -103,6 +105,10 @@ export async function getMidiStemVersion(
     .maybeSingle();
   if (error) throw new Error("midi_stems_unavailable");
   if (!data) return null;
+  return mapVersion(data);
+}
+
+function mapVersion(data: VersionRow): MidiStemVersion {
   const parsed = parseMidiStemVersion({
     stemVersionId: data.id,
     stemId: data.stem_id,
@@ -140,13 +146,44 @@ export async function getMidiStemVersion(
 export async function listMidiStemVersionsForStudio(): Promise<
   MidiStemVersion[]
 > {
-  const summaries = await listMidiStemVersions();
-  const versions = await Promise.all(
-    summaries.map(({ stemVersionId }) => getMidiStemVersion(stemVersionId)),
-  );
-  return versions.filter(
-    (version): version is MidiStemVersion => version !== null,
-  );
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("midi_stem_versions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(500);
+  if (error) throw new Error("midi_stems_unavailable");
+  return data.map(mapVersion);
+}
+
+export async function getMidiStemVersionsByIds(
+  stemVersionIds: string[],
+): Promise<MidiStemVersion[]> {
+  const uniqueIds = [...new Set(stemVersionIds)];
+  if (uniqueIds.length === 0) return [];
+  const db = await createSupabaseServerClient();
+  const rows: VersionRow[] = [];
+  for (
+    let offset = 0;
+    offset < uniqueIds.length;
+    offset += MIDI_VERSION_ID_QUERY_BATCH_SIZE
+  ) {
+    const batch = uniqueIds.slice(
+      offset,
+      offset + MIDI_VERSION_ID_QUERY_BATCH_SIZE,
+    );
+    const { data, error } = await db
+      .from("midi_stem_versions")
+      .select("*")
+      .in("id", batch);
+    if (error) throw new Error("midi_stems_unavailable");
+    rows.push(...data);
+  }
+  const versions = new Map(rows.map((row) => [row.id, mapVersion(row)]));
+  if (versions.size !== uniqueIds.length)
+    throw new Error("midi_stem_reference_unavailable");
+  return uniqueIds.map((id) => versions.get(id)!);
 }
 
 export async function getMidiStemDraft(

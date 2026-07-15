@@ -533,6 +533,8 @@ Scope:
 - retain the compatibility redirect unless evidence justifies removal; keeping it indefinitely is acceptable if it remains cheap and tested; and
 - update PRD, roadmap, architecture, brand implementation map, README, agent/testing guidance, and PR 18 handoff.
 
+Implemented in the repository: the complete Studio-native create-to-export path and retained collaboration/legacy paths are exercised locally; exact referenced MIDI data is loaded through existing RLS for read-only revision and contribution playback; lifecycle registration is optional for compatible surfaces outside the canonical shell; repeated switching and disabled-admission rollback are covered. Performance results and remaining manual/hosted gates are recorded in the STUDIO-06 evidence. No hosted mutation was authorized, so source admission remains enabled and PR 18 must begin from that recorded capability state unless an operator completes the runbook first.
+
 ### Post-MVP DSP research — not sequenced delivery
 
 Pitch shift, coupled varispeed, and pitch-preserving time stretch remain separate evidence spikes. Each must end in adopt/defer/reject. Only an adopted behavior receives a versioned manifest field, normalized projection if queryable, adapter fixtures, publish/submission/accept/fork coverage, and user-facing controls. None blocks STUDIO-04, PR 18, or the invited MVP.

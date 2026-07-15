@@ -62,6 +62,8 @@ const env = {
   SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
   ENABLE_TEST_AUTH: "true",
   LOCAL_E2E: "true",
+  ENABLE_CONTRIBUTION_E2E: "true",
+  ENABLE_FORK_E2E: "true",
   E2E_EXTERNAL_SERVER: "true",
   NEXT_DIST_DIR: ".next-e2e",
   TEST_AUTH_EMAIL:

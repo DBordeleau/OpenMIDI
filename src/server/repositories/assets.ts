@@ -15,9 +15,11 @@ import {
 export async function getSourceAdmissionCapability(): Promise<boolean> {
   const db = await createSupabaseServerClient();
   const { data, error } = await db.rpc("get_source_admission_capability");
-  if (error) return false;
+  if (error) throw new Error("source_admission_capability_unavailable");
   const row = (data as unknown as Record<string, unknown>[] | null)?.[0];
-  return row?.source_audio_admission_enabled === true;
+  if (typeof row?.source_audio_admission_enabled !== "boolean")
+    throw new Error("source_admission_capability_unavailable");
+  return row.source_audio_admission_enabled;
 }
 
 export async function listOwnedSourceAssets(): Promise<OwnedSourceAsset[]> {

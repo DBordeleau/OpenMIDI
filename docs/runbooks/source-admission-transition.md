@@ -2,6 +2,8 @@
 
 MIDI-07 installs a reversible database-authoritative control for new `source_audio` reservations. The migration inserts the single trusted control row with admission **enabled**. This runbook does not authorize changing a hosted environment; STUDIO-06 must first accept the complete Studio-native parity evidence and obtain separate hosted-mutation approval.
 
+STUDIO-06 repository parity and the local disabled/rollback rehearsal are complete. Hosted evidence acceptance, deployment confirmation, and capability mutation were not authorized, so the current hosted state remains **enabled** and the procedure below remains pending.
+
 ## Authority and compatibility
 
 - `private.source_admission_control` is the authoritative global prototype state. It is not exposed through the Data API and is not a plan, payment, or per-user entitlement.

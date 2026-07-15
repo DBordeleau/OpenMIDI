@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-05 with STUDIO-06 next before M6
+Status: Accepted; repository implemented through PR 17, OPT-05, MIDI-07, and STUDIO-06; hosted lock transition remains before M6/PR 18
 
 ## Delivery strategy
 
@@ -109,10 +109,10 @@ Exit: the MIDI format, standalone editor foundation, immutable collaboration gra
 - `STUDIO-03` (complete): replace the form-like composite surface with one coherent arranger shell: shared ruler/playhead, audio waveform lanes, MIDI note-summary lanes, channel headers, mixer controls, selection, inspector, and transport.
 - `STUDIO-04` (complete): add accessible reorder, clip move, duplicate/copy/paste, trim, loop, snap, and session undo/redo; enable audio split only after exact v2 projection round trips pass.
 - `STUDIO-05` (complete): integrate the existing piano roll and recorder into Studio so users create/derive drafts, compose or record against project transport, then explicitly freeze a version and atomically add or replace the selected clip without putting draft IDs in manifests.
-- `STUDIO-06`: harden routes, deep links, session/draft disposal, signed-source refresh, performance, accessibility, browser behavior, and collaboration regressions; run the complete Studio-native parity gate and only then enable the audio-admission lock.
+- `STUDIO-06` (repository complete): harden routes, deep links, session/draft disposal, performance, alternate read-only surfaces, collaboration regressions, and stale-client admission authority; hosted evidence acceptance and lock enablement remain separate operations.
 - Keep pitch shift, varispeed, pitch-preserving time stretch, OpenDAW, multiple simultaneous live projects, and professional-DAW parity outside the MVP critical path.
 
-Exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; supported state survives immutable collaboration flows; the source-admission lock is enabled only after parity; PR 18 can cover the final MIDI/audio reference graph before launch hardening.
+Repository exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; and supported state survives immutable collaboration flows. Operational exit: the deployed parity result and final source-admission capability state are reviewed and recorded before PR 18 covers the final MIDI/audio reference graph.
 
 ### M6 — Launch hardening
 

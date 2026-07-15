@@ -20,7 +20,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="min-h-screen">
         <Aurora />
         <div className="relative z-10 flex min-h-screen flex-col">

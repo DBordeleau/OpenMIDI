@@ -299,21 +299,23 @@ pages, the create/edit form.
 
 ## 8. Implementation map
 
-| Concern                   | File                                                               |
-| ------------------------- | ------------------------------------------------------------------ |
-| Tokens, gradient, resets  | `src/app/globals.css`                                              |
-| Shared buttons            | `src/components/ui/button.tsx`                                     |
-| Landing page              | `src/app/(public)/page.tsx`                                        |
-| Reveal (entrance anim)    | `src/components/ui/reveal.client.tsx`                              |
-| Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout) |
-| Hero waveform             | `src/app/(public)/_components/hero-waveform.client.tsx`            |
-| Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`             |
-| Header / nav              | `src/components/layout/header-nav.client.tsx`                      |
-| Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`             |
-| Studio surface + theme    | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx` |
-| Icons                     | `react-icons` (Feather set, `react-icons/fi`)                      |
-| Page-transition wrapper   | `src/app/template.tsx`                                             |
-| Musical key formatting    | `src/features/projects/musical-key.ts`                             |
+| Concern                   | File                                                                      |
+| ------------------------- | ------------------------------------------------------------------------- |
+| Tokens, gradient, resets  | `src/app/globals.css`                                                     |
+| Shared buttons            | `src/components/ui/button.tsx`                                            |
+| Landing page              | `src/app/(public)/page.tsx`                                               |
+| Reveal (entrance anim)    | `src/components/ui/reveal.client.tsx`                                     |
+| Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout)        |
+| Hero waveform             | `src/app/(public)/_components/hero-waveform.client.tsx`                   |
+| Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`                    |
+| Header / nav              | `src/components/layout/header-nav.client.tsx`                             |
+| Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`                    |
+| Studio surface + theme    | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx`        |
+| Unified arranger          | `src/features/studio/arranger/arranger-workspace.tsx`                     |
+| Integrated MIDI composer  | `src/features/studio/integrated-midi/integrated-midi-composer.client.tsx` |
+| Icons                     | `react-icons` (Feather set, `react-icons/fi`)                             |
+| Page-transition wrapper   | `src/app/template.tsx`                                                    |
+| Musical key formatting    | `src/features/projects/musical-key.ts`                                    |
 
 ---
 

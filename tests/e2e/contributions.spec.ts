@@ -317,7 +317,9 @@ test.describe("contribution vertical slice", () => {
     await expect(
       page.getByRole("heading", { name: "Arrangement" }),
     ).toBeVisible();
-    await expect(page.getByText("Contributor take")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Contributor take" }),
+    ).toBeVisible();
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Accept contribution" }).click();
     await expect(page.getByText("Accepted as revision 2.")).toBeVisible();
