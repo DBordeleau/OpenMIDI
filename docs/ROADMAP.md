@@ -299,7 +299,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ### PR 18 — Moderation, retention, quotas, and storage operations
 
-**Status:** Pending after programs M and S
+**Status:** Pending operational handoff — programs M and S are repository-complete; record the deployed hosted parity review and final source-admission capability state before implementation
 
 **Outcome:** The invited demo can be operated safely within Supabase Free limits using manual reports and deterministic cleanup that cannot break surviving history.
 
@@ -361,9 +361,9 @@ Status: Pending
 ## Dependency and sequencing rules
 
 - PRs within a phase or named interruption are ordered unless a tracked decision explicitly says otherwise.
-- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` complete before PR 18.
+- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` and its recorded hosted capability handoff complete before PR 18.
 - MIDI-01 owns the route-neutral session/adapter and manifest-v2 clip contracts; MIDI-05 owns the composite runtime, normalized clip foundations, and atomic empty-workspace creation required by the later Studio slices.
-- MIDI-07 installs/tests the source-admission capability while leaving it enabled. STUDIO-06 enables the lock only after the complete Studio-native MIDI parity gate; source reservation authority, not hidden controls, enforces it.
+- MIDI-07 installs/tests the source-admission capability while leaving it enabled. STUDIO-06 provides the repository parity evidence; an authorized hosted review and separately approved mutation determine and record the final capability state. Source reservation authority, not hidden controls, enforces any lock.
 - PR 18 follows all audio, derived-asset, and MIDI reference types so retention can prove that surviving history is safe.
 - PR 19 begins only after functional PR 18 correctness is complete; it is not a place to defer known authorization or retention debt.
 - PR 20 begins only after PR 19 hardening evidence and all required hosted configuration decisions are available.

@@ -112,7 +112,7 @@ Exit: the MIDI format, standalone editor foundation, immutable collaboration gra
 - `STUDIO-06` (repository complete): harden routes, deep links, session/draft disposal, performance, alternate read-only surfaces, collaboration regressions, and stale-client admission authority; hosted evidence acceptance and lock enablement remain separate operations.
 - Keep pitch shift, varispeed, pitch-preserving time stretch, OpenDAW, multiple simultaneous live projects, and professional-DAW parity outside the MVP critical path.
 
-Exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; supported state survives immutable collaboration flows; the source-admission lock is enabled only after parity; PR 18 can cover the final MIDI/audio reference graph before launch hardening.
+Repository exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; and supported state survives immutable collaboration flows. Operational exit: the deployed parity result and final source-admission capability state are reviewed and recorded before PR 18 covers the final MIDI/audio reference graph.
 
 ### M6 — Launch hardening
 

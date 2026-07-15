@@ -8,7 +8,7 @@ Hosted source admission: enabled; no hosted mutation authorized
 
 The canonical Studio now covers project creation, MIDI track creation/import/derivation, piano-roll drawing and recording against project transport, immutable finalize-and-add/replace, arrangement and mix persistence, reload, publication, preview, contribution review/acceptance, copy-on-write fork, and Standard MIDI export. Standalone My stems/editor and manifest-v1 legacy-audio routes remain supported.
 
-Hardening in this slice keeps lifecycle registration optional on alternate read-only Studio surfaces, loads every exact MIDI stem version referenced by authorized revision/contribution manifests through existing RLS, makes reservation mutation rely on the atomic database gate rather than a stale UI preflight, and exercises repeated serial project switching.
+Hardening in this slice keeps lifecycle registration optional on alternate read-only Studio surfaces, loads every exact MIDI stem version referenced by authorized revision/contribution manifests through existing RLS, makes reservation mutation rely on the atomic database gate rather than a stale UI preflight, and exercises repeated serial project switching. The repository review also replaced the owner library's per-version request fan-out with one bounded query and batches exact-reference lookups so the documented manifest ceiling cannot create an oversized request URL.
 
 ## Automated evidence
 
