@@ -25,6 +25,26 @@ export async function resumeMidiAudioContext() {
   return Tone.now();
 }
 
+export function watchMidiAudioContextSuspension(onSuspended: () => void) {
+  let disposed = false;
+  let cleanup = () => {};
+  void import("tone").then((Tone) => {
+    if (disposed) return;
+    const context = Tone.getContext().rawContext;
+    const stateChange = () => {
+      if (context.state === "suspended" || context.state === "closed") {
+        onSuspended();
+      }
+    };
+    context.addEventListener("statechange", stateChange);
+    cleanup = () => context.removeEventListener("statechange", stateChange);
+  });
+  return () => {
+    disposed = true;
+    cleanup();
+  };
+}
+
 export async function createPresetVoice(
   presetId: string,
   version: number,

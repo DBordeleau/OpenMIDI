@@ -48,7 +48,7 @@ test.describe("standalone MIDI stem editor", () => {
     "requires the local gated Auth actor",
   );
 
-  test("creates, edits, autosaves, and reloads a canonical draft", async ({
+  test("creates, records, publishes, downloads, and imports an exact MIDI stem", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -107,7 +107,7 @@ test.describe("standalone MIDI stem editor", () => {
     await expect(page.getByText(/removed\./)).toBeVisible();
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(page.getByText(/5 of 2,048 notes/)).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Saved to My stems.", {
+    await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,
     });
 
@@ -120,10 +120,47 @@ test.describe("standalone MIDI stem editor", () => {
       page.getByLabel("Notes in stem").locator("option").first(),
     ).toContainText("D3 · tick 120");
 
+    await page.getByLabel("One-bar count-in").uncheck();
+    await page.getByLabel("Metronome").uncheck();
+    await page.getByRole("button", { name: "Record", exact: true }).click();
+    const c4 = page.getByRole("button", {
+      name: "Play C4, MIDI note 60",
+    });
+    await c4.dispatchEvent("pointerdown", { pointerId: 1 });
+    await c4.dispatchEvent("pointerup", { pointerId: 1 });
+    await page.getByRole("button", { name: "Stop recording" }).click();
+    await expect(page.getByText(/6 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByText(/5 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Redo" }).click();
+    await expect(page.getByText(/6 of 2,048 notes/)).toBeVisible();
+    await expect(page.getByText("Private draft saved.")).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByRole("button", { name: "Save to My stems" }).click();
+    await expect(page.getByText(/Version 1 is immutable/)).toBeVisible();
+
     await page.getByRole("link", { name: "Back to My stems" }).click();
     await expect(
       page.getByRole("link", { name: "E2E night chords" }).first(),
     ).toBeVisible();
-    await expect(page.getByText("Warm Poly · 5 notes").first()).toBeVisible();
+    await expect(page.getByText("Warm Poly · 6 notes").first()).toBeVisible();
+    await expect(page.getByText(/6 notes · immutable/)).toBeVisible();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download .mid" }).click();
+    const download = await downloadPromise;
+    const midiPath = await download.path();
+    expect(midiPath).toBeTruthy();
+
+    await page.getByRole("link", { name: "Import MIDI" }).click();
+    await page.getByLabel("Standard MIDI file").setInputFiles(midiPath!);
+    await expect(page.getByText(/6 notes/)).toBeVisible();
+    await page
+      .getByRole("button", { name: "Import into private draft" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Shape a reusable stem" }),
+    ).toBeVisible();
+    await expect(page.getByText(/6 of 2,048 notes/)).toBeVisible();
   });
 });

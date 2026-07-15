@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   FiCopy,
+  FiDisc,
   FiCornerUpLeft,
   FiCornerUpRight,
   FiHelpCircle,
@@ -17,6 +18,7 @@ import {
   FiPlay,
   FiPlus,
   FiSave,
+  FiRadio,
   FiSquare,
   FiTrash2,
   FiZap,
@@ -36,7 +38,10 @@ import {
 } from "../semantic-commands";
 import type { PresetVoice } from "../browser-engine/preset-voice.client";
 import { SYNTH_PRESETS_V1, resolveSynthPreset } from "../presets";
-import { saveMidiStemDraftAction } from "./actions";
+import {
+  publishMidiStemVersionAction,
+  saveMidiStemDraftAction,
+} from "./actions";
 import {
   getMidiDraftAutosaveDelay,
   initialMidiDraftSaveState,
@@ -57,6 +62,7 @@ import {
   undoMidiEditor,
 } from "./editor-history";
 import type { MidiStemDraft } from "./types";
+import { useMidiPerformance } from "./use-midi-performance.client";
 
 const PLAYBACK_BPM = 120;
 const PITCH_ROW_HEIGHT = 22;
@@ -164,9 +170,16 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
   );
   const [playing, setPlaying] = useState(false);
   const [playheadTick, setPlayheadTick] = useState(0);
+  const [publicationState, setPublicationState] = useState<
+    | { status: "idle"; message: string }
+    | { status: "publishing"; message: string }
+    | { status: "published"; message: string }
+    | { status: "error"; message: string }
+  >({ status: "idle", message: "" });
   const rollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lockVersionRef = useRef(draft.lockVersion);
+  const contentSha256Ref = useRef(draft.contentSha256);
   const savingRef = useRef(false);
   const dirtySinceRef = useRef<number | null>(null);
   const editGenerationRef = useRef(0);
@@ -232,6 +245,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
     editGenerationRef.current += 1;
     setEditGeneration(editGenerationRef.current);
     dispatchSave({ type: "edit" });
+    setPublicationState({ status: "idle", message: "" });
   }, []);
 
   const stopPlayback = useCallback(() => {
@@ -283,6 +297,49 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
     },
     [presetId],
   );
+
+  const commitRecordedTake = useCallback(
+    (recordedNotes: readonly MidiNoteV1[]) => {
+      const noteIds = recordedNotes.map(({ noteId }) => noteId);
+      if (
+        history.notes.length + recordedNotes.length >
+        MAX_MIDI_NOTES_PER_STEM
+      ) {
+        setNotice("That take would exceed the 2,048-note stem limit.");
+        return;
+      }
+      setHistory(
+        replaceMidiEditorNotes(
+          history,
+          canonicalizeMidiNotes([...history.notes, ...recordedNotes]),
+        ),
+      );
+      setSelectedIds(new Set(noteIds));
+      setNotice(
+        `Recorded ${recordedNotes.length} ${recordedNotes.length === 1 ? "note" : "notes"} as one undoable take.`,
+      );
+      markEdited();
+    },
+    [history, markEdited],
+  );
+
+  const performance = useMidiPerformance({
+    durationTicks: draft.durationTicks,
+    minPitch: preset.minNote,
+    maxPitch: preset.maxNote,
+    existingNoteCount: history.notes.length,
+    audition: (pitch, velocity) => void auditionNote(pitch, velocity),
+    commitTake: commitRecordedTake,
+    announce: setNotice,
+  });
+  const visiblePlayheadTick =
+    performance.status === "idle" ? playheadTick : performance.playheadTick;
+  const performancePitches = useMemo(() => {
+    const base = (performance.octave + 1) * 12;
+    return Array.from({ length: 13 }, (_, offset) => base + offset).filter(
+      (pitch) => pitch >= preset.minNote && pitch <= preset.maxNote,
+    );
+  }, [performance.octave, preset.maxNote, preset.minNote]);
 
   useEffect(() => stopPlayback, [stopPlayback]);
   useEffect(() => stopAudition, [stopAudition]);
@@ -352,6 +409,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
         return;
       }
       lockVersionRef.current = result.lockVersion;
+      contentSha256Ref.current = result.contentSha256;
       if (generation === editGenerationRef.current) {
         dirtySinceRef.current = null;
         clearMidiDraftRecovery(draft.ownerId, draft.draftId);
@@ -603,7 +661,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
 
     const playheadX =
       PIANO_KEY_WIDTH +
-      (playheadTick / MIDI_PPQ) * pixelsPerBeat -
+      (visiblePlayheadTick / MIDI_PPQ) * pixelsPerBeat -
       viewport.scrollLeft;
     context.strokeStyle = accent2;
     context.lineWidth = 2;
@@ -616,7 +674,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
     notes,
     pixelsPerBeat,
     pitchCount,
-    playheadTick,
+    visiblePlayheadTick,
     preset.maxNote,
     quantization,
     selectedIds,
@@ -808,7 +866,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
         ? ((clientX - rect.left + viewport.scrollLeft - PIANO_KEY_WIDTH) /
             pixelsPerBeat) *
           MIDI_PPQ
-        : playheadTick;
+        : visiblePlayheadTick;
     const startTick = Math.max(0, Math.round(rawTick / grid) * grid);
     const rawRow =
       rect && clientY !== undefined
@@ -1018,7 +1076,17 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
         QUANTIZATION_TICKS[quantization] * (event.key === "ArrowLeft" ? -1 : 1);
       if (event.shiftKey) resizeSelection(delta);
       else moveSelection(delta, 0);
+    } else if (!modifier && !event.altKey && performance.keyDown(event.key)) {
+      event.preventDefault();
     }
+  }
+
+  function handleEditorKeyUp(event: React.KeyboardEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.matches("input, textarea, select, [contenteditable='true']")) {
+      return;
+    }
+    if (performance.keyUp(event.key)) event.preventDefault();
   }
 
   async function play() {
@@ -1027,6 +1095,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
       return;
     }
     stopAudition();
+    performance.stopRecording();
     stopPlayback();
     setPlaying(true);
     setPlayheadTick(0);
@@ -1046,14 +1115,16 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
           note.velocity / 127,
         );
       }
-      const startedAt = performance.now() + leadIn * 1_000;
+      const startedAt = globalThis.performance.now() + leadIn * 1_000;
       playheadTimerRef.current = setInterval(() => {
         setPlayheadTick(
           Math.min(
             draft.durationTicks,
             Math.max(
               0,
-              (performance.now() - startedAt) / 1_000 / secondsPerTick,
+              (globalThis.performance.now() - startedAt) /
+                1_000 /
+                secondsPerTick,
             ),
           ),
         );
@@ -1071,6 +1142,42 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
         "Playback couldn’t start. Check browser audio permission and retry.",
       );
     }
+  }
+
+  async function publishVersion() {
+    if (saveState.status !== "saved") {
+      setPublicationState({
+        status: "error",
+        message: "Save the private draft before freezing a version.",
+      });
+      return;
+    }
+    setPublicationState({
+      status: "publishing",
+      message: "Freezing an immutable version…",
+    });
+    const result = await publishMidiStemVersionAction({
+      draftId: draft.draftId,
+      requestId: crypto.randomUUID(),
+      expectedLockVersion: lockVersionRef.current,
+      expectedContentSha256: contentSha256Ref.current,
+    });
+    if (!result.ok) {
+      setPublicationState({
+        status: "error",
+        message:
+          result.code === "conflict"
+            ? "The draft changed before publication. Reload its latest save and try again."
+            : result.code === "limit"
+              ? "Your prototype library has reached 500 immutable versions."
+              : "This version couldn’t be frozen right now.",
+      });
+      return;
+    }
+    setPublicationState({
+      status: "published",
+      message: `Version ${result.version} is immutable and credited to ${result.creatorCreditName}.`,
+    });
   }
 
   function updateSelectedNote(
@@ -1111,7 +1218,11 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
   }
 
   return (
-    <section className="mt-8" onKeyDown={handleEditorKeyDown}>
+    <section
+      className="mt-8"
+      onKeyDown={handleEditorKeyDown}
+      onKeyUp={handleEditorKeyUp}
+    >
       <div className="rounded-card border-subtle bg-surface shadow-raised border p-4 sm:p-6">
         {recovery && (
           <div className="border-accent-2 bg-surface-soft rounded-control mb-5 border p-4">
@@ -1185,6 +1296,7 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
                 }
                 stopPlayback();
                 stopAudition();
+                performance.stopRecording();
                 setPresetId(nextPreset.presetId);
                 setHistory(createMidiEditorHistory(history.notes));
                 markEdited();
@@ -1199,6 +1311,203 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
           </label>
         </div>
         <p className="text-muted mt-3 text-sm">{preset.description}</p>
+        {preset.drumMap && (
+          <p className="text-muted mt-2 text-sm">
+            Kit map:{" "}
+            {Object.entries(preset.drumMap)
+              .map(([pitch, label]) => `${pitch} ${label}`)
+              .join(" · ")}
+          </p>
+        )}
+
+        <section
+          className="border-subtle bg-surface-soft rounded-control mt-5 border p-4"
+          aria-labelledby="performance-heading"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 id="performance-heading" className="text-lg font-semibold">
+                Perform a take
+              </h2>
+              <p className="text-muted mt-1 text-sm">
+                Use the piano, A–K QWERTY keys, or optional hardware MIDI. Raw
+                timing stays untouched until you choose Quantize.
+              </p>
+            </div>
+            <p
+              role="status"
+              aria-live="assertive"
+              className={
+                performance.status === "idle"
+                  ? "text-muted text-sm"
+                  : "text-danger font-mono text-sm font-semibold uppercase"
+              }
+            >
+              {performance.status === "count-in"
+                ? "Count-in · recording next bar"
+                : performance.status === "recording"
+                  ? `Recording · tick ${Math.round(performance.playheadTick)}`
+                  : "Recorder ready"}
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="text-sm font-semibold">
+              QWERTY octave
+              <select
+                className="border-strong bg-surface rounded-control ml-2 min-h-11 border px-3"
+                value={performance.octave}
+                onChange={(event) =>
+                  performance.setOctave(Number(event.target.value))
+                }
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((octave) => (
+                  <option key={octave} value={octave}>
+                    C{octave}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold">
+              Default velocity
+              <input
+                type="number"
+                min={1}
+                max={127}
+                className="border-strong bg-surface rounded-control ml-2 min-h-11 w-20 border px-3"
+                value={performance.defaultVelocity}
+                onChange={(event) =>
+                  performance.setDefaultVelocity(
+                    Math.max(1, Math.min(127, event.target.valueAsNumber || 1)),
+                  )
+                }
+              />
+            </label>
+            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={performance.countIn}
+                onChange={(event) =>
+                  performance.setCountIn(event.target.checked)
+                }
+                disabled={performance.status !== "idle"}
+              />
+              One-bar count-in
+            </label>
+            <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={performance.metronome}
+                onChange={(event) =>
+                  performance.setMetronome(event.target.checked)
+                }
+                disabled={performance.status !== "idle"}
+              />
+              Metronome
+            </label>
+          </div>
+
+          <div
+            className="mt-4 flex max-w-full gap-1 overflow-x-auto pb-2"
+            aria-label="On-screen piano"
+          >
+            {performancePitches.map((pitch) => (
+              <button
+                key={pitch}
+                type="button"
+                className={`focus-visible:ring-accent min-h-20 min-w-12 rounded-b-md border px-2 text-xs font-semibold focus-visible:ring-2 ${
+                  isBlackKey(pitch)
+                    ? "border-strong bg-canvas text-ink"
+                    : "border-subtle bg-ink text-canvas"
+                }`}
+                aria-label={`Play ${pitchName(pitch)}, MIDI note ${pitch}`}
+                onPointerDown={(event) => {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  performance.noteOn(
+                    pitch,
+                    performance.defaultVelocity,
+                    globalThis.performance.now(),
+                  );
+                }}
+                onPointerUp={() =>
+                  performance.noteOff(pitch, globalThis.performance.now())
+                }
+                onPointerCancel={() =>
+                  performance.noteOff(pitch, globalThis.performance.now())
+                }
+                onLostPointerCapture={() =>
+                  performance.noteOff(pitch, globalThis.performance.now())
+                }
+              >
+                {preset.drumMap?.[String(pitch)] ?? pitchName(pitch)}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {performance.status === "idle" ? (
+              <button
+                type="button"
+                className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60"
+                disabled={
+                  playing ||
+                  history.notes.length >= MAX_MIDI_NOTES_PER_STEM ||
+                  saveState.status === "conflict"
+                }
+                onClick={() => {
+                  stopPlayback();
+                  stopAudition();
+                  void performance.startRecording();
+                }}
+              >
+                <FiDisc aria-hidden /> Record
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="border-danger text-danger inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-sm font-semibold"
+                onClick={() =>
+                  performance.stopRecording(
+                    "Take stopped. Open notes were closed safely.",
+                  )
+                }
+              >
+                <FiSquare aria-hidden /> Stop recording
+              </button>
+            )}
+            {performance.webMidiStatus === "unavailable" ? (
+              <span className="text-muted text-sm">
+                Hardware MIDI unavailable here · piano and QWERTY remain ready
+              </span>
+            ) : performance.webMidiStatus === "connected" ? (
+              <span className="text-muted inline-flex items-center gap-2 text-sm">
+                <FiRadio aria-hidden /> {performance.hardwareInputCount}{" "}
+                hardware input{performance.hardwareInputCount === 1 ? "" : "s"}{" "}
+                connected
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={secondaryButton}
+                disabled={performance.webMidiStatus === "requesting"}
+                onClick={() => void performance.requestWebMidi()}
+              >
+                <FiRadio aria-hidden />
+                {performance.webMidiStatus === "requesting"
+                  ? "Requesting MIDI…"
+                  : performance.webMidiStatus === "denied"
+                    ? "Retry hardware MIDI"
+                    : "Connect hardware MIDI"}
+              </button>
+            )}
+          </div>
+          {performance.webMidiStatus === "denied" && (
+            <p className="text-muted mt-2 text-sm">
+              Permission was denied or no usable input was available. Nothing
+              about the device was saved; continue with the piano or QWERTY.
+            </p>
+          )}
+        </section>
 
         <div className="border-subtle mt-5 flex flex-wrap items-center gap-2 border-y py-4">
           <button
@@ -1231,6 +1540,21 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
             <FiSave aria-hidden />
             {saveState.status === "saving" ? "Saving…" : "Save now"}
           </button>
+          <button
+            type="button"
+            onClick={() => void publishVersion()}
+            disabled={
+              publicationState.status === "publishing" ||
+              saveState.status !== "saved" ||
+              !name.trim()
+            }
+            className={secondaryButton}
+          >
+            <FiDisc aria-hidden />
+            {publicationState.status === "publishing"
+              ? "Freezing version…"
+              : "Save to My stems"}
+          </button>
           <span
             role="status"
             className={`ml-auto text-sm ${
@@ -1260,6 +1584,20 @@ export function MidiStemEditor({ draft }: { draft: MidiStemDraft }) {
             </button>
           )}
         </div>
+        {publicationState.message && (
+          <p
+            role="status"
+            className={`mt-2 text-sm ${
+              publicationState.status === "error"
+                ? "text-danger"
+                : publicationState.status === "published"
+                  ? "text-accent-2"
+                  : "text-muted"
+            }`}
+          >
+            {publicationState.message}
+          </p>
+        )}
 
         <div className="mt-5 flex flex-wrap items-end gap-2">
           <button

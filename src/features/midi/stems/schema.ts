@@ -88,5 +88,22 @@ export const saveMidiStemDraftSchema = z
   })
   .strict();
 
+export const publishMidiStemVersionSchema = z
+  .object({
+    draftId: z.uuid(),
+    requestId: z.uuid(),
+    expectedLockVersion: z.number().int().positive(),
+    expectedContentSha256: z.string().regex(/^[0-9a-f]{64}$/),
+  })
+  .strict();
+
+export const createImportedMidiStemSchema = z
+  .object({
+    requestId: z.uuid(),
+    saveRequestId: z.uuid(),
+    content: midiStemContentSchema,
+  })
+  .strict();
+
 export type MidiStemEntryMode = z.infer<typeof midiStemEntryModeSchema>;
 export type MidiStemContent = z.infer<typeof midiStemContentSchema>;

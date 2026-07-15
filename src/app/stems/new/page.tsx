@@ -6,6 +6,7 @@ import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { createMidiStemDraftAction } from "@/features/midi/stems/actions";
 import { CreateMidiStemForm } from "@/features/midi/stems/create-stem-form.client";
+import { ImportMidiStemForm } from "@/features/midi/stems/import-midi-form.client";
 
 export const metadata: Metadata = { title: "New MIDI stem" };
 
@@ -32,7 +33,7 @@ export default async function NewMidiStemPage({
     blank:
       "Begin with a quiet four-bar canvas and choose one deterministic bundled sound.",
     import:
-      "Open an import-ready private draft. Standard MIDI file parsing follows in the interchange slice.",
+      "Read a bounded Standard MIDI file in this browser, review unsupported-event warnings, and save only validated notes.",
     derive:
       "Start from one exact immutable version. Its history remains untouched.",
   } as const;
@@ -50,12 +51,16 @@ export default async function NewMidiStemPage({
             <p className="text-muted mt-3">{descriptions[entryMode]}</p>
           </Reveal>
           <Reveal delay={0.08}>
-            <CreateMidiStemForm
-              action={createMidiStemDraftAction}
-              requestId={randomUUID()}
-              entryMode={entryMode}
-              parentStemVersionId={query.parentVersionId ?? null}
-            />
+            {entryMode === "import" ? (
+              <ImportMidiStemForm requestId={randomUUID()} />
+            ) : (
+              <CreateMidiStemForm
+                action={createMidiStemDraftAction}
+                requestId={randomUUID()}
+                entryMode={entryMode}
+                parentStemVersionId={query.parentVersionId ?? null}
+              />
+            )}
           </Reveal>
         </section>
       </Container>
