@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
+import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
 import {
   MIDI_PPQ,
   parseWorkspaceManifestV2,
@@ -19,13 +20,22 @@ import {
 } from "@/features/midi/project-export.client";
 import { sanitizeFilenamePart } from "@/features/exports/filename";
 import type { SignedAudioSource } from "@/features/studio/source-contract";
+import { sha256PostgresJsonb } from "../manifest/schema";
 import {
   publishMidiWorkspaceAction,
   saveMidiWorkspaceAction,
 } from "@/features/workspaces/actions";
+import {
+  clearMidiLocalRecovery,
+  readMidiLocalRecovery,
+  writeMidiLocalRecovery,
+} from "@/features/workspaces/midi-local-recovery.client";
+import type { MidiLocalRecoveryEnvelope } from "@/features/workspaces/schema";
+import { MutableStudioLifecycle } from "../switch-coordinator";
 
 type Props = StudioLauncherProps & { manifest: WorkspaceManifestV2 };
-type SaveStatus = "saved" | "dirty" | "saving" | "conflict" | "error";
+type SaveStatus =
+  "saved" | "dirty" | "saving" | "offline" | "conflict" | "error";
 
 const button =
   "border-strong hover:border-accent inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold disabled:opacity-50";
@@ -38,15 +48,19 @@ export function MidiStudioSurface(props: Props) {
     [props.midiVersions],
   );
   const editable =
-    props.mode === "workspace" ||
-    (props.mode === "contribution" && props.canEdit);
+    props.mode === "workspace"
+      ? props
+      : props.mode === "contribution" && props.canEdit
+        ? props
+        : null;
   const [manifest, setManifest] = useState(props.manifest);
-  const [lockVersion, setLockVersion] = useState(
-    editable ? props.lockVersion : 0,
-  );
+  const manifestRef = useRef(props.manifest);
+  const [lockVersion, setLockVersion] = useState(editable?.lockVersion ?? 0);
+  const lockVersionRef = useRef(editable?.lockVersion ?? 0);
   const [baseRevisionId, setBaseRevisionId] = useState(
-    editable ? props.baseRevisionId : null,
+    editable?.baseRevisionId ?? null,
   );
+  const baseRevisionIdRef = useRef(editable?.baseRevisionId ?? null);
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [message, setMessage] = useState<string | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState(
@@ -55,8 +69,26 @@ export function MidiStudioSurface(props: Props) {
   const [playing, setPlaying] = useState(false);
   const [seekTick, setSeekTick] = useState(0);
   const [rendering, setRendering] = useState(false);
+  const [recovery, setRecovery] = useState<MidiLocalRecoveryEnvelope | null>(
+    () =>
+      editable
+        ? readMidiLocalRecovery(editable.viewerId, editable.workspaceId)
+        : null,
+  );
   const runtime = useRef<BrowserMidiRuntime | null>(null);
+  const runtimeAbort = useRef<AbortController | null>(null);
   const playbackTimer = useRef<number | null>(null);
+  const generation = useRef(0);
+  const acknowledgedGeneration = useRef(0);
+  const [lifecycle] = useState(
+    () =>
+      new MutableStudioLifecycle({
+        status: "saved",
+        generation: 0,
+        acknowledgedGeneration: 0,
+        recoveryAvailable: false,
+      }),
+  );
   const stemVersions = useMemo(
     () =>
       new Map(midiVersions.map((version) => [version.stemVersionId, version])),
@@ -66,6 +98,7 @@ export function MidiStudioSurface(props: Props) {
   useEffect(() => {
     const next = new BrowserMidiRuntime();
     const controller = new AbortController();
+    runtimeAbort.current = controller;
     runtime.current = next;
     try {
       const schedule = projectMidiSchedule({ manifest, stemVersions });
@@ -88,6 +121,7 @@ export function MidiStudioSurface(props: Props) {
       if (playbackTimer.current) clearTimeout(playbackTimer.current);
       next.dispose();
       if (runtime.current === next) runtime.current = null;
+      if (runtimeAbort.current === controller) runtimeAbort.current = null;
     };
   }, [manifest, props, stemVersions]);
 
@@ -108,25 +142,80 @@ export function MidiStudioSurface(props: Props) {
       );
   }, [props.projectId]);
 
+  const cacheRecovery = useCallback(
+    async (
+      next: WorkspaceManifestV2,
+      state: MidiLocalRecoveryEnvelope["state"] = "pending",
+    ) => {
+      if (!editable) return false;
+      return writeMidiLocalRecovery({
+        version: 2,
+        viewerId: editable.viewerId,
+        projectId: editable.projectId,
+        workspaceId: editable.workspaceId,
+        baseRevisionId: baseRevisionIdRef.current,
+        serverLockVersion: lockVersionRef.current,
+        manifest: next,
+        manifestSha256: await sha256PostgresJsonb(next),
+        savedAt: new Date().toISOString(),
+        state,
+      });
+    },
+    [editable],
+  );
+
   const changeManifest = (next: WorkspaceManifestV2) => {
+    generation.current += 1;
+    manifestRef.current = next;
     setManifest(next);
     setStatus("dirty");
     setMessage(null);
+    lifecycle.update({
+      status: "dirty",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: true,
+    });
+    void cacheRecovery(next);
   };
 
   async function persist(next = manifest) {
     if (!editable) return false;
+    const saveGeneration = generation.current;
     let canonical: WorkspaceManifestV2;
     try {
       canonical = parseWorkspaceManifestV2(next);
     } catch {
       setStatus("error");
       setMessage("Check clip timing and mixer values before saving.");
+      lifecycle.update({
+        status: "error",
+        generation: generation.current,
+        acknowledgedGeneration: acknowledgedGeneration.current,
+        recoveryAvailable: await cacheRecovery(next),
+      });
+      return false;
+    }
+    if (!navigator.onLine) {
+      setStatus("offline");
+      setMessage("Offline — changes remain on this device.");
+      lifecycle.update({
+        status: "offline",
+        generation: generation.current,
+        acknowledgedGeneration: acknowledgedGeneration.current,
+        recoveryAvailable: await cacheRecovery(canonical),
+      });
       return false;
     }
     setStatus("saving");
+    lifecycle.update({
+      status: "saving",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: true,
+    });
     const result = await saveMidiWorkspaceAction({
-      workspaceId: props.workspaceId,
+      workspaceId: editable.workspaceId,
       requestId: crypto.randomUUID(),
       expectedLockVersion: lockVersion,
       manifest: canonical,
@@ -138,12 +227,41 @@ export function MidiStudioSurface(props: Props) {
           ? "This workspace changed in another session. Reload before replacing an exact stem version."
           : "The arrangement could not be saved.",
       );
+      const recoveryAvailable = await cacheRecovery(
+        canonical,
+        result.code === "conflict" ? "conflict" : "pending",
+      );
+      lifecycle.update({
+        status: result.code === "conflict" ? "conflict" : "error",
+        generation: generation.current,
+        acknowledgedGeneration: acknowledgedGeneration.current,
+        recoveryAvailable,
+      });
       return false;
     }
     setManifest(canonical);
+    manifestRef.current = canonical;
+    lockVersionRef.current = result.lockVersion;
     setLockVersion(result.lockVersion);
-    setStatus("saved");
-    setMessage("Arrangement saved.");
+    acknowledgedGeneration.current = Math.max(
+      acknowledgedGeneration.current,
+      saveGeneration,
+    );
+    const fullySaved = generation.current === saveGeneration;
+    setStatus(fullySaved ? "saved" : "dirty");
+    setMessage(fullySaved ? "Arrangement saved." : null);
+    if (fullySaved) {
+      clearMidiLocalRecovery(editable.viewerId, editable.workspaceId);
+      setRecovery(null);
+    } else {
+      await cacheRecovery(manifestRef.current);
+    }
+    lifecycle.update({
+      status: fullySaved ? "saved" : "dirty",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: !fullySaved,
+    });
     return true;
   }
 
@@ -298,13 +416,91 @@ export function MidiStudioSurface(props: Props) {
     }
     setLockVersion(result.workspaceLockVersion);
     setBaseRevisionId(result.revisionId);
+    lockVersionRef.current = result.workspaceLockVersion;
+    baseRevisionIdRef.current = result.revisionId;
     setMessage(
       `Revision ${result.revisionNumber} published with exact MIDI stem references.`,
     );
   }
 
+  useEffect(() => {
+    if (!editable) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (generation.current <= acknowledgedGeneration.current) return;
+      event.preventDefault();
+    };
+    const online = () => {
+      if (status === "offline") setStatus("dirty");
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    window.addEventListener("online", online);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      window.removeEventListener("online", online);
+    };
+  }, [editable, status]);
+
+  useEffect(() => {
+    lifecycle.configure({
+      requestSave: () => void persist(manifestRef.current),
+      preserveRecovery: () =>
+        cacheRecovery(
+          manifestRef.current,
+          status === "conflict" ? "conflict" : "pending",
+        ),
+      dispose: async () => {
+        runtimeAbort.current?.abort();
+        if (playbackTimer.current) clearTimeout(playbackTimer.current);
+        runtime.current?.dispose();
+        runtime.current = null;
+      },
+    });
+  });
+  useStudioLifecycleRegistration(lifecycle);
+
   return (
     <section className="rounded-card border-strong bg-surface space-y-6 border p-5 sm:p-7">
+      {recovery && editable && (
+        <div role="alert" className="rounded-card border-accent border p-5">
+          <h2 className="font-bold">
+            Pending MIDI changes found on this device
+          </h2>
+          <p className="text-muted mt-1">
+            Restore this local arrangement, or keep the server workspace.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="cta-gradient text-accent-contrast min-h-11 rounded-full px-4 font-semibold"
+              onClick={() => {
+                manifestRef.current = recovery.manifest;
+                generation.current += 1;
+                setManifest(recovery.manifest);
+                setStatus(recovery.state === "conflict" ? "conflict" : "dirty");
+                setRecovery(null);
+                lifecycle.update({
+                  status: recovery.state === "conflict" ? "conflict" : "dirty",
+                  generation: generation.current,
+                  acknowledgedGeneration: acknowledgedGeneration.current,
+                  recoveryAvailable: true,
+                });
+              }}
+            >
+              Restore pending changes
+            </button>
+            <button
+              type="button"
+              className="border-strong min-h-11 rounded-full border px-4 font-semibold"
+              onClick={() => {
+                clearMidiLocalRecovery(editable.viewerId, editable.workspaceId);
+                setRecovery(null);
+              }}
+            >
+              Discard local copy
+            </button>
+          </div>
+        </div>
+      )}
       {props.mode === "contribution" && (
         <div className="border-subtle rounded-control border p-4">
           <p className="font-semibold">

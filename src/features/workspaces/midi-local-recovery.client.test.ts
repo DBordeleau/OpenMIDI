@@ -1,0 +1,51 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  clearMidiLocalRecovery,
+  readMidiLocalRecovery,
+  writeMidiLocalRecovery,
+} from "./midi-local-recovery.client";
+import { COMPOSITE_STUDIO_ENGINE_VERSION } from "@/features/studio/manifest/v2";
+
+const viewerId = "10000000-0000-4000-8000-000000000001";
+const projectId = "10000000-0000-4000-8000-000000000002";
+const workspaceId = "10000000-0000-4000-8000-000000000003";
+
+describe("MIDI workspace local recovery", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("stores recovery under actor and workspace authority", () => {
+    const envelope = {
+      version: 2 as const,
+      viewerId,
+      projectId,
+      workspaceId,
+      baseRevisionId: null,
+      serverLockVersion: 1,
+      manifest: {
+        manifestVersion: 2 as const,
+        engine: "jam-session-composite" as const,
+        engineVersion:
+          COMPOSITE_STUDIO_ENGINE_VERSION as typeof COMPOSITE_STUDIO_ENGINE_VERSION,
+        projectId,
+        tempoBpm: 120,
+        timeSignature: { numerator: 4, denominator: 4 as const },
+        durationTicks: 1_920,
+        tracks: [],
+      },
+      manifestSha256: "a".repeat(64),
+      savedAt: "2026-07-15T12:00:00.000Z",
+      state: "pending" as const,
+    };
+
+    expect(writeMidiLocalRecovery(envelope)).toBe(true);
+    expect(readMidiLocalRecovery(viewerId, workspaceId)).toEqual(envelope);
+    expect(
+      readMidiLocalRecovery(
+        "10000000-0000-4000-8000-000000000004",
+        workspaceId,
+      ),
+    ).toBeNull();
+    clearMidiLocalRecovery(viewerId, workspaceId);
+    expect(readMidiLocalRecovery(viewerId, workspaceId)).toBeNull();
+  });
+});

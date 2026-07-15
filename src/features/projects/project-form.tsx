@@ -11,6 +11,7 @@ export function ProjectForm({
   action,
   options,
   project,
+  beforeSubmit,
 }: {
   action: (
     state: ProjectFormState,
@@ -18,8 +19,15 @@ export function ProjectForm({
   ) => Promise<ProjectFormState>;
   options: ProjectFormOptions;
   project?: ProjectDetail;
+  beforeSubmit?: () => Promise<boolean>;
 }) {
-  const [state, formAction, pending] = useActionState(action, {});
+  const [state, formAction, pending] = useActionState(
+    async (currentState: ProjectFormState, data: FormData) => {
+      if (beforeSubmit && !(await beforeSubmit())) return currentState;
+      return action(currentState, data);
+    },
+    {},
+  );
   const selectedGenres = new Set(project?.genres.map((item) => item.id));
   const selectedTags = new Set(project?.tags.map((item) => item.id));
   return (

@@ -37,6 +37,8 @@ import {
   FiZoomOut,
 } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
+import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
+import { MutableStudioLifecycle } from "../switch-coordinator";
 import {
   serializePostgresJsonb,
   sha256PostgresJsonb,
@@ -735,6 +737,17 @@ export function StudioSurface(props: StudioLauncherProps) {
     useState<WorkspaceManifestV1 | null>(null);
   const latestManifest = useRef<WorkspaceManifestV1 | null>(null);
   const [editGeneration, setEditGeneration] = useState(0);
+  const generation = useRef(0);
+  const acknowledgedGeneration = useRef(0);
+  const [lifecycle] = useState(
+    () =>
+      new MutableStudioLifecycle({
+        status: "saved",
+        generation: 0,
+        acknowledgedGeneration: 0,
+        recoveryAvailable: false,
+      }),
+  );
   const lockVersion = useRef(editable?.lockVersion ?? 0);
   const baseRevisionId = useRef(editable?.baseRevisionId ?? "");
   const currentRevisionId = useRef(editable?.currentRevisionId ?? "");
@@ -828,9 +841,9 @@ export function StudioSurface(props: StudioLauncherProps) {
 
   const cachePending = useCallback(
     async (manifest: WorkspaceManifestV1, state: "pending" | "conflict") => {
-      if (!editable) return;
+      if (!editable) return false;
       const manifestSha256 = await sha256PostgresJsonb(manifest);
-      writeLocalRecovery({
+      return writeLocalRecovery({
         version: 1,
         viewerId: editable.viewerId,
         projectId: editable.projectId,
@@ -847,24 +860,44 @@ export function StudioSurface(props: StudioLauncherProps) {
   );
   const markEdited = useCallback(() => {
     const manifest = adapter.exportManifest();
+    generation.current += 1;
     dirtySince.current ??= Date.now();
     latestManifest.current = manifest;
     setPendingManifest(manifest);
     setEditGeneration((value) => value + 1);
     dispatchAutosave({ type: "edit" });
+    lifecycle.update({
+      status: "dirty",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: true,
+    });
     void cachePending(manifest, "pending");
-  }, [adapter, cachePending]);
+  }, [adapter, cachePending, lifecycle]);
 
   const performSave = useCallback(async () => {
     if (!editable || saving.current || autosave.status === "conflict") return;
     const manifest = latestManifest.current;
     if (!manifest) return;
+    const saveGeneration = generation.current;
     if (!navigator.onLine) {
       dispatchAutosave({ type: "offline" });
+      lifecycle.update({
+        status: "offline",
+        generation: generation.current,
+        acknowledgedGeneration: acknowledgedGeneration.current,
+        recoveryAvailable: await cachePending(manifest, "pending"),
+      });
       return;
     }
     saving.current = true;
     dispatchAutosave({ type: "save" });
+    lifecycle.update({
+      status: "saving",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: true,
+    });
     const requestId = crypto.randomUUID();
     const serialized = serializePostgresJsonb(manifest);
     const bytes = new TextEncoder().encode(serialized);
@@ -880,7 +913,12 @@ export function StudioSurface(props: StudioLauncherProps) {
       if (!reservation.ok) {
         if (reservation.code === "conflict") {
           dispatchAutosave({ type: "conflict" });
-          await cachePending(manifest, "conflict");
+          lifecycle.update({
+            status: "conflict",
+            generation: generation.current,
+            acknowledgedGeneration: acknowledgedGeneration.current,
+            recoveryAvailable: await cachePending(manifest, "conflict"),
+          });
           return;
         }
         throw new Error("Draft reservation is unavailable.");
@@ -908,7 +946,12 @@ export function StudioSurface(props: StudioLauncherProps) {
       if (!result.ok) {
         if (result.code === "conflict") {
           dispatchAutosave({ type: "conflict" });
-          await cachePending(manifest, "conflict");
+          lifecycle.update({
+            status: "conflict",
+            generation: generation.current,
+            acknowledgedGeneration: acknowledgedGeneration.current,
+            recoveryAvailable: await cachePending(manifest, "conflict"),
+          });
           return;
         }
         throw new Error(
@@ -918,6 +961,10 @@ export function StudioSurface(props: StudioLauncherProps) {
         );
       }
       lockVersion.current = result.lockVersion;
+      acknowledgedGeneration.current = Math.max(
+        acknowledgedGeneration.current,
+        saveGeneration,
+      );
       const current = latestManifest.current;
       if (
         current &&
@@ -928,12 +975,27 @@ export function StudioSurface(props: StudioLauncherProps) {
         setPendingManifest(null);
         clearLocalRecovery(editable.viewerId, editable.workspaceId);
         dispatchAutosave({ type: "saved" });
+        lifecycle.update({
+          status: "saved",
+          generation: generation.current,
+          acknowledgedGeneration: acknowledgedGeneration.current,
+          recoveryAvailable: false,
+        });
       } else {
         dispatchAutosave({ type: "edit" });
         setEditGeneration((value) => value + 1);
+        lifecycle.update({
+          status: "dirty",
+          generation: generation.current,
+          acknowledgedGeneration: acknowledgedGeneration.current,
+          recoveryAvailable: await cachePending(
+            latestManifest.current ?? manifest,
+            "pending",
+          ),
+        });
       }
     } catch (error) {
-      if (navigator.onLine)
+      if (navigator.onLine) {
         dispatchAutosave({
           type: "error",
           message:
@@ -941,11 +1003,25 @@ export function StudioSurface(props: StudioLauncherProps) {
               ? error.message
               : "The draft could not be saved.",
         });
-      else dispatchAutosave({ type: "offline" });
+        lifecycle.update({
+          status: "error",
+          generation: generation.current,
+          acknowledgedGeneration: acknowledgedGeneration.current,
+          recoveryAvailable: await cachePending(manifest, "pending"),
+        });
+      } else {
+        dispatchAutosave({ type: "offline" });
+        lifecycle.update({
+          status: "offline",
+          generation: generation.current,
+          acknowledgedGeneration: acknowledgedGeneration.current,
+          recoveryAvailable: await cachePending(manifest, "pending"),
+        });
+      }
     } finally {
       saving.current = false;
     }
-  }, [autosave.status, cachePending, editable]);
+  }, [autosave.status, cachePending, editable, lifecycle]);
 
   useEffect(() => {
     if (
@@ -965,7 +1041,7 @@ export function StudioSurface(props: StudioLauncherProps) {
     if (!editable) return;
     const online = () => {
       if (latestManifest.current) {
-        dispatchAutosave({ type: "retry" });
+        dispatchAutosave({ type: "edit" });
         setEditGeneration((value) => value + 1);
       }
     };
@@ -1345,6 +1421,24 @@ export function StudioSurface(props: StudioLauncherProps) {
   const failedTrackCount = snapshot.trackLoadStates.filter(
     (track) => track.status === "failed",
   ).length;
+  useEffect(() => {
+    lifecycle.configure({
+      requestSave: () => void performSave(),
+      preserveRecovery: async () => {
+        if (!latestManifest.current) return true;
+        return cachePending(
+          latestManifest.current,
+          autosaveStatus.current === "conflict" ? "conflict" : "pending",
+        );
+      },
+      dispose: async () => {
+        controller.current?.abort();
+        await adapter.dispose();
+      },
+    });
+  }, [adapter, cachePending, lifecycle, performSave]);
+  useStudioLifecycleRegistration(lifecycle);
+
   const audioSummary = snapshot.playbackReady
     ? `Playback ready · ${readyTrackCount} of ${snapshot.trackLoadStates.length} tracks decoded`
     : failedTrackCount > 0

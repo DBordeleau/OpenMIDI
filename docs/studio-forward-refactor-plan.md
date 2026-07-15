@@ -2,7 +2,7 @@
 
 Status: Accepted roadmap program; implementation authority is limited to the staged slices below
 Prepared: 2026-07-14  
-Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01 delivered the canonical shell/routes, and STUDIO-02–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
+Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01–STUDIO-02 delivered the canonical shell/routes and safe project lifecycle, and STUDIO-03–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
 
 ## Executive recommendation
 
@@ -433,6 +433,8 @@ Do not change manifests or database behavior in this slice.
 ### STUDIO-02 — Project browser and safe switching
 
 Outcome: users can create, load, close, and switch among authorized recent projects without losing an acknowledged draft.
+
+Status: Complete. The shell uses the existing bounded project cursor plus a viewer-scoped active-workspace projection; creation reuses `ProjectForm`, `createProjectAction`, and `create_midi_project_workspace`. A forward-only repair aligns nullable form descriptions with the command and makes exact project-creation retries compare every normalized input before returning the existing project. Selected sessions expose a minimal generation-aware save/recovery/disposal port through `MutableStudioLifecycle`; `coordinateStudioExit` serializes switch and close intents, while Studio creation uses the same save/recovery gate before invoking the shared atomic action. Shell regions are the persistent header actions plus modal project-browser, creator, and recovery-decision panels.
 
 Scope:
 

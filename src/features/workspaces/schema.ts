@@ -68,3 +68,22 @@ export const localRecoveryEnvelopeSchema = z
   .strict();
 
 export type LocalRecoveryEnvelope = z.infer<typeof localRecoveryEnvelopeSchema>;
+
+export const midiLocalRecoveryEnvelopeSchema = z
+  .object({
+    version: z.literal(2),
+    viewerId: z.uuid(),
+    projectId: z.uuid(),
+    workspaceId: z.uuid(),
+    baseRevisionId: z.uuid().nullable(),
+    serverLockVersion: z.number().int().positive(),
+    manifest: workspaceManifestV2Schema,
+    manifestSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    savedAt: z.string().datetime(),
+    state: z.enum(["pending", "conflict"]),
+  })
+  .strict();
+
+export type MidiLocalRecoveryEnvelope = z.infer<
+  typeof midiLocalRecoveryEnvelopeSchema
+>;

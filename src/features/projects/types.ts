@@ -24,6 +24,11 @@ export type ProjectSummary = {
   currentRevisionId: string | null;
   updatedAt: string;
   needsReview?: boolean;
+  studioAccess:
+    | "owner_workspace"
+    | "contribution_workspace"
+    | "workspace_available"
+    | "read_only";
 };
 
 export type ProjectSummaryPage = {
