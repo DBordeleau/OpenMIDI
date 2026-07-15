@@ -10,7 +10,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { FiFolder, FiPlus, FiX } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiDownload,
+  FiFolder,
+  FiPlus,
+  FiSave,
+  FiX,
+} from "react-icons/fi";
 import { ProjectForm } from "@/features/projects/project-form";
 import type { ProjectFormState } from "@/features/projects/actions";
 import type {
@@ -24,13 +31,20 @@ import {
   coordinateStudioExit,
   type StudioLeaveDecision,
   type StudioSessionLifecyclePort,
+  type StudioLifecycleSnapshot,
 } from "@/features/studio/switch-coordinator";
 
+type StudioFileActions = {
+  openExport?(): void;
+};
+
 type StudioShellContextValue = {
-  openBrowser(): void;
-  openCreator(): void;
   requestNavigation(target: string): void;
-  registerLifecycle(port: StudioSessionLifecyclePort): () => void;
+  registerLifecycle(
+    port: StudioSessionLifecyclePort,
+    options: { editable: boolean },
+  ): () => void;
+  registerFileActions(actions: StudioFileActions): () => void;
   switching: boolean;
 };
 
@@ -52,7 +66,13 @@ export function StudioShell({
   const router = useRouter();
   const pathname = usePathname();
   const lifecycle = useRef<StudioSessionLifecyclePort | null>(null);
+  const lifecycleSubscription = useRef<(() => void) | null>(null);
+  const fileMenuRef = useRef<HTMLDetailsElement>(null);
   const [panel, setPanel] = useState<"browser" | "creator" | null>(null);
+  const [editableSession, setEditableSession] = useState(false);
+  const [lifecycleSnapshot, setLifecycleSnapshot] =
+    useState<StudioLifecycleSnapshot | null>(null);
+  const [fileActions, setFileActions] = useState<StudioFileActions>({});
   const [projects, setProjects] = useState(initialProjects?.projects ?? []);
   const [nextCursor, setNextCursor] = useState(
     initialProjects?.nextCursor ?? null,
@@ -66,11 +86,32 @@ export function StudioShell({
   } | null>(null);
   const activeProjectId = pathname.match(/^\/studio\/([0-9a-f-]+)$/i)?.[1];
 
-  const registerLifecycle = useCallback((port: StudioSessionLifecyclePort) => {
-    lifecycle.current = port;
-    return () => {
-      if (lifecycle.current === port) lifecycle.current = null;
-    };
+  const registerLifecycle = useCallback(
+    (port: StudioSessionLifecyclePort, options: { editable: boolean }) => {
+      lifecycleSubscription.current?.();
+      lifecycle.current = port;
+      setEditableSession(options.editable);
+      setLifecycleSnapshot(port.getSnapshot());
+      const unsubscribe = port.subscribe(() =>
+        setLifecycleSnapshot(port.getSnapshot()),
+      );
+      lifecycleSubscription.current = unsubscribe;
+      return () => {
+        if (lifecycle.current !== port) return;
+        unsubscribe();
+        lifecycleSubscription.current = null;
+        lifecycle.current = null;
+        setEditableSession(false);
+        setLifecycleSnapshot(null);
+      };
+    },
+    [],
+  );
+
+  const registerFileActions = useCallback((actions: StudioFileActions) => {
+    setFileActions(actions);
+    return () =>
+      setFileActions((current) => (current === actions ? {} : current));
   }, []);
 
   const confirmLeave = useCallback(
@@ -96,12 +137,34 @@ export function StudioShell({
   );
 
   const context: StudioShellContextValue = {
-    openBrowser: () => setPanel("browser"),
-    openCreator: () => setPanel("creator"),
     requestNavigation,
     registerLifecycle,
+    registerFileActions,
     switching: Boolean(switchTarget),
   };
+
+  const saveDisabledReason = !activeProjectId
+    ? "Open an editable project before saving."
+    : !editableSession
+      ? "This Studio session is read-only."
+      : lifecycleSnapshot?.status === "saving"
+        ? "This arrangement is already saving."
+        : lifecycleSnapshot?.status === "saved"
+          ? "All arrangement changes are already saved."
+          : lifecycleSnapshot?.status === "conflict"
+            ? "Resolve the draft conflict before saving."
+            : null;
+
+  function closeFileMenu() {
+    fileMenuRef.current?.removeAttribute("open");
+  }
+
+  function saveSession() {
+    const port = lifecycle.current;
+    if (!port || saveDisabledReason) return;
+    port.requestSave(port.getSnapshot().generation);
+    closeFileMenu();
+  }
 
   async function prepareCreation() {
     if (switchTarget) return false;
@@ -136,46 +199,99 @@ export function StudioShell({
 
   return (
     <StudioShellContext.Provider value={context}>
-      <header className="border-subtle bg-surface/90 rounded-card flex flex-wrap items-center justify-between gap-4 border px-5 py-4 shadow-lg backdrop-blur-sm sm:px-6">
-        <div>
+      <header className="border-subtle bg-surface/90 rounded-card relative z-40 flex min-h-14 flex-wrap items-center gap-x-5 gap-y-2 border px-3 py-2 shadow-lg backdrop-blur-sm sm:px-4">
+        <div className="mr-auto flex items-center gap-4">
           <button
             type="button"
             onClick={() => requestNavigation("/studio")}
-            className="hover:text-accent text-left text-lg font-bold tracking-tight transition-colors"
+            className="hover:text-accent text-left font-bold tracking-tight transition-colors"
           >
             Jam Session Studio
           </button>
-          <p className="text-muted mt-1 text-sm">
-            One project, one live session, all the music in context.
-          </p>
+          <span className="border-subtle text-muted hidden border-l pl-4 text-xs sm:inline">
+            {activeProjectId ? "Project session" : "Blank session"}
+          </span>
         </div>
-        <nav aria-label="Studio" className="flex flex-wrap gap-2">
-          {activeProjectId && (
+        <nav aria-label="Studio" className="flex items-center gap-1">
+          <details ref={fileMenuRef} className="relative">
+            <summary className="hover:bg-surface-raised rounded-control flex min-h-10 list-none items-center gap-1 px-3 text-sm font-semibold transition-colors">
+              File <FiChevronDown aria-hidden className="text-muted" />
+            </summary>
+            <div className="border-strong bg-surface rounded-control absolute top-11 right-0 z-50 w-72 border p-2 shadow-2xl">
+              <p className="text-muted px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                Project
+              </p>
+              <FileMenuButton
+                icon={<FiPlus aria-hidden />}
+                disabled={
+                  !projectOptions || !createAction || Boolean(switchTarget)
+                }
+                reason="Project creation is unavailable for this account."
+                onClick={() => {
+                  closeFileMenu();
+                  setPanel("creator");
+                }}
+              >
+                New project
+              </FileMenuButton>
+              <FileMenuButton
+                icon={<FiFolder aria-hidden />}
+                disabled={!initialProjects || Boolean(switchTarget)}
+                reason="The project browser is unavailable for this account."
+                onClick={() => {
+                  closeFileMenu();
+                  setPanel("browser");
+                }}
+              >
+                Open project
+              </FileMenuButton>
+              <div className="border-subtle my-2 border-t" />
+              <FileMenuButton
+                icon={<FiSave aria-hidden />}
+                disabled={Boolean(saveDisabledReason) || Boolean(switchTarget)}
+                reason={saveDisabledReason ?? "Studio is switching projects."}
+                onClick={saveSession}
+              >
+                Save
+              </FileMenuButton>
+              <FileMenuButton
+                icon={<FiX aria-hidden />}
+                disabled={!activeProjectId || Boolean(switchTarget)}
+                reason="No project is open."
+                onClick={() => {
+                  closeFileMenu();
+                  requestNavigation("/studio");
+                }}
+              >
+                Close project
+              </FileMenuButton>
+              <FileMenuButton
+                icon={<FiDownload aria-hidden />}
+                disabled={!fileActions.openExport || Boolean(switchTarget)}
+                reason="Open a project with downloadable or exportable material first."
+                onClick={() => {
+                  closeFileMenu();
+                  fileActions.openExport?.();
+                }}
+              >
+                Download / export…
+              </FileMenuButton>
+            </div>
+          </details>
+          {activeProjectId ? (
             <button
               type="button"
               disabled={Boolean(switchTarget)}
               onClick={() => requestNavigation("/studio")}
-              className="border-strong hover:border-accent hover:text-accent inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="border-strong hover:border-accent hover:text-accent hidden min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors disabled:opacity-50 md:inline-flex"
             >
               <FiX aria-hidden /> Close project
             </button>
+          ) : (
+            <span className="text-muted hidden text-xs md:inline">
+              File → New or Open to begin
+            </span>
           )}
-          <button
-            type="button"
-            disabled={!initialProjects || Boolean(switchTarget)}
-            onClick={() => setPanel("browser")}
-            className="border-strong hover:border-accent hover:text-accent inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors disabled:opacity-50"
-          >
-            <FiFolder aria-hidden /> Open project
-          </button>
-          <button
-            type="button"
-            disabled={!projectOptions || !createAction || Boolean(switchTarget)}
-            onClick={() => setPanel("creator")}
-            className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-transform hover:-translate-y-px disabled:opacity-50"
-          >
-            <FiPlus aria-hidden /> New project
-          </button>
         </nav>
       </header>
 
@@ -275,40 +391,64 @@ export function StudioShell({
   );
 }
 
-export function StudioStartActions() {
-  const shell = useStudioShell();
-  return (
-    <div className="mt-8 flex flex-wrap gap-3">
-      <button
-        type="button"
-        onClick={shell.openCreator}
-        className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center rounded-full px-5 py-3 font-semibold transition-transform hover:-translate-y-px"
-      >
-        New project
-      </button>
-      <button
-        type="button"
-        onClick={shell.openBrowser}
-        className="border-strong bg-surface-raised hover:border-accent hover:text-accent inline-flex min-h-11 items-center rounded-full border px-5 py-3 font-semibold transition-colors"
-      >
-        Open project
-      </button>
-    </div>
-  );
-}
-
 export function useStudioLifecycleRegistration(
   port: StudioSessionLifecyclePort,
+  options: { editable: boolean } = { editable: false },
 ) {
   const shell = useContext(StudioShellContext);
   const registerLifecycle = shell?.registerLifecycle;
-  useEffect(() => registerLifecycle?.(port), [port, registerLifecycle]);
+  const editable = options.editable;
+  useEffect(
+    () => registerLifecycle?.(port, { editable }),
+    [editable, port, registerLifecycle],
+  );
 }
 
-function useStudioShell() {
-  const value = useContext(StudioShellContext);
-  if (!value) throw new Error("studio_shell_unavailable");
-  return value;
+export function useStudioFileActions(actions: StudioFileActions) {
+  const shell = useContext(StudioShellContext);
+  const registerFileActions = shell?.registerFileActions;
+  const openExport = actions.openExport;
+  useEffect(
+    () => registerFileActions?.({ openExport }),
+    [openExport, registerFileActions],
+  );
+}
+
+function FileMenuButton({
+  icon,
+  children,
+  disabled,
+  reason,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  disabled: boolean;
+  reason: string;
+  onClick(): void;
+}) {
+  const reasonId = useId();
+  return (
+    <>
+      <button
+        type="button"
+        className="hover:bg-surface-raised rounded-control flex min-h-10 w-full items-center gap-3 px-3 text-left text-sm transition-colors disabled:opacity-40"
+        disabled={disabled}
+        aria-describedby={disabled ? reasonId : undefined}
+        onClick={onClick}
+      >
+        <span className="text-muted" aria-hidden>
+          {icon}
+        </span>
+        {children}
+      </button>
+      {disabled && (
+        <span id={reasonId} className="sr-only">
+          {reason}
+        </span>
+      )}
+    </>
+  );
 }
 
 function StudioDialog({

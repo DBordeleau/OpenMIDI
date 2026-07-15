@@ -45,4 +45,25 @@ describe("standalone MIDI editor history", () => {
       }).future,
     ).toHaveLength(0);
   });
+
+  it("treats a positioned block copy as one undoable semantic command", () => {
+    const notes = createMidiNotes(2);
+    const copies = notes.map((note, index) => ({
+      ...note,
+      noteId: `20000000-0000-4000-8000-00000000000${index + 1}`,
+      startTick: note.startTick + 120,
+      pitch: note.pitch + 1,
+    }));
+    const initial = createMidiEditorHistory(notes);
+    const copied = executeMidiEditorCommand(initial, 1_920, {
+      type: "duplicateNotes",
+      noteIds: notes.map(({ noteId }) => noteId),
+      copies,
+    });
+
+    expect(copied.notes).toHaveLength(4);
+    expect(copied.past).toEqual([notes]);
+    expect(undoMidiEditor(copied).notes).toEqual(notes);
+    expect(redoMidiEditor(undoMidiEditor(copied)).notes).toEqual(copied.notes);
+  });
 });

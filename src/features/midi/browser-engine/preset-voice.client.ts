@@ -2,12 +2,19 @@ import type { SynthPresetV1 } from "../presets";
 import { resolveSynthPreset } from "../presets";
 
 export type PresetVoice = {
+  triggerAttack: (
+    midiNote: number,
+    whenSeconds?: number,
+    velocity?: number,
+  ) => void;
+  triggerRelease: (midiNote: number, whenSeconds?: number) => void;
   triggerAttackRelease: (
     midiNote: number,
     durationSeconds: number,
     whenSeconds?: number,
     velocity?: number,
   ) => void;
+  setMixer: (mixer: { gainDb: number; pan: number }) => void;
   allNotesOff: () => void;
   dispose: () => void;
 };
@@ -85,6 +92,24 @@ export async function createPresetVoice(
 
   let disposed = false;
   return {
+    triggerAttack(midiNote, whenSeconds, velocity = 0.8) {
+      if (disposed) throw new Error("Preset voice is disposed");
+      if (midiNote < preset.minNote || midiNote > preset.maxNote) {
+        throw new RangeError("Note is outside this preset's supported range");
+      }
+      synth.triggerAttack(
+        Tone.Frequency(midiNote, "midi").toFrequency(),
+        whenSeconds,
+        Math.min(1, Math.max(0, velocity)),
+      );
+    },
+    triggerRelease(midiNote, whenSeconds) {
+      if (disposed) return;
+      synth.triggerRelease(
+        Tone.Frequency(midiNote, "midi").toFrequency(),
+        whenSeconds,
+      );
+    },
     triggerAttackRelease(
       midiNote,
       durationSeconds,
@@ -101,6 +126,11 @@ export async function createPresetVoice(
         whenSeconds,
         Math.min(1, Math.max(0, velocity)),
       );
+    },
+    setMixer(nextMixer) {
+      if (disposed) return;
+      outputSafety.gain.rampTo(Tone.dbToGain(-6 + nextMixer.gainDb), 0.015);
+      panner.pan.rampTo(nextMixer.pan, 0.015);
     },
     allNotesOff() {
       if (!disposed) synth.releaseAll();

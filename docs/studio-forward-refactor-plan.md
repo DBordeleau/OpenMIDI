@@ -1,8 +1,8 @@
 # Studio-forward workspace refactor plan
 
-Status: Accepted roadmap program; implementation authority is limited to the staged slices below
+Status: Repository complete through STUDIO-06 and UX-05; milestone pulse accepted
 Prepared: 2026-07-14  
-Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01–STUDIO-05 delivered the canonical shell/routes, safe project lifecycle, unified arranger, core arrangement mutation, and integrated MIDI creation/recording, and STUDIO-06 delivers parity before the audio lock and PR 18
+Sequence: MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 are repository-complete; hosted capability review and the separately authorized audio lock remain before PR 18
 
 ## Executive recommendation
 
@@ -22,7 +22,7 @@ The recommended canonical routes are:
 
 The proposal is realistic with the current stack. Project loading, creation, switching, vertical track reordering, timeline movement, trimming, copying, looping, splitting, integrated piano-roll editing, and MIDI recording are achievable. Manifest v2 and its normalized projections now provide the multi-clip foundation; UI support still must prove exact workspace/revision/contribution/fork round trips before exposing every operation. Independent playback-speed and pitch controls are a separate DSP problem and should not be promised as part of the structural refactor.
 
-The route-neutral session contract, studio-first project creation flow, manifest-v2 clip shape, future engine-portability rules, and reversible source-admission control were implemented through MIDI-07. Admission remains enabled. The remaining refactor must now turn those foundations into the primary creation workflow. Studio-native composition, recording, arranging, collaboration, and export parity are required before STUDIO-06 may enable the lock.
+The route-neutral session contract, studio-first project creation flow, manifest-v2 clip shape, future engine-portability rules, and reversible source-admission control were implemented through MIDI-07. STUDIO-01–STUDIO-06 and UX-01–UX-05 now provide the primary creation workflow and usability pass. Admission remains enabled pending the authorized hosted review and separately approved capability transition.
 
 ## Roadmap integration
 
@@ -32,7 +32,8 @@ This document no longer describes one large post-MIDI rewrite. Work is divided d
 - **MIDI-01:** executable contracts and fixtures for the session descriptor, composite capabilities, manifest identity, and stable audio/MIDI clips.
 - **MIDI-05:** composite MIDI/audio runtime, normalized clip foundations, and atomic project-plus-empty-workspace creation. The current nested route may remain canonical during MIDI delivery.
 - **MIDI-07:** complete; reversible source-admission authority and compatibility behavior are tested while admission remains enabled.
-- **STUDIO-01–STUDIO-06 after MIDI-07:** route migration, project browser/switching/creation, unified arrangement layout, clip interactions, Studio-integrated MIDI composition/recording, and final parity/hardening/audio-lock enablement.
+- **STUDIO-01–STUDIO-06 after MIDI-07:** complete; route migration, project browser/switching/creation, unified arrangement layout, clip interactions, Studio-integrated MIDI composition/recording, and repository parity/hardening.
+- **UX-01–UX-05:** complete; transport correctness, blank DAW shell, inline track/clip workflows, responsive piano interaction, and block editing.
 - **Outside the MVP critical path:** pitch/varispeed/time-stretch spikes and OpenDAW integration.
 
 MIDI-02–MIDI-04 intentionally delivered the editor and recorder as a standalone vertical foundation. That route remains valuable, but the final product experience reuses those components inside Studio instead of requiring a musician to export/import or navigate between unrelated screens for ordinary project work. Splitting the remaining work into six slices keeps shell, arranger, interaction, integrated composition, and release-risk changes independently reviewable.
@@ -119,16 +120,16 @@ The selected project should open as one coherent horizontal arrangement rather t
 - MIDI clips rendered with bounded note-density or miniature piano-roll summaries derived from the referenced immutable version;
 - a selected track/clip inspector for exact values and keyboard-accessible editing;
 - drag and keyboard movement with an explicit grid/snap policy;
-- duplicate, copy, paste, trim, loop, delete, and session undo/redo; and
+- duplicate tracks; copy, paste, trim, loop, and delete clips; and session undo/redo; and
 - clear distinction between workspace edits, a private MIDI draft, and immutable published history.
 
 Waveforms are correct for audio. MIDI must not pretend to be audio: its lane visualization should communicate note timing, pitch range, density, clip length, loop state, and preset color without synthesizing or storing a fake waveform. Both clip types still share position, selection, mixer, and transport behavior.
 
-Copying or duplicating a MIDI clip reuses its exact immutable stem-version reference and consumes no new Storage. Editing a copy does not mutate that version. The default replacement scope is the selected clip only; replacing every clip that references the old version must be a separate, clearly labelled command. Audio copy/split remains constrained to the same immutable source asset and existing credit/retention boundary.
+Copying and pasting a MIDI clip or duplicating its complete track reuses exact immutable stem-version references and consumes no new Storage. A duplicated track receives fresh stable track/clip IDs while retaining clip timing, preset, and mixer state. Editing a copy does not mutate the referenced version. The default replacement scope is the selected clip only; replacing every clip that references the old version must be a separate, clearly labelled command. Audio copy/split remains constrained to the same immutable source asset and existing credit/retention boundary.
 
 ### Composing and recording MIDI inside Studio
 
-The primary project workflow must not require a trip to a separate page. Selecting **Add MIDI track**, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session piano roll inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
+The primary project workflow must not require a trip to a separate page. Opening the piano roll from an inline pending MIDI lane, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session editor inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
 
 The integrated editor reuses—not forks—the components and contracts delivered in MIDI-02–MIDI-04:
 
@@ -331,7 +332,7 @@ Continue using the brand's warm studio-night tokens, semantic colors, pill actio
 | Split audio                                        | Technically high, integration medium | Library engine and v2 projections support clips; the Jam adapter/UI must stop discarding secondary clips and prove all immutable collaboration round trips                                             | Implement in STUDIO-04 after exact adapter/projection fixtures pass        |
 | Undo/redo                                          | High for session state               | Waveform engine supports transaction history; must integrate with autosave/recovery and not imply revision-history undo                                                                                | Add with move/trim/split, session-local only                               |
 | Render MIDI clip summaries                         | High                                 | Resolve bounded immutable note events already needed for playback; derive viewport summaries without persisting fake waveforms                                                                         | Render note-density/piano-roll thumbnails in the shared lane               |
-| Copy/paste or duplicate MIDI clips                 | High                                 | Reuse exact immutable version IDs; define selected-clip replacement scope, new stable clip IDs, collision/snap behavior, and bounded clipboard data                                                    | Implement in core clip-interaction slice                                   |
+| Copy/paste MIDI clips or duplicate MIDI tracks     | High                                 | Reuse exact immutable version IDs; define selected-clip replacement scope, fresh stable IDs, collision/snap behavior, and bounded clipboard data                                                       | Implement in core clip-interaction slice                                   |
 | Compose/record MIDI within Studio                  | High with existing foundation        | Reuse piano roll/recorder, coordinate project transport and draft/workspace locks, keep audition overlays out of manifests, and make finalization/application atomic                                   | Required before the Studio parity gate                                     |
 | Simple per-track varispeed that also changes pitch | Medium                               | Current public multitrack adapter does not expose it; custom playout scheduling, waveform duration, seeking, export, and persistence all change                                                        | Spike only; label honestly as coupled speed/pitch if adopted               |
 | Speed change while preserving pitch                | Low-to-medium                        | The pinned single-track MediaElement mode supports pitch-preserving rate, but the multitrack Tone playout does not expose equivalent per-track stretching; robust time stretching needs additional DSP | Defer unless a measured DSP spike meets quality/CPU/export gates           |
@@ -478,7 +479,7 @@ Scope:
 
 - vertical drag reorder plus keyboard up/down commands;
 - clip selection, horizontal move, grid snapping with a modifier/explicit no-snap path, and inspector fallback;
-- MIDI duplicate, copy, paste, delete, trim/source offset, duration, and loop interactions with stable new clip IDs;
+- MIDI track duplication plus clip copy, paste, delete, trim/source offset, duration, and loop interactions with stable new IDs;
 - audio move/trim and duplicate/split only within the same immutable source-asset track and only after projection round-trip fixtures pass;
 - an explicit compatible-target rule for cross-track operations; do not silently change source ownership or MIDI preset semantics;
 - selected-clip-only MIDI version replacement by default, with any “replace all references” command separately confirmed;
@@ -499,7 +500,7 @@ Outcome: a musician creates, edits, and records a MIDI part in project context, 
 Scope:
 
 - embed the shared Jam-owned piano roll as a docked lower editor or focused Studio panel; do not copy/fork its command model;
-- open it from **Add MIDI track**, MIDI clip double-click/Enter, and **Edit MIDI part**;
+- open it from the inline pending MIDI lane, MIDI clip double-click/Enter, and **Edit MIDI part**;
 - support blank drafts, local `.mid` import, and derivation from the selected exact stem version;
 - reuse note create/move/resize/duplicate/delete/velocity/quantize, note inspector, keyboard shortcuts, and draft recovery;
 - use project tempo/time signature and transport context for count-in, metronome, playhead, audition, and recording against other audible tracks;
@@ -534,6 +535,18 @@ Scope:
 - update PRD, roadmap, architecture, brand implementation map, README, agent/testing guidance, and PR 18 handoff.
 
 Implemented in the repository: the complete Studio-native create-to-export path and retained collaboration/legacy paths are exercised locally; exact referenced MIDI data is loaded through existing RLS for read-only revision and contribution playback; lifecycle registration is optional for compatible surfaces outside the canonical shell; repeated switching and disabled-admission rollback are covered. Performance results and remaining manual/hosted gates are recorded in the STUDIO-06 evidence. No hosted mutation was authorized, so source admission remains enabled and PR 18 must begin from that recorded capability state unless an operator completes the runbook first.
+
+### UX-03 usability outcome — inline tracks and clip containers
+
+Implemented: the unified arranger pins an Add a track row below the channels and represents its one named empty MIDI lane only in selected-session UI state. Blank piano-roll and validated local `.mid` entry create private drafts directly; the existing replay-safe finalization transaction alone freezes a version and materializes the pending track/clip, after which Studio closes the editor, selects the clip, and restores lane focus. MIDI Copy/Paste adds clips at the playhead or next opening, Duplicate clones the complete MIDI track into a new lane with fresh stable IDs, and semantic move/copy accepts compatible MIDI destinations in both axes while retaining exact immutable version IDs and credit lineage. Moving a non-overlapping clip may extend the timeline, so silence between clips is preserved; audio remains same-asset only. No manifest, schema, RPC, or source-admission change was required.
+
+### UX-04 usability outcome — responsive piano interaction
+
+Implemented: the one shared standalone/integrated MIDI editor renders semantic layered white/black key depth, labels only C rows for melodic presets and named rows for drum maps, and centers clamped middle C on its first measured viewport without taking authority from later scrolling. A source-aware transient active-pitch union connects performance-key pointer input, QWERTY, Web MIDI, gutter audition, and bounded editor previews to matching canvas and `aria-pressed` feedback. Pointer capture turns the gutter into a glissando surface, while the performance strip tracks one held pointer across its keys; both switch each crossed pitch once and release on exit, up, cancel, blur, disconnect, stop, and disposal. The state is session-only and required no manifest, schema, RPC, authorization, or source-admission change.
+
+### UX-05 usability outcome — marquee selection and block editing
+
+Implemented: the shared editor exposes explicit Pencil and Select tools with pressed state, help, and P/V shortcuts. Select-mode drags create transient tick/pitch rectangles and choose notes by musical intersection; Shift toggles the intersected set, Escape or an empty click clears it, and the synchronized note list/inspector remain the accessible authority. Dragging any selected note emits one snapped semantic `moveNotes` edit and auditions the grabbed note as the block changes pitch; Alt uses exact integer ticks, and Ctrl/Cmd-drag creates fresh IDs and positions the copies in one history step. Ctrl/Cmd+C/V and Duplicate use the same bounded semantic duplication boundary. Pointer cancellation discards previews, while completed gestures create one autosave/history generation. No selection, rectangle, clipboard, preview, schema, RPC, authorization, manifest, or source-admission state changed.
 
 ### Post-MVP DSP research — not sequenced delivery
 

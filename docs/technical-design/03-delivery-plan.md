@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; repository implemented through PR 17, OPT-05, MIDI-07, and STUDIO-06; hosted lock transition remains before M6/PR 18
+Status: Accepted; repository implemented and pulse-checked through PR 17, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted capability review remains before M6/PR 18
 
 ## Delivery strategy
 
@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M5 and M5.5 are implemented. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Before M6, complete M5.6 (MIDI-first expansion and new-audio-admission transition), M5.7 (studio-forward shell and arrangement refactor), and PR 18 moderation/retention operations. Conditional manual browser/audio/MIDI/preview checks remain recorded as such. M6 hardening remains planned.
+M0–M5 and M5.5–M5.8 are repository-complete. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Before M6, complete the hosted capability handoff, PR 18 moderation/retention operations, and the remaining roadmap hardening. Conditional manual browser/audio/MIDI/preview checks remain recorded as such.
 
 ### M0 — Decisions and feasibility
 
@@ -113,6 +113,18 @@ Exit: the MIDI format, standalone editor foundation, immutable collaboration gra
 - Keep pitch shift, varispeed, pitch-preserving time stretch, OpenDAW, multiple simultaneous live projects, and professional-DAW parity outside the MVP critical path.
 
 Repository exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; and supported state survives immutable collaboration flows. Operational exit: the deployed parity result and final source-admission capability state are reviewed and recorded before PR 18 covers the final MIDI/audio reference graph.
+
+### M5.8 — Studio and MIDI usability
+
+Status: Complete; milestone pulse accepted.
+
+- `UX-01` makes the browser audio clock authoritative for transport/playhead state, keeps mixer changes live, and repairs continuous seek and clip drag completion.
+- `UX-02` presents `/studio` as a runtime-free blank workstation with familiar File lifecycle actions.
+- `UX-03` adds session-only pending MIDI lanes, direct compose/import, atomic track materialization, multi-clip containers, track duplication, and compatible cross-track movement.
+- `UX-04` improves piano depth, C/mapped labels, initial middle-C position, active-note feedback, and pointer glissando.
+- `UX-05` adds explicit Pencil/Select tools, marquee selection, semantic block move/copy, grabbed-note audition, and one-step history.
+
+Repository exit: the usability requirements are implemented without a manifest, schema, authorization, immutable-history, or hosted source-admission change. Perceptual audio, hardware MIDI, screen-reader, extended-browser, and long-session drift measurements remain conditional/manual release evidence and PR 19 hardening.
 
 ### M6 — Launch hardening
 

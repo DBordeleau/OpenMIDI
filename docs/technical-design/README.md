@@ -1,6 +1,6 @@
 # Jam Session Technical Design
 
-Status: Accepted MVP design; repository implemented through PR 17, OPT-05, MIDI-07, and STUDIO-06; hosted lock transition remains before PR 18
+Status: Accepted MVP design; repository implemented and pulse-checked through PR 17, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted capability review remains before PR 18
 
 Last updated: 2026-07-15
 

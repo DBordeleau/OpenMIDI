@@ -37,7 +37,10 @@ import {
   FiZoomOut,
 } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
-import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
+import {
+  useStudioFileActions,
+  useStudioLifecycleRegistration,
+} from "../components/studio-shell.client";
 import { MutableStudioLifecycle } from "../switch-coordinator";
 import {
   serializePostgresJsonb,
@@ -169,6 +172,23 @@ function PlaybackControls({
   const { isPlaying } = usePlaybackAnimation();
   const playlistState = usePlaylistState();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const exportSectionRef = useRef<HTMLDivElement>(null);
+  const studioFileActions = useMemo(
+    () => ({
+      openExport: () => {
+        exportSectionRef.current?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "auto"
+            : "smooth",
+          block: "center",
+        });
+        exportSectionRef.current?.focus({ preventScroll: true });
+      },
+    }),
+    [],
+  );
+  useStudioFileActions(studioFileActions);
   const { exportWav, isExporting, progress: exportProgress } = useExportWav();
   const [time, setTime] = useState(0);
   const [audioIssue, setAudioIssue] = useState(false);
@@ -669,7 +689,11 @@ function PlaybackControls({
       >
         <Waveform renderTrackControls={renderTrackControls} />
       </div>
-      <div className="rounded-card border-subtle bg-surface border p-5">
+      <div
+        ref={exportSectionRef}
+        tabIndex={-1}
+        className="rounded-card border-subtle bg-surface border p-5"
+      >
         <h2 className="font-bold">Export WAV mix</h2>
         <p className="text-muted mt-1 text-sm">{mixMessage}</p>
         {isExporting && (
@@ -1437,7 +1461,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       },
     });
   }, [adapter, cachePending, lifecycle, performSave]);
-  useStudioLifecycleRegistration(lifecycle);
+  useStudioLifecycleRegistration(lifecycle, { editable: Boolean(editable) });
 
   const audioSummary = snapshot.playbackReady
     ? `Playback ready · ${readyTrackCount} of ${snapshot.trackLoadStates.length} tracks decoded`

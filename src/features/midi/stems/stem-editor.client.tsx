@@ -11,6 +11,7 @@ import {
 import {
   FiCopy,
   FiDisc,
+  FiEdit3,
   FiCornerUpLeft,
   FiCornerUpRight,
   FiHelpCircle,
@@ -62,6 +63,19 @@ import {
   undoMidiEditor,
 } from "./editor-history";
 import type { MidiStemDraft } from "./types";
+import {
+  initialPianoScrollTop,
+  isBlackPianoKey,
+  midiPitchName,
+  noteIntersectsPianoRollRectangle,
+  pianoKeyFace,
+  pianoKeyLabel,
+  pianoRollSelectionRectangle,
+  type PianoRollPoint,
+  type PianoRollSelectionRectangle,
+  PIANO_KEY_WIDTH,
+  PITCH_ROW_HEIGHT,
+} from "./piano-roll";
 import { useMidiPerformance } from "./use-midi-performance.client";
 
 export type MidiStemEditorHost = {
@@ -77,14 +91,11 @@ export type MidiStemEditorHost = {
   }) => Promise<{ ok: boolean; message: string }>;
   finalizeLabel: string;
 };
-const PITCH_ROW_HEIGHT = 22;
-const PIANO_KEY_WIDTH = 88;
 const MIN_PIXELS_PER_BEAT = 48;
 const MAX_PIXELS_PER_BEAT = 160;
 const DEFAULT_PIXELS_PER_BEAT = 88;
 const MIN_NOTE_WIDTH = 7;
 const RESIZE_HANDLE_WIDTH = 10;
-const AUDITION_SECONDS = 0.18;
 
 const inputClass =
   "focus:border-accent border-strong bg-surface mt-2 min-h-11 w-full rounded-control border px-3 py-2 transition-colors";
@@ -92,6 +103,7 @@ const secondaryButton =
   "border-strong hover:border-accent inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 text-sm font-semibold disabled:opacity-45";
 
 type Quantization = keyof typeof QUANTIZATION_TICKS;
+type EditorTool = "pencil" | "select";
 type Viewport = {
   width: number;
   height: number;
@@ -99,13 +111,39 @@ type Viewport = {
   scrollTop: number;
 };
 type DragGesture = {
-  mode: "move" | "resize";
+  mode: "move" | "resize" | "copy";
   pointerId: number;
   clientX: number;
   clientY: number;
   noteIds: readonly string[];
   notes: readonly MidiNoteV1[];
   lastAuditionPitch: number;
+  auditionNoteId: string;
+  copyIds: readonly string[];
+  previewNotes: readonly MidiNoteV1[] | null;
+};
+
+type MarqueeGesture = {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  start: PianoRollPoint;
+  current: PianoRollPoint;
+  initialSelection: ReadonlySet<string>;
+  additive: boolean;
+  moved: boolean;
+};
+
+type PianoGesture = {
+  pointerId: number;
+  pitch: number;
+  source: string;
+};
+
+type PerformanceKeyGesture = {
+  pointerId: number;
+  pitch: number;
+  source: string;
 };
 
 type AuditionVoice = {
@@ -113,30 +151,8 @@ type AuditionVoice = {
   voice: PresetVoice;
 };
 
-function isBlackKey(pitch: number) {
-  return [1, 3, 6, 8, 10].includes(pitch % 12);
-}
-
 function resizeHandleWidth(noteWidth: number) {
   return Math.min(RESIZE_HANDLE_WIDTH, Math.max(4, noteWidth / 3));
-}
-
-function pitchName(pitch: number) {
-  const names = [
-    "C",
-    "C♯",
-    "D",
-    "D♯",
-    "E",
-    "F",
-    "F♯",
-    "G",
-    "G♯",
-    "A",
-    "A♯",
-    "B",
-  ];
-  return `${names[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
 }
 
 function selectedValues(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -172,6 +188,7 @@ export function MidiStemEditor({
     readonly MidiNoteV1[] | null
   >(null);
   const [quantization, setQuantization] = useState<Quantization>("1/16");
+  const [editorTool, setEditorTool] = useState<EditorTool>("pencil");
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [viewport, setViewport] = useState<Viewport>({
     width: 900,
@@ -196,6 +213,7 @@ export function MidiStemEditor({
   >({ status: "idle", message: "" });
   const rollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const performanceKeyboardRef = useRef<HTMLDivElement>(null);
   const lockVersionRef = useRef(draft.lockVersion);
   const contentSha256Ref = useRef(draft.contentSha256);
   const savingRef = useRef(false);
@@ -204,8 +222,17 @@ export function MidiStemEditor({
   const [editGeneration, setEditGeneration] = useState(0);
   const saveStatusRef = useRef<MidiDraftSaveStatus>(saveState.status);
   const gestureRef = useRef<DragGesture | null>(null);
+  const marqueeGestureRef = useRef<MarqueeGesture | null>(null);
+  const [marquee, setMarquee] = useState<PianoRollSelectionRectangle | null>(
+    null,
+  );
+  const noteClipboardRef = useRef<readonly MidiNoteV1[]>([]);
+  const pianoGestureRef = useRef<PianoGesture | null>(null);
+  const performanceKeyGestureRef = useRef<PerformanceKeyGesture | null>(null);
+  const initialViewportRef = useRef(false);
   const voiceRef = useRef<PresetVoice | null>(null);
   const auditionVoiceRef = useRef<AuditionVoice | null>(null);
+  const auditionHeldPitchesRef = useRef(new Set<number>());
   const auditionRequestRef = useRef(0);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playheadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -281,6 +308,7 @@ export function MidiStemEditor({
 
   const stopAudition = useCallback(() => {
     auditionRequestRef.current += 1;
+    auditionHeldPitchesRef.current.clear();
     auditionVoiceRef.current?.voice.allNotesOff();
     auditionVoiceRef.current?.voice.dispose();
     auditionVoiceRef.current = null;
@@ -288,6 +316,7 @@ export function MidiStemEditor({
 
   const auditionNote = useCallback(
     async (pitch: number, velocity = 96) => {
+      auditionHeldPitchesRef.current.add(pitch);
       const request = ++auditionRequestRef.current;
       try {
         const { createPresetVoice, resumeMidiAudioContext } =
@@ -304,12 +333,8 @@ export function MidiStemEditor({
           entry = { presetId, voice };
           auditionVoiceRef.current = entry;
         }
-        entry.voice.triggerAttackRelease(
-          pitch,
-          AUDITION_SECONDS,
-          when,
-          velocity / 127,
-        );
+        if (!auditionHeldPitchesRef.current.has(pitch)) return;
+        entry.voice.triggerAttack(pitch, when, velocity / 127);
       } catch {
         // Audition is a progressive enhancement; editing remains available when
         // the browser has not granted audio playback yet.
@@ -317,6 +342,11 @@ export function MidiStemEditor({
     },
     [presetId],
   );
+
+  const releaseAuditionNote = useCallback((pitch: number) => {
+    auditionHeldPitchesRef.current.delete(pitch);
+    auditionVoiceRef.current?.voice.triggerRelease(pitch);
+  }, []);
 
   const commitRecordedTake = useCallback(
     (recordedNotes: readonly MidiNoteV1[]) => {
@@ -349,6 +379,7 @@ export function MidiStemEditor({
     maxPitch: preset.maxNote,
     existingNoteCount: history.notes.length,
     audition: (pitch, velocity) => void auditionNote(pitch, velocity),
+    releaseAudition: releaseAuditionNote,
     commitTake: commitRecordedTake,
     announce: setNotice,
     bpm: host?.tempoBpm,
@@ -364,6 +395,21 @@ export function MidiStemEditor({
       (pitch) => pitch >= preset.minNote && pitch <= preset.maxNote,
     );
   }, [performance.octave, preset.maxNote, preset.minNote]);
+
+  useEffect(() => {
+    const clearPerformanceGesture = () => {
+      performanceKeyGestureRef.current = null;
+    };
+    const clearHiddenGesture = () => {
+      if (document.visibilityState === "hidden") clearPerformanceGesture();
+    };
+    window.addEventListener("blur", clearPerformanceGesture);
+    document.addEventListener("visibilitychange", clearHiddenGesture);
+    return () => {
+      window.removeEventListener("blur", clearPerformanceGesture);
+      document.removeEventListener("visibilitychange", clearHiddenGesture);
+    };
+  }, []);
 
   useEffect(() => stopPlayback, [stopPlayback]);
   useEffect(() => stopAudition, [stopAudition]);
@@ -519,17 +565,33 @@ export function MidiStemEditor({
   useEffect(() => {
     const roll = rollRef.current;
     if (!roll) return;
-    const update = () =>
+    const update = () => {
+      const width = roll.clientWidth;
+      const height = roll.clientHeight;
+      let scrollTop = roll.scrollTop;
+      if (!initialViewportRef.current && height > 0) {
+        scrollTop =
+          scrollTop ||
+          initialPianoScrollTop({
+            minPitch: preset.minNote,
+            maxPitch: preset.maxNote,
+            viewportHeight: height,
+          });
+        roll.scrollTop = scrollTop;
+        initialViewportRef.current = true;
+      }
       setViewport((current) => ({
         ...current,
-        width: roll.clientWidth,
-        height: roll.clientHeight,
+        width,
+        height,
+        scrollTop,
       }));
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(roll);
     return () => observer.disconnect();
-  }, []);
+  }, [preset.maxNote, preset.minNote]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -570,7 +632,7 @@ export function MidiStemEditor({
     for (let row = firstRow; row < lastRow; row += 1) {
       const pitch = preset.maxNote - row;
       const y = row * PITCH_ROW_HEIGHT - viewport.scrollTop;
-      const isBlack = isBlackKey(pitch);
+      const isBlack = isBlackPianoKey(pitch);
       context.fillStyle = isBlack ? canvasColor : surfaceColor;
       context.fillRect(
         PIANO_KEY_WIDTH,
@@ -584,27 +646,50 @@ export function MidiStemEditor({
       context.lineTo(viewport.width, y + PITCH_ROW_HEIGHT);
       context.stroke();
 
-      context.fillStyle = textColor;
+      const face = pianoKeyFace(pitch);
+      const active = performance.activePitches.has(pitch);
+      const keyGradient = context.createLinearGradient(
+        face.x,
+        0,
+        face.x + face.width,
+        0,
+      );
+      if (active) {
+        keyGradient.addColorStop(0, accent2);
+        keyGradient.addColorStop(1, accent);
+        context.shadowColor = accent2;
+        context.shadowBlur = 8;
+      } else if (isBlack) {
+        keyGradient.addColorStop(0, canvasColor);
+        keyGradient.addColorStop(0.7, surfaceColor);
+        keyGradient.addColorStop(1, canvasColor);
+      } else {
+        keyGradient.addColorStop(0, textColor);
+        keyGradient.addColorStop(0.82, textColor);
+        keyGradient.addColorStop(1, mutedColor);
+      }
+      context.fillStyle = isBlack ? textColor : keyGradient;
       context.fillRect(0, y, PIANO_KEY_WIDTH, PITCH_ROW_HEIGHT);
       context.strokeStyle = strongBorder;
       context.strokeRect(0, y, PIANO_KEY_WIDTH, PITCH_ROW_HEIGHT);
       if (isBlack) {
-        context.fillStyle = canvasColor;
+        context.fillStyle = keyGradient;
         context.fillRect(
-          PIANO_KEY_WIDTH * 0.38,
-          y + 1,
-          PIANO_KEY_WIDTH * 0.62,
-          PITCH_ROW_HEIGHT - 2,
+          face.x,
+          y + face.insetY,
+          face.width,
+          PITCH_ROW_HEIGHT - face.insetY * 2,
         );
       }
-      context.fillStyle = isBlack
-        ? mutedColor
-        : pitch % 12 === 0
-          ? canvasColor
-          : surfaceColor;
+      context.shadowBlur = 0;
+      context.fillStyle = active
+        ? canvasColor
+        : isBlack
+          ? textColor
+          : canvasColor;
       context.textAlign = "right";
       context.fillText(
-        pitchName(pitch),
+        pianoKeyLabel(pitch, preset.drumMap) ?? "",
         PIANO_KEY_WIDTH - 7,
         y + PITCH_ROW_HEIGHT / 2,
       );
@@ -683,6 +768,29 @@ export function MidiStemEditor({
       context.stroke();
     }
 
+    if (marquee) {
+      const x =
+        PIANO_KEY_WIDTH +
+        (marquee.startTick / MIDI_PPQ) * pixelsPerBeat -
+        viewport.scrollLeft;
+      const endX =
+        PIANO_KEY_WIDTH +
+        (marquee.endTick / MIDI_PPQ) * pixelsPerBeat -
+        viewport.scrollLeft;
+      const y =
+        (preset.maxNote - marquee.maxPitch) * PITCH_ROW_HEIGHT -
+        viewport.scrollTop;
+      const height =
+        (marquee.maxPitch - marquee.minPitch + 1) * PITCH_ROW_HEIGHT;
+      context.fillStyle = accent2;
+      context.globalAlpha = 0.18;
+      context.fillRect(x, y, Math.max(1, endX - x), height);
+      context.globalAlpha = 1;
+      context.strokeStyle = accent2;
+      context.lineWidth = 1;
+      context.strokeRect(x, y, Math.max(1, endX - x), height);
+    }
+
     const playheadX =
       PIANO_KEY_WIDTH +
       (visiblePlayheadTick / MIDI_PPQ) * pixelsPerBeat -
@@ -695,10 +803,13 @@ export function MidiStemEditor({
     context.stroke();
   }, [
     draft.durationTicks,
+    marquee,
     notes,
+    performance.activePitches,
     pixelsPerBeat,
     pitchCount,
     visiblePlayheadTick,
+    preset.drumMap,
     preset.maxNote,
     quantization,
     selectedIds,
@@ -745,16 +856,56 @@ export function MidiStemEditor({
     );
   }
 
+  function rollPointAtPointer(clientX: number, clientY: number) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { tick: 0, pitch: preset.minNote };
+    const tick = Math.max(
+      0,
+      Math.min(
+        draft.durationTicks,
+        Math.round(
+          ((clientX - rect.left + viewport.scrollLeft - PIANO_KEY_WIDTH) /
+            pixelsPerBeat) *
+            MIDI_PPQ,
+        ),
+      ),
+    );
+    return { tick, pitch: pitchAtPointer(clientY) };
+  }
+
   function handlePointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
     if (event.button !== 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (event.clientX - rect.left < PIANO_KEY_WIDTH) {
-      void auditionNote(pitchAtPointer(event.clientY));
+      const pitch = pitchAtPointer(event.clientY);
+      const source = `piano-gutter:${event.pointerId}`;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      pianoGestureRef.current = { pointerId: event.pointerId, pitch, source };
+      performance.previewOn(pitch, performance.defaultVelocity, source);
       return;
     }
     const hit = noteAtPointer(event.clientX, event.clientY);
     if (!hit) {
-      if (!event.shiftKey) setSelectedIds(new Set());
+      if (editorTool === "select") {
+        const point = rollPointAtPointer(event.clientX, event.clientY);
+        const initialSelection = new Set(selectedIds);
+        const gesture: MarqueeGesture = {
+          pointerId: event.pointerId,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          start: point,
+          current: point,
+          initialSelection,
+          additive: event.shiftKey,
+          moved: false,
+        };
+        marqueeGestureRef.current = gesture;
+        setMarquee(pianoRollSelectionRectangle(point, point));
+        event.currentTarget.setPointerCapture(event.pointerId);
+        event.currentTarget.style.cursor = "crosshair";
+      } else if (!event.shiftKey) {
+        setSelectedIds(new Set());
+      }
       return;
     }
     const nextSelection = new Set(selectedIds);
@@ -768,20 +919,86 @@ export function MidiStemEditor({
     }
     setSelectedIds(nextSelection);
     if (!nextSelection.has(hit.note.noteId)) return;
+    const modifier = event.ctrlKey || event.metaKey;
+    if (
+      modifier &&
+      history.notes.length + nextSelection.size > MAX_MIDI_NOTES_PER_STEM
+    ) {
+      setNotice("Copy-dragging that selection would exceed 2,048 notes.");
+      return;
+    }
+    const mode = modifier ? "copy" : hit.resize ? "resize" : "move";
+    const noteIds = [...nextSelection];
+    const copyIds =
+      mode === "copy" ? noteIds.map(() => crypto.randomUUID()) : [];
+    const grabbedNoteIndex = noteIds.indexOf(hit.note.noteId);
     event.currentTarget.setPointerCapture(event.pointerId);
     gestureRef.current = {
-      mode: hit.resize ? "resize" : "move",
+      mode,
       pointerId: event.pointerId,
       clientX: event.clientX,
       clientY: event.clientY,
-      noteIds: [...nextSelection],
+      noteIds,
       notes: history.notes,
       lastAuditionPitch: hit.note.pitch,
+      auditionNoteId:
+        mode === "copy" ? copyIds[grabbedNoteIndex] : hit.note.noteId,
+      copyIds,
+      previewNotes: null,
     };
-    event.currentTarget.style.cursor = hit.resize ? "ew-resize" : "grabbing";
+    event.currentTarget.style.cursor =
+      mode === "copy" ? "copy" : mode === "resize" ? "ew-resize" : "grabbing";
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
+    const pianoGesture = pianoGestureRef.current;
+    if (pianoGesture?.pointerId === event.pointerId) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      if (event.clientX - rect.left >= PIANO_KEY_WIDTH) {
+        finishPianoGesture(event);
+        return;
+      }
+      const pitch = pitchAtPointer(event.clientY);
+      if (pitch !== pianoGesture.pitch) {
+        pianoGesture.pitch = pitch;
+        performance.previewOn(
+          pitch,
+          performance.defaultVelocity,
+          pianoGesture.source,
+        );
+      }
+      return;
+    }
+    const marqueeGesture = marqueeGestureRef.current;
+    if (marqueeGesture?.pointerId === event.pointerId) {
+      const point = rollPointAtPointer(event.clientX, event.clientY);
+      marqueeGesture.current = point;
+      marqueeGesture.moved ||=
+        Math.abs(event.clientX - marqueeGesture.clientX) > 2 ||
+        Math.abs(event.clientY - marqueeGesture.clientY) > 2;
+      const rectangle = pianoRollSelectionRectangle(
+        marqueeGesture.start,
+        point,
+      );
+      const intersected = history.notes
+        .filter((note) => noteIntersectsPianoRollRectangle(note, rectangle))
+        .map(({ noteId }) => noteId);
+      const nextSelection = marqueeGesture.additive
+        ? new Set(marqueeGesture.initialSelection)
+        : new Set<string>();
+      for (const noteId of intersected) {
+        if (
+          marqueeGesture.additive &&
+          marqueeGesture.initialSelection.has(noteId)
+        )
+          nextSelection.delete(noteId);
+        else nextSelection.add(noteId);
+      }
+      setSelectedIds(nextSelection);
+      setMarquee(rectangle);
+      event.currentTarget.style.cursor = "crosshair";
+      return;
+    }
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -798,12 +1015,18 @@ export function MidiStemEditor({
       return;
     }
     event.currentTarget.style.cursor =
-      gesture.mode === "resize" ? "ew-resize" : "grabbing";
+      gesture.mode === "copy"
+        ? "copy"
+        : gesture.mode === "resize"
+          ? "ew-resize"
+          : "grabbing";
     const grid = QUANTIZATION_TICKS[quantization];
-    const deltaTicks =
-      Math.round(
-        (((event.clientX - gesture.clientX) / pixelsPerBeat) * MIDI_PPQ) / grid,
-      ) * grid;
+    const rawDeltaTicks = Math.round(
+      ((event.clientX - gesture.clientX) / pixelsPerBeat) * MIDI_PPQ,
+    );
+    const deltaTicks = event.altKey
+      ? rawDeltaTicks
+      : Math.round(rawDeltaTicks / grid) * grid;
     const deltaPitch = -Math.round(
       (event.clientY - gesture.clientY) / PITCH_ROW_HEIGHT,
     );
@@ -811,12 +1034,29 @@ export function MidiStemEditor({
       const command: MidiStemCommand =
         gesture.mode === "resize"
           ? { type: "resizeNotes", noteIds: gesture.noteIds, deltaTicks }
-          : {
-              type: "moveNotes",
-              noteIds: gesture.noteIds,
-              deltaTicks,
-              deltaPitch,
-            };
+          : gesture.mode === "copy"
+            ? {
+                type: "duplicateNotes",
+                noteIds: gesture.noteIds,
+                copies: gesture.noteIds.map((noteId, index) => {
+                  const source = gesture.notes.find(
+                    (note) => note.noteId === noteId,
+                  );
+                  if (!source) throw new Error("Copied note is unavailable");
+                  return {
+                    ...source,
+                    noteId: gesture.copyIds[index],
+                    startTick: source.startTick + deltaTicks,
+                    pitch: source.pitch + deltaPitch,
+                  };
+                }),
+              }
+            : {
+                type: "moveNotes",
+                noteIds: gesture.noteIds,
+                deltaTicks,
+                deltaPitch,
+              };
       const next = applyMidiStemCommand(
         { durationTicks: draft.durationTicks, notes: gesture.notes },
         command,
@@ -827,14 +1067,15 @@ export function MidiStemEditor({
         )
       )
         return;
+      gesture.previewNotes = next.notes;
       setPreviewNotes(next.notes);
-      if (gesture.mode === "move") {
+      if (gesture.mode === "move" || gesture.mode === "copy") {
         const primaryNote = next.notes.find(
-          ({ noteId }) => noteId === gesture.noteIds[0],
+          ({ noteId }) => noteId === gesture.auditionNoteId,
         );
         if (primaryNote && primaryNote.pitch !== gesture.lastAuditionPitch) {
           gesture.lastAuditionPitch = primaryNote.pitch;
-          void auditionNote(primaryNote.pitch, primaryNote.velocity);
+          performance.previewNote(primaryNote.pitch, primaryNote.velocity);
         }
       }
     } catch {
@@ -845,13 +1086,18 @@ export function MidiStemEditor({
   function finishPointerGesture(event: React.PointerEvent<HTMLCanvasElement>) {
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    if (previewNotes) {
-      setHistory((current) => replaceMidiEditorNotes(current, previewNotes));
+    if (gesture.previewNotes) {
+      setHistory((current) =>
+        replaceMidiEditorNotes(current, gesture.previewNotes ?? current.notes),
+      );
+      if (gesture.mode === "copy") setSelectedIds(new Set(gesture.copyIds));
       markEdited();
       setNotice(
         gesture.mode === "resize"
           ? "Note length changed. Autosave is listening."
-          : "Selection moved. Autosave is listening.",
+          : gesture.mode === "copy"
+            ? "Selection copied and moved as one edit. Autosave is listening."
+            : "Selection moved. Autosave is listening.",
       );
     }
     setPreviewNotes(null);
@@ -861,18 +1107,151 @@ export function MidiStemEditor({
       event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
+  function finishMarqueeGesture(event: React.PointerEvent<HTMLCanvasElement>) {
+    const gesture = marqueeGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (!gesture.moved && !gesture.additive) setSelectedIds(new Set());
+    setNotice(
+      gesture.moved
+        ? "Phrase selected. Drag any selected note to move the block."
+        : "Selection cleared.",
+    );
+    marqueeGestureRef.current = null;
+    setMarquee(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function finishPianoGesture(event: React.PointerEvent<HTMLCanvasElement>) {
+    const gesture = pianoGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    performance.previewOff(gesture.source);
+    pianoGestureRef.current = null;
+    event.currentTarget.style.cursor = "pointer";
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function performancePitchFromElement(element: Element | null) {
+    const key = element?.closest<HTMLElement>("[data-performance-pitch]");
+    if (!key || !performanceKeyboardRef.current?.contains(key)) return null;
+    const pitch = Number(key.dataset.performancePitch);
+    return Number.isInteger(pitch) ? pitch : null;
+  }
+
+  function startPerformanceKeyGesture(
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    if (event.button !== 0 || performanceKeyGestureRef.current) return;
+    const pitch = performancePitchFromElement(event.target as Element);
+    if (pitch === null) return;
+    const source = `performance-key:${event.pointerId}`;
+    performanceKeyGestureRef.current = {
+      pointerId: event.pointerId,
+      pitch,
+      source,
+    };
+    performance.noteOn(
+      pitch,
+      performance.defaultVelocity,
+      globalThis.performance.now(),
+      source,
+    );
+  }
+
+  function movePerformanceKeyGesture(
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    const gesture = performanceKeyGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    ) {
+      finishPerformanceKeyGesture(event);
+      return;
+    }
+    const pitch = performancePitchFromElement(
+      document.elementFromPoint(event.clientX, event.clientY) ??
+        (event.target as Element),
+    );
+    if (pitch === null || pitch === gesture.pitch) return;
+    gesture.pitch = pitch;
+    performance.noteOn(
+      pitch,
+      performance.defaultVelocity,
+      globalThis.performance.now(),
+      gesture.source,
+    );
+  }
+
+  function finishPerformanceKeyGesture(
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    const gesture = performanceKeyGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    performance.noteOff(
+      gesture.pitch,
+      globalThis.performance.now(),
+      gesture.source,
+    );
+    performanceKeyGestureRef.current = null;
+  }
+
+  function enterPerformanceKey(pitch: number) {
+    const gesture = performanceKeyGestureRef.current;
+    if (!gesture || pitch === gesture.pitch) return;
+    gesture.pitch = pitch;
+    performance.noteOn(
+      pitch,
+      performance.defaultVelocity,
+      globalThis.performance.now(),
+      gesture.source,
+    );
+  }
+
+  function finishPointerInteraction(
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) {
+    finishPianoGesture(event);
+    finishMarqueeGesture(event);
+    finishPointerGesture(event);
+  }
+
+  function cancelPointerInteraction(
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) {
+    finishPianoGesture(event);
+    const marqueeGesture = marqueeGestureRef.current;
+    if (marqueeGesture?.pointerId === event.pointerId) {
+      setSelectedIds(new Set(marqueeGesture.initialSelection));
+      marqueeGestureRef.current = null;
+      setMarquee(null);
+    }
+    const gesture = gestureRef.current;
+    if (gesture?.pointerId === event.pointerId) {
+      gestureRef.current = null;
+      setPreviewNotes(null);
+    }
+    event.currentTarget.style.cursor = "crosshair";
+  }
+
   function handleContextMenu(event: React.MouseEvent<HTMLCanvasElement>) {
     const hit = noteAtPointer(event.clientX, event.clientY);
     if (!hit) return;
     event.preventDefault();
     commitCommand(
       { type: "deleteNotes", noteIds: [hit.note.noteId] },
-      `${pitchName(hit.note.pitch)} removed.`,
+      `${midiPitchName(hit.note.pitch)} removed.`,
       [],
     );
   }
 
   function handleDoubleClick(event: React.MouseEvent<HTMLCanvasElement>) {
+    if (editorTool !== "pencil") return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (event.clientX - rect.left < PIANO_KEY_WIDTH) return;
     addNoteAt(event.clientX, event.clientY);
@@ -918,7 +1297,7 @@ export function MidiStemEditor({
       durationTicks,
     };
     commitCommand({ type: "addNote", note }, "Note added.", [note.noteId]);
-    void auditionNote(note.pitch, note.velocity);
+    performance.previewNote(note.pitch, note.velocity);
   }
 
   function addStarterPattern() {
@@ -1008,6 +1387,49 @@ export function MidiStemEditor({
     );
   }
 
+  function copySelection() {
+    if (!selectedNotes.length) return;
+    noteClipboardRef.current = selectedNotes.map((note) => ({ ...note }));
+    setNotice(
+      `${selectedNotes.length} note${selectedNotes.length === 1 ? "" : "s"} copied.`,
+    );
+  }
+
+  function pasteSelection() {
+    const clipboard = noteClipboardRef.current;
+    if (!clipboard.length) {
+      setNotice("Select notes and copy them before pasting.");
+      return;
+    }
+    if (history.notes.length + clipboard.length > MAX_MIDI_NOTES_PER_STEM) {
+      setNotice("Pasting that block would exceed 2,048 notes.");
+      return;
+    }
+    const offset = QUANTIZATION_TICKS[quantization];
+    const copies = clipboard.map((note) => ({
+      ...note,
+      noteId: crypto.randomUUID(),
+      startTick: note.startTick + offset,
+    }));
+    if (
+      copies.some(
+        (note) => note.startTick + note.durationTicks > draft.durationTicks,
+      )
+    ) {
+      setNotice("There is not enough room after the copied block to paste it.");
+      return;
+    }
+    commitCommand(
+      {
+        type: "duplicateNotes",
+        noteIds: clipboard.map(({ noteId }) => noteId),
+        copies,
+      },
+      "Copied notes pasted one grid step later.",
+      copies.map(({ noteId }) => noteId),
+    );
+  }
+
   function undo() {
     const next = undoMidiEditor(history);
     if (next === history) return;
@@ -1082,9 +1504,29 @@ export function MidiStemEditor({
     } else if (modifier && event.key.toLowerCase() === "d") {
       event.preventDefault();
       duplicateSelection();
+    } else if (modifier && event.key.toLowerCase() === "c") {
+      event.preventDefault();
+      copySelection();
+    } else if (modifier && event.key.toLowerCase() === "v") {
+      event.preventDefault();
+      pasteSelection();
     } else if (modifier && event.key.toLowerCase() === "a") {
       event.preventDefault();
       setSelectedIds(new Set(history.notes.map(({ noteId }) => noteId)));
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setSelectedIds(new Set());
+      setMarquee(null);
+      marqueeGestureRef.current = null;
+      setNotice("Selection cleared.");
+    } else if (!modifier && !event.altKey && event.key.toLowerCase() === "p") {
+      event.preventDefault();
+      setEditorTool("pencil");
+      setNotice("Pencil tool active. Double-click empty space to add a note.");
+    } else if (!modifier && !event.altKey && event.key.toLowerCase() === "v") {
+      event.preventDefault();
+      setEditorTool("select");
+      setNotice("Select tool active. Drag empty space around a phrase.");
     } else if (event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
       deleteSelection();
@@ -1249,7 +1691,7 @@ export function MidiStemEditor({
         value >= preset.minNote &&
         value <= preset.maxNote
       ) {
-        void auditionNote(value, selectedNote.velocity);
+        performance.previewNote(value, selectedNote.velocity);
       }
     }
   }
@@ -1445,41 +1887,46 @@ export function MidiStemEditor({
           </div>
 
           <div
+            ref={performanceKeyboardRef}
             className="mt-4 flex max-w-full gap-1 overflow-x-auto pb-2"
             aria-label="On-screen piano"
+            onPointerDown={startPerformanceKeyGesture}
+            onPointerMove={movePerformanceKeyGesture}
+            onPointerUp={finishPerformanceKeyGesture}
+            onPointerCancel={finishPerformanceKeyGesture}
+            onPointerLeave={finishPerformanceKeyGesture}
           >
-            {performancePitches.map((pitch) => (
-              <button
-                key={pitch}
-                type="button"
-                className={`focus-visible:ring-accent min-h-20 min-w-12 rounded-b-md border px-2 text-xs font-semibold focus-visible:ring-2 ${
-                  isBlackKey(pitch)
-                    ? "border-strong bg-canvas text-ink"
-                    : "border-subtle bg-ink text-canvas"
-                }`}
-                aria-label={`Play ${pitchName(pitch)}, MIDI note ${pitch}`}
-                onPointerDown={(event) => {
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  performance.noteOn(
-                    pitch,
-                    performance.defaultVelocity,
-                    globalThis.performance.now(),
-                  );
-                }}
-                onPointerUp={() =>
-                  performance.noteOff(pitch, globalThis.performance.now())
-                }
-                onPointerCancel={() =>
-                  performance.noteOff(pitch, globalThis.performance.now())
-                }
-                onLostPointerCapture={() =>
-                  performance.noteOff(pitch, globalThis.performance.now())
-                }
-              >
-                {preset.drumMap?.[String(pitch)] ?? pitchName(pitch)}
-              </button>
-            ))}
+            {performancePitches.map((pitch) => {
+              const active = performance.activePitches.has(pitch);
+              return (
+                <button
+                  key={pitch}
+                  type="button"
+                  className={`focus-visible:ring-accent min-h-20 min-w-12 rounded-b-md border px-2 text-xs font-semibold transition-[background-color,color,box-shadow,transform] duration-100 focus-visible:ring-2 motion-reduce:transform-none motion-reduce:transition-none ${
+                    active
+                      ? "border-accent-2 bg-accent-2 text-accent-contrast -translate-y-0.5 shadow-[0_0_16px_var(--color-accent-2)]"
+                      : isBlackPianoKey(pitch)
+                        ? "border-strong bg-canvas text-ink"
+                        : "border-subtle bg-ink text-canvas"
+                  }`}
+                  aria-label={`Play ${midiPitchName(pitch)}, MIDI note ${pitch}`}
+                  aria-pressed={active}
+                  onPointerEnter={() => enterPerformanceKey(pitch)}
+                  data-performance-pitch={pitch}
+                >
+                  {preset.drumMap?.[String(pitch)] ?? midiPitchName(pitch)}
+                </button>
+              );
+            })}
           </div>
+          <p className="sr-only" aria-live="polite">
+            {performance.activePitches.size
+              ? `Playing ${[...performance.activePitches]
+                  .sort((left, right) => left - right)
+                  .map(midiPitchName)
+                  .join(", ")}`
+              : "No piano notes held"}
+          </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {performance.status === "idle" ? (
@@ -1557,7 +2004,11 @@ export function MidiStemEditor({
           </button>
           <button
             type="button"
-            onClick={stopPlayback}
+            onClick={() => {
+              stopPlayback();
+              stopAudition();
+              performance.releaseActive();
+            }}
             disabled={!playing}
             className={secondaryButton}
           >
@@ -1637,6 +2088,40 @@ export function MidiStemEditor({
         )}
 
         <div className="mt-5 flex flex-wrap items-end gap-2">
+          <div
+            className="border-strong inline-flex rounded-full border p-1"
+            role="group"
+            aria-label="Piano-roll tool"
+          >
+            <button
+              type="button"
+              className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "pencil" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
+              aria-pressed={editorTool === "pencil"}
+              aria-keyshortcuts="P"
+              onClick={() => {
+                setEditorTool("pencil");
+                setNotice(
+                  "Pencil tool active. Double-click empty space to add a note.",
+                );
+              }}
+            >
+              <FiEdit3 aria-hidden /> Pencil
+            </button>
+            <button
+              type="button"
+              className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "select" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
+              aria-pressed={editorTool === "select"}
+              aria-keyshortcuts="V"
+              onClick={() => {
+                setEditorTool("select");
+                setNotice(
+                  "Select tool active. Drag empty space around a phrase.",
+                );
+              }}
+            >
+              <FiMousePointer aria-hidden /> Select
+            </button>
+          </div>
           <button
             type="button"
             className={secondaryButton}
@@ -1747,10 +2232,12 @@ export function MidiStemEditor({
             <p className="font-semibold">Piano-roll keyboard controls</p>
             <p className="text-muted mt-1">
               Arrows move selected notes; Shift + Left/Right resizes; Delete
-              removes; Ctrl/Cmd + D duplicates; Ctrl/Cmd + Z undoes; Ctrl/Cmd +
-              Shift + Z or Ctrl/Cmd + Y redoes; Ctrl/Cmd + A selects all. Text
-              fields keep their normal shortcuts. Right-click a note to remove
-              it, or click a piano key to preview its sound.
+              removes; P chooses Pencil; V chooses Select; Escape clears;
+              Ctrl/Cmd + C/V copies and pastes; Ctrl/Cmd + D duplicates;
+              Ctrl/Cmd + Z undoes; Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y redoes;
+              Ctrl/Cmd + A selects all. Select-tool drags make a marquee, Shift
+              toggles intersecting notes, Ctrl/Cmd-drag copies, and Alt-drag
+              bypasses the grid. Text fields keep their normal shortcuts.
             </p>
           </div>
         )}
@@ -1765,8 +2252,10 @@ export function MidiStemEditor({
             </p>
           </div>
           <p className="text-muted inline-flex items-center gap-2 text-sm">
-            <FiMousePointer aria-hidden /> Double-click empty space to add. Drag
-            notes, resize from the gripped right edge, or right-click to remove.
+            <FiMousePointer aria-hidden />
+            {editorTool === "select"
+              ? "Drag empty space to select a phrase; drag the selection to move it."
+              : "Double-click empty space to add; drag notes or their gripped edge."}
           </p>
         </div>
 
@@ -1793,14 +2282,18 @@ export function MidiStemEditor({
               role="application"
               tabIndex={0}
               aria-label={`Piano roll with ${history.notes.length} notes. Use the note inspector after the roll for complete keyboard editing.`}
+              data-tool={editorTool}
               data-testid="midi-piano-roll"
+              data-middle-c-row={preset.maxNote - 60}
               onDoubleClick={handleDoubleClick}
               onContextMenu={handleContextMenu}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
-              onPointerUp={finishPointerGesture}
-              onPointerCancel={finishPointerGesture}
+              onPointerUp={finishPointerInteraction}
+              onPointerCancel={cancelPointerInteraction}
+              onLostPointerCapture={cancelPointerInteraction}
               onPointerLeave={(event) => {
+                finishPianoGesture(event);
                 if (!gestureRef.current)
                   event.currentTarget.style.cursor = "crosshair";
               }}
@@ -1835,8 +2328,8 @@ export function MidiStemEditor({
           >
             {history.notes.map((note, index) => (
               <option key={note.noteId} value={note.noteId}>
-                {index + 1}. {pitchName(note.pitch)} · tick {note.startTick} ·{" "}
-                {note.durationTicks} long · velocity {note.velocity}
+                {index + 1}. {midiPitchName(note.pitch)} · tick {note.startTick}{" "}
+                · {note.durationTicks} long · velocity {note.velocity}
               </option>
             ))}
           </select>
@@ -1899,7 +2392,7 @@ export function MidiStemEditor({
               <InspectorField
                 key={`pitch-${selectedNote.noteId}-${selectedNote.pitch}`}
                 label="MIDI pitch"
-                detail={pitchName(selectedNote.pitch)}
+                detail={midiPitchName(selectedNote.pitch)}
                 min={preset.minNote}
                 max={preset.maxNote}
                 value={selectedNote.pitch}

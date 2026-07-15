@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiDownload, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
-import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
+import {
+  useStudioFileActions,
+  useStudioLifecycleRegistration,
+} from "../components/studio-shell.client";
 import {
   MIDI_PPQ,
   parseWorkspaceManifestV2,
@@ -66,6 +69,17 @@ const input =
   "border-strong bg-canvas min-h-11 rounded-control border px-3 text-sm";
 
 export function MidiStudioSurface(props: Props) {
+  const actionsMenuRef = useRef<HTMLDetailsElement>(null);
+  const studioFileActions = useMemo(
+    () => ({
+      openExport: () => {
+        actionsMenuRef.current?.setAttribute("open", "");
+        actionsMenuRef.current?.querySelector<HTMLElement>("summary")?.focus();
+      },
+    }),
+    [],
+  );
+  useStudioFileActions(studioFileActions);
   const [midiVersions, setMidiVersions] = useState(
     () => props.midiVersions ?? [],
   );
@@ -77,6 +91,7 @@ export function MidiStudioSurface(props: Props) {
         : null;
   const [manifest, setManifest] = useState(props.manifest);
   const manifestRef = useRef(props.manifest);
+  const propsRef = useRef(props);
   const historyRef = useRef(createArrangementHistory(props.manifest));
   const [historyAvailability, setHistoryAvailability] = useState({
     canUndo: false,
@@ -98,6 +113,15 @@ export function MidiStudioSurface(props: Props) {
   const [rendering, setRendering] = useState(false);
   const [composerTarget, setComposerTarget] =
     useState<IntegratedMidiTarget | null>(null);
+  const [pendingMidiLane, setPendingMidiLane] = useState<{
+    trackId: string;
+    name: string;
+  } | null>(null);
+  const [finalizedClip, setFinalizedClip] = useState<{
+    trackId: string;
+    clipId: string;
+    token: number;
+  } | null>(null);
   const [draftSaveStatus, setDraftSaveStatus] =
     useState<MidiDraftSaveStatus>("saved");
   const [integratedDraftActive, setIntegratedDraftActive] = useState(false);
@@ -155,82 +179,115 @@ export function MidiStudioSurface(props: Props) {
     }),
     [editable?.assets, midiVersions],
   );
+  const audioAssetKey = manifest.tracks
+    .flatMap((track) => (track.kind === "audio" ? [track.assetId] : []))
+    .sort()
+    .join(":");
+  const audioSourceScope =
+    props.mode === "workspace" || props.mode === "contribution"
+      ? `${props.mode}:${props.projectId}:${props.workspaceId}`
+      : props.mode === "revision"
+        ? `${props.mode}:${props.projectId}:${props.revisionId}`
+        : `${props.mode}:${props.projectId}:${props.contributionId}:${props.versionId}`;
+
+  useEffect(() => {
+    propsRef.current = props;
+  }, [props]);
 
   useEffect(() => {
     const next = new BrowserMidiRuntime();
-    const controller = new AbortController();
-    runtimeAbort.current = controller;
     runtime.current = next;
+    return () => {
+      if (playbackStartTimer.current) clearTimeout(playbackStartTimer.current);
+      if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
+      next.dispose();
+      if (runtime.current === next) runtime.current = null;
+    };
+  }, [props.projectId]);
+
+  useEffect(() => {
+    const next = runtime.current;
+    if (!next) return;
     try {
       const schedule = projectMidiSchedule({ manifest, stemVersions });
-      void (async () => {
-        await next.prepare(schedule);
-        const sources = await loadAudioSources(
-          props,
-          manifest,
-          controller.signal,
+      void next
+        .prepare(schedule)
+        .catch(() =>
+          setMessage("Some local Studio instruments could not be prepared."),
         );
-        setAudioSummaries(
-          new Map(
-            sources.map((source) => [
-              source.assetId,
-              { status: "loading", peaks: [] } satisfies AudioLaneSummary,
-            ]),
-          ),
-        );
-        void loadAudioLaneSummaries({
-          sources,
-          signal: controller.signal,
-          onSummary: (assetId, summary) =>
-            setAudioSummaries((current) =>
-              new Map(current).set(assetId, summary),
-            ),
-        });
-        const decoded = await next.prepareAudio(
-          manifest,
-          sources,
-          controller.signal,
-        );
-        setAudioSummaries((current) => {
-          const updated = new Map(current);
-          for (const [assetId, peaks] of decoded)
-            updated.set(assetId, { status: "ready", peaks });
-          for (const source of sources)
-            if (!decoded.has(source.assetId))
-              updated.set(source.assetId, {
-                status: "failed",
-                peaks: updated.get(source.assetId)?.peaks ?? [],
-              });
-          return updated;
-        });
-      })().catch(() => {
-        if (controller.signal.aborted) return;
-        setAudioSummaries((current) => {
-          const updated = new Map(current);
-          for (const track of manifest.tracks)
-            if (track.kind === "audio")
-              updated.set(track.assetId, {
-                status: "failed",
-                peaks: updated.get(track.assetId)?.peaks ?? [],
-              });
-          setMessage(
-            "Some local Studio instruments or audio sources could not be prepared.",
-          );
-          return updated;
-        });
-      });
+      next.updateManifest(manifest);
     } catch {
       // Draft timing is validated and reported by the explicit save/play action.
     }
+  }, [manifest, stemVersions]);
+
+  useEffect(() => {
+    const next = runtime.current;
+    if (!next) return;
+    const controller = new AbortController();
+    runtimeAbort.current = controller;
+    void (async () => {
+      const currentManifest = manifestRef.current;
+      const sources = await loadAudioSources(
+        propsRef.current,
+        currentManifest,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      setAudioSummaries(
+        new Map(
+          sources.map((source) => [
+            source.assetId,
+            { status: "loading", peaks: [] } satisfies AudioLaneSummary,
+          ]),
+        ),
+      );
+      void loadAudioLaneSummaries({
+        sources,
+        signal: controller.signal,
+        onSummary: (assetId, summary) =>
+          setAudioSummaries((current) =>
+            new Map(current).set(assetId, summary),
+          ),
+      });
+      const decoded = await next.prepareAudio(
+        currentManifest,
+        sources,
+        controller.signal,
+      );
+      setAudioSummaries((current) => {
+        const updated = new Map(current);
+        for (const [assetId, peaks] of decoded)
+          updated.set(assetId, { status: "ready", peaks });
+        for (const source of sources)
+          if (!decoded.has(source.assetId))
+            updated.set(source.assetId, {
+              status: "failed",
+              peaks: updated.get(source.assetId)?.peaks ?? [],
+            });
+        return updated;
+      });
+    })().catch(() => {
+      if (controller.signal.aborted) return;
+      setAudioSummaries((current) => {
+        const updated = new Map(current);
+        for (const track of manifestRef.current.tracks)
+          if (track.kind === "audio")
+            updated.set(track.assetId, {
+              status: "failed",
+              peaks: updated.get(track.assetId)?.peaks ?? [],
+            });
+        setMessage(
+          "Some local Studio instruments or audio sources could not be prepared.",
+        );
+        return updated;
+      });
+    });
     return () => {
       controller.abort();
-      if (playbackStartTimer.current) clearTimeout(playbackStartTimer.current);
-      if (playbackTimer.current) clearInterval(playbackTimer.current);
-      next.dispose();
-      if (runtime.current === next) runtime.current = null;
       if (runtimeAbort.current === controller) runtimeAbort.current = null;
     };
-  }, [manifest, props, stemVersions]);
+  }, [audioAssetKey, audioSourceScope]);
 
   useEffect(() => {
     const pauseForOtherPlayer = (event: Event) => {
@@ -311,7 +368,7 @@ export function MidiStudioSurface(props: Props) {
     command: ArrangementCommand,
     group: string | null = null,
   ) {
-    if (!editable) return;
+    if (!editable) return false;
     try {
       changeManifest(
         applyArrangementCommand(
@@ -321,12 +378,14 @@ export function MidiStudioSurface(props: Props) {
         ),
         group,
       );
+      return true;
     } catch (error) {
       setMessage(
         error instanceof ArrangementCommandError
           ? error.message
           : "That arrangement edit could not be applied.",
       );
+      return false;
     }
   }
 
@@ -556,13 +615,48 @@ export function MidiStudioSurface(props: Props) {
     setDraftSaveStatus("saved");
   }
 
+  const startPlaybackMonitor = useCallback(() => {
+    if (playbackTimer.current)
+      window.cancelAnimationFrame(playbackTimer.current);
+    const updatePlayhead = () => {
+      const snapshot = runtime.current?.getTransportSnapshot();
+      if (!snapshot || snapshot.state !== "playing") {
+        playbackTimer.current = null;
+        if (snapshot) {
+          const current = manifestRef.current;
+          setSeekTick(
+            Math.round(
+              (snapshot.positionSeconds * current.tempoBpm * MIDI_PPQ) / 60,
+            ),
+          );
+        }
+        setPlaying(false);
+        return;
+      }
+      const current = manifestRef.current;
+      const nextTick = Math.round(
+        (snapshot.positionSeconds * current.tempoBpm * MIDI_PPQ) / 60,
+      );
+      if (nextTick >= current.durationTicks) {
+        runtime.current?.pause();
+        playbackTimer.current = null;
+        setPlaying(false);
+        setSeekTick(0);
+        return;
+      }
+      setSeekTick(nextTick);
+      playbackTimer.current = requestAnimationFrame(updatePlayhead);
+    };
+    playbackTimer.current = requestAnimationFrame(updatePlayhead);
+  }, []);
+
   const stopProjectTransport = useCallback(() => {
     if (playbackStartTimer.current) {
       window.clearTimeout(playbackStartTimer.current);
       playbackStartTimer.current = null;
     }
     if (playbackTimer.current) {
-      window.clearInterval(playbackTimer.current);
+      window.cancelAnimationFrame(playbackTimer.current);
       playbackTimer.current = null;
     }
     runtime.current?.pause();
@@ -579,13 +673,16 @@ export function MidiStudioSurface(props: Props) {
         const fromSeconds = (startTick * 60) / (current.tempoBpm * MIDI_PPQ);
         void runtime.current
           ?.play(fromSeconds)
-          .then(() => setPlaying(true))
+          .then(() => {
+            setPlaying(true);
+            startPlaybackMonitor();
+          })
           .catch(() =>
             setMessage("Project playback could not join the MIDI audition."),
           );
       }, countInSeconds * 1_000);
     },
-    [stopProjectTransport],
+    [startPlaybackMonitor, stopProjectTransport],
   );
 
   const finalizeIntegratedDraft = useCallback(
@@ -607,10 +704,7 @@ export function MidiStudioSurface(props: Props) {
         intent = {
           draftId: input.draftId,
           requestId: crypto.randomUUID(),
-          trackId:
-            target.operation === "replace"
-              ? target.trackId
-              : crypto.randomUUID(),
+          trackId: target.trackId,
           clipId:
             target.operation === "replace"
               ? target.clipId
@@ -675,6 +769,14 @@ export function MidiStudioSurface(props: Props) {
       });
       finalizeIntentRef.current = null;
       setComposerTarget(null);
+      if (target.operation === "add") {
+        setPendingMidiLane(null);
+        setFinalizedClip({
+          trackId: intent.trackId,
+          clipId: intent.clipId,
+          token: Date.now(),
+        });
+      }
       setIntegratedDraftActive(false);
       setDraftSaveStatus("saved");
       const outcome =
@@ -726,7 +828,15 @@ export function MidiStudioSurface(props: Props) {
   async function togglePlayback() {
     if (playing) {
       runtime.current?.pause();
-      if (playbackTimer.current) clearInterval(playbackTimer.current);
+      const snapshot = runtime.current?.getTransportSnapshot();
+      if (snapshot)
+        setSeekTick(
+          Math.round(
+            (snapshot.positionSeconds * manifest.tempoBpm * MIDI_PPQ) / 60,
+          ),
+        );
+      if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
+      playbackTimer.current = null;
       setPlaying(false);
       return;
     }
@@ -739,21 +849,7 @@ export function MidiStudioSurface(props: Props) {
       const fromSeconds = (seekTick * 60) / (manifest.tempoBpm * MIDI_PPQ);
       await runtime.current?.play(fromSeconds);
       setPlaying(true);
-      const startedAt = performance.now();
-      const startedTick = seekTick;
-      playbackTimer.current = window.setInterval(() => {
-        const elapsedTicks = Math.round(
-          ((performance.now() - startedAt) * manifest.tempoBpm * MIDI_PPQ) /
-            60_000,
-        );
-        const nextTick = startedTick + elapsedTicks;
-        if (nextTick >= manifest.durationTicks) {
-          if (playbackTimer.current) clearInterval(playbackTimer.current);
-          playbackTimer.current = null;
-          setPlaying(false);
-          setSeekTick(0);
-        } else setSeekTick(nextTick);
-      }, 50);
+      startPlaybackMonitor();
     } catch {
       setMessage("Playback needs an enabled browser audio context.");
     }
@@ -848,13 +944,13 @@ export function MidiStudioSurface(props: Props) {
         runtimeAbort.current?.abort();
         if (playbackStartTimer.current)
           clearTimeout(playbackStartTimer.current);
-        if (playbackTimer.current) clearInterval(playbackTimer.current);
+        if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
         runtime.current?.dispose();
         runtime.current = null;
       },
     });
   });
-  useStudioLifecycleRegistration(lifecycle);
+  useStudioLifecycleRegistration(lifecycle, { editable: Boolean(editable) });
 
   if (manifest.manifestVersion === 2)
     return (
@@ -954,7 +1050,8 @@ export function MidiStudioSurface(props: Props) {
           onTogglePlayback={() => void togglePlayback()}
           onSeek={(tick) => {
             runtime.current?.pause();
-            if (playbackTimer.current) clearInterval(playbackTimer.current);
+            if (playbackTimer.current)
+              cancelAnimationFrame(playbackTimer.current);
             playbackTimer.current = null;
             setPlaying(false);
             setSeekTick(tick);
@@ -968,31 +1065,62 @@ export function MidiStudioSurface(props: Props) {
           }
           onEditMidiClip={openMidiClipEditor}
           onCommand={runArrangementCommand}
+          pendingMidiLane={pendingMidiLane}
+          onAddMidiLane={() => {
+            setPendingMidiLane({
+              trackId: crypto.randomUUID(),
+              name: `MIDI track ${manifest.tracks.filter(({ kind }) => kind === "midi").length + 1}`,
+            });
+            setMessage(null);
+          }}
+          onPendingMidiLaneNameChange={(name) =>
+            setPendingMidiLane((current) =>
+              current ? { ...current, name } : current,
+            )
+          }
+          onOpenPendingPianoRoll={() => {
+            if (!pendingMidiLane?.name.trim()) return;
+            setComposerTarget({
+              operation: "add",
+              startTick: seekTick,
+              trackId: pendingMidiLane.trackId,
+              name: pendingMidiLane.name.trim(),
+              entry: "blank",
+            });
+            setDraftSaveStatus("saved");
+          }}
+          onImportPendingMidi={(file) => {
+            if (!pendingMidiLane?.name.trim()) return;
+            setComposerTarget({
+              operation: "add",
+              startTick: seekTick,
+              trackId: pendingMidiLane.trackId,
+              name: pendingMidiLane.name.trim(),
+              entry: "import",
+              file,
+            });
+            setDraftSaveStatus("saved");
+          }}
+          onClosePendingMidiLane={() => {
+            stopProjectTransport();
+            setPendingMidiLane(null);
+            setComposerTarget(null);
+            setIntegratedDraftActive(false);
+            finalizeIntentRef.current = null;
+          }}
+          finalizedClip={finalizedClip}
           canUndo={historyAvailability.canUndo}
           canRedo={historyAvailability.canRedo}
           onUndo={undo}
           onRedo={redo}
           actionRegion={
-            <details className="relative">
+            <details ref={actionsMenuRef} className="relative">
               <summary className={`${button} list-none gap-2`}>
                 <FiMoreHorizontal /> Actions
               </summary>
               <div className="border-strong bg-surface rounded-card absolute top-12 right-0 z-50 w-80 space-y-3 border p-4 shadow-xl">
                 {editable && (
                   <div>
-                    <button
-                      className="cta-gradient text-accent-contrast mb-3 min-h-11 w-full rounded-full px-4 text-sm font-semibold"
-                      type="button"
-                      onClick={() => {
-                        setComposerTarget({
-                          operation: "add",
-                          startTick: seekTick,
-                        });
-                        setDraftSaveStatus("saved");
-                      }}
-                    >
-                      Add MIDI track
-                    </button>
                     <label
                       className="text-xs font-semibold"
                       htmlFor="arranger-version"
@@ -1130,7 +1258,7 @@ export function MidiStudioSurface(props: Props) {
         />
         {composerTarget && editable && (
           <IntegratedMidiComposer
-            key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.startTick}`}
+            key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.trackId}`}
             target={composerTarget}
             tempoBpm={manifest.tempoBpm}
             timeSignature={manifest.timeSignature}

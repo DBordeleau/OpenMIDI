@@ -67,14 +67,28 @@ test.describe("studio startup smoke", () => {
 
     await expect(page).toHaveURL(/\/studio$/);
     await expect(
-      page.getByRole("heading", { name: "Open the music you want to shape." }),
+      page.getByRole("region", { name: "Blank arrangement workspace" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "New project" }).first(),
+      page.getByRole("heading", { name: "No project open" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Open project" }).first(),
-    ).toBeVisible();
+      page.getByRole("button", { name: "Play arrangement" }),
+    ).toBeDisabled();
+    await page
+      .getByRole("navigation", { name: "Studio" })
+      .getByText("File", { exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "New project" }),
+    ).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Open project" }),
+    ).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Close project" }),
+    ).toBeDisabled();
     expect(privateSourceRequests).toEqual([]);
     expect(
       await page.evaluate(
@@ -113,10 +127,7 @@ test.describe("studio startup smoke", () => {
     await expect(page.getByText("All changes saved")).toBeVisible();
 
     await createProjectInStudio(page, secondTitle);
-    await page
-      .getByRole("navigation", { name: "Studio" })
-      .getByRole("button", { name: "Open project" })
-      .click();
+    await openProjectBrowserInStudio(page);
     const firstProject = page
       .getByRole("listitem")
       .filter({ hasText: firstTitle });
@@ -127,10 +138,7 @@ test.describe("studio startup smoke", () => {
     await expect(page).toHaveURL(firstUrl);
 
     for (const title of [secondTitle, firstTitle, secondTitle, firstTitle]) {
-      await page
-        .getByRole("navigation", { name: "Studio" })
-        .getByRole("button", { name: "Open project" })
-        .click();
+      await openProjectBrowserInStudio(page);
       await page
         .getByRole("listitem")
         .filter({ hasText: title })
@@ -160,20 +168,129 @@ test.describe("studio startup smoke", () => {
       `Integrated MIDI ${randomUUID().slice(0, 8)}`,
     );
 
-    await page.locator("summary").filter({ hasText: "Actions" }).click();
-    await page.getByRole("button", { name: "Add MIDI track" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Add a MIDI part" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Start blank part" }).click();
+    await page.getByRole("button", { name: "Add a track" }).click();
+    await page.getByLabel("Pending track name").fill("New MIDI part");
+    await page.getByRole("button", { name: "Open piano roll" }).click();
     await expect(
       page.getByRole("heading", { name: "Perform a take" }),
     ).toBeVisible();
+    const integratedRoll = page.getByTestId("midi-piano-roll");
+    const integratedViewport = await integratedRoll.evaluate((element) => {
+      const scroller = element.parentElement?.parentElement;
+      if (!(scroller instanceof HTMLElement))
+        throw new Error("Piano-roll scroller is unavailable");
+      return {
+        height: scroller.clientHeight,
+        scrollTop: scroller.scrollTop,
+        middleCRow: Number(element.dataset.middleCRow),
+      };
+    });
+    expect(
+      Math.abs(
+        integratedViewport.middleCRow * 22 +
+          11 -
+          integratedViewport.scrollTop -
+          integratedViewport.height / 2,
+      ),
+    ).toBeLessThanOrEqual(12);
+    const c4Key = page.getByRole("button", {
+      name: "Play C4, MIDI note 60",
+    });
+    await integratedRoll.focus();
+    await page.keyboard.down("a");
+    await expect(c4Key).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.up("a");
+    await expect(c4Key).toHaveAttribute("aria-pressed", "false");
+    const cSharp4Key = page.getByRole("button", {
+      name: /MIDI note 61/,
+    });
+    const c4Box = await c4Key.boundingBox();
+    const cSharp4Box = await cSharp4Key.boundingBox();
+    if (!c4Box || !cSharp4Box)
+      throw new Error("Performance keys are not laid out");
+    await page.mouse.move(
+      c4Box.x + c4Box.width / 2,
+      c4Box.y + c4Box.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      cSharp4Box.x + cSharp4Box.width / 2,
+      cSharp4Box.y + cSharp4Box.height / 2,
+      { steps: 3 },
+    );
+    await expect(c4Key).toHaveAttribute("aria-pressed", "false");
+    await expect(cSharp4Key).toHaveAttribute("aria-pressed", "true");
+    await page.mouse.up();
+    await expect(cSharp4Key).toHaveAttribute("aria-pressed", "false");
     await expect(
       page.getByRole("button", { name: "Publish immutable revision" }),
     ).toBeDisabled();
 
     await page.getByRole("button", { name: "Add note" }).click();
+    await page.getByRole("button", { name: "Select", exact: true }).click();
+    const rollBox = await integratedRoll.boundingBox();
+    const rollGeometry = await integratedRoll.evaluate((element) => {
+      const scroller = element.parentElement?.parentElement;
+      if (!(scroller instanceof HTMLElement))
+        throw new Error("Piano-roll scroller is unavailable");
+      return {
+        middleCRow: Number(element.dataset.middleCRow),
+        scrollLeft: scroller.scrollLeft,
+        scrollTop: scroller.scrollTop,
+      };
+    });
+    if (!rollBox) throw new Error("Piano roll is not laid out");
+    const notePitch = Number(await page.getByLabel("MIDI pitch").inputValue());
+    const noteStartTick = Number(
+      await page.getByLabel("Start tick").inputValue(),
+    );
+    const noteDurationTicks = Number(
+      await page.getByLabel("Duration ticks").inputValue(),
+    );
+    const maxPitch = rollGeometry.middleCRow + 60;
+    let noteLeft =
+      rollBox.x + 88 + (noteStartTick / 480) * 88 - rollGeometry.scrollLeft;
+    const noteTop =
+      rollBox.y + (maxPitch - notePitch) * 22 - rollGeometry.scrollTop + 3;
+    const noteWidth = Math.max(7, (noteDurationTicks / 480) * 88);
+    const noteCenterY = noteTop + 8;
+    await page.mouse.move(
+      rollBox.x + rollBox.width - 4,
+      rollBox.y + rollBox.height - 4,
+    );
+    await page.mouse.down();
+    await page.mouse.move(rollBox.x + 89, rollBox.y + 1, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.getByText(/1 selected/)).toBeVisible();
+
+    await page.mouse.move(noteLeft + Math.min(10, noteWidth / 2), noteCenterY);
+    await page.mouse.down();
+    await page.mouse.move(
+      noteLeft + Math.min(10, noteWidth / 2) + 22,
+      noteCenterY,
+      { steps: 3 },
+    );
+    await page.mouse.up();
+    await expect(
+      page.getByLabel("Notes in stem").locator("option").first(),
+    ).toContainText("tick 120");
+
+    noteLeft += 22;
+    await page.keyboard.down("Control");
+    await page.mouse.move(noteLeft + Math.min(10, noteWidth / 2), noteCenterY);
+    await page.mouse.down();
+    await page.mouse.move(
+      noteLeft + Math.min(10, noteWidth / 2) + 22,
+      noteCenterY,
+      { steps: 3 },
+    );
+    await page.mouse.up();
+    await page.keyboard.up("Control");
+    await expect(page.getByText(/2 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByText(/1 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Redo" }).click();
+    await expect(page.getByText(/2 of 2,048 notes/)).toBeVisible();
     await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,
     });
@@ -195,16 +312,102 @@ test.describe("studio startup smoke", () => {
       page.getByText(/immutable and was added to the arrangement/),
     ).toBeVisible({ timeout: 10_000 });
 
-    await page.reload();
-    const clip = page.getByRole("button", {
+    const arrangedClip = page.getByRole("button", {
       name: /MIDI clip on New MIDI part/,
     });
+    await expect(arrangedClip).toBeFocused();
+    await page.keyboard.press("Control+c");
+    await page.keyboard.press("Control+v");
+    await expect(arrangedClip).toHaveCount(2);
+    await expect(page.getByText("Arrangement saved.")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.reload();
+    const clips = page.getByRole("button", {
+      name: /MIDI clip on New MIDI part/,
+    });
+    await expect(clips).toHaveCount(2);
+    const clip = clips.first();
     await expect(clip).toBeVisible();
+    await page
+      .getByRole("button", { name: /Select track New MIDI part\./ })
+      .click();
+    await page.getByRole("button", { name: "Duplicate MIDI track" }).click();
+    await expect(
+      page.getByRole("button", { name: /MIDI clip on New MIDI part copy/ }),
+    ).toHaveCount(2);
+    await clip.click();
+    await page.keyboard.press("Control+c");
+    await page.getByRole("button", { name: "Add a track" }).click();
+    await page.getByLabel("Pending track name").fill("Layered keys");
+    await page.getByRole("button", { name: "Paste compatible clip" }).click();
+    await expect(
+      page.getByRole("button", { name: /MIDI clip on Layered keys/ }),
+    ).toHaveCount(1);
+
+    await clips.nth(1).scrollIntoViewIfNeeded();
+    const sourceBox = await clips.nth(1).boundingBox();
+    const targetLaneBox = await page
+      .getByRole("listitem")
+      .filter({
+        has: page.getByRole("button", { name: /Select track Layered keys\./ }),
+      })
+      .locator("[data-arranger-track-id]")
+      .boundingBox();
+    if (!sourceBox || !targetLaneBox)
+      throw new Error("Track lanes not laid out");
+    await page.mouse.move(
+      sourceBox.x + sourceBox.width / 2,
+      sourceBox.y + sourceBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      sourceBox.x + sourceBox.width / 2,
+      targetLaneBox.y + targetLaneBox.height / 2,
+      { steps: 5 },
+    );
+    await page.mouse.up();
+    await expect(
+      page.getByRole("button", { name: /MIDI clip on Layered keys/ }),
+    ).toHaveCount(2);
+    const spacedClip = page
+      .getByRole("button", { name: /MIDI clip on Layered keys/ })
+      .nth(1);
+    await spacedClip.scrollIntoViewIfNeeded();
+    const spacedClipBox = await spacedClip.boundingBox();
+    if (!spacedClipBox) throw new Error("MIDI clip not laid out");
+    await page.mouse.move(
+      spacedClipBox.x + spacedClipBox.width / 2,
+      spacedClipBox.y + spacedClipBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      spacedClipBox.x + spacedClipBox.width / 2 + 50,
+      spacedClipBox.y + spacedClipBox.height / 2,
+      { steps: 4 },
+    );
+    await page.mouse.up();
+    await expect(page.getByLabel("Start tick")).toHaveValue("7920");
+    await expect(page.getByText("Arrangement saved.")).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: /MIDI clip on Layered keys/ }),
+    ).toHaveCount(2);
+    await page
+      .getByRole("button", { name: /MIDI clip on Layered keys/ })
+      .nth(1)
+      .click();
+    await expect(page.getByLabel("Start tick")).toHaveValue("7920");
+
     await clip.dblclick();
     await expect(
       page.getByRole("heading", { name: "Edit New MIDI part" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Derive exact version" }).click();
+    await expect(page.getByText(/3 of 2,048 notes/)).toBeVisible();
     await page.getByRole("button", { name: "Add note" }).click();
     await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,
@@ -218,7 +421,7 @@ test.describe("studio startup smoke", () => {
       page.getByText(/immutable and replaced only the selected clip/),
     ).toBeVisible({ timeout: 10_000 });
     await expect(
-      page.getByRole("button", { name: /MIDI clip on New MIDI part/ }),
+      page.getByRole("button", { name: /^MIDI clip on New MIDI part,/ }),
     ).toHaveCount(1);
 
     await page.getByLabel("New MIDI part compact gain").fill("-3");
@@ -341,10 +544,7 @@ test.describe("studio startup smoke", () => {
     await expect(page).toHaveURL(`/studio/${fixture.projectId}`);
     await expect(page.getByText("Private draft from revision 1")).toBeVisible();
 
-    await page
-      .getByRole("navigation", { name: "Studio" })
-      .getByRole("button", { name: "Open project" })
-      .click();
+    await openProjectBrowserInStudio(page);
     await page
       .getByRole("listitem")
       .filter({ hasText: switchTitle })
@@ -368,10 +568,7 @@ test.describe("studio startup smoke", () => {
     const trackLabel = page.getByLabel("Fixture stem label");
     await trackLabel.fill("Saved browser stem");
     await trackLabel.press("Tab");
-    await page
-      .getByRole("navigation", { name: "Studio" })
-      .getByRole("button", { name: "Open project" })
-      .click();
+    await openProjectBrowserInStudio(page);
     await page
       .getByRole("listitem")
       .filter({ hasText: switchTitle })
@@ -409,10 +606,7 @@ test.describe("studio startup smoke", () => {
     await expect(
       page.getByRole("alert").filter({ hasText: "changed in another tab" }),
     ).toBeVisible({ timeout: 30_000 });
-    await page
-      .getByRole("navigation", { name: "Studio" })
-      .getByRole("button", { name: "Open project" })
-      .click();
+    await openProjectBrowserInStudio(page);
     await page
       .getByRole("listitem")
       .filter({ hasText: switchTitle })
@@ -433,8 +627,9 @@ async function createProjectInStudio(
 ) {
   await page
     .getByRole("navigation", { name: "Studio" })
-    .getByRole("button", { name: "New project" })
+    .getByText("File", { exact: true })
     .click();
+  await page.getByRole("button", { name: "New project" }).click();
   const dialog = page.getByRole("dialog", { name: "Create a project" });
   await dialog.getByLabel("Title").fill(title);
   await dialog.getByLabel("License").selectOption("cc-by-4.0");
@@ -442,6 +637,16 @@ async function createProjectInStudio(
     .getByRole("button", { name: "Create project and open Studio" })
     .click();
   await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+$/);
+}
+
+async function openProjectBrowserInStudio(
+  page: import("@playwright/test").Page,
+) {
+  await page
+    .getByRole("navigation", { name: "Studio" })
+    .getByText("File", { exact: true })
+    .click();
+  await page.getByRole("button", { name: "Open project" }).click();
 }
 
 async function ensureStudioActorProfile() {

@@ -53,6 +53,7 @@ export function useMidiPerformance(input: {
   maxPitch: number;
   existingNoteCount: number;
   audition: (pitch: number, velocity: number) => void;
+  releaseAudition: (pitch: number) => void;
   commitTake: (notes: readonly MidiNoteV1[]) => void;
   announce: (message: string) => void;
   bpm?: number;
@@ -83,6 +84,15 @@ export function useMidiPerformance(input: {
   const [hardwareInputCount, setHardwareInputCount] = useState(0);
   const takeRef = useRef<MidiRecordingTake | null>(null);
   const heldKeysRef = useRef(new Map<string, number>());
+  const activeSourcesRef = useRef(new Map<string, number>());
+  const recordingPitchesRef = useRef(new Set<number>());
+  const previewTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+  const previewSequenceRef = useRef(0);
+  const [activePitches, setActivePitches] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const playheadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const metronomeVoiceRef = useRef<{
@@ -96,6 +106,57 @@ export function useMidiPerformance(input: {
   useEffect(() => {
     inputRef.current = input;
   }, [input]);
+
+  const syncActivePitches = useCallback(() => {
+    setActivePitches(new Set(activeSourcesRef.current.values()));
+  }, []);
+
+  const closeRecordedPitch = useCallback(
+    (pitch: number, timestampMs: number) => {
+      if (takeRef.current) {
+        takeRef.current = recordMidiNoteOff(takeRef.current, {
+          pitch,
+          timestampMs,
+        });
+      }
+    },
+    [],
+  );
+
+  const releaseSource = useCallback(
+    (source: string, timestampMs: number, update = true) => {
+      const pitch = activeSourcesRef.current.get(source);
+      if (pitch === undefined) return false;
+      activeSourcesRef.current.delete(source);
+      const timer = previewTimersRef.current.get(source);
+      if (timer) clearTimeout(timer);
+      previewTimersRef.current.delete(source);
+      const stillActive = [...activeSourcesRef.current.values()].includes(
+        pitch,
+      );
+      if (!stillActive) {
+        if (recordingPitchesRef.current.delete(pitch)) {
+          closeRecordedPitch(pitch, timestampMs);
+        }
+        inputRef.current.releaseAudition(pitch);
+      }
+      if (update) syncActivePitches();
+      return true;
+    },
+    [closeRecordedPitch, syncActivePitches],
+  );
+
+  const releaseAllActive = useCallback(
+    (timestampMs: number, update = true) => {
+      for (const source of [...activeSourcesRef.current.keys()]) {
+        releaseSource(source, timestampMs, false);
+      }
+      previewTimersRef.current.forEach(clearTimeout);
+      previewTimersRef.current.clear();
+      if (update) syncActivePitches();
+    },
+    [releaseSource, syncActivePitches],
+  );
 
   const clearTransport = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -112,6 +173,7 @@ export function useMidiPerformance(input: {
   const stopRecording = useCallback(
     (reason?: string) => {
       clearTransport();
+      releaseAllActive(performance.now());
       const take = takeRef.current;
       takeRef.current = null;
       heldKeysRef.current.clear();
@@ -123,11 +185,16 @@ export function useMidiPerformance(input: {
       }
       if (reason && take) inputRef.current.announce(reason);
     },
-    [clearTransport],
+    [clearTransport, releaseAllActive],
   );
 
   const noteOn = useCallback(
-    (pitch: number, velocity: number, timestampMs: number) => {
+    (
+      pitch: number,
+      velocity: number,
+      timestampMs: number,
+      source = `manual:${pitch}`,
+    ) => {
       const current = inputRef.current;
       if (pitch < current.minPitch || pitch > current.maxPitch) {
         current.announce(
@@ -135,6 +202,15 @@ export function useMidiPerformance(input: {
         );
         return;
       }
+      const previous = activeSourcesRef.current.get(source);
+      if (previous === pitch) return;
+      if (previous !== undefined) releaseSource(source, timestampMs, false);
+      const alreadyActive = [...activeSourcesRef.current.values()].includes(
+        pitch,
+      );
+      activeSourcesRef.current.set(source, pitch);
+      syncActivePitches();
+      if (alreadyActive) return;
       current.audition(pitch, velocity);
       const take = takeRef.current;
       if (!take || timestampMs < take.startTimestampMs) return;
@@ -151,18 +227,52 @@ export function useMidiPerformance(input: {
         timestampMs,
         noteId: crypto.randomUUID(),
       });
+      recordingPitchesRef.current.add(pitch);
     },
-    [],
+    [releaseSource, syncActivePitches],
   );
 
-  const noteOff = useCallback((pitch: number, timestampMs: number) => {
-    if (takeRef.current) {
-      takeRef.current = recordMidiNoteOff(takeRef.current, {
+  const noteOff = useCallback(
+    (pitch: number, timestampMs: number, source = `manual:${pitch}`) =>
+      releaseSource(source, timestampMs),
+    [releaseSource],
+  );
+
+  const previewOn = useCallback(
+    (pitch: number, velocity: number, source: string) => {
+      const current = inputRef.current;
+      if (pitch < current.minPitch || pitch > current.maxPitch) return false;
+      const previous = activeSourcesRef.current.get(source);
+      if (previous === pitch) return false;
+      if (previous !== undefined)
+        releaseSource(source, performance.now(), false);
+      const alreadyActive = [...activeSourcesRef.current.values()].includes(
         pitch,
-        timestampMs,
-      });
-    }
-  }, []);
+      );
+      activeSourcesRef.current.set(source, pitch);
+      syncActivePitches();
+      if (!alreadyActive) current.audition(pitch, velocity);
+      return true;
+    },
+    [releaseSource, syncActivePitches],
+  );
+
+  const previewOff = useCallback(
+    (source: string) => releaseSource(source, performance.now()),
+    [releaseSource],
+  );
+
+  const previewNote = useCallback(
+    (pitch: number, velocity = 96, durationMs = 180) => {
+      const source = `preview:${++previewSequenceRef.current}`;
+      if (!previewOn(pitch, velocity, source)) return;
+      previewTimersRef.current.set(
+        source,
+        setTimeout(() => previewOff(source), durationMs),
+      );
+    },
+    [previewOff, previewOn],
+  );
 
   const startRecording = useCallback(async () => {
     stopRecording();
@@ -250,9 +360,14 @@ export function useMidiPerformance(input: {
       const session = await requestWebMidiSession({
         onNote(event) {
           if (event.type === "note-on") {
-            noteOn(event.pitch, event.velocity, event.timestampMs);
+            noteOn(
+              event.pitch,
+              event.velocity,
+              event.timestampMs,
+              `hardware:${event.pitch}`,
+            );
           } else {
-            noteOff(event.pitch, event.timestampMs);
+            noteOff(event.pitch, event.timestampMs, `hardware:${event.pitch}`);
           }
         },
         onDisconnect() {
@@ -278,7 +393,7 @@ export function useMidiPerformance(input: {
       const pitch = qwertyPitch(key, octave);
       if (pitch === null) return false;
       heldKeysRef.current.set(key, pitch);
-      noteOn(pitch, defaultVelocity, performance.now());
+      noteOn(pitch, defaultVelocity, performance.now(), `qwerty:${key}`);
       return true;
     },
     [defaultVelocity, noteOn, octave],
@@ -289,7 +404,7 @@ export function useMidiPerformance(input: {
       const pitch = heldKeysRef.current.get(key);
       if (pitch === undefined) return false;
       heldKeysRef.current.delete(key);
-      noteOff(pitch, performance.now());
+      noteOff(pitch, performance.now(), `qwerty:${key}`);
       return true;
     },
     [noteOff],
@@ -316,8 +431,9 @@ export function useMidiPerformance(input: {
       webMidiSessionRef.current = null;
       takeRef.current = null;
       heldKeysRef.current.clear();
+      releaseAllActive(performance.now(), false);
     },
-    [clearTransport],
+    [clearTransport, releaseAllActive],
   );
 
   return {
@@ -333,11 +449,16 @@ export function useMidiPerformance(input: {
     playheadTick,
     webMidiStatus,
     hardwareInputCount,
+    activePitches,
     startRecording,
     stopRecording,
     requestWebMidi,
+    releaseActive: () => releaseAllActive(performance.now()),
     noteOn,
     noteOff,
+    previewOn,
+    previewOff,
+    previewNote,
     keyDown,
     keyUp,
   };

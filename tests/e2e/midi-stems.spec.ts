@@ -69,6 +69,39 @@ test.describe("standalone MIDI stem editor", () => {
       page.getByRole("heading", { name: "Shape a reusable stem" }),
     ).toBeVisible({ timeout: 15_000 });
 
+    const initialRoll = page.getByTestId("midi-piano-roll");
+    const initialViewport = await initialRoll.evaluate((element) => {
+      const scroller = element.parentElement?.parentElement;
+      if (!(scroller instanceof HTMLElement))
+        throw new Error("Piano-roll scroller is unavailable");
+      return {
+        height: scroller.clientHeight,
+        scrollTop: scroller.scrollTop,
+        middleCRow: Number(element.dataset.middleCRow),
+      };
+    });
+    expect(
+      Math.abs(
+        initialViewport.middleCRow * 22 +
+          11 -
+          initialViewport.scrollTop -
+          initialViewport.height / 2,
+      ),
+    ).toBeLessThanOrEqual(12);
+    const c4Preview = page.getByRole("button", {
+      name: "Play C4, MIDI note 60",
+    });
+    const c4PreviewBox = await c4Preview.boundingBox();
+    if (!c4PreviewBox) throw new Error("C4 performance key is not visible");
+    await page.mouse.move(
+      c4PreviewBox.x + c4PreviewBox.width / 2,
+      c4PreviewBox.y + c4PreviewBox.height / 2,
+    );
+    await page.mouse.down();
+    await expect(c4Preview).toHaveAttribute("aria-pressed", "true");
+    await page.mouse.up();
+    await expect(c4Preview).toHaveAttribute("aria-pressed", "false");
+
     await page.getByRole("button", { name: "Add starter pattern" }).click();
     await expect(page.getByText(/4 of 2,048 notes/)).toBeVisible();
     await page.getByRole("button", { name: "Play stem" }).click();

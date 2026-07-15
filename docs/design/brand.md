@@ -243,6 +243,21 @@ home. The Google button is a white pill with the 4-colour Google mark.
 [`ArrangerWorkspace`](../../src/features/studio/arranger/arranger-workspace.tsx):
 coral audio summaries and gold MIDI notes share dark plum lanes, with fixed compact
 channel strips, exact-value inspection, and react-icon transport/zoom/follow actions.
+The project-independent `/studio` state uses the same lane, ruler, inspector, and
+status vocabulary as a visibly blank workstation; project lifecycle actions live in
+a compact File menu and never imply that the blank arrangement is persisted.
+Editable sessions keep the next Add a track row pinned beneath the channels. Its
+pending MIDI lane uses the established dashed/accent state, pill actions, centered
+timeline copy, and semantic focus treatment; it is visibly provisional until a clip
+materializes it.
+The shared MIDI editor piano uses full white faces, shorter gradient black faces,
+warm semantic dividers, and accent/gold held-note feedback. Melodic gutters label
+only C rows while drum presets retain their mapped names; performance keys expose
+the same held state with shape, contrast-safe colour, glow, and reduced-motion-safe
+press feedback, and a held pointer may glide across them as one continuous gesture.
+Its pill-shaped Pencil/Select tool group uses visible pressed state;
+Select renders a translucent semantic-gold marquee while the synchronized note list
+and inspector retain exact, keyboard-accessible selection controls.
 Legacy manifest-v1 waveforms remain canvas-rendered, so their colours still come from
 the `studioTheme` engine configuration in
 [`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx).
@@ -313,6 +328,7 @@ pages, the create/edit form.
 | Studio surface + theme    | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx`        |
 | Unified arranger          | `src/features/studio/arranger/arranger-workspace.tsx`                     |
 | Integrated MIDI composer  | `src/features/studio/integrated-midi/integrated-midi-composer.client.tsx` |
+| Shared MIDI piano         | `src/features/midi/stems/stem-editor.client.tsx` and `piano-roll.ts`      |
 | Icons                     | `react-icons` (Feather set, `react-icons/fi`)                             |
 | Page-transition wrapper   | `src/app/template.tsx`                                                    |
 | Musical key formatting    | `src/features/projects/musical-key.ts`                                    |

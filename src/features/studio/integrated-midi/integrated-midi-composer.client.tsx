@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
 import { MidiStemEditor } from "@/features/midi/stems/stem-editor.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
@@ -12,7 +12,14 @@ import {
 import type { MidiStemDraft } from "@/features/midi/stems/types";
 
 export type IntegratedMidiTarget =
-  | { operation: "add"; startTick: number }
+  | {
+      operation: "add";
+      startTick: number;
+      trackId: string;
+      name: string;
+      entry: "blank" | "import";
+      file?: File;
+    }
   | {
       operation: "replace";
       trackId: string;
@@ -55,11 +62,11 @@ export function IntegratedMidiComposer({
   const [name, setName] = useState(
     target.operation === "replace"
       ? `${target.version.name} variation`
-      : "New MIDI part",
+      : target.name,
   );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const startedRef = useRef(false);
   const host = useMemo(
     () => ({
       tempoBpm,
@@ -85,7 +92,7 @@ export function IntegratedMidiComposer({
     ],
   );
 
-  async function createDraft() {
+  const createDraft = useCallback(async () => {
     setBusy(true);
     setMessage("");
     try {
@@ -107,50 +114,64 @@ export function IntegratedMidiComposer({
     } finally {
       setBusy(false);
     }
-  }
+  }, [name, onDraftOpened, target]);
 
-  async function importFile(file: File) {
-    setBusy(true);
-    setMessage("");
-    try {
-      const { importMidiBytes } =
-        await import("@/features/midi/interchange.client");
-      const imported = importMidiBytes(
-        new Uint8Array(await file.arrayBuffer()),
-      );
-      const result = await createIntegratedImportedMidiDraftAction({
-        requestId: crypto.randomUUID(),
-        saveRequestId: crypto.randomUUID(),
-        content: {
-          name: imported.name,
-          defaultPresetId: "warm-poly",
-          defaultPresetVersion: 1,
-          ppq: MIDI_PPQ,
-          durationTicks: imported.durationTicks,
-          notes: imported.notes.map((note) => ({
-            ...note,
-            noteId: crypto.randomUUID(),
-          })),
-        },
-      });
-      if (result.ok) {
-        setDraft(result.draft);
-        onDraftOpened();
-        setMessage(
-          imported.tempoBpm === tempoBpm
-            ? imported.warnings.join(" ")
-            : `Imported notes use project tempo ${tempoBpm} BPM. ${imported.warnings.join(" ")}`,
+  const importFile = useCallback(
+    async (file: File) => {
+      setBusy(true);
+      setMessage("");
+      try {
+        const { importMidiBytes } =
+          await import("@/features/midi/interchange.client");
+        const imported = importMidiBytes(
+          new Uint8Array(await file.arrayBuffer()),
         );
-      } else setMessage("That MIDI file could not become a private draft.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "MIDI import failed.",
-      );
-    } finally {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  }
+        const result = await createIntegratedImportedMidiDraftAction({
+          requestId: crypto.randomUUID(),
+          saveRequestId: crypto.randomUUID(),
+          content: {
+            name,
+            defaultPresetId: "warm-poly",
+            defaultPresetVersion: 1,
+            ppq: MIDI_PPQ,
+            durationTicks: imported.durationTicks,
+            notes: imported.notes.map((note) => ({
+              ...note,
+              noteId: crypto.randomUUID(),
+            })),
+          },
+        });
+        if (result.ok) {
+          setDraft(result.draft);
+          onDraftOpened();
+          setMessage(
+            imported.tempoBpm === tempoBpm
+              ? imported.warnings.join(" ")
+              : `Imported notes use project tempo ${tempoBpm} BPM. ${imported.warnings.join(" ")}`,
+          );
+        } else setMessage("That MIDI file could not become a private draft.");
+      } catch (error) {
+        setMessage(
+          error instanceof Error ? error.message : "MIDI import failed.",
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [name, onDraftOpened, tempoBpm],
+  );
+
+  useEffect(() => {
+    if (target.operation !== "add" || startedRef.current) return;
+    const timeout = window.setTimeout(() => {
+      if (startedRef.current) return;
+      startedRef.current = true;
+      if (target.entry === "import" && target.file)
+        void importFile(target.file);
+      else void createDraft();
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [createDraft, importFile, target]);
 
   return (
     <section
@@ -184,7 +205,7 @@ export function IntegratedMidiComposer({
           Close MIDI editor
         </button>
       </div>
-      {!draft ? (
+      {!draft && target.operation === "replace" ? (
         <div className="border-subtle bg-surface-soft rounded-control space-y-3 border p-4">
           <label className="block text-sm font-semibold">
             Private stem name
@@ -202,32 +223,26 @@ export function IntegratedMidiComposer({
               disabled={busy || !name.trim()}
               onClick={() => void createDraft()}
             >
-              {busy
-                ? "Preparing draft…"
-                : target.operation === "replace"
-                  ? "Derive exact version"
-                  : "Start blank part"}
+              {busy ? "Preparing draft…" : "Derive exact version"}
             </button>
-            {target.operation === "add" && (
-              <label className="border-strong inline-flex min-h-11 cursor-pointer items-center rounded-full border px-5 text-sm font-semibold">
-                Import local .mid
-                <input
-                  ref={fileRef}
-                  className="sr-only"
-                  type="file"
-                  accept=".mid,.midi,audio/midi,audio/x-midi"
-                  disabled={busy}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void importFile(file);
-                  }}
-                />
-              </label>
-            )}
           </div>
         </div>
-      ) : (
+      ) : draft ? (
         <MidiStemEditor draft={draft} host={host} />
+      ) : (
+        <div
+          className="border-subtle bg-surface-soft rounded-control border p-6 text-center"
+          role="status"
+        >
+          <p className="font-semibold">
+            {target.operation === "add" && target.entry === "import"
+              ? "Validating MIDI and preparing a private draftâ€¦"
+              : "Preparing the private piano-roll draftâ€¦"}
+          </p>
+          <p className="text-muted mt-1 text-sm">
+            Raw MIDI bytes stay outside the arrangement manifest.
+          </p>
+        </div>
       )}
       {message && (
         <p role="status" className="text-muted text-sm">
