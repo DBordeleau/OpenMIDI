@@ -66,8 +66,8 @@ export function SubmissionPanel({
     <section className="rounded-card border-strong mt-8 border p-6">
       <h2 className="text-xl font-bold">Submit immutable version</h2>
       <p className="text-muted mt-2">
-        Owner review arrives in PR 13. Submitting now freezes the last
-        server-acknowledged workspace state.
+        Submitting freezes the last server-acknowledged arrangement and its
+        exact MIDI stem versions for owner review.
       </p>
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
         <div>

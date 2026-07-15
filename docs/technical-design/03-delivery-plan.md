@@ -94,7 +94,7 @@ Exit: **Met with a documented cold-playback exception** — the controlled cold 
 - Add deterministic versioned Tone.js synth/drum presets without hosted samples.
 - Add accessible piano-roll/clip editing, on-screen/QWERTY recording, and optional permission-gated hardware Web MIDI.
 - In MIDI-05, add the composite runtime, normalized clip foundations, atomic MIDI project-plus-empty-workspace creation, and extend immutable workspace/publish/preview/export paths.
-- Extend contribution, acceptance, credit, and fork paths to MIDI.
+- MIDI-06 extends contribution workspaces, immutable submission/review/acceptance, creator and derivation credit snapshots, mixed-project compatibility, and copy-on-write forks to exact MIDI stem versions.
 - Default new projects to MIDI after parity and disable new source reservation at database authority without implementing billing.
 - Preserve every existing audio project, reference, private access path, download/export and immutable snapshot.
 

@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-14
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-05 complete; MIDI-06 is next, followed by MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-06 complete; MIDI-07 is next, followed by STUDIO-01–STUDIO-04 before PR 18
 
 ## Purpose
 
@@ -227,7 +227,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap interruption M — MIDI-first MVP expansion
 
-**Status:** Active — MIDI-01–MIDI-05 are complete; MIDI-06 is the next implementation slice
+**Status:** Active — MIDI-01–MIDI-06 are complete; MIDI-07 is the next implementation slice
 
 **Delivered in MIDI-02:** Expand-only owner-scoped MIDI stem identities, conflict-safe mutable drafts, immutable-version schema foundations, private preset allowlist validation, exact read-only RLS/Data API grants, idempotent blank/import/derive draft creation, canonical bounded note saves, My stems navigation/library states, and a lazy standalone editor shell with basic accessible note controls and deterministic sample-free playback. Project manifests still cannot reference drafts or “latest” pointers; piano-roll editing begins in MIDI-03 and immutable stem publication remains in MIDI-04.
 

@@ -13,6 +13,7 @@ import {
   getContributionVersionPlayback,
 } from "@/server/repositories/contributions";
 import { getRevisionPlayback } from "@/server/repositories/revisions";
+import { listMidiStemVersionsForStudio } from "@/server/repositories/midi-stems";
 import { getActiveWorkspace } from "@/server/repositories/workspaces";
 
 const labels = {
@@ -63,7 +64,7 @@ export default async function ContributionDetailPage({
   const currentVersion = contribution.versions.find(
     (version) => version.id === contribution.currentVersionId,
   );
-  const [submittedPlayback, currentPlayback] =
+  const [submittedPlayback, currentPlayback, midiVersions] =
     isOwner && currentVersion && contribution.currentProjectRevisionId
       ? await Promise.all([
           getContributionVersionPlayback({
@@ -75,8 +76,9 @@ export default async function ContributionDetailPage({
             projectId,
             revisionId: contribution.currentProjectRevisionId,
           }),
+          listMidiStemVersionsForStudio(),
         ])
-      : [null, null];
+      : [null, null, []];
   const stale =
     contribution.currentProjectRevisionId !== contribution.baseRevisionId;
   return (
@@ -139,9 +141,11 @@ export default async function ContributionDetailPage({
                   durationMs: submittedPlayback.durationMs,
                   tracks: submittedPlayback.tracks.map((track) => ({
                     trackId: track.trackId,
+                    kind: track.kind,
                     instrumentName: track.instrumentName,
                     creditName: track.creditName,
                   })),
+                  midiVersions,
                 }}
                 current={{
                   mode: "revision",
@@ -154,9 +158,11 @@ export default async function ContributionDetailPage({
                   durationMs: currentPlayback.durationMs,
                   tracks: currentPlayback.tracks.map((track) => ({
                     trackId: track.trackId,
+                    kind: track.kind,
                     instrumentName: track.instrumentName,
                     creditName: track.creditName,
                   })),
+                  midiVersions,
                 }}
               />
             )}
@@ -257,7 +263,8 @@ export default async function ContributionDetailPage({
                 trackCount: linkedWorkspace.manifest.tracks.length,
                 durationMs,
                 hasAcknowledgedSave:
-                  linkedWorkspace.snapshotAssetId !== null &&
+                  (linkedWorkspace.manifest.manifestVersion === 2 ||
+                    linkedWorkspace.snapshotAssetId !== null) &&
                   linkedWorkspace.updatedAt !== linkedWorkspace.createdAt,
               }}
               license={contribution.license}

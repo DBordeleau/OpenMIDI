@@ -121,7 +121,10 @@ export function PublicProjectPage({
                           ) : (
                             credit.creditName
                           )}{" "}
-                          · {credit.role}
+                          ·{" "}
+                          {credit.role === "derivation"
+                            ? "derived from"
+                            : credit.role}
                         </li>
                       ))}
                     </ul>

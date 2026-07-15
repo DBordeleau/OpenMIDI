@@ -37,7 +37,9 @@ export function MidiStudioSurface(props: Props) {
     () => props.midiVersions ?? [],
     [props.midiVersions],
   );
-  const editable = props.mode === "workspace";
+  const editable =
+    props.mode === "workspace" ||
+    (props.mode === "contribution" && props.canEdit);
   const [manifest, setManifest] = useState(props.manifest);
   const [lockVersion, setLockVersion] = useState(
     editable ? props.lockVersion : 0,
@@ -274,7 +276,12 @@ export function MidiStudioSurface(props: Props) {
   }
 
   async function publish() {
-    if (!editable || status !== "saved" || manifest.tracks.length === 0) return;
+    if (
+      props.mode !== "workspace" ||
+      status !== "saved" ||
+      manifest.tracks.length === 0
+    )
+      return;
     setMessage("Publishing immutable revision…");
     const result = await publishMidiWorkspaceAction(props.projectId, {
       workspaceId: props.workspaceId,
@@ -298,6 +305,23 @@ export function MidiStudioSurface(props: Props) {
 
   return (
     <section className="rounded-card border-strong bg-surface space-y-6 border p-5 sm:p-7">
+      {props.mode === "contribution" && (
+        <div className="border-subtle rounded-control border p-4">
+          <p className="font-semibold">
+            Contribution: {props.contributionTitle}
+          </p>
+          <p className="text-muted mt-1 text-sm">
+            Replace exact stem versions here, then return to the contribution to
+            submit an immutable snapshot.
+          </p>
+          <Link
+            className="text-accent mt-2 inline-block underline"
+            href={`/projects/${props.projectId}/contributions/${props.contributionId}`}
+          >
+            Return to contribution
+          </Link>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-accent font-mono text-xs uppercase">
@@ -752,14 +776,16 @@ export function MidiStudioSurface(props: Props) {
           >
             {status === "saving" ? "Saving…" : "Save arrangement"}
           </button>
-          <button
-            className="cta-gradient min-h-11 rounded-full px-5 text-sm font-semibold disabled:opacity-50"
-            type="button"
-            disabled={status !== "saved" || manifest.tracks.length === 0}
-            onClick={() => void publish()}
-          >
-            Publish immutable revision
-          </button>
+          {props.mode === "workspace" && (
+            <button
+              className="cta-gradient min-h-11 rounded-full px-5 text-sm font-semibold disabled:opacity-50"
+              type="button"
+              disabled={status !== "saved" || manifest.tracks.length === 0}
+              onClick={() => void publish()}
+            >
+              Publish immutable revision
+            </button>
+          )}
           <span className="text-muted text-sm" role="status">
             {status === "saved"
               ? "All changes saved"
@@ -799,17 +825,21 @@ async function loadAudioSources(
   ];
   if (assetIds.length === 0) return [];
   const endpoint =
-    props.mode === "workspace"
+    props.mode === "workspace" || props.mode === "contribution"
       ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`
       : props.mode === "revision"
         ? `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`
-        : null;
+        : props.mode === "contributionVersion"
+          ? `/api/projects/${props.projectId}/contributions/${props.contributionId}/versions/${props.versionId}/audio-sources`
+          : null;
   if (!endpoint) throw new Error("Mixed contribution playback is not enabled");
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(
-      props.mode === "workspace" ? { mode: "load", assetIds } : { assetIds },
+      props.mode === "workspace" || props.mode === "contribution"
+        ? { mode: "load", assetIds }
+        : { assetIds },
     ),
     signal,
   });

@@ -41,7 +41,7 @@ export async function getRevisionPlayback(input: {
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),assets(duration_ms),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(midi_stem_version_id,creator_credit_name,profiles!revision_midi_track_credits_creator_id_fkey(username)),revision_clips(clip_id,kind,position_ms,trim_start_ms,duration_ms,midi_stem_version_id,start_tick,duration_ticks,source_start_tick,loop))",
+      "id,project_id,revision_number,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),assets(duration_ms),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(midi_stem_version_id,creator_credit_name,credit_role,profiles!revision_midi_track_credits_creator_id_fkey(username)),revision_clips(clip_id,kind,position_ms,trim_start_ms,duration_ms,midi_stem_version_id,start_tick,duration_ticks,source_start_tick,loop))",
     )
     .eq("project_id", input.projectId)
     .eq("id", input.revisionId)
@@ -122,7 +122,10 @@ export async function getRevisionPlayback(input: {
         track.kind === "midi"
           ? track.revision_midi_track_credits.map((credit, position) => ({
               creditName: credit.creator_credit_name,
-              role: "creator" as const,
+              role:
+                credit.credit_role === "derivation_source"
+                  ? ("derivation" as const)
+                  : ("creator" as const),
               position,
               profileUsername: credit.profiles?.username ?? null,
             }))
@@ -221,7 +224,7 @@ export async function getRevisionHistory(
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,revision_number,message,duration_ms,created_at,revision_attributions(kind,credit_name,profiles!revision_attributions_user_id_fkey(username)),revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(creator_credit_name,profiles!revision_midi_track_credits_creator_id_fkey(username)))",
+      "id,revision_number,message,duration_ms,created_at,revision_attributions(kind,credit_name,profiles!revision_attributions_user_id_fkey(username)),revision_tracks(id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),revision_track_credits(position,credit_name,role,profiles!revision_track_credits_user_id_fkey(username)),revision_midi_track_credits(creator_credit_name,credit_role,profiles!revision_midi_track_credits_creator_id_fkey(username)))",
     )
     .eq("project_id", projectId)
     .order("revision_number", { ascending: false })
@@ -259,7 +262,10 @@ export async function getRevisionHistory(
             track.kind === "midi"
               ? track.revision_midi_track_credits.map((credit, position) => ({
                   creditName: credit.creator_credit_name,
-                  role: "creator" as const,
+                  role:
+                    credit.credit_role === "derivation_source"
+                      ? ("derivation" as const)
+                      : ("creator" as const),
                   position,
                   profileUsername: credit.profiles?.username ?? null,
                 }))

@@ -45,11 +45,10 @@ import {
   type WorkspaceTrackV1,
 } from "../manifest/schema";
 import {
-  COMPOSITE_STUDIO_ENGINE_VERSION,
-  MIDI_PPQ,
   parseWorkspaceManifestV2,
   type WorkspaceManifestV2,
 } from "../manifest/v2";
+import { mapManifestV1ToV2 } from "../manifest/v1-to-v2";
 import type { SignedAudioSource } from "../source-contract";
 import { StudioAdapterError } from "../studio-adapter.types";
 import {
@@ -1213,22 +1212,13 @@ export function StudioSurface(props: StudioLauncherProps) {
     );
     if (!version) return;
     setImportingMidi(true);
-    const durationMs = Math.max(
-      ...initialManifest.tracks.map(
-        (track) => track.positionMs + track.durationMs,
-      ),
-    );
+    const upgradedManifest = mapManifestV1ToV2(initialManifest);
     const durationTicks = Math.max(
-      MIDI_PPQ,
-      Math.ceil((durationMs * initialManifest.tempoBpm * MIDI_PPQ) / 60_000),
+      upgradedManifest.durationTicks,
       version.durationTicks,
     );
     const next = parseWorkspaceManifestV2({
-      manifestVersion: 2,
-      engine: "jam-session-composite",
-      engineVersion: COMPOSITE_STUDIO_ENGINE_VERSION,
-      projectId: props.projectId,
-      tempoBpm: initialManifest.tempoBpm,
+      ...upgradedManifest,
       timeSignature: {
         numerator: props.projectTimeSignature?.numerator ?? 4,
         denominator:
@@ -1238,26 +1228,7 @@ export function StudioSurface(props: StudioLauncherProps) {
       },
       durationTicks,
       tracks: [
-        ...initialManifest.tracks.map((track) => ({
-          kind: "audio" as const,
-          trackId: track.trackId,
-          assetId: track.assetId,
-          name: track.name,
-          instrumentId: track.instrumentId,
-          gainDb: track.gainDb,
-          pan: track.pan,
-          muted: track.muted,
-          soloed: track.soloed,
-          sortOrder: track.sortOrder,
-          clips: [
-            {
-              clipId: crypto.randomUUID(),
-              positionMs: track.positionMs,
-              trimStartMs: track.trimStartMs,
-              durationMs: track.durationMs,
-            },
-          ],
-        })),
+        ...upgradedManifest.tracks,
         {
           kind: "midi" as const,
           trackId: crypto.randomUUID(),
@@ -1269,7 +1240,7 @@ export function StudioSurface(props: StudioLauncherProps) {
           pan: 0,
           muted: false,
           soloed: false,
-          sortOrder: initialManifest.tracks.length,
+          sortOrder: upgradedManifest.tracks.length,
           clips: [
             {
               clipId: crypto.randomUUID(),
