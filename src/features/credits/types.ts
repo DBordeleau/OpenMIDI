@@ -1,5 +1,5 @@
 export type CreditRole =
-  "creator" | "performer" | "producer" | "engineer" | "other";
+  "creator" | "derivation" | "performer" | "producer" | "engineer" | "other";
 
 export type CreditSnapshot = {
   creditName: string;
@@ -15,6 +15,7 @@ export type RevisionAttribution = {
 
 export const creditRoleLabels: Record<CreditRole, string> = {
   creator: "Creator",
+  derivation: "Derived from",
   performer: "Performer",
   producer: "Producer",
   engineer: "Engineer",

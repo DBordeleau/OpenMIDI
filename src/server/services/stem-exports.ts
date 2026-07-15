@@ -57,7 +57,7 @@ export async function createStemExport(
                 track.assetId,
                 track.credits.map(({ creditName, role }) => ({
                   creditName,
-                  role,
+                  role: role === "derivation" ? ("creator" as const) : role,
                 })),
               ] as const,
             ]

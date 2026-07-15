@@ -14,7 +14,8 @@ describe("credit aggregation", () => {
         {
           credits: [
             credit("Alex", "creator", 0),
-            credit("Alex", "performer", 1),
+            credit("Alex", "derivation", 1),
+            credit("Alex", "performer", 2),
           ],
         },
         {
@@ -23,6 +24,7 @@ describe("credit aggregation", () => {
       ]).map(({ creditName, role }) => [creditName, role]),
     ).toEqual([
       ["Alex", "creator"],
+      ["Alex", "derivation"],
       ["Alex", "performer"],
       ["Sam", "producer"],
     ]);

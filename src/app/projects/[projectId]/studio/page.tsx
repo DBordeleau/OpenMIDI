@@ -35,7 +35,8 @@ export default async function StudioPage({
       ? await listWorkspaceAssetOptions()
       : null;
   const midiVersions =
-    (workspace && project.ownerId === viewer.id) ||
+    (workspace &&
+      (project.ownerId === viewer.id || workspace.contributionId !== null)) ||
     revision?.manifest.manifestVersion === 2
       ? await listMidiStemVersionsForStudio()
       : [];

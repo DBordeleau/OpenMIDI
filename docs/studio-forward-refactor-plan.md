@@ -357,7 +357,7 @@ MIDI-01 freezes and proves, but does not migrate production routes:
 MIDI-05 implements the pieces required by both MIDI publication and the later Studio shell:
 
 - the composite MIDI/audio adapter and route-neutral session resolver;
-- normalized workspace/revision clip projections, with contribution projections completed in MIDI-06;
+- normalized workspace, revision, and contribution clip projections completed through MIDI-06;
 - exact save/publish v2 manifest/projection validation;
 - atomic project, owner membership, and empty MIDI workspace creation; and
 - MIDI import/preview/export while preserving the current nested Studio route until STUDIO-01.

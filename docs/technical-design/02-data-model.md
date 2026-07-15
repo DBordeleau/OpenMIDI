@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-05 with contribution/fork MIDI projections and studio-forward work still planned before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-06 with audio-admission hardening and studio-forward work still planned before PR 18
 
 Database: Supabase Postgres
 
