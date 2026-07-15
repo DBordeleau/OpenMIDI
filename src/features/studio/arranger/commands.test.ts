@@ -159,6 +159,123 @@ describe("arrangement commands", () => {
     ]);
   });
 
+  it("materializes a pending MIDI lane and honors an explicit paste position", () => {
+    const clipboard = copyArrangementClip(fixture(), uuid(2), uuid(3));
+    if (clipboard.kind !== "midi") throw new Error("Expected MIDI clipboard");
+    let manifest = applyArrangementCommand(
+      fixture(),
+      {
+        type: "materializeMidiTrack",
+        trackId: uuid(10),
+        name: "Counter melody",
+        clipboard,
+        newClipId: uuid(11),
+        startTick: 1_440,
+      },
+      context,
+    );
+    manifest = applyArrangementCommand(
+      manifest,
+      {
+        type: "pasteClip",
+        targetTrackId: uuid(10),
+        clipboard,
+        newClipId: uuid(12),
+        startTick: 0,
+      },
+      context,
+    );
+
+    const track = manifest.tracks.find(({ trackId }) => trackId === uuid(10));
+    expect(track).toMatchObject({
+      kind: "midi",
+      name: "Counter melody",
+      presetId: "warm-poly-v1",
+    });
+    expect(track?.clips).toMatchObject([
+      { clipId: uuid(12), startTick: 0, midiStemVersionId: midiVersionId },
+      { clipId: uuid(11), startTick: 1_440, midiStemVersionId: midiVersionId },
+    ]);
+  });
+
+  it("extends the project duration when a duplicate uses the next opening", () => {
+    let manifest = parseWorkspaceManifestV2({
+      ...fixture(),
+      durationTicks: 960,
+    });
+    for (const clipId of [uuid(13), uuid(14)]) {
+      manifest = applyArrangementCommand(
+        manifest,
+        {
+          type: "duplicateClip",
+          trackId: uuid(2),
+          clipId: uuid(3),
+          newClipId: clipId,
+        },
+        context,
+      );
+    }
+
+    expect(manifest.durationTicks).toBe(1_440);
+    expect(manifest.tracks[0]?.clips).toHaveLength(3);
+  });
+
+  it("moves and copies MIDI clips across tracks while retaining immutable lineage", () => {
+    const clipboard = copyArrangementClip(fixture(), uuid(2), uuid(3));
+    if (clipboard.kind !== "midi") throw new Error("Expected MIDI clipboard");
+    let manifest = applyArrangementCommand(
+      fixture(),
+      {
+        type: "materializeMidiTrack",
+        trackId: uuid(10),
+        name: "Bass synth",
+        clipboard: { ...clipboard, presetId: "mono-bass-v1" },
+        newClipId: uuid(11),
+        startTick: 960,
+      },
+      context,
+    );
+    manifest = applyArrangementCommand(
+      manifest,
+      {
+        type: "copyClipToTrack",
+        sourceTrackId: uuid(2),
+        targetTrackId: uuid(10),
+        clipId: uuid(3),
+        newClipId: uuid(12),
+        startTick: 0,
+      },
+      context,
+    );
+    manifest = applyArrangementCommand(
+      manifest,
+      {
+        type: "moveClipToTrack",
+        sourceTrackId: uuid(10),
+        targetTrackId: uuid(2),
+        clipId: uuid(11),
+        startTick: 1_440,
+      },
+      context,
+    );
+
+    const keys = manifest.tracks.find(({ trackId }) => trackId === uuid(2));
+    const bass = manifest.tracks.find(({ trackId }) => trackId === uuid(10));
+    expect(keys?.clips).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ clipId: uuid(11), startTick: 1_440 }),
+      ]),
+    );
+    expect(bass).toMatchObject({ presetId: "mono-bass-v1" });
+    expect(bass?.clips).toEqual([
+      expect.objectContaining({
+        clipId: uuid(12),
+        startTick: 0,
+        midiStemVersionId: midiVersionId,
+      }),
+    ]);
+  });
+
   it("rejects overlap, source-bound, incompatible-target, and project-bound changes", () => {
     const manifest = applyArrangementCommand(
       fixture(),

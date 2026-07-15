@@ -113,6 +113,15 @@ export function MidiStudioSurface(props: Props) {
   const [rendering, setRendering] = useState(false);
   const [composerTarget, setComposerTarget] =
     useState<IntegratedMidiTarget | null>(null);
+  const [pendingMidiLane, setPendingMidiLane] = useState<{
+    trackId: string;
+    name: string;
+  } | null>(null);
+  const [finalizedClip, setFinalizedClip] = useState<{
+    trackId: string;
+    clipId: string;
+    token: number;
+  } | null>(null);
   const [draftSaveStatus, setDraftSaveStatus] =
     useState<MidiDraftSaveStatus>("saved");
   const [integratedDraftActive, setIntegratedDraftActive] = useState(false);
@@ -359,7 +368,7 @@ export function MidiStudioSurface(props: Props) {
     command: ArrangementCommand,
     group: string | null = null,
   ) {
-    if (!editable) return;
+    if (!editable) return false;
     try {
       changeManifest(
         applyArrangementCommand(
@@ -369,12 +378,14 @@ export function MidiStudioSurface(props: Props) {
         ),
         group,
       );
+      return true;
     } catch (error) {
       setMessage(
         error instanceof ArrangementCommandError
           ? error.message
           : "That arrangement edit could not be applied.",
       );
+      return false;
     }
   }
 
@@ -693,10 +704,7 @@ export function MidiStudioSurface(props: Props) {
         intent = {
           draftId: input.draftId,
           requestId: crypto.randomUUID(),
-          trackId:
-            target.operation === "replace"
-              ? target.trackId
-              : crypto.randomUUID(),
+          trackId: target.trackId,
           clipId:
             target.operation === "replace"
               ? target.clipId
@@ -761,6 +769,14 @@ export function MidiStudioSurface(props: Props) {
       });
       finalizeIntentRef.current = null;
       setComposerTarget(null);
+      if (target.operation === "add") {
+        setPendingMidiLane(null);
+        setFinalizedClip({
+          trackId: intent.trackId,
+          clipId: intent.clipId,
+          token: Date.now(),
+        });
+      }
       setIntegratedDraftActive(false);
       setDraftSaveStatus("saved");
       const outcome =
@@ -1049,6 +1065,50 @@ export function MidiStudioSurface(props: Props) {
           }
           onEditMidiClip={openMidiClipEditor}
           onCommand={runArrangementCommand}
+          pendingMidiLane={pendingMidiLane}
+          onAddMidiLane={() => {
+            setPendingMidiLane({
+              trackId: crypto.randomUUID(),
+              name: `MIDI track ${manifest.tracks.filter(({ kind }) => kind === "midi").length + 1}`,
+            });
+            setMessage(null);
+          }}
+          onPendingMidiLaneNameChange={(name) =>
+            setPendingMidiLane((current) =>
+              current ? { ...current, name } : current,
+            )
+          }
+          onOpenPendingPianoRoll={() => {
+            if (!pendingMidiLane?.name.trim()) return;
+            setComposerTarget({
+              operation: "add",
+              startTick: seekTick,
+              trackId: pendingMidiLane.trackId,
+              name: pendingMidiLane.name.trim(),
+              entry: "blank",
+            });
+            setDraftSaveStatus("saved");
+          }}
+          onImportPendingMidi={(file) => {
+            if (!pendingMidiLane?.name.trim()) return;
+            setComposerTarget({
+              operation: "add",
+              startTick: seekTick,
+              trackId: pendingMidiLane.trackId,
+              name: pendingMidiLane.name.trim(),
+              entry: "import",
+              file,
+            });
+            setDraftSaveStatus("saved");
+          }}
+          onClosePendingMidiLane={() => {
+            stopProjectTransport();
+            setPendingMidiLane(null);
+            setComposerTarget(null);
+            setIntegratedDraftActive(false);
+            finalizeIntentRef.current = null;
+          }}
+          finalizedClip={finalizedClip}
           canUndo={historyAvailability.canUndo}
           canRedo={historyAvailability.canRedo}
           onUndo={undo}
@@ -1061,19 +1121,6 @@ export function MidiStudioSurface(props: Props) {
               <div className="border-strong bg-surface rounded-card absolute top-12 right-0 z-50 w-80 space-y-3 border p-4 shadow-xl">
                 {editable && (
                   <div>
-                    <button
-                      className="cta-gradient text-accent-contrast mb-3 min-h-11 w-full rounded-full px-4 text-sm font-semibold"
-                      type="button"
-                      onClick={() => {
-                        setComposerTarget({
-                          operation: "add",
-                          startTick: seekTick,
-                        });
-                        setDraftSaveStatus("saved");
-                      }}
-                    >
-                      Add MIDI track
-                    </button>
                     <label
                       className="text-xs font-semibold"
                       htmlFor="arranger-version"
@@ -1211,7 +1258,7 @@ export function MidiStudioSurface(props: Props) {
         />
         {composerTarget && editable && (
           <IntegratedMidiComposer
-            key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.startTick}`}
+            key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.trackId}`}
             target={composerTarget}
             tempoBpm={manifest.tempoBpm}
             timeSignature={manifest.timeSignature}

@@ -128,7 +128,7 @@ Copying or duplicating a MIDI clip reuses its exact immutable stem-version refer
 
 ### Composing and recording MIDI inside Studio
 
-The primary project workflow must not require a trip to a separate page. Selecting **Add MIDI track**, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session piano roll inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
+The primary project workflow must not require a trip to a separate page. Opening the piano roll from an inline pending MIDI lane, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session editor inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
 
 The integrated editor reuses—not forks—the components and contracts delivered in MIDI-02–MIDI-04:
 
@@ -499,7 +499,7 @@ Outcome: a musician creates, edits, and records a MIDI part in project context, 
 Scope:
 
 - embed the shared Jam-owned piano roll as a docked lower editor or focused Studio panel; do not copy/fork its command model;
-- open it from **Add MIDI track**, MIDI clip double-click/Enter, and **Edit MIDI part**;
+- open it from the inline pending MIDI lane, MIDI clip double-click/Enter, and **Edit MIDI part**;
 - support blank drafts, local `.mid` import, and derivation from the selected exact stem version;
 - reuse note create/move/resize/duplicate/delete/velocity/quantize, note inspector, keyboard shortcuts, and draft recovery;
 - use project tempo/time signature and transport context for count-in, metronome, playhead, audition, and recording against other audible tracks;
@@ -534,6 +534,10 @@ Scope:
 - update PRD, roadmap, architecture, brand implementation map, README, agent/testing guidance, and PR 18 handoff.
 
 Implemented in the repository: the complete Studio-native create-to-export path and retained collaboration/legacy paths are exercised locally; exact referenced MIDI data is loaded through existing RLS for read-only revision and contribution playback; lifecycle registration is optional for compatible surfaces outside the canonical shell; repeated switching and disabled-admission rollback are covered. Performance results and remaining manual/hosted gates are recorded in the STUDIO-06 evidence. No hosted mutation was authorized, so source admission remains enabled and PR 18 must begin from that recorded capability state unless an operator completes the runbook first.
+
+### UX-03 usability outcome — inline tracks and clip containers
+
+Implemented: the unified arranger pins an Add a track row below the channels and represents its one named empty MIDI lane only in selected-session UI state. Blank piano-roll and validated local `.mid` entry create private drafts directly; the existing replay-safe finalization transaction alone freezes a version and materializes the pending track/clip, after which Studio closes the editor, selects the clip, and restores lane focus. MIDI duplicate/paste stays on the selected track at the playhead or next opening, and semantic move/copy accepts compatible MIDI destinations in both axes while retaining exact immutable version IDs and credit lineage; audio remains same-asset only. No manifest, schema, RPC, or source-admission change was required.
 
 ### Post-MVP DSP research — not sequenced delivery
 

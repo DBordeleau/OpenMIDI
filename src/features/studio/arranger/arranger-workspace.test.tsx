@@ -17,6 +17,8 @@ afterEach(cleanup);
 describe("ArrangerWorkspace", () => {
   it("seeks to exact ruler coordinates instead of restricting the playhead to bars", () => {
     const onSeek = vi.fn();
+    const onOpenPendingPianoRoll = vi.fn();
+    const onPendingMidiLaneNameChange = vi.fn();
     const manifest = parseWorkspaceManifestV2({
       manifestVersion: 2,
       engine: "jam-session-composite",
@@ -45,6 +47,13 @@ describe("ArrangerWorkspace", () => {
         onReplaceVersion={vi.fn()}
         onEditMidiClip={vi.fn()}
         onCommand={vi.fn()}
+        pendingMidiLane={{ trackId: uuid(20), name: "Verse keys" }}
+        onAddMidiLane={vi.fn()}
+        onPendingMidiLaneNameChange={onPendingMidiLaneNameChange}
+        onOpenPendingPianoRoll={onOpenPendingPianoRoll}
+        onImportPendingMidi={vi.fn()}
+        onClosePendingMidiLane={vi.fn()}
+        finalizedClip={null}
         canUndo={false}
         canRedo={false}
         onUndo={vi.fn()}
@@ -70,6 +79,14 @@ describe("ArrangerWorkspace", () => {
     });
 
     expect(onSeek).toHaveBeenCalledWith(240);
+    expect(screen.getByLabelText("Pending track name")).toHaveFocus();
+    fireEvent.change(screen.getByLabelText("Pending track name"), {
+      target: { value: "Chorus keys" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Open piano roll" }));
+    expect(onPendingMidiLaneNameChange).toHaveBeenCalledWith("Chorus keys");
+    expect(onOpenPendingPianoRoll).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Add a track" })).toBeDisabled();
   });
 
   it("renders all clips, exposes selection summaries, and keeps read-only mixer controls denied", () => {
@@ -162,6 +179,13 @@ describe("ArrangerWorkspace", () => {
         onReplaceVersion={vi.fn()}
         onEditMidiClip={vi.fn()}
         onCommand={vi.fn()}
+        pendingMidiLane={null}
+        onAddMidiLane={vi.fn()}
+        onPendingMidiLaneNameChange={vi.fn()}
+        onOpenPendingPianoRoll={vi.fn()}
+        onImportPendingMidi={vi.fn()}
+        onClosePendingMidiLane={vi.fn()}
+        finalizedClip={null}
         canUndo={false}
         canRedo={false}
         onUndo={vi.fn()}
@@ -259,6 +283,13 @@ describe("ArrangerWorkspace", () => {
         onReplaceVersion={vi.fn()}
         onEditMidiClip={onEditMidiClip}
         onCommand={vi.fn()}
+        pendingMidiLane={null}
+        onAddMidiLane={vi.fn()}
+        onPendingMidiLaneNameChange={vi.fn()}
+        onOpenPendingPianoRoll={vi.fn()}
+        onImportPendingMidi={vi.fn()}
+        onClosePendingMidiLane={vi.fn()}
+        finalizedClip={null}
         canUndo={false}
         canRedo={false}
         onUndo={vi.fn()}

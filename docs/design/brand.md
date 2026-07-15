@@ -246,6 +246,10 @@ channel strips, exact-value inspection, and react-icon transport/zoom/follow act
 The project-independent `/studio` state uses the same lane, ruler, inspector, and
 status vocabulary as a visibly blank workstation; project lifecycle actions live in
 a compact File menu and never imply that the blank arrangement is persisted.
+Editable sessions keep the next Add a track row pinned beneath the channels. Its
+pending MIDI lane uses the established dashed/accent state, pill actions, centered
+timeline copy, and semantic focus treatment; it is visibly provisional until a clip
+materializes it.
 Legacy manifest-v1 waveforms remain canvas-rendered, so their colours still come from
 the `studioTheme` engine configuration in
 [`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx).

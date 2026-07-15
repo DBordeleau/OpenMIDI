@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-06 complete; UX-01–UX-05 are the active Studio usability interruption before hosted evidence acceptance, the separately authorized audio-lock transition, and PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-03 complete; UX-04 is next in the active Studio usability interruption before hosted evidence acceptance, the separately authorized audio-lock transition, and PR 18
 
 ## Purpose
 
@@ -287,7 +287,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 **Outcome:** Users open the shared piano roll inside Studio, create or derive a private stem draft, draw or record against project transport, then explicitly freeze a new immutable version and atomically add or replace the selected arrangement clip. My stems and standalone editor routes remain supported alternate/library surfaces.
 
-**Delivered:** The shared piano-roll/recorder now opens in project context from Add MIDI track, clip Enter/double-click, and the inspector. Blank, local `.mid`, and exact-version-derived drafts retain separate autosave/recovery while project tempo, meter, transport, count-in, metronome, pointer/QWERTY, and gesture-gated Web MIDI remain available. One replay-safe database command freezes the acknowledged draft and applies either a new track/clip or one selected replacement in the workspace transaction; stale locks, changed retries, unrelated actors, and failed projections roll back without orphan versions. Publish stays disabled while an integrated draft is open, source admission remains enabled, and standalone My stems remains supported.
+**Delivered:** The shared piano-roll/recorder opens in project context from the inline pending MIDI lane, clip Enter/double-click, and the inspector. Blank, local `.mid`, and exact-version-derived drafts retain separate autosave/recovery while project tempo, meter, transport, count-in, metronome, pointer/QWERTY, and gesture-gated Web MIDI remain available. One replay-safe database command freezes the acknowledged draft and applies either a new track/clip or one selected replacement in the workspace transaction; stale locks, changed retries, unrelated actors, and failed projections roll back without orphan versions. Publish stays disabled while an integrated draft is open, source admission remains enabled, and standalone My stems remains supported.
 
 ### STUDIO-06 — Parity, hardening, and audio-lock enablement
 
@@ -301,13 +301,13 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program U — Studio and MIDI usability
 
-**Status:** Active — UX-01 and UX-02 complete; UX-03 is next
+**Status:** Active — UX-01 through UX-03 complete; UX-04 is next
 
 **Outcome:** Iterate on the merged Studio with musician feedback before inviting users: playback remains synchronized through live mixer changes, project and track workflows follow familiar DAW conventions, MIDI keys respond like an instrument, and clips/notes can be arranged spatially without changing manifest-v2 or immutable collaboration semantics.
 
 **Slices:** `UX-01` transport, live mixer, drag, and continuous timeline correctness; `UX-02` DAW shell and blank Studio; `UX-03` inline track creation and track-as-container workflow; `UX-04` piano feel, labels, initial viewport, active-note feedback, and pointer glissando; `UX-05` marquee selection and block editing.
 
-**Delivered through UX-02:** Playback now follows one browser-audio clock through live mixer changes, continuous seeking, and clip drag completion. `/studio` now renders a runtime-free blank workstation with transport, ruler, channel lanes, inspector, and status chrome; its compact File menu reuses authorized New/Open, lifecycle-aware Save/Close, and selected-session download/export entry points without creating an implicit project or draft.
+**Delivered through UX-03:** Playback now follows one browser-audio clock through live mixer changes, continuous seeking, and clip drag completion. `/studio` renders a runtime-free blank workstation with a compact File menu. Selected sessions keep an in-context Add a track row, session-only named pending lanes, direct blank/imported piano-roll drafts, atomic immutable finalization with focus return, same-track multi-clip duplication/paste, and compatible two-axis MIDI move/copy while exact version and credit lineage remain authoritative.
 
 **Implementation authority:** The detailed slice plan is intentionally local at `local/implementation-plans/023-studio-midi-usability-pass.md`. Tracked architecture, design, evidence, and this roadmap are updated as each behavior lands. Signal is an MIT-licensed interaction reference pinned in the plan and existing third-party notice; Jam Session retains its own state, persistence, authorization, collaboration, styling, and browser-runtime boundaries.
 
