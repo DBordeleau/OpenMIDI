@@ -26,6 +26,12 @@ export function SiteFooter() {
           <Link className="hover:text-ink" href="/contributions">
             Contributions
           </Link>
+          <Link className="hover:text-ink" href="/community-rules">
+            Community rules
+          </Link>
+          <Link className="hover:text-ink" href="/reports">
+            Reports
+          </Link>
           <AuthAwareLink
             signedOut={{ href: "/sign-in", label: "Sign in" }}
             signedIn={{ href: "/settings/profile", label: "Account" }}

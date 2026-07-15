@@ -191,7 +191,7 @@ export async function getContributionForViewer(
   const { data: contribution, error } = await db
     .from("contributions")
     .select(
-      "id,project_id,author_id,title,description,status,base_revision_id,current_version_id,submitted_at,withdrawn_at,updated_at",
+      "id,project_id,author_id,title,description,status,base_revision_id,current_version_id,submitted_at,withdrawn_at,updated_at,moderation_state",
     )
     .eq("id", contributionId)
     .maybeSingle();
@@ -251,6 +251,8 @@ export async function getContributionForViewer(
     submittedAt: contribution.submitted_at,
     withdrawnAt: contribution.withdrawn_at,
     updatedAt: contribution.updated_at,
+    moderationState:
+      contribution.moderation_state as ContributionDetail["moderationState"],
     reviews: reviewsResult.data.map((review) => ({
       id: review.id,
       versionId: review.contribution_version_id,

@@ -176,6 +176,8 @@ Run commands from the repository root:
 | `npm run assets:cleanup`         | Dry-run reference-aware asset cleanup                           |
 | `npm run avatars:process`        | Recover pending or expired profile-image processing jobs        |
 | `npm run avatars:cleanup`        | Dry-run cleanup of expired private avatar uploads               |
+| `npm run retention:preview`      | Preview bounded reference/hold-aware retention candidates       |
+| `npm run retention:execute`      | Execute bounded leased cleanup through the Storage API          |
 
 Before the first browser-test run, download Playwright's Chromium build once:
 

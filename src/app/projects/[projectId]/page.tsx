@@ -44,7 +44,7 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ saved?: string; forked?: string }>;
+  searchParams: Promise<{ saved?: string; forked?: string; restored?: string }>;
 }) {
   const { projectId } = await params;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
@@ -68,6 +68,25 @@ export default async function ProjectPage({
     );
   }
   if (!viewer || viewer.status !== "active") notFound();
+  if (project.moderationState === "hidden") {
+    return (
+      <main id="main-content">
+        <Container className="py-16">
+          <section className="rounded-card border-subtle mx-auto max-w-2xl border p-8">
+            <p className="text-danger font-mono text-xs uppercase">
+              Unavailable during review
+            </p>
+            <h1 className="mt-3 text-3xl font-bold">{project.title}</h1>
+            <p className="text-muted mt-4">
+              This project is hidden by moderation. Its immutable history is
+              preserved, but playback, downloads, contributions, publishing, and
+              workspace mutations are unavailable.
+            </p>
+          </section>
+        </Container>
+      </main>
+    );
+  }
   const { MemberStemDownloads } =
     await import("@/features/projects/member-stem-downloads");
   const [revisions, contributions, lineage] = await Promise.all([
@@ -103,6 +122,7 @@ export default async function ProjectPage({
   const resolvedSearchParams = await searchParams;
   const saved = resolvedSearchParams.saved === "1";
   const forked = resolvedSearchParams.forked === "1";
+  const restored = resolvedSearchParams.restored === "1";
   return (
     <main id="main-content">
       <Container className="py-16">
@@ -122,6 +142,14 @@ export default async function ProjectPage({
             >
               Private fork created. Open the studio when you are ready to make
               it your own.
+            </p>
+          )}
+          {restored && (
+            <p
+              role="status"
+              className="rounded-control border-accent mb-6 border p-3"
+            >
+              Project restored.
             </p>
           )}
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -404,6 +432,14 @@ export default async function ProjectPage({
               projectTitle={project.title}
               lockVersion={project.lockVersion}
             />
+          )}
+          {project.ownerId !== viewer.id && (
+            <Link
+              className="text-muted hover:text-accent mt-8 inline-block text-sm underline"
+              href={`/reports/new?kind=project&id=${project.id}&label=${encodeURIComponent(project.title)}`}
+            >
+              Report this project
+            </Link>
           )}
           {lineage.directForks.length > 0 && (
             <section className="mt-8">

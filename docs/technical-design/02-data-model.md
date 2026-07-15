@@ -359,7 +359,9 @@ Quota usage is calculated from active, uniquely stored source assets rather than
 - Upload-finalization and publish functions recheck 45 MiB/file, 10 minutes/file, 12 stems/project, 250 MiB/project and 200 MiB/user under a transaction lock.
 - A server-side capacity check rejects new source uploads at the global 850 MiB soft stop. Clients cannot override it.
 
-Planned moderation tables are `moderation_reports(id, reporter_id, target_type, target_id, reason, details, status, assigned_to, created_at, resolved_at)` and `moderation_actions(id, report_id, moderator_id, action, reason, expires_at, created_at)`. Target type and ID are validated by a report command rather than allowing arbitrary polymorphic inserts. Only the reporter may see their submitted report status; report detail and all actions are administrator-only.
+PR 18 implements private `moderation_reports`, append-only `moderation_actions`, `content_holds`, generalized `deletion_requests`, and retention run/job/object tables. Exactly-one-target constraints keep profile/project/contribution/asset targets relational. Application roles have no direct table access: reporter, administrator, recovery, and operator behavior is exposed through narrow security-definer commands with explicit grants. Reporters receive only target kind/label, timestamps, and `submitted | reviewing | closed`; detail, assignment, administrator identity, actions, and holds remain private.
+
+Actual capacity is computed from read-only `storage.objects` size metadata plus unmaterialized reservations and registered ready objects missing from Storage. Unknown sizes fail conservatively. Source-only user/project caches remain the existing quota contract; total object metadata warns at 750 MiB and rejects new source reservations above 850 MiB.
 
 ## Discovery and activity
 
@@ -436,10 +438,10 @@ Each function verifies `auth.uid()`, validates current state, uses row locks whe
 
 ## Deletion and retention
 
-- Account deletion immediately changes status, revokes sessions and anonymizes public profile presentation according to policy.
+- Account deletion immediately changes status, attempts caller-scoped global sign-out, and denies application/database authority even while an issued access token remains unexpired.
 - Published credit snapshots remain as required for attribution, even if the account is deleted, subject to legal policy.
 - Project soft-delete hides it and blocks new signed URLs.
-- A scheduled collector deletes Storage objects only when no live workspace, revision, contribution, fork or derived asset references them and the retention window has elapsed.
+- The manual-first collector deletes Storage objects only through the Storage API when the centralized blocker graph returns no live workspace, revision, contribution, fork, avatar/processing job, owner-library, or hold reference and the retention window has elapsed.
 - Never use cascading deletion from profiles to published revisions or credits.
 - Failed/incomplete uploads expire after 24 hours; inactive abandoned workspaces after 30 days; soft-deleted project/account objects after a 30-day recovery period.
 - Moderation and security audit metadata is retained for 180 days. A legal/abuse hold suppresses scheduled deletion.

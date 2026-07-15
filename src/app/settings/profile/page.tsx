@@ -9,6 +9,8 @@ import { AvatarUploader } from "@/features/profiles/avatar-uploader";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listViewerAcceptedContributions } from "@/server/repositories/profiles";
 import { getPublicAvatarUrl } from "@/server/repositories/profiles";
+import { AccountDeletionForm } from "@/features/moderation/account-deletion-form";
+import { assertViewerAdmin } from "@/server/repositories/moderation";
 
 export default async function ProfileSettingsPage({
   searchParams,
@@ -18,10 +20,12 @@ export default async function ProfileSettingsPage({
   const profile = await requireViewer("/settings/profile");
   if (!profile.profileCompletedAt) redirect("/onboarding");
   const supabase = await createSupabaseServerClient();
-  const [{ data: authData }, acceptedContributions] = await Promise.all([
-    supabase.auth.getUser(),
-    listViewerAcceptedContributions(profile.id),
-  ]);
+  const [{ data: authData }, acceptedContributions, isAdmin] =
+    await Promise.all([
+      supabase.auth.getUser(),
+      listViewerAcceptedContributions(profile.id),
+      assertViewerAdmin(),
+    ]);
   const saved = (await searchParams).saved === "1";
   return (
     <main id="main-content">
@@ -106,6 +110,50 @@ export default async function ProfileSettingsPage({
               <p className="text-muted mt-3">No accepted contributions yet.</p>
             )}
           </Reveal>
+          {isAdmin && (
+            <Reveal
+              as="section"
+              delay={0.18}
+              className="border-subtle mt-10 border-t pt-8"
+            >
+              <h2 className="text-2xl font-bold">Administration</h2>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  className="border-strong rounded-full border px-5 py-3 font-semibold"
+                  href="/admin/moderation"
+                >
+                  Moderation queue
+                </Link>
+                <Link
+                  className="border-strong rounded-full border px-5 py-3 font-semibold"
+                  href="/admin/operations"
+                >
+                  Storage operations
+                </Link>
+              </div>
+            </Reveal>
+          )}
+          {profile.username && (
+            <Reveal
+              as="section"
+              delay={0.2}
+              className="border-danger/50 mt-10 border-t pt-8"
+            >
+              <p className="text-danger font-mono text-xs uppercase">
+                Danger zone
+              </p>
+              <h2 className="mt-2 text-2xl font-bold">Delete account</h2>
+              <p className="text-muted mt-3">
+                Your profile and owned projects disappear immediately. You can
+                recover for 30 days when moderation permits. Published credits
+                and fork lineage survive as unavailable history. Existing access
+                tokens and signed URLs can remain valid until their short
+                expiry, so Jam Session continues enforcing deleted-account
+                checks at every protected boundary.
+              </p>
+              <AccountDeletionForm username={profile.username} />
+            </Reveal>
+          )}
         </section>
       </Container>
     </main>

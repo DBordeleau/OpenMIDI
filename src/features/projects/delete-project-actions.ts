@@ -42,5 +42,5 @@ export async function deleteProjectAction(
   revalidatePath("/explore");
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);
-  redirect("/projects?deleted=1");
+  redirect(`/projects?deleted=1&projectId=${projectId}`);
 }
