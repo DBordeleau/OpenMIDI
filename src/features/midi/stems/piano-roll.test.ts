@@ -2,11 +2,46 @@ import { describe, expect, it } from "vitest";
 import {
   initialPianoScrollTop,
   midiPitchName,
+  noteIntersectsPianoRollRectangle,
   pianoKeyFace,
   pianoKeyLabel,
+  pianoRollSelectionRectangle,
   PIANO_KEY_WIDTH,
   PITCH_ROW_HEIGHT,
 } from "./piano-roll";
+
+describe("piano-roll spatial selection", () => {
+  it("normalizes reverse drags and selects notes by tick/pitch intersection", () => {
+    const rectangle = pianoRollSelectionRectangle(
+      { tick: 480, pitch: 64 },
+      { tick: 120, pitch: 60 },
+    );
+    expect(rectangle).toEqual({
+      startTick: 120,
+      endTick: 480,
+      minPitch: 60,
+      maxPitch: 64,
+    });
+    expect(
+      noteIntersectsPianoRollRectangle(
+        { startTick: 0, durationTicks: 120, pitch: 60 },
+        rectangle,
+      ),
+    ).toBe(true);
+    expect(
+      noteIntersectsPianoRollRectangle(
+        { startTick: 481, durationTicks: 120, pitch: 60 },
+        rectangle,
+      ),
+    ).toBe(false);
+    expect(
+      noteIntersectsPianoRollRectangle(
+        { startTick: 240, durationTicks: 120, pitch: 65 },
+        rectangle,
+      ),
+    ).toBe(false);
+  });
+});
 
 describe("piano-roll key presentation", () => {
   it("uses full white faces and shorter overlaid black faces", () => {

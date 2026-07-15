@@ -206,6 +206,70 @@ test.describe("studio startup smoke", () => {
     ).toBeDisabled();
 
     await page.getByRole("button", { name: "Add note" }).click();
+    await page.getByRole("button", { name: "Select", exact: true }).click();
+    const rollBox = await integratedRoll.boundingBox();
+    const rollGeometry = await integratedRoll.evaluate((element) => {
+      const scroller = element.parentElement?.parentElement;
+      if (!(scroller instanceof HTMLElement))
+        throw new Error("Piano-roll scroller is unavailable");
+      return {
+        middleCRow: Number(element.dataset.middleCRow),
+        scrollLeft: scroller.scrollLeft,
+        scrollTop: scroller.scrollTop,
+      };
+    });
+    if (!rollBox) throw new Error("Piano roll is not laid out");
+    const notePitch = Number(await page.getByLabel("MIDI pitch").inputValue());
+    const noteStartTick = Number(
+      await page.getByLabel("Start tick").inputValue(),
+    );
+    const noteDurationTicks = Number(
+      await page.getByLabel("Duration ticks").inputValue(),
+    );
+    const maxPitch = rollGeometry.middleCRow + 60;
+    let noteLeft =
+      rollBox.x + 88 + (noteStartTick / 480) * 88 - rollGeometry.scrollLeft;
+    const noteTop =
+      rollBox.y + (maxPitch - notePitch) * 22 - rollGeometry.scrollTop + 3;
+    const noteWidth = Math.max(7, (noteDurationTicks / 480) * 88);
+    const noteCenterY = noteTop + 8;
+    await page.mouse.move(
+      rollBox.x + rollBox.width - 4,
+      rollBox.y + rollBox.height - 4,
+    );
+    await page.mouse.down();
+    await page.mouse.move(rollBox.x + 89, rollBox.y + 1, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.getByText(/1 selected/)).toBeVisible();
+
+    await page.mouse.move(noteLeft + Math.min(10, noteWidth / 2), noteCenterY);
+    await page.mouse.down();
+    await page.mouse.move(
+      noteLeft + Math.min(10, noteWidth / 2) + 22,
+      noteCenterY,
+      { steps: 3 },
+    );
+    await page.mouse.up();
+    await expect(
+      page.getByLabel("Notes in stem").locator("option").first(),
+    ).toContainText("tick 120");
+
+    noteLeft += 22;
+    await page.keyboard.down("Control");
+    await page.mouse.move(noteLeft + Math.min(10, noteWidth / 2), noteCenterY);
+    await page.mouse.down();
+    await page.mouse.move(
+      noteLeft + Math.min(10, noteWidth / 2) + 22,
+      noteCenterY,
+      { steps: 3 },
+    );
+    await page.mouse.up();
+    await page.keyboard.up("Control");
+    await expect(page.getByText(/2 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByText(/1 of 2,048 notes/)).toBeVisible();
+    await page.getByRole("button", { name: "Redo" }).click();
+    await expect(page.getByText(/2 of 2,048 notes/)).toBeVisible();
     await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,
     });
@@ -322,6 +386,7 @@ test.describe("studio startup smoke", () => {
       page.getByRole("heading", { name: "Edit New MIDI part" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Derive exact version" }).click();
+    await expect(page.getByText(/3 of 2,048 notes/)).toBeVisible();
     await page.getByRole("button", { name: "Add note" }).click();
     await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,

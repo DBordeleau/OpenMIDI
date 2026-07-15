@@ -58,6 +58,27 @@ const draft: MidiStemDraft = {
   updatedAt: "2026-07-15T12:00:00.000Z",
 };
 
+const phraseDraft: MidiStemDraft = {
+  ...draft,
+  notes: [
+    {
+      noteId: "10000000-0000-4000-8000-000000000001",
+      pitch: 90,
+      velocity: 96,
+      startTick: 120,
+      durationTicks: 120,
+    },
+    {
+      noteId: "10000000-0000-4000-8000-000000000002",
+      pitch: 88,
+      velocity: 88,
+      startTick: 360,
+      durationTicks: 120,
+    },
+  ],
+  noteCount: 2,
+};
+
 class ResizeObserverStub {
   observe() {}
   disconnect() {}
@@ -145,5 +166,166 @@ describe("MIDI editor piano interaction", () => {
     ]);
     expect(performanceMock.previewOff).toHaveBeenCalledOnce();
     expect(performanceMock.previewOff).toHaveBeenCalledWith("piano-gutter:7");
+  });
+
+  it("marquee-selects in tick/pitch space, toggles with Shift, and clears with Escape", () => {
+    render(<MidiStemEditor draft={phraseDraft} />);
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    const roll = screen.getByTestId("midi-piano-roll");
+
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 11,
+      clientX: 96,
+      clientY: 115,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 11,
+      clientX: 185,
+      clientY: 205,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 11, clientX: 185, clientY: 205 });
+    expect(screen.getByText(/draft payload/)).toHaveTextContent("2 selected");
+
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 12,
+      clientX: 96,
+      clientY: 125,
+      shiftKey: true,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 12,
+      clientX: 132,
+      clientY: 154,
+      shiftKey: true,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 12, clientX: 132, clientY: 154 });
+    expect(screen.getByText(/draft payload/)).toHaveTextContent("1 selected");
+
+    fireEvent.keyDown(roll, { key: "Escape" });
+    expect(screen.getByText(/draft payload/)).toHaveTextContent("0 selected");
+  });
+
+  it("moves and copy-drags a marquee selection as one undoable edit each", () => {
+    render(<MidiStemEditor draft={phraseDraft} />);
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    const roll = screen.getByTestId("midi-piano-roll");
+    const noteList = screen.getByLabelText("Notes in stem");
+
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 21,
+      clientX: 96,
+      clientY: 115,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 21,
+      clientX: 185,
+      clientY: 205,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 21, clientX: 185, clientY: 205 });
+
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 22,
+      clientX: 115,
+      clientY: 140,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 22,
+      clientX: 137,
+      clientY: 162,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 22, clientX: 137, clientY: 162 });
+    expect(noteList).toHaveTextContent("F6 · tick 240");
+
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 23,
+      clientX: 137,
+      clientY: 160,
+      ctrlKey: true,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 23,
+      clientX: 159,
+      clientY: 160,
+      ctrlKey: true,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 23, clientX: 159, clientY: 160 });
+    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+      "4 of 2,048 notes",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+      "2 of 2,048 notes",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+      "4 of 2,048 notes",
+    );
+  });
+
+  it("cancels a pointer preview without committing history", () => {
+    render(<MidiStemEditor draft={phraseDraft} />);
+    const roll = screen.getByTestId("midi-piano-roll");
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 31,
+      clientX: 115,
+      clientY: 140,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 31,
+      clientX: 137,
+      clientY: 162,
+    });
+    fireEvent.pointerCancel(roll, { pointerId: 31 });
+
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    expect(screen.getByLabelText("Notes in stem")).toHaveTextContent(
+      "F♯6 · tick 120",
+    );
+  });
+
+  it("bypasses the selected grid with Alt while retaining integer ticks", () => {
+    render(<MidiStemEditor draft={phraseDraft} />);
+    const roll = screen.getByTestId("midi-piano-roll");
+    fireEvent.pointerDown(roll, {
+      button: 0,
+      pointerId: 41,
+      clientX: 115,
+      clientY: 140,
+    });
+    fireEvent.pointerMove(roll, {
+      pointerId: 41,
+      clientX: 116,
+      clientY: 140,
+      altKey: true,
+    });
+    fireEvent.pointerUp(roll, { pointerId: 41, clientX: 116, clientY: 140 });
+
+    expect(screen.getByLabelText("Notes in stem")).toHaveTextContent(
+      "F♯6 · tick 125",
+    );
+  });
+
+  it("maps keyboard copy and paste to one semantic history step", () => {
+    render(<MidiStemEditor draft={phraseDraft} />);
+    const roll = screen.getByTestId("midi-piano-roll");
+
+    fireEvent.keyDown(roll, { key: "c", ctrlKey: true });
+    fireEvent.keyDown(roll, { key: "v", ctrlKey: true });
+    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+      "3 of 2,048 notes",
+    );
+    expect(screen.getByText(/draft payload/)).toHaveTextContent("1 selected");
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+      "2 of 2,048 notes",
+    );
   });
 });

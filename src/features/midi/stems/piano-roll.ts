@@ -4,6 +4,46 @@ export const PIANO_KEY_WIDTH = 88;
 export const PITCH_ROW_HEIGHT = 22;
 export const MIDDLE_C_PITCH = 60;
 
+export type PianoRollPoint = {
+  tick: number;
+  pitch: number;
+};
+
+export type PianoRollSelectionRectangle = {
+  startTick: number;
+  endTick: number;
+  minPitch: number;
+  maxPitch: number;
+};
+
+export function pianoRollSelectionRectangle(
+  start: PianoRollPoint,
+  end: PianoRollPoint,
+): PianoRollSelectionRectangle {
+  return {
+    startTick: Math.min(start.tick, end.tick),
+    endTick: Math.max(start.tick, end.tick),
+    minPitch: Math.min(start.pitch, end.pitch),
+    maxPitch: Math.max(start.pitch, end.pitch),
+  };
+}
+
+export function noteIntersectsPianoRollRectangle(
+  note: {
+    startTick: number;
+    durationTicks: number;
+    pitch: number;
+  },
+  rectangle: PianoRollSelectionRectangle,
+) {
+  return (
+    note.startTick <= rectangle.endTick &&
+    note.startTick + note.durationTicks >= rectangle.startTick &&
+    note.pitch >= rectangle.minPitch &&
+    note.pitch <= rectangle.maxPitch
+  );
+}
+
 export function isBlackPianoKey(pitch: number) {
   return BLACK_PITCH_CLASSES.has(((pitch % 12) + 12) % 12);
 }
