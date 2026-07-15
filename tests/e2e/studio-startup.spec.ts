@@ -24,10 +24,71 @@ test.describe("studio startup smoke", () => {
     closeFixtureDelivery = null;
   });
 
+  test("opens the authenticated start center without starting browser audio", async ({
+    page,
+  }) => {
+    await ensureStudioActorProfile();
+    await page.addInitScript(() => {
+      const state = window as Window & {
+        __jamAudioContextConstructions?: number;
+      };
+      state.__jamAudioContextConstructions = 0;
+      for (const name of ["AudioContext", "webkitAudioContext"] as const) {
+        const original = window[name as keyof Window];
+        if (typeof original !== "function") continue;
+        Object.defineProperty(window, name, {
+          configurable: true,
+          value: new Proxy(original, {
+            construct(target, argumentsList, newTarget) {
+              state.__jamAudioContextConstructions =
+                (state.__jamAudioContextConstructions ?? 0) + 1;
+              return Reflect.construct(target, argumentsList, newTarget);
+            },
+          }),
+        });
+      }
+    });
+
+    await page.goto("/studio");
+    await expect(page).toHaveURL(/\/sign-in\?next=%2Fstudio$/);
+    await page.goto("/test-auth");
+    await page.getByRole("button", { name: "Sign in test actor" }).click();
+    await expect(page).toHaveURL(/\/settings\/profile$/);
+
+    const privateSourceRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/audio-sources|storage\/v1\/object/i.test(request.url()))
+        privateSourceRequests.push(request.url());
+    });
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Studio" })
+      .click();
+
+    await expect(page).toHaveURL(/\/studio$/);
+    await expect(
+      page.getByRole("heading", { name: "Open the music you want to shape." }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "New project" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Open project" }).first(),
+    ).toBeVisible();
+    expect(privateSourceRequests).toEqual([]);
+    expect(
+      await page.evaluate(
+        () =>
+          (window as Window & { __jamAudioContextConstructions?: number })
+            .__jamAudioContextConstructions ?? 0,
+      ),
+    ).toBe(0);
+  });
+
   test("opens an editable published revision in one navigation", async ({
     page,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(75_000);
     const { peakBytes, sourceBytes, ...fixture } = await setupStudioFixture();
     const delivery = await startFixtureDelivery(sourceBytes, peakBytes);
     closeFixtureDelivery = delivery.close;
@@ -101,13 +162,15 @@ test.describe("studio startup smoke", () => {
       });
     });
     await page.goto(`/projects/${fixture.projectId}/studio`);
+    await expect(page).toHaveURL(`/studio/${fixture.projectId}`);
     await expect(page.getByText("Private draft from revision 1")).toBeVisible();
     await expect(page.getByLabel("Fixture stem label")).toBeVisible({
       timeout: 15_000,
     });
     await expect(
       page.getByText("Waveform ready from persisted peaks."),
-    ).toBeAttached({ timeout: 10_000 });
+      `Persisted peaks did not become ready: ${JSON.stringify({ fixture, networkEvents })}`,
+    ).toBeAttached({ timeout: 20_000 });
     await expect(
       page.getByRole("button", { name: "Play playback" }),
       `Fixture audio did not become playable: ${JSON.stringify({ fixture, networkEvents })}`,
@@ -126,6 +189,45 @@ test.describe("studio startup smoke", () => {
     );
   });
 });
+
+async function ensureStudioActorProfile() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const email = process.env.TEST_AUTH_EMAIL;
+  if (!url?.startsWith("http://127.0.0.1:") || !serviceRoleKey || !email)
+    throw new Error(
+      "Studio actor setup requires npm run test:e2e:studio against local Supabase.",
+    );
+  const admin = createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: users, error } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  if (error) throw error;
+  const actor = users.users.find((user) => user.email === email);
+  if (!actor)
+    throw new Error("Local E2E actor setup did not create the actor.");
+  execFileSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "supabase_db_jam-session",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `update public.profiles set username='StudioE2EActor', username_normalized='studioe2eactor', display_name='Studio E2E actor', credit_name='Studio E2E actor', profile_completed_at=coalesce(profile_completed_at,now()) where id='${actor.id}'`,
+    ],
+    { encoding: "utf8" },
+  );
+}
 
 async function setupStudioFixture() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

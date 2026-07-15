@@ -268,9 +268,7 @@ test.describe("contribution vertical slice", () => {
     await page
       .getByRole("button", { name: "Create private contribution" })
       .click();
-    await page
-      .getByRole("link", { name: "Edit contribution in studio" })
-      .click();
+    await page.getByRole("link", { name: "Open in studio" }).click();
     await page
       .getByRole("textbox", { name: "Fixture stem label" })
       .fill("Contributor arrangement");

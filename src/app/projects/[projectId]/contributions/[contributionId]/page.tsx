@@ -169,9 +169,9 @@ export default async function ContributionDetailPage({
           {isAuthor && linkedWorkspace && editable && (
             <Link
               className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
-              href={"/projects/" + projectId + "/studio"}
+              href={`/studio/${projectId}`}
             >
-              Edit contribution in studio
+              Open in studio
             </Link>
           )}
           <section className="mt-10">

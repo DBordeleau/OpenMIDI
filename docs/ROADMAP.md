@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-07 complete; STUDIO-01 is next, followed by STUDIO-02–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01 complete; STUDIO-02 is next, followed by STUDIO-03–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
 
 ## Purpose
 
@@ -51,7 +51,7 @@ After both programs complete, **PR 18 — Moderation, retention, quotas, and sto
 | D     | Collaboration graph            | 12–15           | Complete     | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end     |
 | O     | $0 audio optimization          | OPT-01–OPT-05   | Complete     | Studio is usable before stems finish and legacy audio has measured efficient delivery      |
 | M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Complete     | MIDI foundations and reversible transition control are complete; admission remains enabled |
-| S     | Studio-forward workspace       | STUDIO-01–06    | Active (0/6) | Studio becomes the primary creation/arrangement path; parity then enables the audio lock   |
+| S     | Studio-forward workspace       | STUDIO-01–06    | Active (1/6) | Studio becomes the primary creation/arrangement path; parity then enables the audio lock   |
 | E     | Discovery and community safety | 16–18           | Paused (2/3) | Public discovery/profiles are complete; PR 18 resumes after the interruption slices        |
 | F     | MVP hardening and release      | 19–20           | Pending      | Measured hardening and a rehearsed invited-user deployment                                 |
 
@@ -251,7 +251,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program S — Studio-forward workspace
 
-**Status:** Active — STUDIO-01 is next; six slices are required before PR 18 and final audio-lock enablement
+**Status:** Active — STUDIO-01 is complete and STUDIO-02 is next; six slices are required before PR 18 and final audio-lock enablement
 
 **Outcome:** Jam Session Studio becomes the primary authenticated music-making workspace where users create, open, close, and safely switch one authorized project; arrange audio and MIDI on one timeline; and compose or record MIDI in project context. Projects/workspaces and immutable stem versions remain authority while the editor/audio runtime stays lazy, client-only, and disposable.
 
@@ -260,6 +260,8 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 ### STUDIO-01 — Canonical shell and route migration
 
 **Outcome:** The authenticated `/studio` start center loads without editor/audio code, and every existing Studio link reaches a canonical, independently authorized `/studio/{projectId}` session.
+
+**Delivered:** The lightweight persistent shell and start center are authenticated without importing the editor runtime; selected routes reuse the route-neutral resolver and remount by authorized session authority; project actions and CTAs use the canonical URL; and the nested route is redirect-only.
 
 ### STUDIO-02 — Project browser, safe switching, and Studio-owned creation
 

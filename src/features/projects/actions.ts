@@ -44,7 +44,7 @@ export async function createProjectAction(
           ? "This creation request was already used with different details."
           : "We couldn’t create the project. Please try again.",
     };
-  redirect(`/projects/${data[0].project_id}/studio`);
+  redirect(`/studio/${data[0].project_id}`);
 }
 export async function updateProjectAction(
   projectId: string,

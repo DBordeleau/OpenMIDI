@@ -47,7 +47,7 @@ export async function resolveStudioSession(
     canonicalLinks: {
       project: `/projects/${projectId}`,
       studio: `/studio/${projectId}`,
-      completion: `/projects/${projectId}/studio`,
+      completion: `/studio/${projectId}`,
     },
   };
   let descriptor: StudioSessionDescriptor;

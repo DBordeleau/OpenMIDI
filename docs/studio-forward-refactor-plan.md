@@ -2,7 +2,7 @@
 
 Status: Accepted roadmap program; implementation authority is limited to the staged slices below
 Prepared: 2026-07-14  
-Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01 is next, then STUDIO-02–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
+Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01 delivered the canonical shell/routes, and STUDIO-02–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
 
 ## Executive recommendation
 
@@ -55,7 +55,7 @@ The DAW inspiration should therefore guide hierarchy, speed, keyboard interactio
 
 The current implementation has several good foundations:
 
-- `/projects/{projectId}/studio` is a Server Component that authorizes the viewer, resolves the project/workspace/revision, and then lazy-loads a browser-only studio.
+- `/studio` is the authenticated runtime-free start center; `/studio/{projectId}` independently authorizes the viewer, resolves the project/workspace/revision, and then lazy-loads the browser-only studio. `/projects/{projectId}/studio` is redirect-only compatibility.
 - `StudioLauncher` and `StudioSurface` already accept distinct revision, owner-workspace, contribution-workspace, and contribution-version modes.
 - The adapter is isolated under `src/features/studio/waveform-playlist-adapter`.
 - The manifest already persists track order, start position, source trim, duration, gain, pan, mute, and solo.

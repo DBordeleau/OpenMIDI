@@ -15,12 +15,19 @@ const links = [
     active: (pathname: string) => pathname === "/explore",
   },
   {
+    href: "/studio",
+    label: "Studio",
+    active: (pathname: string) =>
+      pathname === "/studio" || pathname.startsWith("/studio/"),
+  },
+  {
     href: "/projects",
     label: "My projects",
     active: (pathname: string) =>
       pathname === "/projects" ||
       (pathname.startsWith("/projects/") &&
         pathname !== "/projects/new" &&
+        !pathname.endsWith("/studio") &&
         !pathname.includes("/contributions")),
   },
   {

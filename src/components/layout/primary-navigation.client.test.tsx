@@ -16,6 +16,7 @@ describe("PrimaryNavigation", () => {
 
     for (const [name, href] of [
       ["Dashboard", "/dashboard"],
+      ["Studio", "/studio"],
       ["My projects", "/projects"],
       ["New project", "/projects/new"],
       ["Uploads", "/uploads"],
@@ -29,13 +30,31 @@ describe("PrimaryNavigation", () => {
     expect(screen.getByText("Menu")).toBeInTheDocument();
   });
 
-  it("marks project routes as the current workspace without masking creation", () => {
-    usePathname.mockReturnValue("/projects/project-id/studio");
+  it("marks Studio separately from project routes and project creation", () => {
+    usePathname.mockReturnValue("/studio/project-id");
     const { rerender } = render(<PrimaryNavigation />);
     expect(
       screen
-        .getAllByRole("link", { name: "My projects" })
+        .getAllByRole("link", { name: "Studio" })
         .every((link) => link.getAttribute("aria-current") === "page"),
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole("link", { name: "My projects" })
+        .every((link) => !link.hasAttribute("aria-current")),
+    ).toBe(true);
+
+    usePathname.mockReturnValue("/projects/project-id/studio");
+    rerender(<PrimaryNavigation />);
+    expect(
+      screen
+        .getAllByRole("link", { name: "Studio" })
+        .every((link) => !link.hasAttribute("aria-current")),
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole("link", { name: "My projects" })
+        .every((link) => !link.hasAttribute("aria-current")),
     ).toBe(true);
 
     usePathname.mockReturnValue("/projects/new");

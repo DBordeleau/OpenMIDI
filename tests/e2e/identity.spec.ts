@@ -198,7 +198,9 @@ test.describe("identity vertical slice", () => {
       page.getByRole("heading", { name: "E2E collaboration draft" }),
     ).toBeVisible();
     const studioUrl = new URL(page.url()).pathname;
-    const projectUrl = studioUrl.replace(/\/studio$/, "");
+    const projectId = studioUrl.split("/").at(-1);
+    if (!projectId) throw new Error("Project creation omitted its identifier.");
+    const projectUrl = `/projects/${projectId}`;
     await page.goto(projectUrl);
     await expect(page.getByText("118.5 BPM")).toBeVisible();
     await page.getByRole("link", { name: "Edit metadata" }).click();

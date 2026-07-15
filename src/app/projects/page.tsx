@@ -137,9 +137,9 @@ export default async function ProjectsPage({
                       {project.currentRevisionId ? (
                         <Link
                           className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
-                          href={`/projects/${project.id}/studio`}
+                          href={`/studio/${project.id}`}
                         >
-                          Open studio
+                          Open in studio
                         </Link>
                       ) : project.role === "owner" ? (
                         <Link

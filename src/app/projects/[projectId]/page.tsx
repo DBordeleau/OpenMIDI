@@ -320,9 +320,9 @@ export default async function ProjectPage({
               </div>
               <Link
                 className="cta-gradient text-accent-contrast mt-6 inline-flex min-h-11 items-center rounded-full px-5 font-semibold transition-transform hover:-translate-y-px"
-                href={`/projects/${project.id}/studio`}
+                href={`/studio/${project.id}`}
               >
-                Open studio
+                Open in studio
               </Link>
               {project.license.allowsDerivatives ? (
                 <Link

@@ -43,7 +43,7 @@ export async function createWorkspaceAction(
           ? "The project revision changed. Reload before creating a draft."
           : "We couldn’t create this private draft.",
     };
-  redirect(`/projects/${projectId}/studio`);
+  redirect(`/studio/${projectId}`);
 }
 
 export async function reserveWorkspaceSnapshotAction(input: unknown) {
@@ -138,7 +138,7 @@ export async function publishWorkspaceAction(
     };
   }
   revalidatePath(`/projects/${projectId}`);
-  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath(`/studio/${projectId}`);
   return {
     ok: true as const,
     revisionId: data[0].revision_id,
@@ -166,7 +166,7 @@ export async function publishMidiWorkspaceAction(
             : ("unavailable" as const),
     };
   revalidatePath(`/projects/${projectId}`);
-  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath(`/studio/${projectId}`);
   revalidatePath("/explore");
   return {
     ok: true as const,
@@ -193,6 +193,6 @@ export async function restartWorkspaceAction(
           : ("unavailable" as const),
     };
   revalidatePath(`/projects/${projectId}`);
-  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath(`/studio/${projectId}`);
   return { ok: true as const, workspaceId: data[0].workspace_id };
 }

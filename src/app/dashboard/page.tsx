@@ -120,7 +120,7 @@ export default async function DashboardPage() {
                       href={
                         item.contributionId
                           ? `/projects/${item.projectId}/contributions/${item.contributionId}`
-                          : `/projects/${item.projectId}/studio`
+                          : `/studio/${item.projectId}`
                       }
                     >
                       {item.contributionTitle ?? item.projectTitle}

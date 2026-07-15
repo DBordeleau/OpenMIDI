@@ -84,7 +84,7 @@ export async function submitContributionAction(
   revalidatePath(
     `/projects/${projectId}/contributions/${parsed.data.contributionId}`,
   );
-  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath(`/studio/${projectId}`);
   return { ok: true as const, versionNumber: data[0].version_number };
 }
 
@@ -110,7 +110,7 @@ export async function withdrawContributionAction(
   revalidatePath(
     `/projects/${projectId}/contributions/${parsed.data.contributionId}`,
   );
-  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath(`/studio/${projectId}`);
   return { ok: true as const };
 }
 
