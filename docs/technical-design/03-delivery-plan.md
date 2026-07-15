@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; repository implemented and pulse-checked through PR 17, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted capability review remains before M6/PR 18
+Status: Accepted; repository implemented and pulse-checked through PR 17, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted database capability recorded enabled; M6/PR 18 is next and deployment/parity remains PR 20
 
 ## Delivery strategy
 
@@ -8,7 +8,7 @@ Build thin vertical slices that end in observable user behavior. A focused Wavef
 
 ## Milestones
 
-M0–M5 and M5.5–M5.8 are repository-complete. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. Before M6, complete the hosted capability handoff, PR 18 moderation/retention operations, and the remaining roadmap hardening. Conditional manual browser/audio/MIDI/preview checks remain recorded as such.
+M0–M5 and M5.5–M5.8 are repository-complete. Source credits require explicit confirmation, immutable history preserves attribution and fork lineage without duplicating source audio, and owner-controlled public projects flow through a safe catalog with bounded search, public history, and metadata-only presentation. Source audio remains private and participant-scoped. The hosted database capability is recorded enabled, so M6 begins with PR 18 moderation/retention operations, followed by PR 19 hardening. The first application deployment, hosted parity, and any separately authorized admission transition belong to PR 20. Conditional manual browser/audio/MIDI/preview checks remain recorded as such.
 
 ### M0 — Decisions and feasibility
 
@@ -109,10 +109,10 @@ Exit: the MIDI format, standalone editor foundation, immutable collaboration gra
 - `STUDIO-03` (complete): replace the form-like composite surface with one coherent arranger shell: shared ruler/playhead, audio waveform lanes, MIDI note-summary lanes, channel headers, mixer controls, selection, inspector, and transport.
 - `STUDIO-04` (complete): add accessible reorder, clip move, duplicate/copy/paste, trim, loop, snap, and session undo/redo; enable audio split only after exact v2 projection round trips pass.
 - `STUDIO-05` (complete): integrate the existing piano roll and recorder into Studio so users create/derive drafts, compose or record against project transport, then explicitly freeze a version and atomically add or replace the selected clip without putting draft IDs in manifests.
-- `STUDIO-06` (repository complete): harden routes, deep links, session/draft disposal, performance, alternate read-only surfaces, collaboration regressions, and stale-client admission authority; hosted evidence acceptance and lock enablement remain separate operations.
+- `STUDIO-06` (repository complete): harden routes, deep links, session/draft disposal, performance, alternate read-only surfaces, collaboration regressions, and stale-client admission authority; hosted database capability is recorded enabled, while deployment evidence and any lock remain PR 20 operations.
 - Keep pitch shift, varispeed, pitch-preserving time stretch, OpenDAW, multiple simultaneous live projects, and professional-DAW parity outside the MVP critical path.
 
-Repository exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; and supported state survives immutable collaboration flows. Operational exit: the deployed parity result and final source-admission capability state are reviewed and recorded before PR 18 covers the final MIDI/audio reference graph.
+Repository exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; and supported state survives immutable collaboration flows. Operational handoff: PR 18 begins from the read-only confirmed enabled database capability. PR 20 later records deployed application parity and any separately authorized final source-admission transition.
 
 ### M5.8 — Studio and MIDI usability
 

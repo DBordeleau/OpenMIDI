@@ -1,6 +1,6 @@
 # System Architecture
 
-Status: Accepted MVP design; repository implemented through PR 17, OPT-05, MIDI-07, and STUDIO-06; hosted lock transition remains before PR 18
+Status: Accepted MVP design; repository implemented through UX-05; hosted database capability recorded enabled; application deployment and any lock transition remain PR 20 work after PR 19
 
 Audience: engineers and coding agents
 
@@ -216,7 +216,7 @@ MIDI-07 prepared the transition controls, STUDIO-01 makes `/studio` the authenti
 
 The MIDI editor must work with pointer, keyboard and an on-screen piano. Hardware Web MIDI is optional progressive enhancement requested only from an explicit gesture in a secure context, without System Exclusive access. Initial sounds are code-owned synthesis presets without remote samples. A preset change creates a new version so historical playback does not drift.
 
-MIDI-07 implements and tests the trusted source-admission capability, including disabled-mode bypass protection, and ships it enabled while Studio is rebuilt. Only after Studio-native track creation, piano-roll editing, contextual recording, timeline arranging/mixing, save/reload, publication, preview, contribution acceptance, fork and `.mid` export pass the STUDIO-06 parity gate may the prototype disable new source admission. The lock is enforced in `reserve_source_asset` before reservation/quota mutation and represented as a global prototype capability—not a subscription or user entitlement. Existing ready audio, valid in-flight reservations during the documented deployment grace period, private signing, downloads, export, publication and forks remain supported. The repository runbook records enablement, rollback, and hosted-authorization requirements.
+MIDI-07 implements and tests the trusted source-admission capability, including disabled-mode bypass protection, and ships it enabled while Studio is rebuilt. Only after Studio-native track creation, piano-roll editing, contextual recording, timeline arranging/mixing, save/reload, publication, preview, contribution acceptance, fork and `.mid` export pass the STUDIO-06 parity gate may the prototype disable new source admission. The repository passes that gate, but the hosted database capability remains enabled and application deployment is deferred through PR 19; PR 20 therefore owns hosted parity and any separately authorized transition. The lock is enforced in `reserve_source_asset` before reservation/quota mutation and represented as a global prototype capability—not a subscription or user entitlement. Existing ready audio, valid in-flight reservations during the documented deployment grace period, private signing, downloads, export, publication and forks remain supported. The repository runbook records enablement, rollback, and hosted-authorization requirements.
 
 ## Upload and asset processing
 

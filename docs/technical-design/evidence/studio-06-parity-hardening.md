@@ -2,7 +2,8 @@
 
 Date: 2026-07-15  
 Scope: repository and local Supabase/Chromium evidence only  
-Hosted source admission: enabled; no hosted mutation authorized
+Hosted source admission: enabled; read-only confirmed 2026-07-15 22:28:50 UTC; no hosted mutation authorized
+Hosted application deployment: deferred until after PR 19
 
 ## Accepted repository outcome
 
@@ -21,8 +22,8 @@ Hardening in this slice keeps lifecycle registration optional on alternate read-
 
 The automated Chromium suite provides structural keyboard/accessible-name coverage and fallback behavior, but perceptual audio quality, screen-reader narration, contrast inspection, reduced-motion feel, hardware Web MIDI, long-duration memory profiling, and final Firefox/Safari/Chromium hosted smoke checks remain manual release evidence. Signed-source refresh is covered structurally/local-browser rather than against hosted object delivery.
 
-Repository completion is not hosted authority. An authorized operator must confirm the deployed commit/migrations and active environment, review these exceptions, run the transition procedure, and record the resulting capability state. Until then source admission stays enabled and upload controls remain available.
+Repository completion is not hosted application authority. The hosted database capability RPC was read-only queried on 2026-07-15 and returned `source_audio_admission_enabled = true`, confirming that the MIDI-07 capability migration exists and admission remains enabled. The application has not been deployed and will remain undeployed through PR 18 and PR 19. PR 20 must confirm the deployed commit/migrations and active environment, review these exceptions, and separately authorize any transition. Until then source admission stays enabled; no capability mutation is part of PR 18 or PR 19.
 
 ## PR 18 handoff
 
-PR 18 starts only from the recorded deployed/capability state. Its retention and capacity graph must include ready and reserved source audio, persisted waveform peaks, workspace snapshots, revision/contribution/fork references, MIDI stems and mutable drafts, immutable stem versions and derivation lineage, normalized clip references, MIDI credit snapshots, avatars, verification/cleanup jobs, and operator transition history. Disabling admission is never authority to delete or weaken access to existing audio history.
+PR 18 starts from the recorded hosted database state: capability migration present, admission enabled, application not deployed, and no mutation performed. Its retention and capacity graph must include ready and reserved source audio, persisted waveform peaks, workspace snapshots, revision/contribution/fork references, MIDI stems and mutable drafts, immutable stem versions and derivation lineage, normalized clip references, MIDI credit snapshots, avatars, verification/cleanup jobs, and operator transition history. Disabling admission is never authority to delete or weaken access to existing audio history.

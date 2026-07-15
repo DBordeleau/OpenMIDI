@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 complete; the Studio usability pulse is accepted, leaving hosted evidence acceptance and the separately authorized audio-lock transition before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 complete; the Studio usability pulse is accepted, the hosted database capability is recorded enabled, and PR 18 is next
 
 ## Purpose
 
@@ -34,13 +34,13 @@ The current MVP supports:
 - branded latest-revision previews on Explore and project pages, one-action studio entry, and owner soft deletion with a 30-day recovery window.
 - executable MIDI v2/session/scheduler contracts, deterministic sample-free presets, conflict-safe MIDI stem drafts/immutable versions, accessible standalone composition/recording, exact-version project publication, and complete MIDI contribution/acceptance/credit/fork behavior.
 
-The remaining roadmap programs and gates before PR 18 are:
+The completed interruption programs before PR 18 are:
 
 1. **`MIDI-01`–`MIDI-07` — MIDI-first foundation and transition readiness:** complete. The versioned stem/editor/runtime/collaboration path and reversible source-admission capability are implemented and tested while admission remains enabled.
-2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** repository complete. Hosted parity acceptance and the separately authorized source-admission transition remain operational gates.
+2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** repository complete. Hosted application parity and any separately authorized source-admission transition are deferred to PR 20 because deployment follows PR 19.
 3. **`UX-01`–`UX-05` — Studio and MIDI usability:** complete with its milestone pulse accepted. This bounded pass repairs transport/mixer correctness, establishes a familiar DAW shell and inline track workflow, improves piano interaction, and adds spatial block editing without changing immutable history or manifest compatibility.
 
-After the UX pass and hosted capability handoff complete, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
+With the UX pass complete and the hosted database capability read-only confirmed enabled on 2026-07-15, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. The application remains undeployed through PR 18 and PR 19; PR 20 owns staged deployment, hosted application parity, and any separately authorized source-admission transition. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
 
 ### Progress at a glance
 
@@ -253,7 +253,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program S — Studio-forward workspace
 
-**Status:** Repository complete — STUDIO-01–STUDIO-06 are implemented; hosted evidence acceptance and the separately authorized audio-lock transition remain before PR 18
+**Status:** Repository complete — STUDIO-01–STUDIO-06 are implemented; hosted application evidence and any separately authorized audio-lock transition move to PR 20
 
 **Outcome:** Jam Session Studio becomes the primary authenticated music-making workspace where users create, open, close, and safely switch one authorized project; arrange audio and MIDI on one timeline; and compose or record MIDI in project context. Projects/workspaces and immutable stem versions remain authority while the editor/audio runtime stays lazy, client-only, and disposable.
 
@@ -313,11 +313,11 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 **Implementation authority:** The detailed slice plan is intentionally local at `local/implementation-plans/023-studio-midi-usability-pass.md`. Tracked architecture, design, evidence, and this roadmap are updated as each behavior lands. Signal is an MIT-licensed interaction reference pinned in the plan and existing third-party notice; Jam Session retains its own state, persistence, authorization, collaboration, styling, and browser-runtime boundaries.
 
-**Acceptance gate:** The five slices pass their focused checks and one final milestone pulse check records remaining accepted limitations. The hosted STUDIO-06 capability review then records the final source-admission state before PR 18 begins.
+**Acceptance gate:** The five slices pass their focused checks and one final milestone pulse check records remaining accepted limitations. The hosted database capability is recorded enabled for PR 18; deployed application parity remains a PR 20 release gate.
 
 ### PR 18 — Moderation, retention, quotas, and storage operations
 
-**Status:** Pending operational handoff — record the deployed hosted parity review and final source-admission capability state before implementation
+**Status:** Ready — hosted database capability confirmed enabled on 2026-07-15; no hosted application deployment or mutation performed
 
 **Outcome:** The invited demo can be operated safely within Supabase Free limits using manual reports and deterministic cleanup that cannot break surviving history.
 
@@ -379,7 +379,7 @@ Status: Pending
 ## Dependency and sequencing rules
 
 - PRs within a phase or named interruption are ordered unless a tracked decision explicitly says otherwise.
-- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` complete before `UX-01`; `UX-01`–`UX-05` and the recorded hosted capability handoff complete before PR 18.
+- `OPT-01`–`OPT-05` complete before `MIDI-01`; `MIDI-01`–`MIDI-07` complete before `STUDIO-01`; `STUDIO-01`–`STUDIO-06` complete before `UX-01`; UX-01–UX-05 and the read-only hosted database capability record complete before PR 18. PR 20 owns the first application deployment, hosted parity, and any authorized admission transition after PR 19.
 - MIDI-01 owns the route-neutral session/adapter and manifest-v2 clip contracts; MIDI-05 owns the composite runtime, normalized clip foundations, and atomic empty-workspace creation required by the later Studio slices.
 - MIDI-07 installs/tests the source-admission capability while leaving it enabled. STUDIO-06 provides the repository parity evidence; an authorized hosted review and separately approved mutation determine and record the final capability state. Source reservation authority, not hidden controls, enforces any lock.
 - PR 18 follows all audio, derived-asset, and MIDI reference types so retention can prove that surviving history is safe.

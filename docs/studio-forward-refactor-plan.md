@@ -2,7 +2,7 @@
 
 Status: Repository complete through STUDIO-06 and UX-05; milestone pulse accepted
 Prepared: 2026-07-14  
-Sequence: MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 are repository-complete; hosted capability review and the separately authorized audio lock remain before PR 18
+Sequence: MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 are repository-complete; hosted database capability is recorded enabled; PR 18 is next, while deployment/parity and any separately authorized audio lock remain PR 20 work
 
 ## Executive recommendation
 
@@ -534,7 +534,7 @@ Scope:
 - retain the compatibility redirect unless evidence justifies removal; keeping it indefinitely is acceptable if it remains cheap and tested; and
 - update PRD, roadmap, architecture, brand implementation map, README, agent/testing guidance, and PR 18 handoff.
 
-Implemented in the repository: the complete Studio-native create-to-export path and retained collaboration/legacy paths are exercised locally; exact referenced MIDI data is loaded through existing RLS for read-only revision and contribution playback; lifecycle registration is optional for compatible surfaces outside the canonical shell; repeated switching and disabled-admission rollback are covered. Performance results and remaining manual/hosted gates are recorded in the STUDIO-06 evidence. No hosted mutation was authorized, so source admission remains enabled and PR 18 must begin from that recorded capability state unless an operator completes the runbook first.
+Implemented in the repository: the complete Studio-native create-to-export path and retained collaboration/legacy paths are exercised locally; exact referenced MIDI data is loaded through existing RLS for read-only revision and contribution playback; lifecycle registration is optional for compatible surfaces outside the canonical shell; repeated switching and disabled-admission rollback are covered. Performance results and remaining manual/hosted gates are recorded in the STUDIO-06 evidence. The hosted database capability was later read-only confirmed enabled. The application remains undeployed through PR 18 and PR 19, so PR 18 begins from enabled admission and PR 20 owns the deployment runbook and any separately authorized transition.
 
 ### UX-03 usability outcome — inline tracks and clip containers
 

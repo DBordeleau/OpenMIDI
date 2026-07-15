@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; repository implemented through PR 17, OPT-05, MIDI-07, and STUDIO-06; hosted lock transition remains before PR 18
+Status: Accepted MVP design; repository implemented through UX-05; hosted database capability recorded enabled; PR 18 is next and hosted application deployment/lock transition remain PR 20 work
 
 Database: Supabase Postgres
 
@@ -213,7 +213,7 @@ The MIDI expansion is expand-only. Do not rewrite manifest v1, published revisio
 
 Add a constrained project compatibility field equivalent to `midi` and `legacy_hybrid`. Backfill every existing project to `legacy_hybrid`; new projects default to `midi` only after the MIDI creation flow is deployed. Compatibility is a workflow invariant, not a subscription tier.
 
-MIDI-07 adds one trusted global prototype capability for new source admission. It ships enabled. `reserve_source_asset` checks it before new asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled; exact idempotent replay of a pre-lock reservation remains valid through its existing grace lifetime. Disabled-mode database/browser tests cover old-client bypass, quota non-mutation, completion/verification/cancellation, rollback, and mixed legacy-audio compatibility. STUDIO-06 changes the authoritative state only after Studio-native parity and separate hosted authorization. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
+MIDI-07 adds one trusted global prototype capability for new source admission. It ships enabled. `reserve_source_asset` checks it before new asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled; exact idempotent replay of a pre-lock reservation remains valid through its existing grace lifetime. Disabled-mode database/browser tests cover old-client bypass, quota non-mutation, completion/verification/cancellation, rollback, and mixed legacy-audio compatibility. STUDIO-06 proves repository parity but does not itself change hosted state. The hosted database capability was read-only confirmed enabled, and PR 20 may change it only after deployment parity and separate authorization. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
 
 ### Manifest v2 and track projection
 

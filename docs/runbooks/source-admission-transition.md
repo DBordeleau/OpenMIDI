@@ -2,7 +2,7 @@
 
 MIDI-07 installs a reversible database-authoritative control for new `source_audio` reservations. The migration inserts the single trusted control row with admission **enabled**. This runbook does not authorize changing a hosted environment; STUDIO-06 must first accept the complete Studio-native parity evidence and obtain separate hosted-mutation approval.
 
-STUDIO-06 repository parity and the local disabled/rollback rehearsal are complete. Hosted evidence acceptance, deployment confirmation, and capability mutation were not authorized, so the current hosted state remains **enabled** and the procedure below remains pending.
+STUDIO-06 repository parity and the local disabled/rollback rehearsal are complete. A read-only hosted capability query on 2026-07-15 22:28:50 UTC returned **enabled**; no mutation was performed. The application will not be deployed until after PR 19, so deployment confirmation, hosted application parity, and any separately authorized capability mutation are PR 20 release steps rather than PR 18 prerequisites.
 
 ## Authority and compatibility
 
@@ -22,9 +22,9 @@ STUDIO-06 repository parity and the local disabled/rollback rehearsal are comple
 
 No hosted migration, capability mutation, or deployment is part of the MIDI-07 repository change itself.
 
-## Future STUDIO-06 enablement
+## Future PR 20 deployment transition
 
-Only after the documented Studio-native creation, recording, arrangement, publication, preview, collaboration, fork, export, accessibility, and legacy-audio gates pass:
+Only after PR 18 operations, PR 19 hardening, and the documented Studio-native creation, recording, arrangement, publication, preview, collaboration, fork, export, accessibility, and legacy-audio gates pass:
 
 1. Deploy the MIDI-07 database and application readers while admission is still enabled.
 2. Confirm the active environment and current value without printing credentials:
