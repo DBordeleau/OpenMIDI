@@ -239,15 +239,14 @@ presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
 entrance and a fade-out on close (Escape, backdrop, or the icon button) that routes
 home. The Google button is a white pill with the 4-colour Google mark.
 
-**Studio surface** — the waveform is a `<canvas>`, so its colours come from the
-engine `theme` (`studioTheme` in
-[`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx)),
-**not CSS** — coral peaks and gold progress on dark plum lanes. Per-track controls
-render in the left gutter as a compact channel strip (inline-editable name, gain/pan
-sliders with live values, coral/gold `M`/`S` chips, react-icon reorder/delete, and a
-collapsible "Details" for instrument + start position). The transport uses react-icon
-buttons (play/pause, skip, zoom, "Follow" auto-scroll). Keep lanes short so more
-tracks fit without scrolling.
+**Studio surface** — manifest-v2 sessions use the shared
+[`ArrangerWorkspace`](../../src/features/studio/arranger/arranger-workspace.tsx):
+coral audio summaries and gold MIDI notes share dark plum lanes, with fixed compact
+channel strips, exact-value inspection, and react-icon transport/zoom/follow actions.
+Legacy manifest-v1 waveforms remain canvas-rendered, so their colours still come from
+the `studioTheme` engine configuration in
+[`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx).
+Keep lanes short so more tracks fit without scrolling.
 
 **Cursors & hover feedback** — interactive controls must feel interactive.
 `globals.css` gives `button`/`summary`/`select`/checkbox/radio/range/`[role=button]`

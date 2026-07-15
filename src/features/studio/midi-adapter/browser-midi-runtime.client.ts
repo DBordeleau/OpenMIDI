@@ -5,6 +5,7 @@ import {
 } from "@/features/midi/browser-engine/preset-voice.client";
 import type { MidiEngineEvent } from "@/features/midi/scheduler";
 import type { WorkspaceManifestV2 } from "@/features/studio/manifest/v2";
+import { summarizeAudioBuffer } from "@/features/studio/arranger/audio-peaks.client";
 
 type AuthorizedAudioSource = { assetId: string; signedUrl: string };
 
@@ -43,9 +44,13 @@ export class BrowserMidiRuntime {
   ) {
     this.assertAvailable();
     this.manifest = manifest;
+    if (sources.length === 0) {
+      this.audioBuffers.clear();
+      return new Map<string, readonly number[]>();
+    }
     const Tone = await import("tone");
     const context = Tone.getContext().rawContext;
-    const decoded = await Promise.all(
+    const attempts = await Promise.allSettled(
       sources.map(async (source) => {
         const response = await fetch(source.signedUrl, { signal });
         if (!response.ok) throw new Error("Audio source unavailable");
@@ -53,7 +58,16 @@ export class BrowserMidiRuntime {
         return [source.assetId, await context.decodeAudioData(bytes)] as const;
       }),
     );
+    const decoded = attempts.flatMap((attempt) =>
+      attempt.status === "fulfilled" ? [attempt.value] : [],
+    );
     this.audioBuffers = new Map(decoded);
+    return new Map(
+      decoded.map(([assetId, buffer]) => [
+        assetId,
+        summarizeAudioBuffer(buffer),
+      ]),
+    );
   }
 
   async play(fromSeconds = 0) {
@@ -136,7 +150,7 @@ export class BrowserMidiRuntime {
     for (const track of audioTracks) {
       if (track.muted || (hasSolo && !track.soloed)) continue;
       const buffer = this.audioBuffers.get(track.assetId);
-      if (!buffer) throw new Error("Audio track was not prepared");
+      if (!buffer) continue;
       for (const clip of track.clips) {
         const clipStart = clip.positionMs / 1_000;
         const clipEnd = clipStart + clip.durationMs / 1_000;

@@ -2,7 +2,7 @@
 
 Status: Accepted roadmap program; implementation authority is limited to the staged slices below
 Prepared: 2026-07-14  
-Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01–STUDIO-02 delivered the canonical shell/routes and safe project lifecycle, and STUDIO-03–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
+Sequence: MIDI-01–MIDI-07 delivered the contracts/runtime/collaboration foundation and reversible admission control; STUDIO-01–STUDIO-03 delivered the canonical shell/routes, safe project lifecycle, and unified arranger visualization, and STUDIO-04–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
 
 ## Executive recommendation
 
@@ -74,7 +74,7 @@ The main constraints are:
 - the studio surface combines loading, transport, mixer, timeline, recovery, publishing, exporting, and contribution context in one large client component; and
 - `manifest.workspaceId` is currently checked against `project_id`, so the v1 field name does not describe what it actually identifies.
 
-The current MIDI-specific gap is equally important: the composite surface renders tracks as stacked forms with numeric start/duration fields and assumes `clips[0]` in key interactions. It technically saves and plays manifest v2, but it does not yet present audio and MIDI as one visual arrangement. The standalone piano roll owns the best note-editing experience, so ordinary composition and recording currently pull musicians away from the project context. STUDIO-03–STUDIO-05 explicitly remove that split.
+Before STUDIO-03, the composite surface rendered tracks as stacked forms with numeric start/duration fields and assumed `clips[0]` in key interactions. The unified arranger now presents every audio and MIDI clip on one visual timeline. The standalone piano roll still owns the best note-editing experience, so ordinary composition and recording currently pull musicians away from the project context. STUDIO-04–STUDIO-05 complete arrangement mutation and remove that remaining split.
 
 ## Target user experience
 

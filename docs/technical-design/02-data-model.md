@@ -1,6 +1,6 @@
 # Data Model and Supabase Design
 
-Status: Accepted MVP design; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-02 with STUDIO-03 next before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, MIDI-07, and STUDIO-03 with STUDIO-04 next before PR 18
 
 Database: Supabase Postgres
 

@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-15
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-02 complete; STUDIO-03 is next, followed by STUDIO-04–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-03 complete; STUDIO-04 is next, followed by STUDIO-05–STUDIO-06 and the Studio-native parity/audio-lock gate before PR 18
 
 ## Purpose
 
@@ -251,7 +251,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap program S — Studio-forward workspace
 
-**Status:** Active — STUDIO-01–STUDIO-02 are complete and STUDIO-03 is next; six slices are required before PR 18 and final audio-lock enablement
+**Status:** Active — STUDIO-01–STUDIO-03 are complete and STUDIO-04 is next; six slices are required before PR 18 and final audio-lock enablement
 
 **Outcome:** Jam Session Studio becomes the primary authenticated music-making workspace where users create, open, close, and safely switch one authorized project; arrange audio and MIDI on one timeline; and compose or record MIDI in project context. Projects/workspaces and immutable stem versions remain authority while the editor/audio runtime stays lazy, client-only, and disposable.
 
@@ -272,6 +272,8 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 ### STUDIO-03 — Unified arranger layout and visualization
 
 **Outcome:** The form-like composite surface becomes one coherent arranger with aligned channel headers, shared ruler/playhead/transport, audio waveform lanes, MIDI note-summary lanes, selection, mixer controls, and an exact-value inspector.
+
+**Delivered:** Manifest-v2 sessions now project every stable audio and MIDI clip into one engine-neutral arranger model with deterministic tick/millisecond/pixel math. The desktop workspace provides fixed channel strips, shared ruler/playhead/zoom/follow state, persisted-then-decoded audio summaries, bounded immutable-note summaries, keyboard selection, exact-value inspection, and Studio-owned action/status regions while preserving the existing runtime and mutation commands.
 
 ### STUDIO-04 — Core arrangement interactions
 

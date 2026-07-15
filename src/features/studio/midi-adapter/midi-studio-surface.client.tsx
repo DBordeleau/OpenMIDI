@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FiDownload, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
 import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
 import {
@@ -32,6 +33,11 @@ import {
 } from "@/features/workspaces/midi-local-recovery.client";
 import type { MidiLocalRecoveryEnvelope } from "@/features/workspaces/schema";
 import { MutableStudioLifecycle } from "../switch-coordinator";
+import { ArrangerWorkspace } from "../arranger/arranger-workspace";
+import {
+  loadAudioLaneSummaries,
+  type AudioLaneSummary,
+} from "../arranger/audio-peaks.client";
 
 type Props = StudioLauncherProps & { manifest: WorkspaceManifestV2 };
 type SaveStatus =
@@ -69,6 +75,9 @@ export function MidiStudioSurface(props: Props) {
   const [playing, setPlaying] = useState(false);
   const [seekTick, setSeekTick] = useState(0);
   const [rendering, setRendering] = useState(false);
+  const [audioSummaries, setAudioSummaries] = useState<
+    ReadonlyMap<string, AudioLaneSummary>
+  >(new Map());
   const [recovery, setRecovery] = useState<MidiLocalRecoveryEnvelope | null>(
     () =>
       editable
@@ -109,16 +118,61 @@ export function MidiStudioSurface(props: Props) {
           manifest,
           controller.signal,
         );
-        await next.prepareAudio(manifest, sources, controller.signal);
-      })().catch(() =>
-        setMessage("The local Studio instruments could not be prepared."),
-      );
+        setAudioSummaries(
+          new Map(
+            sources.map((source) => [
+              source.assetId,
+              { status: "loading", peaks: [] } satisfies AudioLaneSummary,
+            ]),
+          ),
+        );
+        void loadAudioLaneSummaries({
+          sources,
+          signal: controller.signal,
+          onSummary: (assetId, summary) =>
+            setAudioSummaries((current) =>
+              new Map(current).set(assetId, summary),
+            ),
+        });
+        const decoded = await next.prepareAudio(
+          manifest,
+          sources,
+          controller.signal,
+        );
+        setAudioSummaries((current) => {
+          const updated = new Map(current);
+          for (const [assetId, peaks] of decoded)
+            updated.set(assetId, { status: "ready", peaks });
+          for (const source of sources)
+            if (!decoded.has(source.assetId))
+              updated.set(source.assetId, {
+                status: "failed",
+                peaks: updated.get(source.assetId)?.peaks ?? [],
+              });
+          return updated;
+        });
+      })().catch(() => {
+        if (controller.signal.aborted) return;
+        setAudioSummaries((current) => {
+          const updated = new Map(current);
+          for (const track of manifest.tracks)
+            if (track.kind === "audio")
+              updated.set(track.assetId, {
+                status: "failed",
+                peaks: updated.get(track.assetId)?.peaks ?? [],
+              });
+          setMessage(
+            "Some local Studio instruments or audio sources could not be prepared.",
+          );
+          return updated;
+        });
+      });
     } catch {
       // Draft timing is validated and reported by the explicit save/play action.
     }
     return () => {
       controller.abort();
-      if (playbackTimer.current) clearTimeout(playbackTimer.current);
+      if (playbackTimer.current) clearInterval(playbackTimer.current);
       next.dispose();
       if (runtime.current === next) runtime.current = null;
       if (runtimeAbort.current === controller) runtimeAbort.current = null;
@@ -301,7 +355,19 @@ export function MidiStudioSurface(props: Props) {
     await persist(next);
   }
 
-  async function replaceVersion(trackId: string, stemVersionId: string) {
+  async function replaceVersion(
+    trackId: string,
+    clipIdOrVersionId: string,
+    requestedVersionId?: string,
+  ) {
+    const track = manifest.tracks.find(
+      (candidate) => candidate.trackId === trackId && candidate.kind === "midi",
+    );
+    const clipId = requestedVersionId
+      ? clipIdOrVersionId
+      : track?.clips[0]?.clipId;
+    const stemVersionId = requestedVersionId ?? clipIdOrVersionId;
+    if (!clipId) return;
     const version = stemVersions.get(stemVersionId);
     if (!version || !editable) return;
     const next = parseWorkspaceManifestV2({
@@ -315,8 +381,8 @@ export function MidiStudioSurface(props: Props) {
               name: version.name,
               presetId: version.defaultPresetId,
               presetVersion: version.defaultPresetVersion,
-              clips: track.clips.map((clip, index) =>
-                index === 0
+              clips: track.clips.map((clip) =>
+                clip.clipId === clipId
                   ? {
                       ...clip,
                       midiStemVersionId: version.stemVersionId,
@@ -355,10 +421,44 @@ export function MidiStudioSurface(props: Props) {
     });
   }
 
+  function moveTrack(trackId: string, delta: -1 | 1) {
+    const ordered = [...manifest.tracks].sort(
+      (left, right) => left.sortOrder - right.sortOrder,
+    );
+    const index = ordered.findIndex((track) => track.trackId === trackId);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+    [ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!];
+    changeManifest({
+      ...manifest,
+      tracks: ordered.map((track, sortOrder) => ({ ...track, sortOrder })),
+    });
+  }
+
+  function updateClip(
+    trackId: string,
+    clipId: string,
+    patch: Record<string, number | boolean>,
+  ) {
+    changeManifest({
+      ...manifest,
+      tracks: manifest.tracks.map((track) =>
+        track.trackId === trackId
+          ? {
+              ...track,
+              clips: track.clips.map((clip) =>
+                clip.clipId === clipId ? { ...clip, ...patch } : clip,
+              ),
+            }
+          : track,
+      ) as WorkspaceTrackV2[],
+    });
+  }
+
   async function togglePlayback() {
     if (playing) {
       runtime.current?.pause();
-      if (playbackTimer.current) clearTimeout(playbackTimer.current);
+      if (playbackTimer.current) clearInterval(playbackTimer.current);
       setPlaying(false);
       return;
     }
@@ -371,13 +471,21 @@ export function MidiStudioSurface(props: Props) {
       const fromSeconds = (seekTick * 60) / (manifest.tempoBpm * MIDI_PPQ);
       await runtime.current?.play(fromSeconds);
       setPlaying(true);
-      const duration =
-        ((manifest.durationTicks - seekTick) * 60_000) /
-        (manifest.tempoBpm * MIDI_PPQ);
-      playbackTimer.current = window.setTimeout(() => {
-        setPlaying(false);
-        setSeekTick(0);
-      }, duration);
+      const startedAt = performance.now();
+      const startedTick = seekTick;
+      playbackTimer.current = window.setInterval(() => {
+        const elapsedTicks = Math.round(
+          ((performance.now() - startedAt) * manifest.tempoBpm * MIDI_PPQ) /
+            60_000,
+        );
+        const nextTick = startedTick + elapsedTicks;
+        if (nextTick >= manifest.durationTicks) {
+          if (playbackTimer.current) clearInterval(playbackTimer.current);
+          playbackTimer.current = null;
+          setPlaying(false);
+          setSeekTick(0);
+        } else setSeekTick(nextTick);
+      }, 50);
     } catch {
       setMessage("Playback needs an enabled browser audio context.");
     }
@@ -450,13 +558,253 @@ export function MidiStudioSurface(props: Props) {
         ),
       dispose: async () => {
         runtimeAbort.current?.abort();
-        if (playbackTimer.current) clearTimeout(playbackTimer.current);
+        if (playbackTimer.current) clearInterval(playbackTimer.current);
         runtime.current?.dispose();
         runtime.current = null;
       },
     });
   });
   useStudioLifecycleRegistration(lifecycle);
+
+  if (manifest.manifestVersion === 2)
+    return (
+      <section className="space-y-4">
+        {recovery && editable && (
+          <div role="alert" className="rounded-card border-accent border p-5">
+            <h2 className="font-bold">
+              Pending MIDI changes found on this device
+            </h2>
+            <p className="text-muted mt-1">
+              Restore this local arrangement, or keep the server workspace.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="cta-gradient text-accent-contrast min-h-11 rounded-full px-4 font-semibold"
+                onClick={() => {
+                  manifestRef.current = recovery.manifest;
+                  generation.current += 1;
+                  setManifest(recovery.manifest);
+                  setStatus(
+                    recovery.state === "conflict" ? "conflict" : "dirty",
+                  );
+                  setRecovery(null);
+                  lifecycle.update({
+                    status:
+                      recovery.state === "conflict" ? "conflict" : "dirty",
+                    generation: generation.current,
+                    acknowledgedGeneration: acknowledgedGeneration.current,
+                    recoveryAvailable: true,
+                  });
+                }}
+              >
+                Restore pending changes
+              </button>
+              <button
+                type="button"
+                className={button}
+                onClick={() => {
+                  clearMidiLocalRecovery(
+                    editable.viewerId,
+                    editable.workspaceId,
+                  );
+                  setRecovery(null);
+                }}
+              >
+                Discard local copy
+              </button>
+            </div>
+          </div>
+        )}
+        {props.mode === "contribution" && (
+          <div className="border-subtle rounded-control border p-4">
+            <p className="font-semibold">
+              Contribution: {props.contributionTitle}
+            </p>
+            <p className="text-muted mt-1 text-sm">
+              Shape the arrangement here, then return to submit its immutable
+              snapshot.
+            </p>
+            <Link
+              className="text-accent mt-2 inline-block underline"
+              href={`/projects/${props.projectId}/contributions/${props.contributionId}`}
+            >
+              Return to contribution
+            </Link>
+          </div>
+        )}
+        <div>
+          <p className="text-accent font-mono text-xs tracking-widest uppercase">
+            Jam Session arranger
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold">Arrangement</h2>
+          <p className="text-muted mt-1 text-sm">
+            Audio and MIDI share one musical timeline. Exact immutable source
+            versions remain the authority.
+          </p>
+        </div>
+        <ArrangerWorkspace
+          manifest={manifest}
+          midiVersions={midiVersions}
+          trackCredits={props.tracks}
+          audioSummaries={audioSummaries}
+          editable={Boolean(editable)}
+          playing={playing}
+          playheadTick={seekTick}
+          onTogglePlayback={() => void togglePlayback()}
+          onSeek={(tick) => {
+            runtime.current?.pause();
+            if (playbackTimer.current) clearInterval(playbackTimer.current);
+            playbackTimer.current = null;
+            setPlaying(false);
+            setSeekTick(tick);
+          }}
+          onTrackPatch={updateTrack}
+          onClipPatch={updateClip}
+          onMoveTrack={moveTrack}
+          onRemoveTrack={removeTrack}
+          onReplaceVersion={(trackId, clipId, versionId) =>
+            void replaceVersion(trackId, clipId, versionId)
+          }
+          actionRegion={
+            <details className="relative">
+              <summary className={`${button} list-none gap-2`}>
+                <FiMoreHorizontal /> Actions
+              </summary>
+              <div className="border-strong bg-surface rounded-card absolute top-12 right-0 z-50 w-80 space-y-3 border p-4 shadow-xl">
+                {editable && (
+                  <div>
+                    <label
+                      className="text-xs font-semibold"
+                      htmlFor="arranger-version"
+                    >
+                      Immutable version from My stems
+                    </label>
+                    <select
+                      id="arranger-version"
+                      className={`${input} mt-1 w-full`}
+                      value={selectedVersionId}
+                      onChange={(event) =>
+                        setSelectedVersionId(event.target.value)
+                      }
+                    >
+                      {midiVersions.map((version) => (
+                        <option
+                          key={version.stemVersionId}
+                          value={version.stemVersionId}
+                        >
+                          {version.name} · v{version.version} ·{" "}
+                          {version.creatorCreditName}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className={`${button} mt-2 w-full gap-2`}
+                      type="button"
+                      onClick={() => void importVersion()}
+                      disabled={!selectedVersionId || status === "saving"}
+                    >
+                      <FiFolderPlus /> Import exact version
+                    </button>
+                    <Link className={`${button} mt-2 w-full`} href="/stems">
+                      Open My stems
+                    </Link>
+                  </div>
+                )}
+                <button
+                  className={`${button} w-full gap-2`}
+                  type="button"
+                  disabled={!manifest.tracks.length}
+                  onClick={() =>
+                    download(
+                      exportMidiProject(
+                        manifest,
+                        stemVersions,
+                        props.projectTitle,
+                      ),
+                      "mid",
+                    )
+                  }
+                >
+                  <FiDownload /> Export .mid
+                </button>
+                <button
+                  className={`${button} w-full gap-2`}
+                  type="button"
+                  disabled={!manifest.tracks.length || rendering}
+                  onClick={() =>
+                    void (async () => {
+                      setRendering(true);
+                      try {
+                        download(
+                          await renderMidiProjectWav(
+                            manifest,
+                            stemVersions,
+                            await loadAudioSources(
+                              props,
+                              manifest,
+                              new AbortController().signal,
+                            ),
+                          ),
+                          "wav",
+                        );
+                      } catch {
+                        setMessage(
+                          "The local synth mix could not be rendered in this browser.",
+                        );
+                      } finally {
+                        setRendering(false);
+                      }
+                    })()
+                  }
+                >
+                  <FiDownload /> {rendering ? "Rendering…" : "Export local WAV"}
+                </button>
+              </div>
+            </details>
+          }
+          statusRegion={
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {editable && (
+                <button
+                  className={button}
+                  type="button"
+                  disabled={status !== "dirty"}
+                  onClick={() => void persist()}
+                >
+                  {status === "saving" ? "Saving…" : "Save arrangement"}
+                </button>
+              )}
+              {props.mode === "workspace" && (
+                <button
+                  className="cta-gradient min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-50"
+                  type="button"
+                  disabled={status !== "saved" || manifest.tracks.length === 0}
+                  onClick={() => void publish()}
+                >
+                  Publish immutable revision
+                </button>
+              )}
+              <span
+                className={
+                  status === "conflict" || status === "error"
+                    ? "text-danger text-xs"
+                    : "text-muted text-xs"
+                }
+                role="status"
+              >
+                {message ??
+                  (status === "saved"
+                    ? "All changes saved"
+                    : status === "dirty"
+                      ? "Unsaved arrangement changes"
+                      : status)}
+              </span>
+            </div>
+          }
+        />
+      </section>
+    );
 
   return (
     <section className="rounded-card border-strong bg-surface space-y-6 border p-5 sm:p-7">

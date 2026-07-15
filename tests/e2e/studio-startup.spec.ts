@@ -101,6 +101,16 @@ test.describe("studio startup smoke", () => {
     await expect(
       page.getByRole("heading", { name: `${firstTitle} studio` }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Arrangement workspace" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Bring in your first MIDI part." }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Play arrangement" }),
+    ).toBeDisabled();
+    await expect(page.getByText("All changes saved")).toBeVisible();
 
     await createProjectInStudio(page, secondTitle);
     await page
