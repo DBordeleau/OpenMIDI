@@ -2,7 +2,7 @@
 
 Jam Session is an asynchronous music-collaboration platform inspired by Git and open-source development. Musicians create projects from reusable MIDI stems and compatible legacy audio, preserve immutable revision history, propose contributions with durable attribution, and create copy-on-write forks with navigable lineage.
 
-> **Current status:** PRs 01–17, the five-slice $0 audio-delivery optimization, and MIDI-01–MIDI-04 are complete. The repository now includes frozen MIDI/manifest/session contracts, deterministic sample-free presets, and an owner-only My stems editor with conflict-safe private drafts, accessible Signal-derived piano-roll editing and recording, bounded undo/redo, quantize, local recovery, exact save/reload, immutable credited versions, and browser-only Standard MIDI import/download. MIDI-05 is next. After MIDI-07, four studio-forward slices establish the canonical Studio shell and core arrangement experience before PR 18 resumes.
+> **Current status:** PRs 01–17, the five-slice $0 audio-delivery optimization, and MIDI-01–MIDI-05 are complete. The repository now includes frozen MIDI/manifest/session contracts, deterministic sample-free presets, an owner-only My stems editor, exact immutable-version Studio import/replacement, optimistic manifest-v2 save, immutable project publication/credits, coordinated public MIDI preview, and browser-local `.mid`/synth-WAV export while legacy audio remains supported. MIDI-06 is next. After MIDI-07, four studio-forward slices establish the canonical Studio shell and core arrangement experience before PR 18 resumes.
 
 ## Target MVP scope
 

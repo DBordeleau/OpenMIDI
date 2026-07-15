@@ -324,6 +324,7 @@ export async function getContributionVersionPlayback(input: {
     durationMs: data.duration_ms,
     tracks: tracks.map((track) => ({
       trackId: track.track_id,
+      kind: "audio" as const,
       assetId: track.asset_id,
       displayName: track.name,
       verifiedDurationMs: track.assets.duration_ms!,

@@ -31,11 +31,13 @@ export type PublicCredit = {
 };
 export type PublicTrack = {
   id: string;
+  kind: "audio" | "midi";
   name: string;
   durationMs: number;
   positionMs: number;
   sortOrder: number;
   instrument: TaxonomyOption | null;
+  preset: { id: string; version: number } | null;
   credits: PublicCredit[];
 };
 export type PublicAttribution = {

@@ -3,7 +3,7 @@
 Status: Active  
 Last updated: 2026-07-14
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-04 complete; MIDI-05 is next, followed by MIDI-06–MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
+Repository checkpoint: PRs 01–17, OPT-01–OPT-05, and MIDI-01–MIDI-05 complete; MIDI-06 is next, followed by MIDI-07 and STUDIO-01–STUDIO-04 before PR 18
 
 ## Purpose
 
@@ -50,7 +50,7 @@ After both programs complete, **PR 18 — Moderation, retention, quotas, and sto
 | C     | Browser workspace              | 09–11.5         | Complete        | Users can play, edit, autosave, reopen, export, publish, and recover source verification  |
 | D     | Collaboration graph            | 12–15           | Complete        | Contributions, review/acceptance, attribution, and copy-on-write forks work end to end    |
 | O     | $0 audio optimization          | OPT-01–OPT-05   | Complete        | Studio is usable before stems finish and legacy audio has measured efficient delivery     |
-| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Active (2/7)    | MIDI is the active creation path; new audio admission is disabled without history loss    |
+| M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Active (5/7)    | MIDI is the active creation path; new audio admission is disabled without history loss    |
 | S     | Studio-forward workspace       | STUDIO-01–04    | Pending after M | Studio becomes the safe project-independent creation and arrangement shell                |
 | E     | Discovery and community safety | 16–18           | Paused (2/3)    | Public discovery/profiles are complete; PR 18 resumes after the interruption slices       |
 | F     | MVP hardening and release      | 19–20           | Pending         | Measured hardening and a rehearsed invited-user deployment                                |
@@ -227,13 +227,15 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ## Roadmap interruption M — MIDI-first MVP expansion
 
-**Status:** Active — MIDI-01–MIDI-04 are complete; MIDI-05 is the next implementation slice
+**Status:** Active — MIDI-01–MIDI-05 are complete; MIDI-06 is the next implementation slice
 
 **Delivered in MIDI-02:** Expand-only owner-scoped MIDI stem identities, conflict-safe mutable drafts, immutable-version schema foundations, private preset allowlist validation, exact read-only RLS/Data API grants, idempotent blank/import/derive draft creation, canonical bounded note saves, My stems navigation/library states, and a lazy standalone editor shell with basic accessible note controls and deterministic sample-free playback. Project manifests still cannot reference drafts or “latest” pointers; piano-roll editing begins in MIDI-03 and immutable stem publication remains in MIDI-04.
 
 **Delivered in MIDI-03:** A viewport-rendered, Signal-derived piano roll now translates note creation, selection, move, resize, duplicate, delete, velocity, and explicit quantize into Jam-owned semantic commands. The synchronized native note list/inspector and scoped keyboard shortcuts provide equivalent non-pointer editing; command history is bounded to 100 undo/redo snapshots and is never persisted. Draft commands debounce into the existing optimistic save RPC with offline/error/conflict states, automatic online retry, and validated private local recovery. The visible playhead, zoom/grid controls, preset-range guards, 2,048-note fixture coverage, and bounded payload evidence complete standalone composition editing without persisting canvas or Signal runtime state. Immutable publication, recording, and MIDI interchange remain MIDI-04.
 
 **Delivered in MIDI-04:** The standalone editor now records one undoable raw-timing take from an accessible on-screen piano, A–K QWERTY mapping, or optional gesture-gated Web MIDI input, with octave/default velocity, count-in, metronome, playhead, and safe release on stop, focus loss, audio suspension, disconnect, or disposal. Conflict-safe publication appends an exact immutable version with checksum, creator credit snapshot, version number, and optional derivation lineage under owner RLS and the 500-version prototype cap. Bounded browser-only Standard MIDI import reports ignored/merged metadata before saving a new private draft; My stems auditions exact versions and creates deterministic attributed `.mid` downloads without Storage bytes.
+
+**Delivered in MIDI-05:** New projects atomically create owner membership and an empty MIDI-capable manifest-v2 workspace while existing projects remain `legacy_hybrid`. The current nested Studio route uses the route-neutral authorized resolver and a lazy composite surface for exact immutable-version import/replacement, arrangement/mixer controls, synchronized legacy-audio/MIDI playback, optimistic save, idempotent immutable publication, multi-track `.mid` export, and browser-local WAV rendering. Normalized workspace/revision clips and MIDI creator snapshots validate against the canonical manifest; anonymous current-revision preview exposes only referenced MIDI notes and preset versions, requests no Storage source for MIDI-only revisions, and signs only already-authorized legacy audio in mixed revisions. History and public project presentation distinguish MIDI presets while every v1 audio path remains supported.
 
 **Outcome:** MIDI becomes the prototype's active creation and collaboration path, with multiple deterministic synth tracks, accessible piano-roll editing, recording, immutable publication/contributions/forks, previews, and `.mid` export. New source-audio admission is disabled only after that complete path works.
 

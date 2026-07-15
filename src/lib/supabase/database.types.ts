@@ -1552,6 +1552,7 @@ export type Database = {
       projects: {
         Row: {
           bpm: number | null
+          compatibility: string
           create_request_id: string
           created_at: string
           current_revision_id: string | null
@@ -1575,6 +1576,7 @@ export type Database = {
         }
         Insert: {
           bpm?: number | null
+          compatibility?: string
           create_request_id: string
           created_at?: string
           current_revision_id?: string | null
@@ -1598,6 +1600,7 @@ export type Database = {
         }
         Update: {
           bpm?: number | null
+          compatibility?: string
           create_request_id?: string
           created_at?: string
           current_revision_id?: string | null
@@ -1862,6 +1865,122 @@ export type Database = {
           },
         ]
       }
+      revision_clips: {
+        Row: {
+          clip_id: string
+          duration_ms: number | null
+          duration_ticks: number | null
+          kind: string
+          loop: boolean | null
+          midi_stem_version_id: string | null
+          position_ms: number | null
+          revision_id: string
+          source_start_tick: number | null
+          start_tick: number | null
+          track_id: string
+          trim_start_ms: number | null
+        }
+        Insert: {
+          clip_id: string
+          duration_ms?: number | null
+          duration_ticks?: number | null
+          kind: string
+          loop?: boolean | null
+          midi_stem_version_id?: string | null
+          position_ms?: number | null
+          revision_id: string
+          source_start_tick?: number | null
+          start_tick?: number | null
+          track_id: string
+          trim_start_ms?: number | null
+        }
+        Update: {
+          clip_id?: string
+          duration_ms?: number | null
+          duration_ticks?: number | null
+          kind?: string
+          loop?: boolean | null
+          midi_stem_version_id?: string | null
+          position_ms?: number | null
+          revision_id?: string
+          source_start_tick?: number | null
+          start_tick?: number | null
+          track_id?: string
+          trim_start_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_clips_midi_stem_version_id_fkey"
+            columns: ["midi_stem_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stem_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_clips_revision_id_track_id_fkey"
+            columns: ["revision_id", "track_id"]
+            isOneToOne: false
+            referencedRelation: "revision_tracks"
+            referencedColumns: ["revision_id", "id"]
+          },
+        ]
+      }
+      revision_midi_track_credits: {
+        Row: {
+          created_at: string
+          creator_credit_name: string
+          creator_id: string
+          midi_stem_version_id: string
+          revision_id: string
+          track_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_credit_name: string
+          creator_id: string
+          midi_stem_version_id: string
+          revision_id: string
+          track_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_credit_name?: string
+          creator_id?: string
+          midi_stem_version_id?: string
+          revision_id?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_midi_track_credits_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_midi_track_credits_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_midi_track_credits_midi_stem_version_id_fkey"
+            columns: ["midi_stem_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stem_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_midi_track_credits_revision_id_track_id_fkey"
+            columns: ["revision_id", "track_id"]
+            isOneToOne: false
+            referencedRelation: "revision_tracks"
+            referencedColumns: ["revision_id", "id"]
+          },
+        ]
+      }
       revision_track_credits: {
         Row: {
           asset_id: string
@@ -1930,15 +2049,18 @@ export type Database = {
       revision_tracks: {
         Row: {
           added_by: string
-          asset_id: string
+          asset_id: string | null
           duration_ms: number
           gain_db: number
           id: string
           instrument_id: string | null
+          kind: string
           muted: boolean
           name: string
           pan: number
           position_ms: number
+          preset_id: string | null
+          preset_version: number | null
           revision_id: string
           soloed: boolean
           sort_order: number
@@ -1946,15 +2068,18 @@ export type Database = {
         }
         Insert: {
           added_by: string
-          asset_id: string
+          asset_id?: string | null
           duration_ms: number
           gain_db: number
           id: string
           instrument_id?: string | null
+          kind?: string
           muted: boolean
           name: string
           pan: number
           position_ms: number
+          preset_id?: string | null
+          preset_version?: number | null
           revision_id: string
           soloed: boolean
           sort_order: number
@@ -1962,15 +2087,18 @@ export type Database = {
         }
         Update: {
           added_by?: string
-          asset_id?: string
+          asset_id?: string | null
           duration_ms?: number
           gain_db?: number
           id?: string
           instrument_id?: string | null
+          kind?: string
           muted?: boolean
           name?: string
           pan?: number
           position_ms?: number
+          preset_id?: string | null
+          preset_version?: number | null
           revision_id?: string
           soloed?: boolean
           sort_order?: number
@@ -2189,16 +2317,79 @@ export type Database = {
           },
         ]
       }
+      workspace_clips: {
+        Row: {
+          clip_id: string
+          duration_ms: number | null
+          duration_ticks: number | null
+          kind: string
+          loop: boolean | null
+          midi_stem_version_id: string | null
+          position_ms: number | null
+          source_start_tick: number | null
+          start_tick: number | null
+          track_id: string
+          trim_start_ms: number | null
+          workspace_id: string
+        }
+        Insert: {
+          clip_id: string
+          duration_ms?: number | null
+          duration_ticks?: number | null
+          kind: string
+          loop?: boolean | null
+          midi_stem_version_id?: string | null
+          position_ms?: number | null
+          source_start_tick?: number | null
+          start_tick?: number | null
+          track_id: string
+          trim_start_ms?: number | null
+          workspace_id: string
+        }
+        Update: {
+          clip_id?: string
+          duration_ms?: number | null
+          duration_ticks?: number | null
+          kind?: string
+          loop?: boolean | null
+          midi_stem_version_id?: string | null
+          position_ms?: number | null
+          source_start_tick?: number | null
+          start_tick?: number | null
+          track_id?: string
+          trim_start_ms?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_clips_midi_stem_version_id_fkey"
+            columns: ["midi_stem_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_stem_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_clips_workspace_id_track_id_fkey"
+            columns: ["workspace_id", "track_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_tracks"
+            referencedColumns: ["workspace_id", "track_id"]
+          },
+        ]
+      }
       workspace_tracks: {
         Row: {
-          asset_id: string
+          asset_id: string | null
           duration_ms: number
           gain_db: number
           instrument_id: string | null
+          kind: string
           muted: boolean
           name: string
           pan: number
           position_ms: number
+          preset_id: string | null
+          preset_version: number | null
           soloed: boolean
           sort_order: number
           track_id: string
@@ -2206,14 +2397,17 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          asset_id: string
+          asset_id?: string | null
           duration_ms: number
           gain_db: number
           instrument_id?: string | null
+          kind?: string
           muted: boolean
           name: string
           pan: number
           position_ms: number
+          preset_id?: string | null
+          preset_version?: number | null
           soloed: boolean
           sort_order: number
           track_id: string
@@ -2221,14 +2415,17 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          asset_id?: string
+          asset_id?: string | null
           duration_ms?: number
           gain_db?: number
           instrument_id?: string | null
+          kind?: string
           muted?: boolean
           name?: string
           pan?: number
           position_ms?: number
+          preset_id?: string | null
+          preset_version?: number | null
           soloed?: boolean
           sort_order?: number
           track_id?: string
@@ -2268,6 +2465,8 @@ export type Database = {
           engine: string
           engine_version: string
           id: string
+          last_manifest_expected_lock_version: number | null
+          last_manifest_request_id: string | null
           lock_version: number
           manifest: Json
           manifest_sha256: string
@@ -2286,6 +2485,8 @@ export type Database = {
           engine: string
           engine_version: string
           id?: string
+          last_manifest_expected_lock_version?: number | null
+          last_manifest_request_id?: string | null
           lock_version?: number
           manifest: Json
           manifest_sha256: string
@@ -2304,6 +2505,8 @@ export type Database = {
           engine?: string
           engine_version?: string
           id?: string
+          last_manifest_expected_lock_version?: number | null
+          last_manifest_request_id?: string | null
           lock_version?: number
           manifest?: Json
           manifest_sha256?: string
@@ -2479,6 +2682,27 @@ export type Database = {
           lock_version: number
           stem_id: string
           updated_at: string
+        }[]
+      }
+      create_midi_project_workspace: {
+        Args: {
+          p_bpm: number
+          p_description: string
+          p_genre_ids: string[]
+          p_license_code: string
+          p_musical_key: string
+          p_primary_genre_id: string
+          p_request_id: string
+          p_tag_ids: string[]
+          p_time_signature_denominator: number
+          p_time_signature_numerator: number
+          p_title: string
+        }
+        Returns: {
+          lock_version: number
+          project_id: string
+          title: string
+          workspace_id: string
         }[]
       }
       create_midi_stem_draft: {
@@ -2797,6 +3021,21 @@ export type Database = {
           version: number
         }[]
       }
+      publish_midi_workspace_revision: {
+        Args: {
+          p_expected_base_revision_id: string
+          p_expected_lock_version: number
+          p_message: string
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          created_at: string
+          revision_id: string
+          revision_number: number
+          workspace_lock_version: number
+        }[]
+      }
       publish_project_revision: {
         Args: {
           p_expected_current_revision_id: string
@@ -2951,6 +3190,20 @@ export type Database = {
           draft_id: string
           lock_version: number
           updated_at: string
+        }[]
+      }
+      save_midi_workspace: {
+        Args: {
+          p_expected_lock_version: number
+          p_manifest: Json
+          p_request_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          lock_version: number
+          manifest_sha256: string
+          updated_at: string
+          workspace_id: string
         }[]
       }
       save_own_profile: {

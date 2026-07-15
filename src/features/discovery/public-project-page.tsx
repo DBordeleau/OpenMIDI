@@ -6,6 +6,7 @@ import type {
   PublicProjectLineage,
 } from "@/features/discovery/types";
 import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
+import { resolveSynthPreset } from "@/features/midi/presets";
 
 export function PublicProjectPage({
   project,
@@ -101,8 +102,10 @@ export function PublicProjectPage({
                     {track.sortOrder + 1}. {track.name}
                   </strong>
                   <span className="text-muted block text-sm">
-                    {track.instrument?.name ?? "No instrument"} ·{" "}
-                    {(track.durationMs / 1000).toFixed(1)}s
+                    {track.kind === "midi" && track.preset
+                      ? `${resolveSynthPreset(track.preset.id, track.preset.version).name} synth`
+                      : (track.instrument?.name ?? "Audio")}{" "}
+                    · {(track.durationMs / 1000).toFixed(1)}s
                   </span>
                   {track.credits.length > 0 && (
                     <ul className="mt-2 text-sm">

@@ -1,6 +1,6 @@
 # System Architecture
 
-Status: Accepted MVP design; implemented through PR 17 and OPT-05 with MIDI-first and studio-forward programs planned before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-05 with the remaining MIDI/studio-forward program planned before PR 18
 
 Audience: engineers and coding agents
 
@@ -198,7 +198,7 @@ OPT-04 persists only OPT-03's 2,048-bin per-channel min/max summary as compact `
 
 Authorized studio source batches include trusted source metadata and an optional signed peak descriptor only when the derivative still matches the verified source. The adapter downloads peaks concurrently with canonical audio, validates the signed descriptor, digest and binary again, and supplies Waveform Playlist's supported peaks-first `waveformData`. Missing, unauthorized, corrupt or stale peaks remain a placeholder until normal decode attaches the authoritative buffer; decoded audio replaces the coarse presentation summary for full zoom fidelity. Existing sources are not backfilled and ordinary reads never mutate them.
 
-### Planned MIDI-first composite successor
+### MIDI-first composite successor
 
 After the $0 audio optimization pass, evolve—but do not bypass—the `StudioAdapter` boundary into a composite implementation. Waveform Playlist remains responsible for existing audio tracks. A MIDI controller inside the same client-only feature boundary uses the pinned Tone.js runtime for transport-clock scheduling and versioned synthesis presets. Piano-roll UI and recording emit Jam Session MIDI commands; Tone.js objects, Web MIDI ports/messages, audio nodes, and device identifiers never cross into server code or persisted state.
 

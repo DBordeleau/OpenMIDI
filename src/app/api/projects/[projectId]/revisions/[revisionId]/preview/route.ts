@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { projectIdSchema } from "@/features/projects/schema";
-import { parseVersionedWorkspaceManifest } from "@/features/studio/manifest/schema";
+import { parseAnyWorkspaceManifest } from "@/features/studio/manifest/schema";
+import { parseMidiStemVersion } from "@/features/studio/manifest/v2";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const paramsSchema = z.object({
@@ -20,6 +21,7 @@ const authoritySchema = z.object({
       objectPath: z.string(),
     }),
   ),
+  stems: z.array(z.unknown()).default([]),
 });
 const headers = { "Cache-Control": "private, no-store" };
 const failure = (status: number, code: string) =>
@@ -55,13 +57,79 @@ export async function POST(
     return failure(409, "preview_invalid_state");
   let manifest;
   try {
-    manifest = parseVersionedWorkspaceManifest(authority.data.manifest);
+    manifest = parseAnyWorkspaceManifest(authority.data.manifest);
   } catch {
     return failure(409, "preview_invalid_state");
   }
   const sourceByAsset = new Map(
     authority.data.sources.map((source) => [source.assetId, source]),
   );
+  if (manifest.manifestVersion === 2) {
+    if (manifest.projectId !== projectId)
+      return failure(409, "preview_invalid_state");
+    const stemIds = new Set(
+      manifest.tracks.flatMap((track) =>
+        track.kind === "midi"
+          ? track.clips.map((clip) => clip.midiStemVersionId)
+          : [],
+      ),
+    );
+    const stems = authority.data.stems.map((stem) => {
+      try {
+        return parseMidiStemVersion(stem);
+      } catch {
+        return null;
+      }
+    });
+    const audioAssetIds = [
+      ...new Set(
+        manifest.tracks.flatMap((track) =>
+          track.kind === "audio" ? [track.assetId] : [],
+        ),
+      ),
+    ];
+    if (
+      sourceByAsset.size !== audioAssetIds.length ||
+      audioAssetIds.some((assetId) => !sourceByAsset.has(assetId)) ||
+      authority.data.sources.some(
+        (source) => source.bucket !== "source-audio",
+      ) ||
+      stems.some((stem) => stem === null) ||
+      stems.length !== stemIds.size ||
+      stems.some((stem) => stem && !stemIds.has(stem.stemVersionId))
+    )
+      return failure(409, "preview_invalid_state");
+    const orderedAudio = audioAssetIds.map((assetId) =>
+      sourceByAsset.get(assetId)!,
+    );
+    const { data: signedAudio, error: audioSignError } = orderedAudio.length
+      ? await db.storage.from("source-audio").createSignedUrls(
+          orderedAudio.map((source) => source.objectPath),
+          600,
+        )
+      : { data: [], error: null };
+    if (
+      audioSignError ||
+      signedAudio.length !== orderedAudio.length ||
+      signedAudio.some((item) => item.error || !item.signedUrl)
+    )
+      return failure(503, "preview_audio_unavailable");
+    return NextResponse.json(
+      {
+        projectId,
+        revisionId,
+        durationMs: authority.data.durationMs,
+        kind: "midi",
+        manifest,
+        stems,
+        audioSources: orderedAudio.map((source, index) => ({
+          assetId: source.assetId,
+          signedUrl: signedAudio[index]!.signedUrl,
+        })),
+      },
+      { headers },
+    );
+  }
   if (
     manifest.workspaceId !== projectId ||
     sourceByAsset.size !== manifest.tracks.length ||
@@ -89,6 +157,7 @@ export async function POST(
       projectId,
       revisionId,
       durationMs: authority.data.durationMs,
+      kind: "audio",
       tracks: manifest.tracks.map((track, index) => ({
         trackId: track.trackId,
         signedUrl: signed[index]!.signedUrl,

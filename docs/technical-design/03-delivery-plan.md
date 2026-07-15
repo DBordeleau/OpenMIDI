@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; implemented through PR 17 and OPT-05 with MIDI-first and studio-forward milestones inserted before M6
+Status: Accepted; implemented through PR 17, OPT-05, and MIDI-05 with remaining MIDI-first and studio-forward milestones inserted before M6
 
 ## Delivery strategy
 

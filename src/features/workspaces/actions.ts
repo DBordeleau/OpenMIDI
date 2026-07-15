@@ -7,14 +7,17 @@ import {
   publishWorkspaceSchema,
   reserveWorkspaceSnapshotSchema,
   restartWorkspaceSchema,
+  saveMidiWorkspaceSchema,
   saveWorkspaceSchema,
 } from "./schema";
 import {
   createProjectWorkspace,
   publishWorkspaceRevision,
+  publishMidiWorkspaceRevision,
   reserveWorkspaceSnapshot,
   restartProjectWorkspace,
   saveWorkspace,
+  saveMidiWorkspace,
 } from "@/server/repositories/workspaces";
 
 export type CreateWorkspaceState = { message?: string };
@@ -87,6 +90,29 @@ export async function saveWorkspaceAction(input: unknown) {
   };
 }
 
+export async function saveMidiWorkspaceAction(input: unknown) {
+  const parsed = saveMidiWorkspaceSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  const { data, error } = await saveMidiWorkspace(parsed.data);
+  if (error || !data?.[0])
+    return {
+      ok: false as const,
+      code:
+        error?.code === "PT409"
+          ? error.message === "workspace_save_conflict"
+            ? ("conflict" as const)
+            : ("invalid_state" as const)
+          : ("unavailable" as const),
+    };
+  return {
+    ok: true as const,
+    lockVersion: data[0].lock_version,
+    manifestSha256: data[0].manifest_sha256,
+    updatedAt: data[0].updated_at,
+  };
+}
+
 export async function publishWorkspaceAction(
   projectId: string,
   input: unknown,
@@ -113,6 +139,35 @@ export async function publishWorkspaceAction(
   }
   revalidatePath(`/projects/${projectId}`);
   revalidatePath(`/projects/${projectId}/studio`);
+  return {
+    ok: true as const,
+    revisionId: data[0].revision_id,
+    revisionNumber: data[0].revision_number,
+    workspaceLockVersion: data[0].workspace_lock_version,
+  };
+}
+
+export async function publishMidiWorkspaceAction(
+  projectId: string,
+  input: unknown,
+) {
+  const parsed = publishWorkspaceSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  const { data, error } = await publishMidiWorkspaceRevision(parsed.data);
+  if (error || !data?.[0])
+    return {
+      ok: false as const,
+      code:
+        error?.message === "workspace_publish_stale_base"
+          ? ("stale_base" as const)
+          : error?.code === "PT409"
+            ? ("conflict" as const)
+            : ("unavailable" as const),
+    };
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/studio`);
+  revalidatePath("/explore");
   return {
     ok: true as const,
     revisionId: data[0].revision_id,

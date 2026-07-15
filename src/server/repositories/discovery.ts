@@ -27,11 +27,16 @@ const genresSchema = z.array(taxonomySchema.extend({ isPrimary: z.boolean() }));
 const tracksSchema = z.array(
   z.object({
     id: z.string().uuid(),
+    kind: z.enum(["audio", "midi"]).default("audio"),
     name: z.string(),
     durationMs: z.number().int().positive(),
     positionMs: z.number().int().nonnegative(),
     sortOrder: z.number().int().nonnegative(),
     instrument: taxonomySchema.nullable(),
+    preset: z
+      .object({ id: z.string(), version: z.number().int().positive() })
+      .nullable()
+      .default(null),
     credits: z.array(
       z.object({
         position: z.number().int().nonnegative(),

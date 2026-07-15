@@ -49,11 +49,16 @@ export default async function ContributionDetailPage({
   const linkedWorkspace =
     workspace?.contributionId === contribution.id ? workspace : null;
   const durationMs = linkedWorkspace
-    ? Math.max(
-        ...linkedWorkspace.manifest.tracks.map(
-          (track) => track.positionMs + track.durationMs,
-        ),
-      )
+    ? linkedWorkspace.manifest.manifestVersion === 1
+      ? Math.max(
+          ...linkedWorkspace.manifest.tracks.map(
+            (track) => track.positionMs + track.durationMs,
+          ),
+        )
+      : Math.ceil(
+          (linkedWorkspace.manifest.durationTicks * 60_000) /
+            (linkedWorkspace.manifest.tempoBpm * 480),
+        )
     : 0;
   const currentVersion = contribution.versions.find(
     (version) => version.id === contribution.currentVersionId,

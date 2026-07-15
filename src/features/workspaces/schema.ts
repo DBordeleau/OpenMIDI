@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { workspaceManifestV1Schema } from "@/features/studio/manifest/schema";
+import { workspaceManifestV2Schema } from "@/features/studio/manifest/v2";
 
 export const createWorkspaceSchema = z.object({
   requestId: z.uuid(),
@@ -22,12 +23,21 @@ export const saveWorkspaceSchema = z.object({
   manifest: workspaceManifestV1Schema,
 });
 
+export const saveMidiWorkspaceSchema = z
+  .object({
+    workspaceId: z.uuid(),
+    requestId: z.uuid(),
+    expectedLockVersion: z.number().int().positive(),
+    manifest: workspaceManifestV2Schema,
+  })
+  .strict();
+
 export const publishWorkspaceSchema = z
   .object({
     workspaceId: z.uuid(),
     requestId: z.uuid(),
     expectedLockVersion: z.number().int().positive(),
-    expectedBaseRevisionId: z.uuid(),
+    expectedBaseRevisionId: z.uuid().nullable(),
     message: z.string().trim().max(500).nullable(),
   })
   .strict();

@@ -40,7 +40,7 @@ function activeMidiTracks(
   const midiTracks = tracks.filter(
     (track): track is MidiTrackV2 => track.kind === "midi",
   );
-  const hasSolo = midiTracks.some(({ soloed, muted }) => soloed && !muted);
+  const hasSolo = tracks.some(({ soloed, muted }) => soloed && !muted);
   return midiTracks.filter(
     (track) => !track.muted && (!hasSolo || track.soloed),
   );

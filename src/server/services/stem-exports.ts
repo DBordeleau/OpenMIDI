@@ -45,23 +45,35 @@ export async function createStemExport(
       revisionId: authority.revisionId,
     });
     if (!revision) return null;
+    if (revision.manifest.manifestVersion !== 1) return null;
     tracks = revision.manifest.tracks;
     revisionId = revision.revisionId;
     revisionNumber = revision.revisionNumber;
     publishedCredits = new Map(
-      revision.tracks.map((track) => [
-        track.assetId,
-        track.credits.map(({ creditName, role }) => ({ creditName, role })),
-      ]),
+      revision.tracks.flatMap((track) =>
+        track.assetId
+          ? [
+              [
+                track.assetId,
+                track.credits.map(({ creditName, role }) => ({
+                  creditName,
+                  role,
+                })),
+              ] as const,
+            ]
+          : [],
+      ),
     );
   } else if (authority.mode === "workspace") {
     const workspace = await getActiveWorkspace(authority.projectId);
     if (!workspace || workspace.id !== authority.workspaceId) return null;
+    if (workspace.manifest.manifestVersion !== 1) return null;
     tracks = workspace.manifest.tracks;
     workspaceId = workspace.id;
   } else {
     const version = await getContributionVersionPlayback(authority);
     if (!version) return null;
+    if (version.manifest.manifestVersion !== 1) return null;
     tracks = version.manifest.tracks;
   }
   const expected = tracks.map((track) => track.assetId).sort();

@@ -8,6 +8,8 @@ import {
   type QuickPreviewResponse,
 } from "../preview-contract";
 import { buildPreviewSchedule } from "./preview-schedule";
+import { projectMidiSchedule } from "@/features/midi/scheduler";
+import { BrowserMidiRuntime } from "../midi-adapter/browser-midi-runtime.client";
 
 const PREVIEW_PLAY_EVENT = "jam-session:preview-play";
 const BAR_HEIGHTS = [
@@ -41,6 +43,8 @@ export function QuickPreviewPlayer({
   const startedAt = useRef(0);
   const endTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const request = useRef<AbortController | null>(null);
+  const midiRuntime = useRef<BrowserMidiRuntime | null>(null);
+  const loaded = useRef(false);
 
   const stopScheduled = useCallback(() => {
     if (endTimer.current) clearTimeout(endTimer.current);
@@ -67,8 +71,15 @@ export function QuickPreviewPlayer({
         playheadAtStartMs.current +
           Math.max(0, context.currentTime - startedAt.current) * 1_000,
       );
+    } else if (startedAt.current > 0) {
+      playheadMs.current = Math.min(
+        durationMs,
+        playheadAtStartMs.current +
+          Math.max(0, performance.now() / 1_000 - startedAt.current) * 1_000,
+      );
     }
     startedAt.current = 0;
+    midiRuntime.current?.pause();
     stopScheduled();
     setStatus((current) =>
       current === "playing"
@@ -93,13 +104,14 @@ export function QuickPreviewPlayer({
     () => () => {
       request.current?.abort();
       stopScheduled();
+      midiRuntime.current?.dispose();
       void contextRef.current?.close();
     },
     [stopScheduled],
   );
 
   const load = useCallback(async () => {
-    if (dataRef.current && buffersRef.current)
+    if (loaded.current && dataRef.current)
       return { data: dataRef.current, buffers: buffersRef.current };
     const controller = new AbortController();
     request.current = controller;
@@ -111,6 +123,23 @@ export function QuickPreviewPlayer({
     const data = quickPreviewResponseSchema.parse(await response.json());
     if (data.projectId !== projectId || data.revisionId !== revisionId)
       throw new Error("Preview changed");
+    if (data.kind === "midi") {
+      const runtime = new BrowserMidiRuntime();
+      const stems = new Map(
+        data.stems.map((stem) => [stem.stemVersionId, stem]),
+      );
+      await runtime.prepare(
+        projectMidiSchedule({ manifest: data.manifest, stemVersions: stems }),
+      );
+      await runtime.prepareAudio(data.manifest, data.audioSources);
+      midiRuntime.current?.dispose();
+      midiRuntime.current = runtime;
+      dataRef.current = data;
+      buffersRef.current = null;
+      loaded.current = true;
+      request.current = null;
+      return { data, buffers: null };
+    }
     const context = contextRef.current ?? new AudioContext();
     contextRef.current = context;
     const buffers = await Promise.all(
@@ -125,6 +154,7 @@ export function QuickPreviewPlayer({
     );
     dataRef.current = data;
     buffersRef.current = buffers;
+    loaded.current = true;
     request.current = null;
     return { data, buffers };
   }, [projectId, revisionId]);
@@ -137,6 +167,22 @@ export function QuickPreviewPlayer({
     setMessage(null);
     try {
       const { data, buffers } = await load();
+      if (data.kind === "midi") {
+        await midiRuntime.current!.play(playheadMs.current / 1_000);
+        playheadAtStartMs.current = playheadMs.current;
+        startedAt.current = performance.now() / 1_000;
+        endTimer.current = setTimeout(
+          () => {
+            midiRuntime.current?.pause();
+            playheadMs.current = 0;
+            startedAt.current = 0;
+            setStatus("idle");
+          },
+          data.durationMs - playheadMs.current + 80,
+        );
+        setStatus("playing");
+        return;
+      }
       const context = contextRef.current!;
       await context.resume();
       if (playheadMs.current >= data.durationMs) playheadMs.current = 0;
@@ -146,7 +192,7 @@ export function QuickPreviewPlayer({
         const source = context.createBufferSource();
         const gain = context.createGain();
         const panner = context.createStereoPanner();
-        source.buffer = buffers[item.trackIndex]!;
+        source.buffer = buffers![item.trackIndex]!;
         gain.gain.value = item.gain;
         panner.pan.value = item.pan;
         source.connect(gain).connect(panner).connect(context.destination);

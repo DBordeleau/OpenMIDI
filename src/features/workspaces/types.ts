@@ -1,4 +1,4 @@
-import type { WorkspaceManifestV1 } from "@/features/studio/manifest/schema";
+import type { VersionedWorkspaceManifest } from "@/features/studio/manifest/schema";
 
 export type WorkspaceAssetOption = {
   id: string;
@@ -15,15 +15,16 @@ export type EditableWorkspace = {
   ownerId: string;
   contributionId: string | null;
   snapshotAssetId: string | null;
-  baseRevisionId: string;
+  baseRevisionId: string | null;
   lockVersion: number;
-  manifest: WorkspaceManifestV1;
+  manifest: VersionedWorkspaceManifest;
   manifestSha256: string;
   updatedAt: string;
   createdAt: string;
   tracks: Array<{
     trackId: string;
-    assetId: string;
+    assetId: string | null;
+    kind: "audio" | "midi";
     instrumentName: string | null;
     creditName: string;
   }>;

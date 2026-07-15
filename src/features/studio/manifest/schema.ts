@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  canonicalizeManifestV2,
+  workspaceManifestV2Schema,
+  type WorkspaceManifestV2,
+} from "./v2";
 
 export const STUDIO_ENGINE_VERSION =
   "browser-15.3.4_playout-12.5.4_tone-15.1.22";
@@ -58,6 +63,8 @@ export const workspaceManifestV1Schema = z
 
 export type WorkspaceManifestV1 = z.infer<typeof workspaceManifestV1Schema>;
 export type WorkspaceTrackV1 = WorkspaceManifestV1["tracks"][number];
+export type VersionedWorkspaceManifest =
+  WorkspaceManifestV1 | WorkspaceManifestV2;
 
 export function parseWorkspaceManifest(input: unknown): WorkspaceManifestV1 {
   const parsed = workspaceManifestV1Schema.parse(input);
@@ -65,9 +72,13 @@ export function parseWorkspaceManifest(input: unknown): WorkspaceManifestV1 {
 }
 
 export function serializeCanonicalManifest(
-  manifest: WorkspaceManifestV1,
+  manifest: VersionedWorkspaceManifest,
 ): string {
-  return JSON.stringify(canonicalizeManifest(manifest));
+  return JSON.stringify(
+    manifest.manifestVersion === 1
+      ? canonicalizeManifest(manifest)
+      : canonicalizeManifestV2(manifest),
+  );
 }
 
 // PostgreSQL jsonb text orders object keys by length and then byte value and
@@ -113,9 +124,19 @@ export function canonicalizeManifest(
   };
 }
 
-// Future versions register a schema and an explicit migration here. Never cast old JSON to v1.
 export function parseVersionedWorkspaceManifest(
   input: unknown,
 ): WorkspaceManifestV1 {
   return parseWorkspaceManifest(input);
+}
+
+export function parseAnyWorkspaceManifest(
+  input: unknown,
+): VersionedWorkspaceManifest {
+  const version = z.object({ manifestVersion: z.number() }).safeParse(input);
+  if (!version.success) throw version.error;
+  if (version.data.manifestVersion === 1) return parseWorkspaceManifest(input);
+  if (version.data.manifestVersion === 2)
+    return canonicalizeManifestV2(workspaceManifestV2Schema.parse(input));
+  throw new Error("Unsupported workspace manifest version");
 }
