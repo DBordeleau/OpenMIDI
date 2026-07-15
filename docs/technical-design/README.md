@@ -1,8 +1,8 @@
 # Jam Session Technical Design
 
-Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-05 with MIDI-first and studio-forward programs active before PR 18
+Status: Accepted MVP design; implemented through PR 17, OPT-05, and MIDI-06 with MIDI-first and studio-forward programs active before PR 18
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 Companions: [`PRD.md`](../PRD.md) for product intent, [`ROADMAP.md`](../ROADMAP.md) for delivery status/sequence, [`studio-forward-refactor-plan.md`](../studio-forward-refactor-plan.md) for accepted Studio contracts/slices, and [`design/brand.md`](../design/brand.md) for user-facing voice and visual design
 
@@ -42,8 +42,9 @@ The following vertical slices are implemented and are the baseline for future wo
 - manifest-first progressive audio delivery, bounded actor-scoped reuse, lossless browser WAV-to-FLAC optimization, and compact private persisted waveform peaks that render before canonical source decode without changing manifest or source authority.
 - frozen MIDI stem/manifest/session/scheduler contracts and sample-free preset v1, followed by owner-only stem identities, conflict-safe canonical drafts, immutable-version schema foundations, My stems library/entry states, and lazy deterministic standalone playback.
 - atomic MIDI project-plus-empty-workspace creation, route-neutral selected-project session resolution, normalized manifest-v2 workspace/revision clips, exact immutable stem import/replacement, composite MIDI playback/mixing, idempotent publication with creator snapshots, safe public MIDI preview, and deterministic local project MIDI/WAV export.
+- manifest-v2 contribution workspaces and immutable submissions, exact MIDI review/acceptance, derived-version lineage and credit snapshots, mixed audio/MIDI compatibility, and copy-on-write MIDI forks without Storage duplication.
 
-Profiles and private-work navigation are implemented through PR 17, the five-slice $0 audio-delivery optimization is complete, and MIDI-01–MIDI-06 now establish the executable MIDI contracts, standalone private stem foundation, accessible Signal-derived composition/recording editor, immutable reusable versions, browser-only Standard MIDI interchange, project import/publish/preview/export, and exact-version contribution/acceptance/credit/fork paths. The controlled studio shell is ready in milliseconds; browser-generated FLAC reduces the synthetic three-stem fixture by 40.24%, while its 17.709-second cold playback remains bounded by 42.7 MB at 20 Mbit/s. The roadmap proceeds through MIDI-07, then four studio-forward slices, before moderation/retention and final release hardening. MIDI becomes the active prototype creation path only at parity; new source-audio admission remains enabled until then, while existing audio history remains supported. Studio-forward work then makes `/studio` the canonical project-independent shell without adding a database `studio` entity. A stored legacy-audio mix preview remains a separate future delivery decision, not part of MIDI-native preview playback. Historical evidence remains indexed under [`evidence/`](evidence/).
+Profiles and private-work navigation are implemented through PR 17, the five-slice $0 audio-delivery optimization is complete, and MIDI-01–MIDI-06 now establish the executable MIDI contracts, standalone private stem foundation, accessible Signal-derived composition/recording editor, immutable reusable versions, browser-only Standard MIDI interchange, project import/publish/preview/export, and exact-version contribution/acceptance/credit/fork paths. The controlled studio shell is ready in milliseconds; browser-generated FLAC reduces the synthetic three-stem fixture by 40.24%, while its 17.709-second cold playback remains bounded by 42.7 MB at 20 Mbit/s. MIDI-07 next installs and tests reversible source-admission control without enabling the lock. Six studio-forward slices then make `/studio` canonical, replace the form-like composite surface with a shared audio/MIDI arranger, integrate the existing piano roll and recorder into project context, and enable the lock only after Studio-native parity. Existing audio history remains supported. A stored legacy-audio mix preview remains a separate future delivery decision, not part of MIDI-native preview playback. Historical evidence remains indexed under [`evidence/`](evidence/).
 
 ## Executive recommendation
 
@@ -66,10 +67,11 @@ The PRD is directionally strong. The following interpretations are normative for
 9. The MVP has one project owner. A membership table is retained for future collaborators, but owner-only review and project mutation is the initial policy.
 10. Licensing/usage terms must be selected before public uploads. At minimum a project declares a collaboration license or explicit “all rights reserved”; the UI must not imply that public visibility grants remix rights.
 11. New projects become MIDI-first after the planned expansion. Canonical notes live in bounded mutable drafts and immutable MIDI stem versions; project clips reference exact versions. All are relational/manifest domain data, not Storage assets.
-12. New source-audio admission is globally disabled only after the MIDI creator/collaboration parity gate. This is not a payment or entitlement model.
+12. MIDI-07 prepares the trusted source-admission control, but new source-audio admission is globally disabled only after the STUDIO-06 Studio-native creator/collaboration parity gate. This is not a payment or entitlement model.
 13. Existing audio projects and immutable history remain private, playable, downloadable, exportable, publishable, contributable, and forkable; no audio history is converted or deleted by the capability change.
 14. Studio is a route/session shell over existing project and workspace authority. `/studio` is the start center, `/studio/{projectId}` is the canonical deep link, and only one selected editor runtime is live at a time.
 15. Manifest v2 uses stable clip identities for MIDI and audio. A legacy v1 audio track maps to one v2 clip without rewriting published v1 history.
+16. Studio is the primary MIDI creation surface. It reuses the standalone piano-roll/recording foundation; My stems and standalone routes remain supported library/alternate surfaces. Private drafts never become project authority until an explicit immutable finalize-and-apply command succeeds.
 
 ## Resolved MVP operating decisions
 
@@ -80,7 +82,7 @@ The initial demo uses the following bounded policies:
 - Authentication is Google-only. Additional identity providers are post-MVP.
 - Audio uploads accept WAV (`audio/wav`, `audio/x-wav`), FLAC (`audio/flac`) and MP3 (`audio/mpeg`). FLAC is the recommended lossless format.
 - The optimization pass may convert a newly selected WAV to canonical lossless FLAC in a browser worker with explicit copy and fallback; existing assets are never rewritten.
-- After MIDI parity, `reserve_source_asset` rejects new source admission through a trusted global prototype capability. Existing reservations follow a documented deployment grace rule and existing ready assets remain supported.
+- After STUDIO-06 parity, `reserve_source_asset` rejects new source admission through the trusted global prototype capability prepared in MIDI-07. Existing reservations follow a documented deployment grace rule and existing ready assets remain supported.
 - MIDI sounds use immutable versioned Tone.js synthesis presets without remote sample libraries in the initial expansion. Hardware Web MIDI is optional progressive enhancement; pointer, keyboard, and on-screen input remain complete.
 - Limits are 45 MiB and 10 minutes per audio file, 12 source stems and 250 MiB of uniquely referenced source audio per project, 200 MiB of owned source audio per user, and an 850 MiB global Storage soft stop.
 - Rejected contributions remain visible to their author and the project owner while the project exists. They are not public discovery content.

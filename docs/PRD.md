@@ -88,6 +88,7 @@ The browser workspace should support the Jam Session collaboration workflow, rat
 
 ### MIDI Composition
 
+- Create and edit MIDI parts directly inside the selected project Studio
 - Choose from versioned built-in synth and drum sounds
 - Draw and edit notes in a piano roll
 - Organize notes into clips and loops
@@ -99,7 +100,7 @@ The browser workspace should support the Jam Session collaboration workflow, rat
 
 - Preserve authorized playback, preview, download, export, attribution, and arrangement of existing stems
 - Label retained stems by instrument or role
-- Re-enable new stem admission only after a sustainable storage decision; it is unavailable after the MIDI transition during the prototype
+- Re-enable new stem admission only after a sustainable storage decision; it becomes unavailable only after the Studio-native MIDI parity transition during the prototype
 
 ### Browser Track Mixer
 
@@ -144,6 +145,8 @@ Inside that browser-based music workspace, users can:
 - Save the resulting project state
 - Export or submit their work through Jam Session's contribution workflow
 
+The primary workflow keeps composition and arrangement in this Studio. Adding a MIDI track opens the Jam Session piano roll within the Studio shell; recording follows the project transport so the musician can perform against the other audible tracks. Editing an existing MIDI clip creates a private draft derived from its exact immutable stem version. Draft autosave protects the musician's work, but it does not change the project. An explicit **Save version and add to arrangement** or **Save new version and replace clip** action freezes immutable notes and updates the private workspace under optimistic concurrency. My stems and the standalone editor remain available for library management, direct editing, import/export, and accessibility fallback.
+
 Additional audio editing/recording, effects, automation, advanced MIDI expression, and notation capabilities may be exposed where they are stable and appropriate, but they are not all required for the initial release.
 
 For the MVP, this workspace uses a Jam Session-owned composite client-only adapter: the pinned MIT-licensed Tone.js runtime schedules MIDI synthesis, while Waveform Playlist retains compatibility with existing audio projects. Manifest v2 gives MIDI and compatible audio regions stable clip identities; existing manifest-v1 history remains readable and immutable. Jam Session's versioned manifest remains the persisted authority; the application must not depend on editor objects or an opaque project format. A fuller OpenDAW integration is a post-MVP option and is not an MVP dependency.
@@ -160,7 +163,7 @@ At minimum, users must be able to:
 
 - Open a Jam Session project in the browser
 - Create multiple MIDI tracks with deterministic built-in instrument sounds
-- Draw and edit notes and clips in an accessible piano roll
+- Draw and edit notes and clips in an accessible Studio-integrated piano roll
 - Record notes from on-screen/computer-keyboard input and supported hardware MIDI input
 - Load MIDI and compatible legacy audio tracks into synchronized playback
 - Play, pause, seek, mute, solo, pan, and adjust track volume
@@ -179,6 +182,7 @@ Advanced capabilities available through the underlying browser audio technology 
 ### As a producer
 
 - I can create a MIDI project, choose sounds, and compose or record multiple tracks.
+- I can record a MIDI part against the rest of my arrangement and place it on the shared Studio timeline without leaving the Studio.
 - When audio admission is available in a future storage model, I can create projects from uploaded stems.
 - I can invite the community to contribute new ideas.
 - I can review submissions before accepting them.

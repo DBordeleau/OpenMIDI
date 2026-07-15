@@ -2,7 +2,7 @@
 
 Status: Accepted roadmap program; implementation authority is limited to the staged slices below
 Prepared: 2026-07-14  
-Sequence: contract decisions are fixed before MIDI-01; MIDI-01 and MIDI-05 deliver prerequisites; STUDIO-01–STUDIO-04 follow MIDI-07 and precede PR 18
+Sequence: MIDI-01–MIDI-06 delivered the contracts/runtime/collaboration foundation; MIDI-07 prepares the reversible admission control; STUDIO-01–STUDIO-06 deliver Studio-native parity before the audio lock and PR 18
 
 ## Executive recommendation
 
@@ -20,9 +20,9 @@ The recommended canonical routes are:
 - `/studio/{projectId}` — the persistent studio shell with one authorized project/session loaded; and
 - `/projects/{projectId}/studio` — temporary compatibility redirect to `/studio/{projectId}`.
 
-The proposal is realistic with the current stack. Project loading, creation, switching, vertical track reordering, timeline movement, trimming, and splitting are achievable. Splitting is blocked by Jam Session's current one-region-per-track persistence contract rather than by Waveform Playlist. Independent playback-speed and pitch controls are a separate DSP problem and should not be promised as part of the structural refactor.
+The proposal is realistic with the current stack. Project loading, creation, switching, vertical track reordering, timeline movement, trimming, copying, looping, splitting, integrated piano-roll editing, and MIDI recording are achievable. Manifest v2 and its normalized projections now provide the multi-clip foundation; UI support still must prove exact workspace/revision/contribution/fork round trips before exposing every operation. Independent playback-speed and pitch controls are a separate DSP problem and should not be promised as part of the structural refactor.
 
-The route-neutral session contract, studio-first project creation flow, manifest-v2 clip shape, and future engine-portability rules are now accepted before MIDI-01. The main route and experience refactor still waits until MIDI-07, but MIDI-01 must freeze those contracts and MIDI-05 must implement the composite/runtime and persistence prerequisites so the later Studio program does not require a second immediate migration.
+The route-neutral session contract, studio-first project creation flow, manifest-v2 clip shape, and future engine-portability rules were accepted before MIDI-01 and implemented through MIDI-06. The remaining refactor must now turn those foundations into the primary creation workflow. MIDI-07 prepares and tests the reversible source-admission control but does not enable the lock. Studio-native composition, recording, arranging, collaboration, and export parity are required before STUDIO-06 may enable it.
 
 ## Roadmap integration
 
@@ -31,10 +31,11 @@ This document no longer describes one large post-MIDI rewrite. Work is divided d
 - **Accepted now:** canonical routes, one-live-project model, start-center behavior, route-neutral session descriptor, manifest-v2 identity/clip shape, and engine-portability boundaries.
 - **MIDI-01:** executable contracts and fixtures for the session descriptor, composite capabilities, manifest identity, and stable audio/MIDI clips.
 - **MIDI-05:** composite MIDI/audio runtime, normalized clip foundations, and atomic project-plus-empty-workspace creation. The current nested route may remain canonical during MIDI delivery.
-- **STUDIO-01–STUDIO-04 after MIDI-07:** route migration, project browser/switching/creation UX, arrangement layout/interactions, and hardening.
+- **MIDI-07:** add and test reversible source-admission authority and compatibility behavior while leaving admission enabled.
+- **STUDIO-01–STUDIO-06 after MIDI-07:** route migration, project browser/switching/creation, unified arrangement layout, clip interactions, Studio-integrated MIDI composition/recording, and final parity/hardening/audio-lock enablement.
 - **Outside the MVP critical path:** pitch/varispeed/time-stretch spikes and OpenDAW integration.
 
-This sequencing keeps MIDI-02–MIDI-04 focused on the standalone stem editor, prevents schema churn at MIDI-05, and avoids mixing a large application-shell migration into the audio-admission transition.
+MIDI-02–MIDI-04 intentionally delivered the editor and recorder as a standalone vertical foundation. That route remains valuable, but the final product experience reuses those components inside Studio instead of requiring a musician to export/import or navigate between unrelated screens for ordinary project work. Splitting the remaining work into six slices keeps shell, arranger, interaction, integrated composition, and release-risk changes independently reviewable.
 
 ## Product and architecture alignment
 
@@ -67,11 +68,13 @@ The main constraints are:
 
 - route ownership and navigation still communicate “a project contains a studio”;
 - project creation redirects to the project detail page and does not create an empty editable workspace;
-- the current audio manifest permits one track per unique asset and one contiguous clip per track;
-- database projections store audio position/trim/duration on the track row, not as multiple clip rows;
+- legacy manifest v1 permits one track per unique asset and one contiguous region, while manifest v2 and normalized clip rows now support bounded clips;
+- the current Waveform/composite UI still reads or renders only the first clip in important paths despite the broader v2 persistence contract;
 - switching projects is currently a full navigation with no explicit dirty/saving/conflict handoff;
 - the studio surface combines loading, transport, mixer, timeline, recovery, publishing, exporting, and contribution context in one large client component; and
 - `manifest.workspaceId` is currently checked against `project_id`, so the v1 field name does not describe what it actually identifies.
+
+The current MIDI-specific gap is equally important: the composite surface renders tracks as stacked forms with numeric start/duration fields and assumes `clips[0]` in key interactions. It technically saves and plays manifest v2, but it does not yet present audio and MIDI as one visual arrangement. The standalone piano roll owns the best note-editing experience, so ordinary composition and recording currently pull musicians away from the project context. STUDIO-03–STUDIO-05 explicitly remove that split.
 
 ## Target user experience
 
@@ -104,6 +107,45 @@ The selected project appears in a compact title bar with:
 - an explicit close command that returns to `/studio`.
 
 Do not load more than one active project editor at a time in the first version. “Quickly swap” should mean safe, fast serial switching with recent projects and decoded-source reuse—not multiple live tabs holding several Web Audio graphs and autosave machines in memory.
+
+### Working in the arrangement
+
+The selected project should open as one coherent horizontal arrangement rather than separate audio and MIDI forms:
+
+- one bar/beat ruler, playhead, zoom model, selection model, and transport;
+- fixed track headers aligned with scrollable lanes;
+- compact track name, preset/instrument, gain, pan, mute, solo, readiness, and reorder controls;
+- authorized audio clips rendered with persisted waveform peaks and decoded detail when available;
+- MIDI clips rendered with bounded note-density or miniature piano-roll summaries derived from the referenced immutable version;
+- a selected track/clip inspector for exact values and keyboard-accessible editing;
+- drag and keyboard movement with an explicit grid/snap policy;
+- duplicate, copy, paste, trim, loop, delete, and session undo/redo; and
+- clear distinction between workspace edits, a private MIDI draft, and immutable published history.
+
+Waveforms are correct for audio. MIDI must not pretend to be audio: its lane visualization should communicate note timing, pitch range, density, clip length, loop state, and preset color without synthesizing or storing a fake waveform. Both clip types still share position, selection, mixer, and transport behavior.
+
+Copying or duplicating a MIDI clip reuses its exact immutable stem-version reference and consumes no new Storage. Editing a copy does not mutate that version. The default replacement scope is the selected clip only; replacing every clip that references the old version must be a separate, clearly labelled command. Audio copy/split remains constrained to the same immutable source asset and existing credit/retention boundary.
+
+### Composing and recording MIDI inside Studio
+
+The primary project workflow must not require a trip to a separate page. Selecting **Add MIDI track**, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session piano roll inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
+
+The integrated editor reuses—not forks—the components and contracts delivered in MIDI-02–MIDI-04:
+
+- Signal-derived Jam-owned piano-roll geometry and semantic note commands;
+- accessible note list/inspector and keyboard equivalents;
+- bounded undo/redo and quantize behavior;
+- on-screen piano, A–K QWERTY input, and optional permission-gated Web MIDI;
+- count-in, metronome, record/stop, stuck-note safety, and local recovery; and
+- the same client-only Tone.js audition/recording boundary and immutable preset registry.
+
+For a new part, Studio creates a private stem draft, records or edits relative note timing, and lets the musician audition it against the currently audible arrangement. **Save version and add to arrangement** freezes the first immutable stem version and atomically inserts a track/clip into the optimistic workspace. For an existing clip, Studio derives a private draft from the referenced exact version. **Save new version and replace clip** freezes a successor and atomically updates only the selected clip by default.
+
+Draft autosave and workspace autosave remain separate state machines. A draft may be heard as a session overlay, but mutable draft IDs never enter manifest v2, normalized project clips, revisions, contribution versions, previews, or forks. Publishing/submitting while an integrated draft has uncommitted musical changes must require an explicit choice: finish the new version, discard/close the draft while preserving the last immutable arrangement, or stay in the editor. It must never silently publish an audition overlay.
+
+Recording uses the project transport as context: count-in and metronome follow project tempo/time signature, other unmuted tracks may play, the armed MIDI draft receives the performance, and captured note times are converted to ticks relative to the intended clip start. Recording never mutates an immutable project reference until the musician explicitly freezes and applies the new version.
+
+My stems remains a first-class library for audition, lineage, import/export, direct draft management, and reuse across projects. The standalone editor routes remain deep-linkable and fully functional as an alternate/fallback surface. They share implementation with Studio and must not become a second command model or persisted format.
 
 ### Creating a project inside the studio
 
@@ -148,6 +190,8 @@ src/app/projects/[projectId]/studio/page.tsx
 src/features/studio/
   shell/                     # project browser, title bar, create panel, switch coordinator
   session/                   # engine-neutral session descriptor and lifecycle
+  arranger/                  # ruler, lanes, clip selection/gestures, inspector, command history
+  midi-composer/             # Studio integration of shared piano-roll/recording components
   manifest/                  # all supported manifest schemas and migrations
   waveform-playlist-adapter/ # legacy audio implementation boundary
   midi-adapter/              # planned MIDI implementation boundary or documented successor
@@ -222,11 +266,9 @@ Published manifest-v1 revisions and existing workspaces must remain readable for
 
 When manifest v2 is introduced for MIDI, correct the misleading v1 identity name. The new portable document should use `projectId` (or another explicitly documented project identity), not call a project ID `workspaceId`. The actual mutable workspace row ID remains envelope metadata because the same musical document shape is used in immutable revisions and submissions.
 
-### Decide the audio clip model before MIDI migrations
+### Implemented audio clip foundation
 
-The current planned manifest-v2 design discriminates audio and MIDI tracks, but the current data-design text still describes the audio side largely as the v1 one-region shape. If trimming/splitting is a desired near-term feature, v2 should introduce stable clip identity for both kinds before its schema is frozen.
-
-Recommended bounded audio shape:
+MIDI-01 fixed and MIDI-05/MIDI-06 implemented a manifest-v2 design that discriminates audio and MIDI tracks with stable clips for both kinds. Manifest v1 retains its one-region compatibility shape. The accepted bounded v2 audio shape is:
 
 - an audio track retains one source `assetId`, mixer state, ordering, instrument, and attribution boundary;
 - the track owns `clips[]` with stable `clipId`, `positionMs`, `trimStartMs`, and `durationMs`;
@@ -238,9 +280,17 @@ Recommended bounded audio shape:
 
 Keeping one source asset per audio track avoids an immediate credit-model expansion: the existing per-track source-credit snapshots remain coherent. Cross-track clip movement or mixing multiple source assets on one track should remain out of scope until attribution, normalized projections, and retention semantics are explicitly designed.
 
-Add normalized clip projections for workspace, revision, and contribution-version state in the same migration family as MIDI clips. Save, publish, submit, accept, and fork must prove manifest/projection equivalence. Workspace clip rows are replaced only through the optimistic complete-manifest command; revision and contribution-version clip rows are immutable.
+Normalized workspace, revision, and contribution-version clip projections now exist. Save, publish, submit, accept, and fork prove manifest/projection equivalence. Workspace clip rows are replaced only through the optimistic complete-manifest command; revision and contribution-version clip rows are immutable. STUDIO-04 must add UI/adapter round-trip fixtures for each newly exposed operation before enabling it.
 
-This is an intentional expansion of the currently accepted persisted subset and therefore requires an ADR/design update before implementation.
+ADR-008 records this intentional expansion; no manifest rewrite is required for the Studio UI program.
+
+### Keep mutable MIDI drafts outside project authority
+
+Studio integration does not change the immutable reference rule. A project workspace manifest references only exact `midi_stem_version_id` values. The integrated piano roll edits an owner/author-scoped mutable stem draft using its own optimistic lock and recovery envelope. Session-only audition may overlay draft notes in the browser, but save, publish, submit, preview, acceptance, and fork read only the canonical workspace manifest.
+
+The finalize-and-apply boundary must be one authorized service operation from the user's perspective. It validates the draft and workspace locks, appends the immutable stem version, applies creator/derivation credit, updates the selected workspace clip or inserts the new track/clip, regenerates projections/checksum, and returns both new lock states. The database implementation may compose existing commands only if failure cannot strand a published version that the user reasonably believes was applied; otherwise add one narrow transactional function. Idempotency keys must distinguish first-version add from derived-version replacement.
+
+Do not add mutable draft IDs to manifest v2 merely to simplify UI recovery. If product evidence later requires a durable “draft opened from this clip” convenience link, keep it private, owner/author-scoped, non-authoritative, independently expirable, and absent from immutable copying. It is not required for the first integrated flow because the draft remains recoverable from My stems and the old immutable clip remains valid.
 
 ### No schema change for the studio shell itself
 
@@ -273,22 +323,25 @@ Continue using the brand's warm studio-night tokens, semantic colors, pill actio
 
 ## Editing feature feasibility
 
-| Requested capability                               | Feasibility with the pinned stack     | Actual work/risk                                                                                                                                                                                       | Recommendation                                                             |
-| -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| Drag tracks vertically to reorder                  | High                                  | Wire dnd-kit to `reorderTracks`, preserve buttons/keyboard alternative, autosave one canonical order                                                                                                   | Implement in first DAW interaction slice                                   |
-| Move audio forward/back on timeline                | High                                  | Enable Waveform Playlist clip interaction, snap policy, propagate `onTracksChange`, test placeholder/decoded parity                                                                                    | Implement with drag plus numeric inspector                                 |
-| Trim clip edges                                    | High                                  | Library already models offset/duration and boundary constraints; Jam manifest already has one trim range                                                                                               | Implement for the existing single clip, then preserve under v2 clips       |
-| Split audio                                        | Technically high, product/data medium | Library engine supports split; Jam Session manifest and normalized projections do not support multiple audio clips today                                                                               | Implement only after v2 multi-clip contract and database commands exist    |
-| Undo/redo                                          | High for session state                | Waveform engine supports transaction history; must integrate with autosave/recovery and not imply revision-history undo                                                                                | Add with move/trim/split, session-local only                               |
-| Simple per-track varispeed that also changes pitch | Medium                                | Current public multitrack adapter does not expose it; custom playout scheduling, waveform duration, seeking, export, and persistence all change                                                        | Spike only; label honestly as coupled speed/pitch if adopted               |
-| Speed change while preserving pitch                | Low-to-medium                         | The pinned single-track MediaElement mode supports pitch-preserving rate, but the multitrack Tone playout does not expose equivalent per-track stretching; robust time stretching needs additional DSP | Defer unless a measured DSP spike meets quality/CPU/export gates           |
-| Pitch shift while preserving duration              | Medium                                | Tone.js contains `PitchShift`, but Jam Session does not currently persist/apply it; latency, artifacts, CPU, browser variance, and offline export need proof                                           | Run a narrow semitone-based per-track spike; do not promise production yet |
+| Requested capability                               | Feasibility with the pinned stack    | Actual work/risk                                                                                                                                                                                       | Recommendation                                                             |
+| -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Drag tracks vertically to reorder                  | High                                 | Wire dnd-kit to `reorderTracks`, preserve buttons/keyboard alternative, autosave one canonical order                                                                                                   | Implement in first DAW interaction slice                                   |
+| Move audio forward/back on timeline                | High                                 | Enable Waveform Playlist clip interaction, snap policy, propagate `onTracksChange`, test placeholder/decoded parity                                                                                    | Implement with drag plus numeric inspector                                 |
+| Trim clip edges                                    | High                                 | Library already models offset/duration and boundary constraints; Jam manifest already has one trim range                                                                                               | Implement for the existing single clip, then preserve under v2 clips       |
+| Split audio                                        | Technically high, integration medium | Library engine and v2 projections support clips; the Jam adapter/UI must stop discarding secondary clips and prove all immutable collaboration round trips                                             | Implement in STUDIO-04 after exact adapter/projection fixtures pass        |
+| Undo/redo                                          | High for session state               | Waveform engine supports transaction history; must integrate with autosave/recovery and not imply revision-history undo                                                                                | Add with move/trim/split, session-local only                               |
+| Render MIDI clip summaries                         | High                                 | Resolve bounded immutable note events already needed for playback; derive viewport summaries without persisting fake waveforms                                                                         | Render note-density/piano-roll thumbnails in the shared lane               |
+| Copy/paste or duplicate MIDI clips                 | High                                 | Reuse exact immutable version IDs; define selected-clip replacement scope, new stable clip IDs, collision/snap behavior, and bounded clipboard data                                                    | Implement in core clip-interaction slice                                   |
+| Compose/record MIDI within Studio                  | High with existing foundation        | Reuse piano roll/recorder, coordinate project transport and draft/workspace locks, keep audition overlays out of manifests, and make finalization/application atomic                                   | Required before the Studio parity gate                                     |
+| Simple per-track varispeed that also changes pitch | Medium                               | Current public multitrack adapter does not expose it; custom playout scheduling, waveform duration, seeking, export, and persistence all change                                                        | Spike only; label honestly as coupled speed/pitch if adopted               |
+| Speed change while preserving pitch                | Low-to-medium                        | The pinned single-track MediaElement mode supports pitch-preserving rate, but the multitrack Tone playout does not expose equivalent per-track stretching; robust time stretching needs additional DSP | Defer unless a measured DSP spike meets quality/CPU/export gates           |
+| Pitch shift while preserving duration              | Medium                               | Tone.js contains `PitchShift`, but Jam Session does not currently persist/apply it; latency, artifacts, CPU, browser variance, and offline export need proof                                           | Run a narrow semitone-based per-track spike; do not promise production yet |
 
 ### What Waveform Playlist can realistically do
 
 The pinned `@waveform-playlist/browser@15.3.4` and engine packages already expose clip dragging, boundary trimming, splitting, collision constraints, snapping, and undo/redo. The upstream project also documents multiple clips per track with drag-to-move and trim, and its engine exposes `moveClip`, `trimClip`, and `splitClip` operations.
 
-Jam Session currently maps every persisted track to `clips[0]` and exports only that clip. That is why split is not merely a button addition. If a second clip were created today, `editorTracksToManifest` would discard it and the database projection could not prove it.
+Jam Session's current Waveform/composite presentation still maps important paths to `clips[0]`. That is why split is not merely a button addition: manifest v2 and database projections can preserve the second clip, but the adapter/UI must hydrate, edit, play, and export every clip without discarding it. STUDIO-04 owns that proof.
 
 ### Playback speed
 
@@ -396,41 +449,83 @@ Scope:
 - make `/projects/new` reuse the same behavior; and
 - E2E coverage for creation retry plus clean, dirty, saving, conflict, unauthorized, and source-loading switches.
 
-### STUDIO-03 — Arrangement layout and core interactions
+### STUDIO-03 — Unified arranger layout and visualization
 
-Outcome: MIDI and compatible legacy audio share one coherent arrangement workspace, and v2 audio clips can be split only after their full immutable round trip is proven.
-
-Scope:
-
-- title bar, transport, browser, channel headers, timeline, inspector, and status layout;
-- selected track/clip model;
-- vertical drag reorder with accessible up/down controls;
-- timeline drag with snap/no-snap decision and precise numeric fallback;
-- boundary trim for MIDI and compatible audio clips;
-- session undo/redo integrated with autosave generation;
-- reorganized publish/submit/export actions; and
-- responsive desktop sizes, keyboard operation, reduced motion, and screen-reader status;
-- enable split only after manifest-v2 audio clips and normalized workspace/revision/contribution-version projections are already present;
-- RLS, constraints, checksums, command validation, acceptance, and fork copying;
-- Waveform split/move/trim UI and collision policy;
-- immutable source/credit/reference semantics;
-- manifest/adapter fixtures for every supported version; and
-- local database and browser collaboration round trips.
-
-### STUDIO-04 — Hardening and compatibility handoff
-
-Outcome: the new studio flow replaces the old mental model without regressions.
+Outcome: MIDI and compatible legacy audio appear in one coherent, credible arrangement workspace instead of stacked configuration forms.
 
 Scope:
 
-- studio startup/switch performance budgets;
-- full supported-browser and long-session memory checks;
-- signed URL refresh during switches;
-- keyboard and WCAG review;
-- contribution/review/fork deep-link regression;
-- project creation and old-link analytics/evidence if observability exists;
-- update PRD, roadmap, architecture, brand implementation map, README, and E2E documentation; and
-- retain the compatibility redirect unless evidence justifies removal; keeping it indefinitely is acceptable if it remains cheap and tested.
+- extract the current composite surface into session, transport, arranger, mixer, inspector, action, and status responsibilities;
+- render a shared bar/beat ruler, playhead, zoom/follow state, scroll synchronization, and selected track/clip model;
+- render fixed channel headers with name, preset/instrument, compact gain/pan, mute/solo, readiness, and accessible reorder controls;
+- render audio lanes from authorized persisted peaks with decoded-detail enhancement;
+- render MIDI lanes as bounded note-density/piano-roll summaries from immutable notes, with preset/loop/credit context and no fake waveform persistence;
+- keep form-grade exact values in the selected inspector rather than using them as the primary arrangement UI;
+- place add/import, publish/submit, download, and export actions in coherent Studio menus/panels;
+- preserve current save/publish/playback behavior while changing presentation;
+- support declared desktop widths, reduced motion, visible focus, screen-reader lane summaries, and keyboard selection; and
+- add component/visual/browser coverage for empty, loading, failed, audio-only, MIDI-only, mixed, owner, contributor, and read-only sessions.
+
+Non-goals: pointer clip mutation, integrated note editing/recording, route switching changes, or new persisted fields. Those belong to the following slices.
+
+### STUDIO-04 — Core arrangement interactions
+
+Outcome: musicians manipulate tracks and clips directly on the timeline with accessible, deterministic alternatives, and the resulting arrangement survives every immutable collaboration boundary.
+
+Scope:
+
+- vertical drag reorder plus keyboard up/down commands;
+- clip selection, horizontal move, grid snapping with a modifier/explicit no-snap path, and inspector fallback;
+- MIDI duplicate, copy, paste, delete, trim/source offset, duration, and loop interactions with stable new clip IDs;
+- audio move/trim and duplicate/split only within the same immutable source-asset track and only after projection round-trip fixtures pass;
+- an explicit compatible-target rule for cross-track operations; do not silently change source ownership or MIDI preset semantics;
+- selected-clip-only MIDI version replacement by default, with any “replace all references” command separately confirmed;
+- bounded session command history for undo/redo integrated with workspace autosave generation and local recovery;
+- collision, project-boundary, note/source-boundary, maximum-clip, and maximum-duration guards;
+- exact manifest/projection checksum validation across save, publish, submit, review, accept, and fork;
+- mixed audio/MIDI keyboard and pointer parity; and
+- focused unit, database, and browser round trips that reload the exact edited arrangement.
+
+Non-goals: editing immutable MIDI notes in place, arbitrary cross-asset audio lanes, automatic musical merge, or persistent clipboard history.
+
+### STUDIO-05 — Integrated MIDI composition and recording
+
+Outcome: a musician creates, edits, and records a MIDI part in project context, freezes an immutable version, and adds or replaces the selected arrangement clip without leaving Studio.
+
+Scope:
+
+- embed the shared Jam-owned piano roll as a docked lower editor or focused Studio panel; do not copy/fork its command model;
+- open it from **Add MIDI track**, MIDI clip double-click/Enter, and **Edit MIDI part**;
+- support blank drafts, local `.mid` import, and derivation from the selected exact stem version;
+- reuse note create/move/resize/duplicate/delete/velocity/quantize, note inspector, keyboard shortcuts, and draft recovery;
+- use project tempo/time signature and transport context for count-in, metronome, playhead, audition, and recording against other audible tracks;
+- reuse on-screen/QWERTY input and optional gesture-gated Web MIDI without persisting device identity;
+- keep draft autosave and workspace autosave separate and visibly labelled;
+- treat draft playback as a session audition overlay only; never serialize a draft ID or overlay notes into the project manifest;
+- implement idempotent **Save version and add to arrangement** and **Save new version and replace clip** boundaries with draft/workspace optimistic locks, immutable credits/lineage, and atomic user-visible outcome;
+- default replacement to one selected clip and leave every published/referenced older version intact;
+- block or explicitly resolve publish/submit while the open integrated draft contains unapplied changes;
+- preserve `/stems`, direct editor routes, My stems audition/lineage/import/export, and accessible standalone fallback using the same components; and
+- cover refresh, conflict, offline, failed finalization, route switch, focus loss, stuck-note prevention, contribution-author, and owner flows.
+
+Non-goals: draft IDs in manifests, automatic version creation on every autosave, note-level collaboration merge, audio recording, or simultaneous editing of several MIDI drafts.
+
+### STUDIO-06 — Parity, hardening, audio-lock enablement, and compatibility handoff
+
+Outcome: Studio replaces the old mental model as the complete prototype creation path, and new source admission is disabled only after that path is proven usable.
+
+Scope:
+
+- complete Studio-native E2E from project creation through MIDI composition/recording, arrangement, mix, save/reload, publish, preview, contribution, acceptance, fork, and export;
+- run standalone-editor compatibility and every retained legacy-audio playback/download/export/publish/fork regression;
+- verify old-client/direct-RPC source-admission bypass denial while the capability is disabled in test;
+- measure arranger startup, 8-track/2,000-note interaction, scheduling, recording, repeated project switching, and long-session disposal budgets;
+- complete keyboard, screen-reader, reduced-motion, contrast, supported-browser, Web MIDI fallback, and Firefox route regression checks;
+- verify signed URL refresh, draft/workspace conflict recovery, deep links, contribution review, and session disposal;
+- enable the trusted source-admission lock only after the preceding parity evidence is accepted, using the documented hosted enable/rollback order;
+- replace upload affordances with accurate prototype-unavailable copy only when the authoritative lock is enabled;
+- retain the compatibility redirect unless evidence justifies removal; keeping it indefinitely is acceptable if it remains cheap and tested; and
+- update PRD, roadmap, architecture, brand implementation map, README, agent/testing guidance, and PR 18 handoff.
 
 ### Post-MVP DSP research — not sequenced delivery
 
@@ -444,7 +539,10 @@ Pitch shift, coupled varispeed, and pitch-preserving time stretch remain separat
 - switch state machine for clean/dirty/saving/offline/conflict/error cases;
 - v1-to-v2 manifest migration and deterministic canonical serialization;
 - multiple audio-clip mapping and collision/trim/split boundaries;
+- MIDI clip summary projection, stable-ID copy/paste, selected-only replacement, and project-boundary guards;
 - undo/redo command grouping;
+- integrated draft audition versus immutable workspace authority and finalize/apply idempotency;
+- project-transport-to-relative-stem recording tick conversion;
 - pitch/rate parameter bounds only if adopted; and
 - engine hydration/export round trips for every supported manifest version.
 
@@ -458,6 +556,7 @@ Pitch shift, coupled varispeed, and pitch-preserving time stretch remain separat
 - acceptance and fork exact copying without source duplication;
 - source retention and credits after split; and
 - old-client rejection of unsupported manifest/DSP fields.
+- transactional stem-version finalize plus workspace clip add/replace, including stale draft, stale workspace, retry, and unrelated-actor paths;
 
 ### Browser/E2E
 
@@ -468,6 +567,9 @@ Pitch shift, coupled varispeed, and pitch-preserving time stretch remain separat
 - old nested URL redirect;
 - drag reorder and keyboard reorder;
 - drag move, precise inspector move, trim, split, undo, redo, save, reload, publish;
+- open the integrated piano roll, create/derive a draft, record against audible project tracks, freeze/apply it, and reopen the exact arrangement;
+- prevent publish/submit from silently omitting an open unapplied draft;
+- retain standalone My stems/editor deep links and recovery;
 - submit/review/accept/fork multi-clip state;
 - expired signed URL during a long session;
 - Firefox navigation regression with no route-level loading boundary; and
@@ -493,7 +595,10 @@ Measure separately:
 | Switching loses an unacknowledged draft                            | Explicit save/switch state machine and existing device-local recovery                                |
 | Project picker becomes an authorization boundary                   | Re-authorize the canonical selected route and rely on RLS/service checks                             |
 | MIDI work hard-codes old project route assumptions                 | Decide a route-neutral session descriptor before MIDI-01/MIDI-02                                     |
-| Split silently loses regions                                       | Do not expose split until manifest and projection support multiple clips                             |
+| Integrated editing creates two competing authorities               | Draft autosaves separately; only an explicit immutable finalize/apply command changes the manifest   |
+| A failed two-step finalize strands a version or surprises the user | Make finalization and workspace application one idempotent user-visible transaction                  |
+| Copy/edit silently changes every reused MIDI clip                  | New clip IDs on copy; replacement targets the selected clip unless “replace all” is explicit         |
+| Split silently loses regions                                       | Do not expose split until adapter/UI and immutable round trips preserve every v2 projected clip      |
 | Multi-asset tracks complicate credits/retention                    | Initially keep one immutable source asset per audio track                                            |
 | DAW styling expands into DAW parity                                | Preserve PRD non-goals and promote only collaboration-relevant controls                              |
 | Per-track speed drifts out of sync or changes pitch unexpectedly   | Define varispeed vs time stretch explicitly and gate with evidence                                   |
@@ -510,6 +615,9 @@ Measure separately:
 5. Manifest v2 defines stable clip identities for both audio and MIDI before the schema is frozen. Audio split UI ships only after normalized round-trip validation.
 6. Pitch, coupled varispeed, and pitch-preserving time stretch are not promised by the MVP and do not block the Studio program.
 7. Any future saved DSP property requires a separate adopt/defer/reject spike and a versioned persistence/export decision.
+8. Studio is the primary MIDI creation surface; standalone My stems/editor routes remain supported alternate/library surfaces built from the same components.
+9. Mutable stem drafts remain outside manifests. Draft autosave cannot change a project until an explicit immutable finalize-and-apply command succeeds.
+10. MIDI-07 prepares the source-admission capability but does not enable the lock. STUDIO-06 owns the final Studio-native parity decision and enablement.
 
 ## Explicit non-goals for this refactor
 
@@ -518,6 +626,7 @@ Measure separately:
 - automatic conversion of OpenDAW projects to the simple studio;
 - real-time collaborative editing;
 - arbitrary effects racks, plugins, automation, audio recording, or professional warping;
+- simultaneous editing of multiple MIDI drafts or automatic draft-to-project publication;
 - multiple simultaneous live studio tabs inside one page;
 - changes to immutable history, contribution acceptance, or fork semantics;
 - public source-audio access or broader service-role usage; and
@@ -534,9 +643,13 @@ The studio-forward program is complete when:
 - no acknowledged workspace edit is lost during switching or failure;
 - the editor/audio runtime remains lazy and client-only;
 - DAW-like layout and core timeline interactions are keyboard-usable;
+- audio lanes show real waveform information and MIDI lanes show useful note summaries in the same aligned timeline;
+- musicians can create, draw, record, edit, freeze, and arrange MIDI in Studio without navigating to the standalone editor;
+- draft recovery, immutable version creation, and workspace application remain explicit and conflict-safe;
 - split/trim/move/reorder state survives save, publish, contribution, acceptance, and fork when those features are enabled;
 - existing v1 audio history and all MIDI journeys continue to work;
-- pitch/speed are either evidence-backed and versioned or explicitly deferred; and
+- pitch/speed are either evidence-backed and versioned or explicitly deferred;
+- the audio-admission lock is enabled only after the complete Studio-native parity evidence is accepted; and
 - authoritative product, roadmap, architecture, brand, setup, and test documentation matches the shipped routes and behavior.
 
 ## Sources consulted

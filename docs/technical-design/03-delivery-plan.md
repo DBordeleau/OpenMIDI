@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; implemented through PR 17, OPT-05, and MIDI-05 with remaining MIDI-first and studio-forward milestones inserted before M6
+Status: Accepted; implemented through PR 17, OPT-05, and MIDI-06 with remaining MIDI-first and studio-forward milestones inserted before M6
 
 ## Delivery strategy
 
@@ -95,20 +95,22 @@ Exit: **Met with a documented cold-playback exception** — the controlled cold 
 - Add accessible piano-roll/clip editing, on-screen/QWERTY recording, and optional permission-gated hardware Web MIDI.
 - In MIDI-05, add the composite runtime, normalized clip foundations, atomic MIDI project-plus-empty-workspace creation, and extend immutable workspace/publish/preview/export paths.
 - MIDI-06 extends contribution workspaces, immutable submission/review/acceptance, creator and derivation credit snapshots, mixed-project compatibility, and copy-on-write forks to exact MIDI stem versions.
-- Default new projects to MIDI after parity and disable new source reservation at database authority without implementing billing.
+- In MIDI-07, add the trusted source-admission capability and disabled-mode bypass tests, but leave admission enabled until the Studio-native parity gate.
 - Preserve every existing audio project, reference, private access path, download/export and immutable snapshot.
 
-Exit: a new user completes MIDI creation through collaboration/fork/export without uploaded audio; old clients cannot bypass the audio lock; legacy audio regressions pass; the accepted Studio contracts and data foundations are ready for M5.7.
+Exit: the MIDI format, standalone editor foundation, immutable collaboration graph, and reversible source-admission control are complete; admission remains enabled; legacy audio regressions pass; the accepted Studio contracts and data foundations are ready for M5.7.
 
 ### M5.7 — Studio-forward workspace
 
 - `STUDIO-01`: add `/studio` start center and canonical `/studio/{projectId}` route using the route-neutral authorized session resolver; retain the nested route as a compatibility redirect.
 - `STUDIO-02`: add the bounded project browser, safe serial switching, and Studio-owned project creation using the atomic command introduced with MIDI.
-- `STUDIO-03`: deliver the coherent DAW-oriented layout, accessible reorder/move/trim/undo/redo controls, and enable multi-clip split only after exact v2 projection round trips pass.
-- `STUDIO-04`: harden route compatibility, deep links, session disposal, signed-source refresh, performance, accessibility, browser behavior, and MIDI/legacy collaboration regressions.
+- `STUDIO-03`: replace the form-like composite surface with one coherent arranger shell: shared ruler/playhead, audio waveform lanes, MIDI note-summary lanes, channel headers, mixer controls, selection, inspector, and transport.
+- `STUDIO-04`: add accessible reorder, clip move, duplicate/copy/paste, trim, loop, snap, and session undo/redo; enable audio split only after exact v2 projection round trips pass.
+- `STUDIO-05`: integrate the existing piano roll and recorder into Studio so users create/derive drafts, compose or record against project transport, then explicitly freeze a version and atomically add or replace the selected clip without putting draft IDs in manifests.
+- `STUDIO-06`: harden routes, deep links, session/draft disposal, signed-source refresh, performance, accessibility, browser behavior, and collaboration regressions; run the complete Studio-native parity gate and only then enable the audio-admission lock.
 - Keep pitch shift, varispeed, pitch-preserving time stretch, OpenDAW, multiple simultaneous live projects, and professional-DAW parity outside the MVP critical path.
 
-Exit: Studio is a useful project-independent workspace; authorized users can create, open, close, and safely switch one live project without losing acknowledged work; supported arrangement state survives immutable collaboration flows; PR 18 can cover the final MIDI/audio reference graph before launch hardening.
+Exit: Studio is the primary project-independent MIDI creation and arrangement workspace; authorized users can create, record, edit, arrange, mix, open, close, and safely switch one live project without losing acknowledged work; supported state survives immutable collaboration flows; the source-admission lock is enabled only after parity; PR 18 can cover the final MIDI/audio reference graph before launch hardening.
 
 ### M6 — Launch hardening
 

@@ -209,7 +209,7 @@ The MIDI expansion is expand-only. Do not rewrite manifest v1, published revisio
 
 Add a constrained project compatibility field equivalent to `midi` and `legacy_hybrid`. Backfill every existing project to `legacy_hybrid`; new projects default to `midi` only after the MIDI creation flow is deployed. Compatibility is a workflow invariant, not a subscription tier.
 
-Add one trusted global prototype capability for new source admission. `reserve_source_asset` checks it before asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
+MIDI-07 adds one trusted global prototype capability for new source admission. `reserve_source_asset` checks it before asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled. MIDI-07 must ship it in the enabled state and prove disabled-mode bypass behavior; STUDIO-06 changes the authoritative state only after Studio-native parity. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
 
 ### Manifest v2 and track projection
 
