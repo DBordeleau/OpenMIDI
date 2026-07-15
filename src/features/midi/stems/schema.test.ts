@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MIDI_PPQ } from "@/features/studio/manifest/v2";
-import { createMidiStemDraftSchema, midiStemContentSchema } from "./schema";
+import {
+  createImportedMidiStemSchema,
+  createMidiStemDraftSchema,
+  midiStemContentSchema,
+  publishMidiStemVersionSchema,
+} from "./schema";
 
 const id = (suffix: string) =>
   `10000000-0000-4000-8000-${suffix.padStart(12, "0")}`;
@@ -25,6 +30,40 @@ describe("standalone MIDI stem validation", () => {
         ],
       }).notes,
     ).toHaveLength(1);
+  });
+
+  it("validates import and exact publication commands at the server boundary", () => {
+    const content = {
+      name: "Imported hook",
+      defaultPresetId: "warm-poly",
+      defaultPresetVersion: 1,
+      ppq: MIDI_PPQ,
+      durationTicks: 1_920,
+      notes: [],
+    } as const;
+    expect(
+      createImportedMidiStemSchema.safeParse({
+        requestId: "10000000-0000-4000-8000-000000000001",
+        saveRequestId: "10000000-0000-4000-8000-000000000002",
+        content,
+      }).success,
+    ).toBe(true);
+    expect(
+      publishMidiStemVersionSchema.safeParse({
+        draftId: "10000000-0000-4000-8000-000000000003",
+        requestId: "10000000-0000-4000-8000-000000000004",
+        expectedLockVersion: 2,
+        expectedContentSha256: "a".repeat(64),
+      }).success,
+    ).toBe(true);
+    expect(
+      publishMidiStemVersionSchema.safeParse({
+        draftId: "10000000-0000-4000-8000-000000000003",
+        requestId: "10000000-0000-4000-8000-000000000004",
+        expectedLockVersion: 0,
+        expectedContentSha256: "not-a-checksum",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects unsupported presets and preset-specific pitches", () => {

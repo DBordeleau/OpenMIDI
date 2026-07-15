@@ -26,6 +26,7 @@ export type ImportedMidiData = {
 export function exportMidiStemVersion(
   stem: MidiStemVersionV1,
   tempoBpm: number,
+  creatorCreditName?: string,
 ): Uint8Array {
   const midi = new Midi();
   midi.header.fromJSON({
@@ -34,7 +35,15 @@ export function exportMidiStemVersion(
     tempos: [{ bpm: tempoBpm, ticks: 0 }],
     timeSignatures: [{ ticks: 0, timeSignature: [4, 4] }],
     keySignatures: [],
-    meta: [],
+    meta: creatorCreditName
+      ? [
+          {
+            ticks: 0,
+            type: "text" as const,
+            text: `Created by ${creatorCreditName}`,
+          },
+        ]
+      : [],
   });
   const track = midi.addTrack();
   track.name = stem.name;
@@ -101,14 +110,43 @@ export function importMidiBytes(bytes: Uint8Array): ImportedMidiData {
       track.pitchBends.length,
     0,
   );
+  const warnings: string[] = [];
+  if (midi.tracks.length > 1) {
+    warnings.push(
+      `Merged ${midi.tracks.length} MIDI tracks into one stem draft.`,
+    );
+  }
+  if (ignoredEvents > 0) {
+    warnings.push(`Ignored ${ignoredEvents} unsupported controller events.`);
+  }
+  if (midi.header.meta.length > 0) {
+    warnings.push(
+      `Ignored ${midi.header.meta.length} unsupported text or attribution ${midi.header.meta.length === 1 ? "event" : "events"}.`,
+    );
+  }
+  if (midi.tracks.some((track) => track.instrument.number !== 0)) {
+    warnings.push(
+      "Ignored General MIDI program choices; select a Jam Session sound instead.",
+    );
+  }
+  if (midi.tracks.filter((track) => track.name.trim()).length > 1) {
+    warnings.push("Kept the file name and ignored additional track names.");
+  }
+  const timeSignature = midi.header.timeSignatures[0]?.timeSignature;
+  if (timeSignature && (timeSignature[0] !== 4 || timeSignature[1] !== 4)) {
+    warnings.push(
+      `Ignored the ${timeSignature[0]}/${timeSignature[1]} time signature; stem timing remains tick-based.`,
+    );
+  }
   return {
-    name: midi.name.trim().slice(0, 120) || "Imported MIDI stem",
+    name: (
+      midi.name.trim() ||
+      midi.tracks.find((track) => track.name.trim())?.name.trim() ||
+      "Imported MIDI stem"
+    ).slice(0, 120),
     tempoBpm,
     durationTicks,
     notes,
-    warnings:
-      ignoredEvents > 0
-        ? [`Ignored ${ignoredEvents} unsupported controller events.`]
-        : [],
+    warnings,
   };
 }

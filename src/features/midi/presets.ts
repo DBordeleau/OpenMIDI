@@ -29,9 +29,24 @@ export const synthPresetV1Schema = z
     maxPolyphony: z.number().int().min(1).max(MAX_PROJECT_SYNTH_VOICES),
     minNote: z.number().int().min(0).max(127),
     maxNote: z.number().int().min(0).max(127),
+    drumMap: z
+      .record(z.string().regex(/^\d+$/), z.string().trim().min(1).max(40))
+      .nullable(),
   })
   .strict()
-  .refine(({ minNote, maxNote }) => minNote <= maxNote, "Invalid note range");
+  .superRefine(({ family, minNote, maxNote, drumMap }, context) => {
+    if (minNote > maxNote) {
+      context.addIssue({ code: "custom", message: "Invalid note range" });
+    }
+    if ((family === "drums") !== Boolean(drumMap)) {
+      context.addIssue({ code: "custom", message: "Invalid drum mapping" });
+    }
+    for (const pitch of Object.keys(drumMap ?? {}).map(Number)) {
+      if (pitch < minNote || pitch > maxNote) {
+        context.addIssue({ code: "custom", message: "Invalid drum pitch" });
+      }
+    }
+  });
 
 export type SynthPresetV1 = z.infer<typeof synthPresetV1Schema>;
 
@@ -57,6 +72,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 8,
     minNote: 36,
     maxNote: 96,
+    drumMap: null,
   }),
   preset({
     presetId: "glass-keys",
@@ -76,6 +92,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 8,
     minNote: 36,
     maxNote: 108,
+    drumMap: null,
   }),
   preset({
     presetId: "round-bass",
@@ -94,6 +111,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 4,
     minNote: 24,
     maxNote: 60,
+    drumMap: null,
   }),
   preset({
     presetId: "soft-pad",
@@ -112,6 +130,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 8,
     minNote: 36,
     maxNote: 96,
+    drumMap: null,
   }),
   preset({
     presetId: "bright-lead",
@@ -130,6 +149,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 4,
     minNote: 48,
     maxNote: 108,
+    drumMap: null,
   }),
   preset({
     presetId: "air-pluck",
@@ -148,6 +168,7 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 8,
     minNote: 36,
     maxNote: 108,
+    drumMap: null,
   }),
   preset({
     presetId: "studio-drums",
@@ -167,6 +188,14 @@ export const SYNTH_PRESETS_V1 = Object.freeze([
     maxPolyphony: 8,
     minNote: 36,
     maxNote: 48,
+    drumMap: {
+      "36": "Kick",
+      "38": "Snare",
+      "42": "Closed hat",
+      "45": "Low tom",
+      "47": "Mid tom",
+      "48": "High tom",
+    },
   }),
 ] satisfies readonly SynthPresetV1[]);
 

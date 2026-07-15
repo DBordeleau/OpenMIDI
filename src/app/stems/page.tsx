@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { resolveSynthPreset } from "@/features/midi/presets";
+import { MidiStemVersionActions } from "@/features/midi/stems/version-actions.client";
 import {
   listMidiStemDrafts,
   listMidiStemVersions,
@@ -133,22 +134,28 @@ export default async function MidiStemsPage() {
                       {version.name} · version {version.version}
                     </p>
                     <p className="text-muted text-sm">
-                      {version.noteCount} notes · immutable
+                      {version.noteCount} notes · immutable · created by{" "}
+                      {version.creatorCreditName}
                     </p>
                   </div>
-                  <ButtonLink
-                    href={`/stems/new?mode=derive&parentVersionId=${version.stemVersionId}`}
-                    variant="secondary"
-                  >
-                    Make a new draft
-                  </ButtonLink>
+                  <div className="flex flex-wrap items-start gap-2">
+                    <MidiStemVersionActions
+                      stemVersionId={version.stemVersionId}
+                    />
+                    <ButtonLink
+                      href={`/stems/new?mode=derive&parentVersionId=${version.stemVersionId}`}
+                      variant="secondary"
+                    >
+                      Make a new draft
+                    </ButtonLink>
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="text-muted border-subtle rounded-control mt-4 border p-5">
-              Immutable publication arrives with recording and MIDI interchange
-              in MIDI-04. Draft save and reload are ready now.
+              Save a finished draft to My stems to create its first immutable
+              version.
             </p>
           )}
         </section>

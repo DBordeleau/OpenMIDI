@@ -21,6 +21,14 @@ describe("synth preset v1 registry", () => {
         ({ maxPolyphony }) => maxPolyphony <= MAX_PROJECT_SYNTH_VOICES,
       ),
     ).toBe(true);
+    expect(resolveSynthPreset("studio-drums", 1).drumMap).toEqual({
+      "36": "Kick",
+      "38": "Snare",
+      "42": "Closed hat",
+      "45": "Low tom",
+      "47": "Mid tom",
+      "48": "High tom",
+    });
   });
 
   it("never substitutes an unknown or newer preset version", () => {

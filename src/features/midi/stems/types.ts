@@ -28,5 +28,15 @@ export type MidiStemVersionSummary = {
   noteCount: number;
   defaultPresetId: string;
   defaultPresetVersion: number;
+  parentStemVersionId: string | null;
+  creatorCreditName: string;
   createdAt: string;
+};
+
+export type MidiStemVersion = MidiStemVersionSummary & {
+  creatorId: string;
+  ppq: 480;
+  durationTicks: number;
+  notes: MidiNoteV1[];
+  contentSha256: string;
 };

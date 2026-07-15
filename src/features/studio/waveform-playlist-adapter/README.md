@@ -1,6 +1,6 @@
 # Waveform Playlist adapter boundary
 
-This directory is the only allowed dependency boundary for Waveform Playlist, Tone.js, and browser audio APIs.
+This directory remains the only Waveform Playlist dependency boundary and owns legacy-audio browser APIs. The documented MIDI successor boundary is `src/features/midi/browser-engine`: it owns lazy Tone.js audition/recording voices and disposable Web MIDI sessions for the standalone editor. Neither boundary may enter a Server Component, server action, repository, route handler, or shared server module.
 
 The adapter is client-only and lazy-loaded. It translates between pinned editor packages and Jam Session's validated, versioned workspace manifest. Editor library types, live `AudioBuffer` instances, signed URLs, and UI state must not escape this boundary.
 

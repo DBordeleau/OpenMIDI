@@ -44,7 +44,7 @@ export function reduceMidiDraftSave(
     case "save":
       return { status: "saving", message: "Saving your private draft…" };
     case "saved":
-      return { status: "saved", message: "Saved to My stems." };
+      return { status: "saved", message: "Private draft saved." };
     case "offline":
       return {
         status: "offline",

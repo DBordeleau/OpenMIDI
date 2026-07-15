@@ -926,6 +926,9 @@ export type Database = {
           owner_id: string
           parent_stem_version_id: string | null
           ppq: number
+          publication_request_id: string | null
+          source_draft_id: string | null
+          source_lock_version: number | null
           stem_id: string
           version: number
         }
@@ -943,6 +946,9 @@ export type Database = {
           owner_id: string
           parent_stem_version_id?: string | null
           ppq: number
+          publication_request_id?: string | null
+          source_draft_id?: string | null
+          source_lock_version?: number | null
           stem_id: string
           version: number
         }
@@ -960,6 +966,9 @@ export type Database = {
           owner_id?: string
           parent_stem_version_id?: string | null
           ppq?: number
+          publication_request_id?: string | null
+          source_draft_id?: string | null
+          source_lock_version?: number | null
           stem_id?: string
           version?: number
         }
@@ -2457,6 +2466,21 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      create_imported_midi_stem_draft: {
+        Args: {
+          p_content: Json
+          p_request_id: string
+          p_save_request_id: string
+        }
+        Returns: {
+          content_sha256: string
+          created_at: string
+          draft_id: string
+          lock_version: number
+          stem_id: string
+          updated_at: string
+        }[]
+      }
       create_midi_stem_draft: {
         Args: {
           p_default_preset_id?: string
@@ -2756,6 +2780,22 @@ export type Database = {
           p_lease_token: string
         }
         Returns: string
+      }
+      publish_midi_stem_version: {
+        Args: {
+          p_draft_id: string
+          p_expected_content_sha256: string
+          p_expected_lock_version: number
+          p_request_id: string
+        }
+        Returns: {
+          content_sha256: string
+          created_at: string
+          creator_credit_name: string
+          stem_id: string
+          stem_version_id: string
+          version: number
+        }[]
       }
       publish_project_revision: {
         Args: {
