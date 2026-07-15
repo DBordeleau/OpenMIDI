@@ -77,6 +77,7 @@ export function MidiStudioSurface(props: Props) {
         : null;
   const [manifest, setManifest] = useState(props.manifest);
   const manifestRef = useRef(props.manifest);
+  const propsRef = useRef(props);
   const historyRef = useRef(createArrangementHistory(props.manifest));
   const [historyAvailability, setHistoryAvailability] = useState({
     canUndo: false,
@@ -155,82 +156,115 @@ export function MidiStudioSurface(props: Props) {
     }),
     [editable?.assets, midiVersions],
   );
+  const audioAssetKey = manifest.tracks
+    .flatMap((track) => (track.kind === "audio" ? [track.assetId] : []))
+    .sort()
+    .join(":");
+  const audioSourceScope =
+    props.mode === "workspace" || props.mode === "contribution"
+      ? `${props.mode}:${props.projectId}:${props.workspaceId}`
+      : props.mode === "revision"
+        ? `${props.mode}:${props.projectId}:${props.revisionId}`
+        : `${props.mode}:${props.projectId}:${props.contributionId}:${props.versionId}`;
+
+  useEffect(() => {
+    propsRef.current = props;
+  }, [props]);
 
   useEffect(() => {
     const next = new BrowserMidiRuntime();
-    const controller = new AbortController();
-    runtimeAbort.current = controller;
     runtime.current = next;
+    return () => {
+      if (playbackStartTimer.current) clearTimeout(playbackStartTimer.current);
+      if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
+      next.dispose();
+      if (runtime.current === next) runtime.current = null;
+    };
+  }, [props.projectId]);
+
+  useEffect(() => {
+    const next = runtime.current;
+    if (!next) return;
     try {
       const schedule = projectMidiSchedule({ manifest, stemVersions });
-      void (async () => {
-        await next.prepare(schedule);
-        const sources = await loadAudioSources(
-          props,
-          manifest,
-          controller.signal,
+      void next
+        .prepare(schedule)
+        .catch(() =>
+          setMessage("Some local Studio instruments could not be prepared."),
         );
-        setAudioSummaries(
-          new Map(
-            sources.map((source) => [
-              source.assetId,
-              { status: "loading", peaks: [] } satisfies AudioLaneSummary,
-            ]),
-          ),
-        );
-        void loadAudioLaneSummaries({
-          sources,
-          signal: controller.signal,
-          onSummary: (assetId, summary) =>
-            setAudioSummaries((current) =>
-              new Map(current).set(assetId, summary),
-            ),
-        });
-        const decoded = await next.prepareAudio(
-          manifest,
-          sources,
-          controller.signal,
-        );
-        setAudioSummaries((current) => {
-          const updated = new Map(current);
-          for (const [assetId, peaks] of decoded)
-            updated.set(assetId, { status: "ready", peaks });
-          for (const source of sources)
-            if (!decoded.has(source.assetId))
-              updated.set(source.assetId, {
-                status: "failed",
-                peaks: updated.get(source.assetId)?.peaks ?? [],
-              });
-          return updated;
-        });
-      })().catch(() => {
-        if (controller.signal.aborted) return;
-        setAudioSummaries((current) => {
-          const updated = new Map(current);
-          for (const track of manifest.tracks)
-            if (track.kind === "audio")
-              updated.set(track.assetId, {
-                status: "failed",
-                peaks: updated.get(track.assetId)?.peaks ?? [],
-              });
-          setMessage(
-            "Some local Studio instruments or audio sources could not be prepared.",
-          );
-          return updated;
-        });
-      });
+      next.updateManifest(manifest);
     } catch {
       // Draft timing is validated and reported by the explicit save/play action.
     }
+  }, [manifest, stemVersions]);
+
+  useEffect(() => {
+    const next = runtime.current;
+    if (!next) return;
+    const controller = new AbortController();
+    runtimeAbort.current = controller;
+    void (async () => {
+      const currentManifest = manifestRef.current;
+      const sources = await loadAudioSources(
+        propsRef.current,
+        currentManifest,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      setAudioSummaries(
+        new Map(
+          sources.map((source) => [
+            source.assetId,
+            { status: "loading", peaks: [] } satisfies AudioLaneSummary,
+          ]),
+        ),
+      );
+      void loadAudioLaneSummaries({
+        sources,
+        signal: controller.signal,
+        onSummary: (assetId, summary) =>
+          setAudioSummaries((current) =>
+            new Map(current).set(assetId, summary),
+          ),
+      });
+      const decoded = await next.prepareAudio(
+        currentManifest,
+        sources,
+        controller.signal,
+      );
+      setAudioSummaries((current) => {
+        const updated = new Map(current);
+        for (const [assetId, peaks] of decoded)
+          updated.set(assetId, { status: "ready", peaks });
+        for (const source of sources)
+          if (!decoded.has(source.assetId))
+            updated.set(source.assetId, {
+              status: "failed",
+              peaks: updated.get(source.assetId)?.peaks ?? [],
+            });
+        return updated;
+      });
+    })().catch(() => {
+      if (controller.signal.aborted) return;
+      setAudioSummaries((current) => {
+        const updated = new Map(current);
+        for (const track of manifestRef.current.tracks)
+          if (track.kind === "audio")
+            updated.set(track.assetId, {
+              status: "failed",
+              peaks: updated.get(track.assetId)?.peaks ?? [],
+            });
+        setMessage(
+          "Some local Studio instruments or audio sources could not be prepared.",
+        );
+        return updated;
+      });
+    });
     return () => {
       controller.abort();
-      if (playbackStartTimer.current) clearTimeout(playbackStartTimer.current);
-      if (playbackTimer.current) clearInterval(playbackTimer.current);
-      next.dispose();
-      if (runtime.current === next) runtime.current = null;
       if (runtimeAbort.current === controller) runtimeAbort.current = null;
     };
-  }, [manifest, props, stemVersions]);
+  }, [audioAssetKey, audioSourceScope]);
 
   useEffect(() => {
     const pauseForOtherPlayer = (event: Event) => {
@@ -556,13 +590,48 @@ export function MidiStudioSurface(props: Props) {
     setDraftSaveStatus("saved");
   }
 
+  const startPlaybackMonitor = useCallback(() => {
+    if (playbackTimer.current)
+      window.cancelAnimationFrame(playbackTimer.current);
+    const updatePlayhead = () => {
+      const snapshot = runtime.current?.getTransportSnapshot();
+      if (!snapshot || snapshot.state !== "playing") {
+        playbackTimer.current = null;
+        if (snapshot) {
+          const current = manifestRef.current;
+          setSeekTick(
+            Math.round(
+              (snapshot.positionSeconds * current.tempoBpm * MIDI_PPQ) / 60,
+            ),
+          );
+        }
+        setPlaying(false);
+        return;
+      }
+      const current = manifestRef.current;
+      const nextTick = Math.round(
+        (snapshot.positionSeconds * current.tempoBpm * MIDI_PPQ) / 60,
+      );
+      if (nextTick >= current.durationTicks) {
+        runtime.current?.pause();
+        playbackTimer.current = null;
+        setPlaying(false);
+        setSeekTick(0);
+        return;
+      }
+      setSeekTick(nextTick);
+      playbackTimer.current = requestAnimationFrame(updatePlayhead);
+    };
+    playbackTimer.current = requestAnimationFrame(updatePlayhead);
+  }, []);
+
   const stopProjectTransport = useCallback(() => {
     if (playbackStartTimer.current) {
       window.clearTimeout(playbackStartTimer.current);
       playbackStartTimer.current = null;
     }
     if (playbackTimer.current) {
-      window.clearInterval(playbackTimer.current);
+      window.cancelAnimationFrame(playbackTimer.current);
       playbackTimer.current = null;
     }
     runtime.current?.pause();
@@ -579,13 +648,16 @@ export function MidiStudioSurface(props: Props) {
         const fromSeconds = (startTick * 60) / (current.tempoBpm * MIDI_PPQ);
         void runtime.current
           ?.play(fromSeconds)
-          .then(() => setPlaying(true))
+          .then(() => {
+            setPlaying(true);
+            startPlaybackMonitor();
+          })
           .catch(() =>
             setMessage("Project playback could not join the MIDI audition."),
           );
       }, countInSeconds * 1_000);
     },
-    [stopProjectTransport],
+    [startPlaybackMonitor, stopProjectTransport],
   );
 
   const finalizeIntegratedDraft = useCallback(
@@ -726,7 +798,15 @@ export function MidiStudioSurface(props: Props) {
   async function togglePlayback() {
     if (playing) {
       runtime.current?.pause();
-      if (playbackTimer.current) clearInterval(playbackTimer.current);
+      const snapshot = runtime.current?.getTransportSnapshot();
+      if (snapshot)
+        setSeekTick(
+          Math.round(
+            (snapshot.positionSeconds * manifest.tempoBpm * MIDI_PPQ) / 60,
+          ),
+        );
+      if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
+      playbackTimer.current = null;
       setPlaying(false);
       return;
     }
@@ -739,21 +819,7 @@ export function MidiStudioSurface(props: Props) {
       const fromSeconds = (seekTick * 60) / (manifest.tempoBpm * MIDI_PPQ);
       await runtime.current?.play(fromSeconds);
       setPlaying(true);
-      const startedAt = performance.now();
-      const startedTick = seekTick;
-      playbackTimer.current = window.setInterval(() => {
-        const elapsedTicks = Math.round(
-          ((performance.now() - startedAt) * manifest.tempoBpm * MIDI_PPQ) /
-            60_000,
-        );
-        const nextTick = startedTick + elapsedTicks;
-        if (nextTick >= manifest.durationTicks) {
-          if (playbackTimer.current) clearInterval(playbackTimer.current);
-          playbackTimer.current = null;
-          setPlaying(false);
-          setSeekTick(0);
-        } else setSeekTick(nextTick);
-      }, 50);
+      startPlaybackMonitor();
     } catch {
       setMessage("Playback needs an enabled browser audio context.");
     }
@@ -848,7 +914,7 @@ export function MidiStudioSurface(props: Props) {
         runtimeAbort.current?.abort();
         if (playbackStartTimer.current)
           clearTimeout(playbackStartTimer.current);
-        if (playbackTimer.current) clearInterval(playbackTimer.current);
+        if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
         runtime.current?.dispose();
         runtime.current = null;
       },
@@ -954,7 +1020,8 @@ export function MidiStudioSurface(props: Props) {
           onTogglePlayback={() => void togglePlayback()}
           onSeek={(tick) => {
             runtime.current?.pause();
-            if (playbackTimer.current) clearInterval(playbackTimer.current);
+            if (playbackTimer.current)
+              cancelAnimationFrame(playbackTimer.current);
             playbackTimer.current = null;
             setPlaying(false);
             setSeekTick(tick);

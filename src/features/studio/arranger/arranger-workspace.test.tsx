@@ -1,12 +1,77 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseWorkspaceManifestV2 } from "../manifest/v2";
 import { ArrangerWorkspace } from "./arranger-workspace";
 
 const uuid = (suffix: number) =>
   `00000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
 
+afterEach(cleanup);
+
 describe("ArrangerWorkspace", () => {
+  it("seeks to exact ruler coordinates instead of restricting the playhead to bars", () => {
+    const onSeek = vi.fn();
+    const manifest = parseWorkspaceManifestV2({
+      manifestVersion: 2,
+      engine: "jam-session-composite",
+      engineVersion: "jam-session-composite-2_tone-15.1.22",
+      projectId: uuid(1),
+      tempoBpm: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      durationTicks: 2_880,
+      tracks: [],
+    });
+    render(
+      <ArrangerWorkspace
+        manifest={manifest}
+        midiVersions={[]}
+        trackCredits={[]}
+        audioSummaries={new Map()}
+        editable
+        playing={false}
+        playheadTick={0}
+        onTogglePlayback={vi.fn()}
+        onSeek={onSeek}
+        onTrackPatch={vi.fn()}
+        onClipPatch={vi.fn()}
+        onMoveTrack={vi.fn()}
+        onRemoveTrack={vi.fn()}
+        onReplaceVersion={vi.fn()}
+        onEditMidiClip={vi.fn()}
+        onCommand={vi.fn()}
+        canUndo={false}
+        canRedo={false}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        actionRegion={null}
+        statusRegion={null}
+      />,
+    );
+
+    const ruler = screen.getByRole("slider", {
+      name: "Arrangement playhead",
+    });
+    Object.defineProperties(ruler, {
+      getBoundingClientRect: {
+        value: () => ({ left: 100, width: 720 }),
+      },
+      setPointerCapture: { value: vi.fn() },
+    });
+    fireEvent.pointerDown(ruler, {
+      button: 0,
+      pointerId: 7,
+      clientX: 148,
+    });
+
+    expect(onSeek).toHaveBeenCalledWith(240);
+  });
+
   it("renders all clips, exposes selection summaries, and keeps read-only mixer controls denied", () => {
     const versionId = uuid(8);
     const manifest = parseWorkspaceManifestV2({

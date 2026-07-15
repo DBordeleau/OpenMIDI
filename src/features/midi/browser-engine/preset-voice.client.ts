@@ -8,6 +8,7 @@ export type PresetVoice = {
     whenSeconds?: number,
     velocity?: number,
   ) => void;
+  setMixer: (mixer: { gainDb: number; pan: number }) => void;
   allNotesOff: () => void;
   dispose: () => void;
 };
@@ -101,6 +102,11 @@ export async function createPresetVoice(
         whenSeconds,
         Math.min(1, Math.max(0, velocity)),
       );
+    },
+    setMixer(nextMixer) {
+      if (disposed) return;
+      outputSafety.gain.rampTo(Tone.dbToGain(-6 + nextMixer.gainDb), 0.015);
+      panner.pan.rampTo(nextMixer.pan, 0.015);
     },
     allNotesOff() {
       if (!disposed) synth.releaseAll();

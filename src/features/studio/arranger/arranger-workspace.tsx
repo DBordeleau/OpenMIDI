@@ -119,6 +119,7 @@ export function ArrangerWorkspace(props: Props) {
     sourceIndex: number;
     targetIndex: number;
   } | null>(null);
+  const [rulerPointerId, setRulerPointerId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scale = { tempoBpm: view.tempoBpm, pixelsPerQuarter };
   const timelineWidth = Math.max(720, ticksToPixels(view.durationTicks, scale));
@@ -182,14 +183,32 @@ export function ArrangerWorkspace(props: Props) {
 
   function commitClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
-    if (clipDrag.previewTick !== clipDrag.startTick)
+    const deltaTicks = pixelsToTicks(event.clientX - clipDrag.originX, scale);
+    const finalTick = snapArrangementTick(
+      Math.max(0, clipDrag.startTick + deltaTicks),
+      event.altKey ? null : snapTicks,
+    );
+    if (finalTick !== clipDrag.startTick)
       props.onCommand({
         type: "moveClip",
         trackId: clipDrag.trackId,
         clipId: clipDrag.clipId,
-        startTick: clipDrag.previewTick,
+        startTick: finalTick,
       });
     setClipDrag(null);
+  }
+
+  function cancelClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
+    setClipDrag(null);
+  }
+
+  function seekFromRuler(event: ReactPointerEvent<HTMLDivElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
+    props.onSeek(
+      Math.max(0, Math.min(view.durationTicks, pixelsToTicks(x, scale))),
+    );
   }
 
   function beginTrackDrag(
@@ -457,20 +476,59 @@ export function ArrangerWorkspace(props: Props) {
                   Channels
                 </span>
               </div>
-              <div className="relative" style={{ width: timelineWidth }}>
+              <div
+                className="relative cursor-col-resize touch-none"
+                style={{ width: timelineWidth }}
+                role="slider"
+                tabIndex={0}
+                aria-label="Arrangement playhead"
+                aria-valuemin={0}
+                aria-valuemax={view.durationTicks}
+                aria-valuenow={props.playheadTick}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+                    return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  props.onSeek(
+                    Math.max(
+                      0,
+                      Math.min(
+                        view.durationTicks,
+                        props.playheadTick +
+                          (event.key === "ArrowLeft" ? -1 : 1),
+                      ),
+                    ),
+                  );
+                }}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  setRulerPointerId(event.pointerId);
+                  seekFromRuler(event);
+                }}
+                onPointerMove={(event) => {
+                  if (rulerPointerId === event.pointerId) seekFromRuler(event);
+                }}
+                onPointerUp={(event) => {
+                  if (rulerPointerId !== event.pointerId) return;
+                  seekFromRuler(event);
+                  setRulerPointerId(null);
+                }}
+                onPointerCancel={() => setRulerPointerId(null)}
+                onLostPointerCapture={() => setRulerPointerId(null)}
+              >
                 {marks.map((mark) => (
-                  <button
-                    type="button"
+                  <span
+                    aria-hidden
                     key={mark.tick}
                     className={`border-subtle absolute top-0 h-full border-l text-left font-mono text-[10px] ${mark.beat === 1 ? "text-ink" : "text-muted"}`}
                     style={{ left: ticksToPixels(mark.tick, scale) }}
-                    aria-label={`Seek to bar ${mark.bar}, beat ${mark.beat}`}
-                    onClick={() => props.onSeek(mark.tick)}
                   >
                     <span className="ml-1">
                       {mark.beat === 1 ? mark.bar : mark.beat}
                     </span>
-                  </button>
+                  </span>
                 ))}
               </div>
             </div>
@@ -682,6 +740,8 @@ export function ArrangerWorkspace(props: Props) {
                               }
                               onPointerMove={previewClipDrag}
                               onPointerUp={commitClipDrag}
+                              onPointerCancel={cancelClipDrag}
+                              onLostPointerCapture={cancelClipDrag}
                             >
                               <span className="text-ink absolute top-1 left-2 z-10 max-w-[calc(100%-1rem)] truncate text-[10px] font-semibold">
                                 {track.name}
