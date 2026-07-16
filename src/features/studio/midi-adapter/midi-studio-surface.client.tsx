@@ -1189,7 +1189,8 @@ export function MidiStudioSurface(props: Props) {
                             ),
                             "wav",
                           );
-                        } catch {
+                        } catch (error) {
+                          console.error("Local MIDI WAV render failed.", error);
                           setMessage(
                             "The local synth mix could not be rendered in this browser.",
                           );
@@ -1501,7 +1502,8 @@ export function MidiStudioSurface(props: Props) {
                     ),
                     "wav",
                   );
-                } catch {
+                } catch (error) {
+                  console.error("Local MIDI WAV render failed.", error);
                   setMessage(
                     "The local synth mix could not be rendered in this browser.",
                   );

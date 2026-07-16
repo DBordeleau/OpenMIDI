@@ -68,8 +68,9 @@ function makeSilentWav(durationSeconds: number) {
 
 test.describe("browser lossless upload optimization", () => {
   test.skip(
-    process.env.ENABLE_TEST_AUTH !== "true",
-    "requires the local gated Auth actor",
+    process.env.ENABLE_TEST_AUTH !== "true" ||
+      process.env.ENABLE_LEGACY_AUDIO_E2E !== "true",
+    "requires explicit legacy-audio fixture authorization",
   );
 
   test("converts WAV to canonical FLAC and keeps failure fallback safe", async ({

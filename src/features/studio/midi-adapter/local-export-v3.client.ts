@@ -22,5 +22,10 @@ export function renderStudioWavV3(
   manifest: ManifestV3,
   patternVersions: ReadonlyMap<string, MidiStemVersionV1>,
 ) {
-  return renderMidiProjectWav(toEditorManifest(manifest), patternVersions);
+  return renderMidiProjectWav(
+    toEditorManifest(manifest),
+    patternVersions,
+    [],
+    manifest.engineVersion,
+  );
 }

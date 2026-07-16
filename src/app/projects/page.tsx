@@ -150,19 +150,12 @@ export default async function ProjectsPage({
                       >
                         Open project
                       </Link>
-                      {project.currentRevisionId ? (
+                      {project.currentRevisionId || project.role === "owner" ? (
                         <Link
                           className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
                           href={`/studio/${project.id}`}
                         >
                           Open in studio
-                        </Link>
-                      ) : project.role === "owner" ? (
-                        <Link
-                          className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
-                          href={`/projects/${project.id}/publish`}
-                        >
-                          Publish stems
                         </Link>
                       ) : null}
                     </div>

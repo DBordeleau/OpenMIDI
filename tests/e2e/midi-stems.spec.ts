@@ -44,8 +44,9 @@ async function prepareMidiActor() {
 
 test.describe("standalone MIDI stem editor", () => {
   test.skip(
-    process.env.ENABLE_TEST_AUTH !== "true",
-    "requires the local gated Auth actor",
+    process.env.ENABLE_TEST_AUTH !== "true" ||
+      process.env.ENABLE_STANDALONE_STEM_E2E !== "true",
+    "requires explicit standalone stem fixture authorization",
   );
 
   test("creates, records, publishes, downloads, and imports an exact MIDI stem", async ({

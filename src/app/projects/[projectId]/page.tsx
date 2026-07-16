@@ -434,9 +434,9 @@ export default async function ProjectPage({
               </p>
               <Link
                 className="bg-accent rounded-control mt-5 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
-                href={`/projects/${project.id}/publish`}
+                href={`/studio/${project.id}`}
               >
-                Publish first revision
+                Open Studio
               </Link>
             </section>
           ) : null}

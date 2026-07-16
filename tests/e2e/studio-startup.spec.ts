@@ -40,18 +40,25 @@ test.describe("MIDI-only Studio v3", () => {
     await page.getByRole("button", { name: "Add a track" }).click();
     await page.getByLabel("Pending track name").fill("Warm keys");
     await page.getByRole("button", { name: "Open piano roll" }).click();
-    await page.getByRole("button", { name: "Add note" }).click();
-    await page.getByRole("button", { name: "Add note" }).click();
+    await page.getByLabel("One-bar count-in").uncheck();
+    await page.getByLabel("Metronome").uncheck();
+    await page.getByRole("button", { name: "Record", exact: true }).click();
+    for (const name of ["Play C4, MIDI note 60", "Play E4, MIDI note 64"]) {
+      const key = page.getByRole("button", { name });
+      await key.dispatchEvent("pointerdown", { pointerId: 1 });
+      await key.dispatchEvent("pointerup", { pointerId: 1 });
+    }
+    await page.getByRole("button", { name: "Stop recording" }).click();
     await expect(page.getByText("Private draft saved.")).toBeVisible({
       timeout: 10_000,
     });
     await page.getByRole("button", { name: "Freeze and add pattern" }).click();
     await expect(
-      page.getByText(/Pattern version 1 is immutable and was added/),
+      page.getByText(/Pattern version 1 is immutable and was added/).first(),
     ).toBeVisible({ timeout: 15_000 });
 
     const keysClip = page.getByRole("button", {
-      name: /MIDI clip on Warm keys/,
+      name: /MIDI clip on Warm keys,/,
     });
     await keysClip.focus();
     await page.keyboard.press("Control+c");
@@ -60,9 +67,9 @@ test.describe("MIDI-only Studio v3", () => {
     await page
       .getByRole("button", { name: /Select track Warm keys\./ })
       .click();
-    await page.getByRole("button", { name: "Duplicate MIDI track" }).click();
+    await page.getByRole("button", { name: "Duplicate Warm keys" }).click();
     await expect(
-      page.getByRole("button", { name: /MIDI clip on Warm keys copy/ }),
+      page.getByRole("button", { name: /MIDI clip on Warm keys copy,/ }),
     ).toHaveCount(2);
     await expect(page.getByText("Arrangement saved.")).toBeVisible({
       timeout: 15_000,
@@ -71,13 +78,13 @@ test.describe("MIDI-only Studio v3", () => {
     await page.reload();
     await expect(keysClip).toHaveCount(2);
     await expect(
-      page.getByRole("button", { name: /MIDI clip on Warm keys copy/ }),
+      page.getByRole("button", { name: /MIDI clip on Warm keys copy,/ }),
     ).toHaveCount(2);
 
     const midiDownload = page.waitForEvent("download");
     await page.getByRole("button", { name: ".mid" }).click();
     expect((await midiDownload).suggestedFilename()).toMatch(/\.mid$/);
-    const wavDownload = page.waitForEvent("download");
+    const wavDownload = page.waitForEvent("download", { timeout: 30_000 });
     await page.getByRole("button", { name: "WAV" }).click();
     expect((await wavDownload).suggestedFilename()).toMatch(/\.wav$/);
 
@@ -90,53 +97,41 @@ test.describe("MIDI-only Studio v3", () => {
       ),
     ).toBeVisible({ timeout: 15_000 });
 
-    const admin = localAdmin();
-    const { data: revision, error: revisionError } = await admin
-      .from("project_revisions")
-      .select(
-        "id,arrangement_version_id,manifest_version,engine,engine_version,manifest",
-      )
-      .eq("project_id", projectId)
-      .eq("revision_number", 1)
-      .single();
-    if (revisionError) throw revisionError;
-    expect(revision.manifest_version).toBe(3);
+    const revision = JSON.parse(
+      queryLocalDatabase(`select json_build_object(
+        'id',id,'arrangementVersionId',arrangement_version_id,
+        'manifestVersion',manifest_version,'engine',engine,
+        'engineVersion',engine_version,'manifest',manifest
+      )::text from public.project_revisions
+      where project_id='${projectId}' and revision_number=1`),
+    ) as {
+      id: string;
+      arrangementVersionId: string;
+      manifestVersion: number;
+      engine: string;
+      engineVersion: string;
+      manifest: unknown;
+    };
+    expect(revision.manifestVersion).toBe(3);
     expect(revision.engine).toBe("jam-session-midi");
-    expect(revision.arrangement_version_id).toBeTruthy();
+    expect(revision.arrangementVersionId).toBeTruthy();
     expect(JSON.stringify(revision.manifest)).not.toMatch(
       /assetId|signedUrl|waveform|positionMs|trimStartMs/,
     );
 
-    const [{ count: trackCount }, { count: clipCount }] = await Promise.all([
-      admin
-        .from("arrangement_tracks")
-        .select("track_id", { count: "exact", head: true })
-        .eq("arrangement_version_id", revision.arrangement_version_id!),
-      admin
-        .from("arrangement_clips")
-        .select("clip_id", { count: "exact", head: true })
-        .eq("arrangement_version_id", revision.arrangement_version_id!),
-    ]);
-    expect(trackCount).toBe(2);
-    expect(clipCount).toBe(4);
+    const counts = JSON.parse(
+      queryLocalDatabase(`select json_build_object(
+        'trackCount',(select count(*) from public.arrangement_tracks where arrangement_version_id='${revision.arrangementVersionId}'),
+        'clipCount',(select count(*) from public.arrangement_clips where arrangement_version_id='${revision.arrangementVersionId}')
+      )::text`),
+    ) as { trackCount: number; clipCount: number };
+    expect(counts.trackCount).toBe(2);
+    expect(counts.clipCount).toBe(4);
 
     const snapshotCount = Number(
-      execFileSync(
-        "docker",
-        [
-          "exec",
-          "-i",
-          "supabase_db_jam-session",
-          "psql",
-          "-U",
-          "postgres",
-          "-d",
-          "postgres",
-          "-Atc",
-          `select count(*) from private.workspace_snapshots s join public.workspaces w on w.id=s.workspace_id where w.project_id='${projectId}' and s.owner_id='${actorId}'`,
-        ],
-        { encoding: "utf8" },
-      ).trim(),
+      queryLocalDatabase(
+        `select count(*) from private.workspace_snapshots s join public.workspaces w on w.id=s.workspace_id where w.project_id='${projectId}' and s.owner_id='${actorId}'`,
+      ),
     );
     expect(snapshotCount).toBeGreaterThan(0);
     expect(snapshotCount).toBeLessThanOrEqual(20);
@@ -151,11 +146,8 @@ async function createProjectInStudio(
   page: import("@playwright/test").Page,
   title: string,
 ) {
-  await page
-    .getByRole("navigation", { name: "Studio" })
-    .getByText("File", { exact: true })
-    .click();
-  await page.getByRole("button", { name: "New project" }).click();
+  await page.getByRole("button", { name: /Project menu/ }).click();
+  await page.getByRole("menuitem", { name: "New project" }).click();
   const dialog = page.getByRole("dialog", { name: "Create a project" });
   await dialog.getByLabel("Title").fill(title);
   await dialog.getByLabel(/BPM/).fill("120");
@@ -174,6 +166,27 @@ function localAdmin() {
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+function queryLocalDatabase(sql: string) {
+  return execFileSync(
+    "docker",
+    [
+      "exec",
+      "supabase_db_jam-session",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-At",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      sql,
+    ],
+    { encoding: "utf8" },
+  ).trim();
 }
 
 async function ensureStudioActorProfile() {

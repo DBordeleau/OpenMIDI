@@ -66,6 +66,7 @@ export async function renderMidiProjectWav(
   manifest: WorkspaceManifestV2,
   stemVersions: ReadonlyMap<string, MidiStemVersionV1>,
   audioSources: readonly SignedAudioSource[] = [],
+  presetEngineVersion: string = manifest.engineVersion,
 ) {
   const Tone = await import("tone");
   const events = projectMidiSchedule({ manifest, stemVersions });
@@ -106,7 +107,7 @@ export async function renderMidiProjectWav(
                 gainDb: event.gainDb,
                 pan: event.pan,
               },
-              manifest.engineVersion,
+              presetEngineVersion,
             );
             voices.set(key, voice);
             disposableVoices.push(voice);
