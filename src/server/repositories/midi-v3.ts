@@ -264,6 +264,7 @@ export async function forkProjectV3(input: {
   sourceRevisionId: string;
   requestId: string;
   expectedLicenseCode: "cc-by-4.0";
+  rightsAttestationVersion: "cc-by-4.0-reuse-attestation-v1";
   title: string;
   description: string;
 }) {
@@ -273,6 +274,7 @@ export async function forkProjectV3(input: {
     p_source_revision_id: input.sourceRevisionId,
     p_request_id: input.requestId,
     p_expected_license_code: input.expectedLicenseCode,
+    p_rights_attestation_version: input.rightsAttestationVersion,
     p_title: input.title,
     p_description: input.description,
   });

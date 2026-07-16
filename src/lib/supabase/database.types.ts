@@ -2160,6 +2160,7 @@ export type Database = {
           owner_id: string
           published_at: string | null
           purged_at: string | null
+          rights_attestation_version: string | null
           source_project_id: string | null
           source_revision_id: string | null
           status: Database["public"]["Enums"]["project_status"]
@@ -2188,6 +2189,7 @@ export type Database = {
           owner_id: string
           published_at?: string | null
           purged_at?: string | null
+          rights_attestation_version?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -2216,6 +2218,7 @@ export type Database = {
           owner_id?: string
           published_at?: string | null
           purged_at?: string | null
+          rights_attestation_version?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -3581,6 +3584,7 @@ export type Database = {
           p_description: string
           p_expected_license_code: string
           p_request_id: string
+          p_rights_attestation_version: string
           p_source_project_id: string
           p_source_revision_id: string
           p_title: string
