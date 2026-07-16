@@ -1,15 +1,50 @@
+"use client";
+
+import { useState } from "react";
+import {
+  StudioLauncher,
+  type StudioLauncherProps,
+} from "@/features/studio/components/studio-launcher.client";
 import type { ContributionArrangementComparison } from "./types";
 import { summarizeContributionDiff } from "./semantic-summary";
 
 export function ReviewComparison({
   comparison,
+  base,
+  submitted,
 }: {
   comparison: ContributionArrangementComparison;
+  base: StudioLauncherProps;
+  submitted: StudioLauncherProps;
 }) {
+  const [selected, setSelected] = useState<"base" | "submitted">("submitted");
   const summary = summarizeContributionDiff(comparison.semanticDiff);
   return (
     <section className="mt-10">
-      <h2 className="text-2xl font-bold">Semantic change summary</h2>
+      <h2 className="text-2xl font-bold">Audition and compare</h2>
+      <p className="text-muted mt-2">
+        Switch between the exact immutable base and submitted arrangements.
+      </p>
+      <div className="my-4 flex flex-wrap gap-3">
+        <button
+          aria-pressed={selected === "base"}
+          className="rounded-control border-strong min-h-11 border px-5 font-semibold"
+          onClick={() => setSelected("base")}
+          type="button"
+        >
+          Base revision
+        </button>
+        <button
+          aria-pressed={selected === "submitted"}
+          className="rounded-control border-strong min-h-11 border px-5 font-semibold"
+          onClick={() => setSelected("submitted")}
+          type="button"
+        >
+          Submitted version
+        </button>
+      </div>
+      <StudioLauncher {...(selected === "base" ? base : submitted)} />
+      <h2 className="mt-10 text-2xl font-bold">Semantic change summary</h2>
       <p className="text-muted mt-2">
         Compared against the exact immutable base arrangement using{" "}
         <code>{comparison.semanticDiff.algorithmVersion}</code>.

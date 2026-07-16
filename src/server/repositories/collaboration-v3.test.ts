@@ -130,6 +130,7 @@ describe("MIDI v3 collaboration repository commands", () => {
       p_source_revision_id: id,
       p_request_id: id,
       p_expected_license_code: "cc-by-4.0",
+      p_rights_attestation_version: "cc-by-4.0-reuse-attestation-v1",
       p_title: "Fork",
       p_description: "",
     });

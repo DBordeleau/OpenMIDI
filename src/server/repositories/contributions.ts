@@ -8,8 +8,10 @@ import type {
   ContributionStatus,
   PatternCreatorAttribution,
 } from "@/features/contributions/types";
-import type { MidiPatternVersionV3 } from "@/features/midi/domain-v3";
 import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
+import type { ArrangementManifestV3 } from "@/features/studio/manifest/v3";
+import { parseArrangementManifestV3 } from "@/features/studio/manifest/v3";
+import type { StudioPatternVersion } from "@/features/studio/midi-adapter/manifest-v3-editor";
 import {
   parseAnyWorkspaceManifest,
   STUDIO_ENGINE_VERSION,
@@ -331,8 +333,8 @@ export async function getContributionForViewer(
 }
 
 type ArrangementDiffInput = {
-  manifest: Database["public"]["Tables"]["arrangement_versions"]["Row"]["manifest"];
-  patternVersions: MidiPatternVersionV3[];
+  manifest: ArrangementManifestV3;
+  patternVersions: StudioPatternVersion[];
   patternAttributions: PatternCreatorAttribution[];
 };
 
@@ -354,12 +356,29 @@ async function getArrangementDiffInput(
   if (arrangementResult.error || clipsResult.error || !arrangementResult.data)
     throw new Error("contribution_arrangement_unavailable");
 
+  const manifest = parseArrangementManifestV3(arrangementResult.data.manifest);
+  const patternContexts = new Map<
+    string,
+    { name: string; presetId: string; presetVersion: number }
+  >();
+  for (const track of manifest.tracks) {
+    for (const clip of track.clips) {
+      if (!patternContexts.has(clip.midiPatternVersionId)) {
+        patternContexts.set(clip.midiPatternVersionId, {
+          name: track.name,
+          presetId: track.presetId,
+          presetVersion: track.presetVersion,
+        });
+      }
+    }
+  }
+
   const patternVersionIds = [
     ...new Set(clipsResult.data.map((clip) => clip.midi_pattern_version_id)),
   ];
   if (patternVersionIds.length === 0) {
     return {
-      manifest: arrangementResult.data.manifest,
+      manifest,
       patternVersions: [],
       patternAttributions: [],
     };
@@ -382,44 +401,50 @@ async function getArrangementDiffInput(
     notes.push(note);
     notesByVersion.set(note.midi_pattern_version_id, notes);
   }
-  const patternVersions: MidiPatternVersionV3[] = versionsResult.data.map(
-    (version) => ({
-      midiPatternVersionId: version.id,
-      midiPatternId: version.midi_pattern_id,
-      version: version.version_number,
-      creatorId: version.creator_id,
-      creatorCreditName: version.creator_credit_name,
-      parentMidiPatternVersionId: version.parent_pattern_version_id,
-      sourceMidiPatternVersionId: version.source_pattern_version_id,
-      contentSha256: version.content_sha256,
-      ppq: 480,
-      durationTicks: version.duration_ticks,
-      noteCount: version.note_count,
-      reuseLicense:
-        version.reuse_license_code === "CC-BY-4.0" &&
-        version.reuse_license_version === "4.0" &&
-        version.reuse_license_url ===
-          "https://creativecommons.org/licenses/by/4.0/"
-          ? {
-              code: "CC-BY-4.0",
-              version: "4.0",
-              url: "https://creativecommons.org/licenses/by/4.0/",
-            }
-          : null,
-      createdAt: version.created_at,
-      notes: (notesByVersion.get(version.id) ?? []).map((note) => ({
-        noteId: note.note_id,
-        startTick: note.start_tick,
-        durationTicks: note.duration_ticks,
-        pitch: note.pitch,
-        velocity: note.velocity,
-      })),
-    }),
+  const patternVersions: StudioPatternVersion[] = versionsResult.data.map(
+    (version) => {
+      const context = patternContexts.get(version.id);
+      if (!context || version.ppq !== 480)
+        throw new Error("contribution_patterns_unavailable");
+      return {
+        midiPatternVersionId: version.id,
+        midiPatternId: version.midi_pattern_id,
+        version: version.version_number,
+        creatorId: version.creator_id,
+        creatorCreditName: version.creator_credit_name,
+        parentMidiPatternVersionId: version.parent_pattern_version_id,
+        sourceMidiPatternVersionId: version.source_pattern_version_id,
+        contentSha256: version.content_sha256,
+        ppq: 480,
+        durationTicks: version.duration_ticks,
+        noteCount: version.note_count,
+        reuseLicense:
+          version.reuse_license_code === "CC-BY-4.0" &&
+          version.reuse_license_version === "4.0" &&
+          version.reuse_license_url ===
+            "https://creativecommons.org/licenses/by/4.0/"
+            ? {
+                code: "CC-BY-4.0",
+                version: "4.0",
+                url: "https://creativecommons.org/licenses/by/4.0/",
+              }
+            : null,
+        createdAt: version.created_at,
+        notes: (notesByVersion.get(version.id) ?? []).map((note) => ({
+          noteId: note.note_id,
+          startTick: note.start_tick,
+          durationTicks: note.duration_ticks,
+          pitch: note.pitch,
+          velocity: note.velocity,
+        })),
+        ...context,
+      };
+    },
   );
   if (patternVersions.length !== patternVersionIds.length)
     throw new Error("contribution_patterns_unavailable");
   return {
-    manifest: arrangementResult.data.manifest,
+    manifest,
     patternVersions,
     patternAttributions: versionsResult.data
       .map((version) => ({
@@ -477,6 +502,14 @@ export async function getContributionArrangementComparison(input: {
   return {
     baseArrangementVersionId: baseRevision.arrangement_version_id,
     submittedArrangementVersionId: versionResult.data.arrangement_version_id,
+    base: {
+      manifest: base.manifest,
+      patternVersions: base.patternVersions,
+    },
+    submitted: {
+      manifest: submitted.manifest,
+      patternVersions: submitted.patternVersions,
+    },
     semanticDiff: diffMidiArrangementsV1(base, submitted),
     patternAttributions: submitted.patternAttributions,
   };

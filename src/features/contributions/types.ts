@@ -1,5 +1,7 @@
 import type { Database } from "@/lib/supabase/database.types";
 import type { MidiSemanticDiffV1 } from "@/features/midi/semantic-diff-v1";
+import type { ArrangementManifestV3 } from "@/features/studio/manifest/v3";
+import type { StudioPatternVersion } from "@/features/studio/midi-adapter/manifest-v3-editor";
 
 export type ContributionStatus =
   Database["public"]["Enums"]["contribution_status"];
@@ -33,8 +35,15 @@ export type PatternCreatorAttribution = {
 export type ContributionArrangementComparison = {
   baseArrangementVersionId: string;
   submittedArrangementVersionId: string;
+  base: ContributionReviewStudio;
+  submitted: ContributionReviewStudio;
   semanticDiff: MidiSemanticDiffV1;
   patternAttributions: PatternCreatorAttribution[];
+};
+
+export type ContributionReviewStudio = {
+  manifest: ArrangementManifestV3;
+  patternVersions: StudioPatternVersion[];
 };
 
 export type ContributionListItem = {
