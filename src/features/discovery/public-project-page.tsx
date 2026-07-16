@@ -1,27 +1,30 @@
 import Link from "next/link";
 import { Container } from "@/components/layout/container";
-import { formatMusicalKey } from "@/features/projects/musical-key";
 import type {
   PublicProject,
   PublicProjectLineage,
 } from "@/features/discovery/types";
-import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
 import { resolveSynthPreset } from "@/features/midi/presets";
+import { formatMusicalKey } from "@/features/projects/musical-key";
+import { PublicMidiQuickPreview } from "@/features/public-midi/quick-preview-player.client";
+import type { PublicRevisionHistoryItem } from "@/server/repositories/public-midi";
 
 export function PublicProjectPage({
   project,
   lineage,
+  history,
   canCollaborate,
 }: {
   project: PublicProject;
   lineage: PublicProjectLineage;
+  history: PublicRevisionHistoryItem[];
   canCollaborate: boolean;
 }) {
   return (
     <main id="main-content">
       <Container className="py-12 sm:py-16">
         <article className="mx-auto max-w-3xl">
-          <p className="text-accent font-semibold">Public project</p>
+          <p className="text-accent font-semibold">Public MIDI project</p>
           <h1 className="mt-2 text-4xl font-bold">{project.title}</h1>
           <p className="text-muted mt-3">
             by{" "}
@@ -40,7 +43,7 @@ export function PublicProjectPage({
               <dd>{project.bpm ? `${project.bpm} BPM` : "Not set"}</dd>
             </div>
             <div>
-              <dt className="text-muted">Key / signature</dt>
+              <dt className="text-muted">Key / meter</dt>
               <dd>
                 {project.musicalKey
                   ? formatMusicalKey(project.musicalKey)
@@ -52,7 +55,7 @@ export function PublicProjectPage({
               </dd>
             </div>
             <div>
-              <dt className="text-muted">License</dt>
+              <dt className="text-muted">Reuse license</dt>
               <dd>
                 {project.license.url ? (
                   <a className="underline" href={project.license.url}>
@@ -76,6 +79,7 @@ export function PublicProjectPage({
               </dd>
             </div>
           </dl>
+
           <section className="rounded-card border-strong mt-8 border p-6">
             <p className="text-accent font-semibold">
               Current revision {project.revisionNumber}
@@ -86,7 +90,7 @@ export function PublicProjectPage({
               {project.tracks.length === 1 ? "track" : "tracks"} ·{" "}
               {(project.durationMs / 1000).toFixed(1)} seconds
             </p>
-            <QuickPreviewPlayer
+            <PublicMidiQuickPreview
               projectId={project.projectId}
               revisionId={project.currentRevisionId}
               title={project.title}
@@ -102,33 +106,13 @@ export function PublicProjectPage({
                     {track.sortOrder + 1}. {track.name}
                   </strong>
                   <span className="text-muted block text-sm">
-                    {track.kind === "midi" && track.preset
-                      ? `${resolveSynthPreset(track.preset.id, track.preset.version).name} synth`
-                      : (track.instrument?.name ?? "Audio")}{" "}
-                    · {(track.durationMs / 1000).toFixed(1)}s
+                    {
+                      resolveSynthPreset(track.preset.id, track.preset.version)
+                        .name
+                    }{" "}
+                    preset · {track.clipCount}{" "}
+                    {track.clipCount === 1 ? "clip" : "clips"}
                   </span>
-                  {track.credits.length > 0 && (
-                    <ul className="mt-2 text-sm">
-                      {track.credits.map((credit) => (
-                        <li key={`${track.id}-${credit.position}`}>
-                          {credit.profileUsername ? (
-                            <Link
-                              className="underline"
-                              href={`/@${credit.profileUsername}`}
-                            >
-                              {credit.creditName}
-                            </Link>
-                          ) : (
-                            credit.creditName
-                          )}{" "}
-                          ·{" "}
-                          {credit.role === "derivation"
-                            ? "derived from"
-                            : credit.role}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </li>
               ))}
             </ol>
@@ -143,13 +127,26 @@ export function PublicProjectPage({
               )}
               {project.openToContributions && (
                 <Link
-                  className="bg-accent rounded-full px-5 py-3 font-semibold text-slate-950"
+                  className="cta-gradient text-accent-contrast rounded-full px-5 py-3 font-semibold"
                   href={`/projects/${project.projectId}/contributions/new`}
                 >
                   Start contribution
                 </Link>
               )}
+              {project.license.code === "cc-by-4.0" && (
+                <a
+                  className="border-strong hover:border-accent inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                  href={`/api/projects/${project.projectId}/revisions/${project.currentRevisionId}/downloads/midi`}
+                >
+                  Export MIDI + attribution
+                </a>
+              )}
             </div>
+            {project.license.code !== "cc-by-4.0" && (
+              <p className="text-muted mt-4 text-sm">
+                Licensed MIDI export is available for CC BY 4.0 projects.
+              </p>
+            )}
             {!canCollaborate && (
               <p className="text-muted mt-4 text-sm">
                 You’ll be asked to sign in before creating a fork or
@@ -157,9 +154,12 @@ export function PublicProjectPage({
               </p>
             )}
           </section>
+
+          {history.length > 0 && <SemanticHistory history={history} />}
+
           {project.attributions.length > 0 && (
             <section className="rounded-card border-subtle mt-8 border p-6">
-              <h2 className="text-xl font-bold">Project credits</h2>
+              <h2 className="text-xl font-bold">Arrangement attribution</h2>
               <ul className="mt-3 space-y-2">
                 {project.attributions.map((attribution) => (
                   <li key={`${attribution.kind}-${attribution.profileId}`}>
@@ -185,11 +185,12 @@ export function PublicProjectPage({
               </ul>
             </section>
           )}
+
           {(lineage.source ||
             lineage.sourceUnavailable ||
             lineage.directForks.length > 0) && (
             <section className="rounded-card border-subtle mt-8 border p-6">
-              <h2 className="text-xl font-bold">Fork lineage</h2>
+              <h2 className="text-xl font-bold">Project lineage</h2>
               {lineage.source ? (
                 <p className="text-muted mt-2">
                   Forked from{" "}
@@ -199,7 +200,7 @@ export function PublicProjectPage({
                   >
                     {lineage.source.title}
                   </Link>
-                  , revision {lineage.source.revisionNumber}.
+                  , exact revision {lineage.source.revisionNumber}.
                 </p>
               ) : lineage.sourceUnavailable ? (
                 <p className="text-muted mt-2">Source unavailable.</p>
@@ -231,5 +232,78 @@ export function PublicProjectPage({
         </article>
       </Container>
     </main>
+  );
+}
+
+export function SemanticHistory({
+  history,
+}: {
+  history: PublicRevisionHistoryItem[];
+}) {
+  return (
+    <section className="rounded-card border-subtle mt-8 border p-6">
+      <p className="text-accent font-mono text-[11px] tracking-[0.18em] uppercase">
+        Semantic history
+      </p>
+      <h2 className="mt-1 text-2xl font-bold">How this arrangement evolved</h2>
+      <ol className="mt-5 space-y-5">
+        {history.map((revision) => (
+          <li
+            id={`revision-${revision.revisionNumber}`}
+            className="border-subtle border-l pl-5"
+            key={revision.id}
+          >
+            <p className="text-accent font-mono text-xs tracking-wider uppercase">
+              Revision {revision.revisionNumber} ·{" "}
+              {revision.publisher.creditName}
+            </p>
+            {revision.message && (
+              <h3 className="mt-2 font-serif text-xl">{revision.message}</h3>
+            )}
+            <ul className="text-ink/90 mt-2 space-y-1">
+              {revision.summary.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <p className="text-muted mt-2 text-sm">
+              {new Date(revision.createdAt).toLocaleDateString()} ·{" "}
+              {revision.patternLineage.length} MIDI{" "}
+              {revision.patternLineage.length === 1 ? "pattern" : "patterns"}
+              {revision.acceptedContributor
+                ? ` · accepted contribution by ${revision.acceptedContributor.creditName}`
+                : ""}
+            </p>
+            <details className="border-subtle rounded-control mt-3 border p-3 text-sm">
+              <summary className="font-semibold">Exact pattern lineage</summary>
+              <ul className="text-muted mt-3 space-y-3">
+                {revision.patternLineage.map((pattern) => (
+                  <li key={pattern.midiPatternVersionId}>
+                    <span className="text-ink block">
+                      {pattern.creatorCreditName}
+                    </span>
+                    <span className="block font-mono text-xs break-all">
+                      Pattern version {pattern.midiPatternVersionId}
+                    </span>
+                    {(pattern.parentMidiPatternVersionId ||
+                      pattern.sourceMidiPatternVersionId) && (
+                      <span className="block font-mono text-xs break-all">
+                        {pattern.parentMidiPatternVersionId
+                          ? `Parent ${pattern.parentMidiPatternVersionId}`
+                          : `Source ${pattern.sourceMidiPatternVersionId}`}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </li>
+        ))}
+      </ol>
+      {history.length === 8 && (
+        <p className="text-muted mt-4 text-sm">
+          Showing the latest 8 bounded revisions.
+        </p>
+      )}
+    </section>
   );
 }

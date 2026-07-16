@@ -11,7 +11,7 @@ function values(value: string | string[] | undefined) {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
 }
 function uniqueSorted(input: string[]) {
-  return [...new Set(input)].sort();
+  return [...new Set(input.filter(Boolean))].sort();
 }
 function one(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value.length === 1 ? value[0] : undefined;
