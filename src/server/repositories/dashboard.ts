@@ -48,6 +48,7 @@ export async function getViewerDashboard(): Promise<DashboardData> {
   const { data, error } = await db.rpc("get_viewer_dashboard");
   if (error) throw new Error("dashboard_unavailable");
   const value = dashboardSchema.parse(data);
+  const now = Date.now();
   return {
     ownedProjects: value.ownedProjects.slice(0, 6).map((row) => ({
       projectId: row.project_id,
@@ -56,15 +57,22 @@ export async function getViewerDashboard(): Promise<DashboardData> {
       currentRevisionId: row.current_revision_id,
       updatedAt: row.updated_at,
     })),
-    activeWorkspaces: value.activeWorkspaces.slice(0, 6).map((row) => ({
-      workspaceId: row.workspace_id,
-      projectId: row.project_id,
-      projectTitle: row.project_title,
-      contributionId: row.contribution_id,
-      contributionTitle: row.contribution_title,
-      lockVersion: row.lock_version,
-      updatedAt: row.updated_at,
-    })),
+    activeWorkspaces: value.activeWorkspaces.slice(0, 6).map((row) => {
+      const updatedAt = new Date(row.updated_at).getTime();
+      return {
+        workspaceId: row.workspace_id,
+        projectId: row.project_id,
+        projectTitle: row.project_title,
+        contributionId: row.contribution_id,
+        contributionTitle: row.contribution_title,
+        lockVersion: row.lock_version,
+        updatedAt: row.updated_at,
+        archivesAt: new Date(
+          updatedAt + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        archiveWarning: now - updatedAt >= 23 * 24 * 60 * 60 * 1000,
+      };
+    }),
     pendingContributions: value.pendingContributions.slice(0, 6).map((row) => ({
       contributionId: row.contribution_id,
       projectId: row.project_id,

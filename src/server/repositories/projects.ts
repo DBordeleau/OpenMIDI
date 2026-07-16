@@ -201,7 +201,7 @@ export async function getProjectForViewer(
   const { data: project, error } = await db
     .from("projects")
     .select(
-      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,compatibility,project_members(role)",
+      "id,owner_id,title,description,bpm,musical_key,time_signature_numerator,time_signature_denominator,lock_version,open_to_contributions,visibility,status,current_revision_id,source_project_id,source_revision_id,published_at,created_at,updated_at,license_code,compatibility,moderation_state,project_members(role)",
     )
     .eq("id", projectId)
     .is("deleted_at", null)
@@ -267,5 +267,7 @@ export async function getProjectForViewer(
     createdAt: project.created_at,
     updatedAt: project.updated_at,
     compatibility: project.compatibility as ProjectDetail["compatibility"],
+    moderationState:
+      project.moderation_state as ProjectDetail["moderationState"],
   };
 }

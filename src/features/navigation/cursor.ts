@@ -7,6 +7,8 @@ const cursorSchema = z.object({
     "contributions",
     "profile-projects",
     "profile-contributions",
+    "reports",
+    "admin-moderation",
   ]),
   subject: z.string(),
   filter: z.string(),

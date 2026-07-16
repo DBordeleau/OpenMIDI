@@ -712,9 +712,14 @@ export type Database = {
           create_request_id: string
           created_at: string
           current_version_id: string | null
+          deleted_at: string | null
           description: string | null
           id: string
+          moderation_state: string
+          moderation_updated_at: string
+          moderation_version: number
           project_id: string
+          purged_at: string | null
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -730,9 +735,14 @@ export type Database = {
           create_request_id: string
           created_at?: string
           current_version_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           project_id: string
+          purged_at?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -748,9 +758,14 @@ export type Database = {
           create_request_id?: string
           created_at?: string
           current_version_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           project_id?: string
+          purged_at?: string | null
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1268,10 +1283,16 @@ export type Database = {
           bio: string | null
           created_at: string
           credit_name: string | null
+          deletion_requested_at: string | null
+          deletion_restore_until: string | null
           display_name: string | null
           id: string
           last_active_at: string | null
+          moderation_state: string
+          moderation_updated_at: string
+          moderation_version: number
           profile_completed_at: string | null
+          purged_at: string | null
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
           username: string | null
@@ -1284,10 +1305,16 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_name?: string | null
+          deletion_requested_at?: string | null
+          deletion_restore_until?: string | null
           display_name?: string | null
           id: string
           last_active_at?: string | null
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           profile_completed_at?: string | null
+          purged_at?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
@@ -1300,10 +1327,16 @@ export type Database = {
           bio?: string | null
           created_at?: string
           credit_name?: string | null
+          deletion_requested_at?: string | null
+          deletion_restore_until?: string | null
           display_name?: string | null
           id?: string
           last_active_at?: string | null
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           profile_completed_at?: string | null
+          purged_at?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
           username?: string | null
@@ -1703,10 +1736,14 @@ export type Database = {
           id: string
           license_code: string
           lock_version: number
+          moderation_state: string
+          moderation_updated_at: string
+          moderation_version: number
           musical_key: string | null
           open_to_contributions: boolean
           owner_id: string
           published_at: string | null
+          purged_at: string | null
           source_project_id: string | null
           source_revision_id: string | null
           status: Database["public"]["Enums"]["project_status"]
@@ -1727,10 +1764,14 @@ export type Database = {
           id?: string
           license_code: string
           lock_version?: number
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           musical_key?: string | null
           open_to_contributions?: boolean
           owner_id: string
           published_at?: string | null
+          purged_at?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -1751,10 +1792,14 @@ export type Database = {
           id?: string
           license_code?: string
           lock_version?: number
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           musical_key?: string | null
           open_to_contributions?: boolean
           owner_id?: string
           published_at?: string | null
+          purged_at?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -2778,6 +2823,18 @@ export type Database = {
       }
     }
     Functions: {
+      apply_moderation_action: {
+        Args: {
+          p_action: string
+          p_expected_report_status: string
+          p_expected_target_version: number
+          p_reason: string
+          p_report_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      assert_viewer_admin: { Args: never; Returns: boolean }
       cancel_source_upload: {
         Args: { p_asset_id: string }
         Returns: Database["public"]["Enums"]["asset_status"]
@@ -2925,6 +2982,10 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      delete_own_contribution: {
+        Args: { p_contribution_id: string; p_request_id: string }
+        Returns: Json
+      }
       delete_project: {
         Args: {
           p_expected_lock_version: number
@@ -3008,10 +3069,16 @@ export type Database = {
           revision_number: number
         }[]
       }
+      get_admin_moderation_target: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
+      get_admin_storage_summary: { Args: never; Returns: Json }
       get_contribution_project_context: {
         Args: { p_contribution_id: string }
         Returns: Json
       }
+      get_own_account_recovery: { Args: never; Returns: Json }
       get_project_revision_preview: {
         Args: { p_project_id: string; p_revision_id: string }
         Returns: Json
@@ -3062,6 +3129,11 @@ export type Database = {
           username_normalized: string
         }[]
       }
+      list_admin_moderation_queue: {
+        Args: { p_after_created_at?: string; p_after_id?: string }
+        Returns: Json
+      }
+      list_admin_rejectable_uploads: { Args: never; Returns: Json }
       list_public_profile_contributions: {
         Args: {
           p_after_accepted_at?: string
@@ -3097,6 +3169,10 @@ export type Database = {
         }
         Returns: Json
       }
+      list_viewer_reports: {
+        Args: { p_after_created_at?: string; p_after_id?: string }
+        Returns: Json
+      }
       operator_claim_profile_avatar_cleanup: {
         Args: never
         Returns: {
@@ -3123,6 +3199,10 @@ export type Database = {
           public_object_path: string
           reserved_byte_size: number
         }[]
+      }
+      operator_claim_retention_job: {
+        Args: { p_run_id: string }
+        Returns: Json
       }
       operator_claim_source_verification: {
         Args: { p_asset_id?: string; p_owner_id?: string }
@@ -3156,6 +3236,10 @@ export type Database = {
         }
         Returns: string
       }
+      operator_complete_retention_run: {
+        Args: { p_run_id: string }
+        Returns: Json
+      }
       operator_complete_source_verification: {
         Args: {
           p_asset_id: string
@@ -3186,6 +3270,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      operator_finalize_retention_job: {
+        Args: {
+          p_deleted_object_ids: string[]
+          p_job_id: string
+          p_lease_token: string
+          p_missing_object_ids: string[]
+        }
+        Returns: string
+      }
       operator_promote_source_asset: {
         Args: {
           p_asset_id: string
@@ -3199,6 +3292,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      operator_retention_preview: { Args: { p_limit?: number }; Returns: Json }
       operator_retry_profile_avatar_cleanup: {
         Args: {
           p_avatar_version_id: string
@@ -3215,6 +3309,10 @@ export type Database = {
         }
         Returns: string
       }
+      operator_retry_retention_job: {
+        Args: { p_error_code: string; p_job_id: string; p_lease_token: string }
+        Returns: string
+      }
       operator_retry_source_verification: {
         Args: {
           p_asset_id: string
@@ -3226,6 +3324,21 @@ export type Database = {
       operator_set_source_admission_enabled: {
         Args: { p_enabled: boolean }
         Returns: boolean
+      }
+      operator_start_retention_run: {
+        Args: { p_limit?: number }
+        Returns: string
+      }
+      place_content_hold: {
+        Args: {
+          p_expires_at?: string
+          p_hold_type: string
+          p_reason: string
+          p_request_id: string
+          p_target_id: string
+          p_target_kind: string
+        }
+        Returns: string
       }
       publish_midi_stem_version: {
         Args: {
@@ -3287,9 +3400,26 @@ export type Database = {
           workspace_lock_version: number
         }[]
       }
+      reject_admin_upload: {
+        Args: {
+          p_asset_id: string
+          p_expected_status: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      release_content_hold: {
+        Args: { p_hold_id: string; p_reason: string; p_request_id: string }
+        Returns: string
+      }
       remove_own_avatar: {
         Args: { p_expected_avatar_version_id: string }
         Returns: undefined
+      }
+      request_account_deletion: {
+        Args: { p_request_id: string; p_username: string }
+        Returns: Json
       }
       reserve_profile_image_upload: {
         Args: {
@@ -3368,6 +3498,19 @@ export type Database = {
           created_at: string
           lock_version: number
           workspace_id: string
+        }[]
+      }
+      restore_own_account: { Args: never; Returns: Json }
+      restore_own_contribution: {
+        Args: { p_contribution_id: string }
+        Returns: Json
+      }
+      restore_project: {
+        Args: { p_project_id: string; p_request_id: string }
+        Returns: {
+          lock_version: number
+          project_id: string
+          status: string
         }[]
       }
       retry_source_verification: {
@@ -3566,6 +3709,20 @@ export type Database = {
           status: Database["public"]["Enums"]["contribution_status"]
           version_id: string
           version_number: number
+        }[]
+      }
+      submit_moderation_report: {
+        Args: {
+          p_detail?: string
+          p_reason: string
+          p_request_id: string
+          p_target_id: string
+          p_target_kind: string
+        }
+        Returns: {
+          created_at: string
+          report_id: string
+          status: string
         }[]
       }
       touch_viewer_activity: {

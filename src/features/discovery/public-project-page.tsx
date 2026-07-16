@@ -220,6 +220,14 @@ export function PublicProjectPage({
               )}
             </section>
           )}
+          {canCollaborate && (
+            <Link
+              className="text-muted hover:text-accent mt-8 inline-block text-sm underline"
+              href={`/reports/new?kind=project&id=${project.projectId}&label=${encodeURIComponent(project.title)}`}
+            >
+              Report this project
+            </Link>
+          )}
         </article>
       </Container>
     </main>

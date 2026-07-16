@@ -72,4 +72,5 @@ export type ContributionDetail = {
   updatedAt: string;
   reviews: ContributionReviewSummary[];
   versions: ContributionVersionSummary[];
+  moderationState: "visible" | "hidden";
 };

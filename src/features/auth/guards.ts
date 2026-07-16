@@ -6,6 +6,7 @@ import {
   getViewerProfile,
   touchViewerActivity,
 } from "@/server/repositories/profiles";
+import { assertViewerAdmin } from "@/server/repositories/moderation";
 
 export async function requireViewer(destination: string) {
   const supabase = await createSupabaseServerClient();
@@ -24,4 +25,10 @@ export async function getOptionalViewer() {
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
   return getViewerProfile();
+}
+
+export async function requireAdmin(destination: string) {
+  const profile = await requireViewer(destination);
+  if (!(await assertViewerAdmin())) redirect("/account-unavailable");
+  return profile;
 }

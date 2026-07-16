@@ -3,13 +3,21 @@ import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { ContributionList } from "@/features/contributions/contribution-list";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
+import { restoreContributionAction } from "@/features/moderation/actions";
 
 export const metadata: Metadata = { title: "Contributions" };
 
 export default async function ContributionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; after?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    after?: string;
+    deleted?: string;
+    restored?: string;
+    restoreError?: string;
+    contributionId?: string;
+  }>;
 }) {
   const viewer = await requireViewer("/contributions");
   const query = await searchParams;
@@ -34,6 +42,37 @@ export default async function ContributionsPage({
           Continue private drafts, inspect immutable submissions, and track
           proposals for projects you own.
         </p>
+        {query.deleted === "1" && query.contributionId && (
+          <div
+            role="status"
+            className="border-accent rounded-control mt-6 border p-4"
+          >
+            Contribution deleted. It remains recoverable for 30 days.
+            <form action={restoreContributionAction} className="mt-3">
+              <input
+                type="hidden"
+                name="contributionId"
+                value={query.contributionId}
+              />
+              <button className="text-accent font-semibold underline">
+                Restore contribution
+              </button>
+            </form>
+          </div>
+        )}
+        {query.restored === "1" && (
+          <p
+            role="status"
+            className="border-accent rounded-control mt-6 border p-4"
+          >
+            Contribution restored.
+          </p>
+        )}
+        {query.restoreError === "1" && (
+          <p role="alert" className="text-danger mt-6">
+            That contribution can no longer be restored.
+          </p>
+        )}
         <nav
           aria-label="Contribution filters"
           className="mt-6 flex flex-wrap gap-2"

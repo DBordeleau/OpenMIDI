@@ -55,5 +55,5 @@ select lives_ok($$select public.delete_project('51000000-0000-4000-8000-00000000
 reset role;
 select ok((select status='deleted' and visibility='private' and not open_to_contributions and deleted_at is not null from public.projects where id='51000000-0000-4000-8000-000000000001'),'delete immediately hides and timestamps project');
 select is((select lock_version from public.projects where id='51000000-0000-4000-8000-000000000001'),2,'delete increments lock version');
-select is((select count(*) from private.project_deletion_requests where project_id='51000000-0000-4000-8000-000000000001'),1::bigint,'delete retry creates one request record');
+select is((select count(*) from private.deletion_requests where target_project_id='51000000-0000-4000-8000-000000000001'),1::bigint,'delete retry creates one request record');
 select * from finish(); rollback;

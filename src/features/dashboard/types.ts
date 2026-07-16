@@ -14,6 +14,8 @@ export type DashboardData = {
     contributionTitle: string | null;
     lockVersion: number;
     updatedAt: string;
+    archivesAt: string;
+    archiveWarning: boolean;
   }>;
   pendingContributions: Array<{
     contributionId: string;

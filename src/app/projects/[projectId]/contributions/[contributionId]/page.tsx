@@ -7,6 +7,7 @@ import { ReviewComparison } from "@/features/contributions/review-comparison.cli
 import { ReviewContributionForm } from "@/features/contributions/review-contribution-form.client";
 import { SubmissionPanel } from "@/features/contributions/submission-panel.client";
 import { WithdrawContributionForm } from "@/features/contributions/withdraw-contribution-form";
+import { ContributionDeletionForm } from "@/features/moderation/contribution-deletion-form";
 import { projectIdSchema } from "@/features/projects/schema";
 import type { VersionedWorkspaceManifest } from "@/features/studio/manifest/schema";
 import {
@@ -42,6 +43,25 @@ export default async function ContributionDetailPage({
   );
   const contribution = await getContributionForViewer(contributionId);
   if (!contribution || contribution.projectId !== projectId) notFound();
+  if (contribution.moderationState === "hidden") {
+    return (
+      <main id="main-content">
+        <Container className="py-16">
+          <section className="rounded-card border-subtle mx-auto max-w-2xl border p-8">
+            <p className="text-danger font-mono text-xs uppercase">
+              Unavailable during review
+            </p>
+            <h1 className="mt-3 text-3xl font-bold">{contribution.title}</h1>
+            <p className="text-muted mt-4">
+              This contribution is hidden by moderation. Immutable submitted
+              history remains preserved, but playback, review, and mutation are
+              unavailable.
+            </p>
+          </section>
+        </Container>
+      </main>
+    );
+  }
   const isAuthor = contribution.authorId === viewer.id;
   const isOwner = contribution.projectOwnerId === viewer.id;
   const editable =
@@ -287,6 +307,18 @@ export default async function ContributionDetailPage({
                 status={contribution.status}
                 currentVersionId={contribution.currentVersionId}
               />
+            )}
+          {isOwner && (
+            <Link
+              className="text-muted hover:text-accent mt-6 inline-block text-sm underline"
+              href={`/reports/new?kind=contribution&id=${contribution.id}&label=${encodeURIComponent(contribution.title)}`}
+            >
+              Report this contribution
+            </Link>
+          )}
+          {isAuthor &&
+            ["rejected", "withdrawn"].includes(contribution.status) && (
+              <ContributionDeletionForm contributionId={contribution.id} />
             )}
         </article>
       </Container>

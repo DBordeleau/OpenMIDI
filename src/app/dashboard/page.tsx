@@ -131,6 +131,13 @@ export default async function DashboardPage() {
                         {new Date(item.updatedAt).toLocaleDateString()}
                       </time>
                     </p>
+                    {item.archiveWarning && (
+                      <p className="text-danger mt-2 text-sm font-semibold">
+                        This workspace archives on{" "}
+                        {new Date(item.archivesAt).toLocaleDateString()}. Save
+                        or publish to keep it active.
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

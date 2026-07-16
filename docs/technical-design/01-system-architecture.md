@@ -247,7 +247,7 @@ MIDI-07 implements and tests the trusted source-admission capability, including 
 
 ## MVP moderation and retention
 
-The demo is invite-only. It provides an in-product report action on projects, profiles and contributions. Reports require a reason (`copyright`, `harassment`, `sexual_content`, `hate_or_violence`, `spam`, or `other`) plus optional detail and enter a private administrator queue. Administrators can hide content, reject an upload, suspend an account or restore an item; every action records actor, reason and timestamp. There is no automated content classification in the MVP.
+The implemented invite-only demo provides in-product report actions on projects, profiles and contributions. Reports require a fixed reason (`copyright`, `harassment`, `sexual_content`, `hate_or_violence`, `spam`, or `other`) plus optional bounded detail and enter a private administrator queue. Administrator authority is checked in the database for every queue/action/hold command. Administrators can hide content, reject an eligible unreferenced upload, suspend an account, restore an item, or place/release a legal or abuse hold; every applied action is append-only and records actor, reason and timestamp. There is no automated content classification in the MVP.
 
 Reported content remains hidden only when an administrator takes action; reporting alone does not automatically remove it. Material presenting an immediate safety or clear legal risk may be hidden pending review. The product must publish concise community rules prohibiting illegal content, non-consensual/private material, targeted harassment, hateful or violent threats, spam/malware and uploads the user lacks permission to share. A production launch additionally requires an appeal path and formal copyright/takedown contact.
 
@@ -263,7 +263,7 @@ Retention schedule:
 | Application diagnostic logs           | 7 days where the provider permits; no tokens, signed URLs or audio payloads |
 | Published attribution snapshot        | Retained with the surviving revision/fork as required for provenance        |
 
-Users may delete their own rejected contribution earlier if it has not been accepted and is not required for a moderation/legal hold. A legal or abuse hold pauses deletion. Storage deletion is always reference-aware so a surviving revision or fork cannot be broken.
+Users may delete their own rejected contribution earlier if it has not been accepted and is not required for a moderation/legal hold. A legal or abuse hold pauses deletion. Storage deletion is always reference-aware so a surviving revision or fork cannot be broken. Manual operation is authoritative: `retention:preview` is read-only, while `retention:execute` claims bounded jobs with `FOR UPDATE SKIP LOCKED`, deletes bytes only through the Storage API, and finalizes domain/quota state only after deletion or already-missing confirmation. Cron is optional convenience and must reuse this operator.
 
 ## Caching and consistency
 

@@ -54,7 +54,7 @@ With the UX pass complete and the hosted database capability read-only confirmed
 | M     | MIDI-first MVP expansion       | MIDI-01–MIDI-07 | Complete            | MIDI foundations and reversible transition control are complete; admission remains enabled |
 | S     | Studio-forward workspace       | STUDIO-01–06    | Repository complete | Studio is the primary creation path; hosted acceptance and lock transition remain          |
 | U     | Studio and MIDI usability      | UX-01–UX-05     | Repository complete | Studio transport, workflow, piano interaction, and block editing are musician-ready        |
-| E     | Discovery and community safety | 16–18           | Paused (2/3)        | Public discovery/profiles are complete; PR 18 resumes after the interruption slices        |
+| E     | Discovery and community safety | 16–18           | Complete            | Discovery, profiles, manual moderation, recovery, and safe storage operations are complete |
 | F     | MVP hardening and release      | 19–20           | Pending             | Measured hardening and a rehearsed invited-user deployment                                 |
 
 ## Delivery principles
@@ -189,7 +189,7 @@ Status: Complete
 
 ## Phase E — Discovery and community safety
 
-Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studio-forward programs precede PR 18
+Status: Complete — PRs 16–18 implemented
 
 ### PR 16 — Public project pages, browse, and efficient search
 
@@ -317,7 +317,7 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 
 ### PR 18 — Moderation, retention, quotas, and storage operations
 
-**Status:** Ready — hosted database capability confirmed enabled on 2026-07-15; no hosted application deployment or mutation performed
+**Status:** Complete in repository — local migration/RLS/operator proof recorded; no hosted application deployment or mutation performed
 
 **Outcome:** The invited demo can be operated safely within Supabase Free limits using manual reports and deterministic cleanup that cannot break surviving history.
 
@@ -336,6 +336,8 @@ Status: Paused — PRs 16–17 complete; optimization is complete and MIDI/studi
 **Acceptance gate:** Reports never auto-hide; only a database-verified administrator can act; unrelated users cannot see reports; dry runs are inspectable; live references and holds always block deletion; repeated cleanup is safe; actual-object capacity and domain accounting are reconciled.
 
 **Non-goals:** Automated content scanning, a complex appeals portal, full legal compliance automation, or an external moderation processor.
+
+**Delivered:** Private idempotent reports and coarse reporter status; database-verified administrator queue/actions/holds; moderation-aware visibility and audio denial; 30-day project, eligible contribution, and account recovery; actual `storage.objects` reconciliation with 750/850 MiB thresholds; centralized reference/hold blockers; one bounded lease-driven Storage API operator; workspace expiry warnings; community rules; and operator documentation.
 
 ## Phase F — MVP hardening and release
 

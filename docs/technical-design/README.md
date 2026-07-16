@@ -24,6 +24,8 @@ For any user-facing surface, treat the brand guide as the presentation contract 
 
 The following vertical slices are implemented and are the baseline for future work:
 
+- PR 18 private reporting/manual moderation, legal and abuse holds, recoverable deletion, authoritative object-capacity reconciliation, and a dry-run-first reference-safe retention operator;
+
 - repository/Next.js quality scaffold and responsive global product shell with active-route navigation and an authenticated member project index;
 - local Supabase migrations, pgTAP, generated database types, and user-scoped clients;
 - identity schema, invite-only Google OAuth, onboarding, settings, and safe public profiles;

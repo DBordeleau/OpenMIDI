@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { listProjectsForViewer } from "@/server/repositories/projects";
+import { restoreProjectAction } from "@/features/moderation/actions";
 
 export const metadata: Metadata = { title: "My projects" };
 
@@ -23,6 +24,8 @@ export default async function ProjectsPage({
     review?: string;
     after?: string;
     deleted?: string;
+    projectId?: string;
+    restoreError?: string;
   }>;
 }) {
   const viewer = await requireViewer("/projects");
@@ -55,11 +58,24 @@ export default async function ProjectsPage({
         </Reveal>
 
         {query.deleted === "1" && (
-          <p
+          <div
             role="status"
             className="border-accent bg-surface rounded-control mt-8 border p-4"
           >
             Project deleted. Its history remains recoverable for 30 days.
+            {query.projectId && (
+              <form action={restoreProjectAction} className="mt-3">
+                <input type="hidden" name="projectId" value={query.projectId} />
+                <button className="text-accent font-semibold underline">
+                  Restore project
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+        {query.restoreError === "1" && (
+          <p role="alert" className="text-danger mt-6">
+            That project can no longer be restored.
           </p>
         )}
 

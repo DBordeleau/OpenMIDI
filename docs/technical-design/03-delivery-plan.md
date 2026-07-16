@@ -1,6 +1,6 @@
 # Delivery Plan and Engineering Contract
 
-Status: Accepted; repository implemented and pulse-checked through PR 17, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted database capability recorded enabled; M6/PR 18 is next and deployment/parity remains PR 20
+Status: Accepted; repository implemented and pulse-checked through PR 18, OPT-05, MIDI-07, STUDIO-06, and UX-05; hosted database capability recorded enabled; PR 19 hardening is next and deployment/parity remains PR 20
 
 ## Delivery strategy
 
@@ -128,7 +128,7 @@ Repository exit: the usability requirements are implemented without a manifest, 
 
 ### M6 — Launch hardening
 
-- Enforced MVP storage quotas, abuse rate limits, reporting/manual moderation queue and retention job.
+- Enforced MVP storage quotas, abuse rate limits, reporting/manual moderation queue and retention job. (PR 18 complete.)
 - Accessibility, performance budgets, browser compatibility and failure-mode tests.
 - Backup/restore exercise and migration rehearsal.
 - Security review of RLS, signed URLs, OAuth redirects and service-role usage.

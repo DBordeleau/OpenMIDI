@@ -85,6 +85,12 @@ export default async function PublicProfilePage({
               {profile.bio}
             </p>
           )}
+          <Link
+            className="text-muted hover:text-accent mt-5 inline-block text-sm underline"
+            href={`/reports/new?kind=profile&id=${profile.id}&label=${encodeURIComponent(`@${profile.username}`)}`}
+          >
+            Report this profile
+          </Link>
           {cursorStale && (
             <p
               role="status"
