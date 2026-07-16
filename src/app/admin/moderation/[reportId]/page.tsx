@@ -52,12 +52,15 @@ export default async function AdminReportPage({
           )}
           {report.status === "submitted" ||
           report.status === "reviewing" ||
-          report.targetState === "hidden" ? (
+          report.targetState === "hidden" ||
+          report.targetAccountStatus === "suspended" ? (
             <AdminActionForm
               reportId={report.id}
               reportStatus={report.status}
               targetVersion={report.targetVersion}
               targetState={report.targetState}
+              targetKind={report.targetKind}
+              targetAccountStatus={report.targetAccountStatus}
             />
           ) : (
             <p className="text-muted mt-8">This report is closed.</p>

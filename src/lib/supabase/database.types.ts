@@ -3133,6 +3133,7 @@ export type Database = {
         Args: { p_after_created_at?: string; p_after_id?: string }
         Returns: Json
       }
+      list_admin_rejectable_uploads: { Args: never; Returns: Json }
       list_public_profile_contributions: {
         Args: {
           p_after_accepted_at?: string

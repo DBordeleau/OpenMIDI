@@ -41,6 +41,9 @@ const adminTargetSchema = z.object({
   updatedAt: z.string(),
   targetVersion: z.number().int().positive(),
   targetState: z.enum(["visible", "hidden"]),
+  targetAccountStatus: z
+    .enum(["incomplete", "active", "suspended", "deleted"])
+    .nullable(),
   holds: z.array(
     z.object({
       id: z.string().uuid(),
@@ -229,4 +232,34 @@ export async function getAdminStorageSummary() {
   const { data, error } = await db.rpc("get_admin_storage_summary");
   if (error) throw new Error("storage_summary_unavailable");
   return storageSummarySchema.parse(data);
+}
+
+const rejectableUploadSchema = z.object({
+  id: z.string().uuid(),
+  original_filename: z.string(),
+  status: z.enum(["reserved", "uploading", "processing", "failed"]),
+  reserved_byte_size: z.number(),
+  created_at: z.string(),
+});
+
+export async function listAdminRejectableUploads() {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("list_admin_rejectable_uploads");
+  if (error) throw new Error("rejectable_uploads_unavailable");
+  return z.array(rejectableUploadSchema).parse(data);
+}
+
+export async function rejectAdminUpload(input: {
+  assetId: string;
+  requestId: string;
+  expectedStatus: "reserved" | "uploading" | "processing" | "failed";
+  reason: string;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("reject_admin_upload", {
+    p_asset_id: input.assetId,
+    p_request_id: input.requestId,
+    p_expected_status: input.expectedStatus,
+    p_reason: input.reason,
+  });
 }
