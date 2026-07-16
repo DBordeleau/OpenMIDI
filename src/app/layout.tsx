@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Aurora } from "@/components/layout/aurora.client";
-import { SiteFooter } from "@/components/layout/site-footer";
+import { ConditionalFooter } from "@/components/layout/conditional-footer.client";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
 
@@ -27,7 +27,7 @@ export default function RootLayout({
           <SkipLink />
           <SiteHeader />
           <div className="flex-1">{children}</div>
-          <SiteFooter />
+          <ConditionalFooter />
         </div>
       </body>
     </html>

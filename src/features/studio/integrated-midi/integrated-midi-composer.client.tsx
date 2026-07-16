@@ -59,12 +59,10 @@ export function IntegratedMidiComposer({
   onDraftOpened: () => void;
 }) {
   const [draft, setDraft] = useState<MidiStemDraft | null>(null);
-  const [name, setName] = useState(
+  const name =
     target.operation === "replace"
       ? `${target.version.name} variation`
-      : target.name,
-  );
-  const [busy, setBusy] = useState(false);
+      : target.name;
   const [message, setMessage] = useState("");
   const startedRef = useRef(false);
   const host = useMemo(
@@ -93,32 +91,26 @@ export function IntegratedMidiComposer({
   );
 
   const createDraft = useCallback(async () => {
-    setBusy(true);
     setMessage("");
-    try {
-      const result = await createIntegratedMidiDraftAction({
-        requestId: crypto.randomUUID(),
-        name,
-        parentStemVersionId:
-          target.operation === "replace" ? target.version.stemVersionId : null,
-      });
-      if (result.ok) {
-        setDraft(result.draft);
-        onDraftOpened();
-      } else
-        setMessage(
-          result.code === "parent_unavailable"
-            ? "That exact version is no longer available to derive."
-            : "The private MIDI draft could not be created.",
-        );
-    } finally {
-      setBusy(false);
-    }
+    const result = await createIntegratedMidiDraftAction({
+      requestId: crypto.randomUUID(),
+      name,
+      parentStemVersionId:
+        target.operation === "replace" ? target.version.stemVersionId : null,
+    });
+    if (result.ok) {
+      setDraft(result.draft);
+      onDraftOpened();
+    } else
+      setMessage(
+        result.code === "parent_unavailable"
+          ? "That exact version is no longer available to derive."
+          : "The private MIDI draft could not be created.",
+      );
   }, [name, onDraftOpened, target]);
 
   const importFile = useCallback(
     async (file: File) => {
-      setBusy(true);
       setMessage("");
       try {
         const { importMidiBytes } =
@@ -154,19 +146,17 @@ export function IntegratedMidiComposer({
         setMessage(
           error instanceof Error ? error.message : "MIDI import failed.",
         );
-      } finally {
-        setBusy(false);
       }
     },
     [name, onDraftOpened, tempoBpm],
   );
 
   useEffect(() => {
-    if (target.operation !== "add" || startedRef.current) return;
+    if (startedRef.current) return;
     const timeout = window.setTimeout(() => {
       if (startedRef.current) return;
       startedRef.current = true;
-      if (target.entry === "import" && target.file)
+      if (target.operation === "add" && target.entry === "import" && target.file)
         void importFile(target.file);
       else void createDraft();
     }, 0);
@@ -175,59 +165,36 @@ export function IntegratedMidiComposer({
 
   return (
     <section
-      className="rounded-card border-accent bg-surface space-y-4 border p-4 sm:p-6"
+      className="rounded-card border-accent bg-surface flex min-h-0 flex-1 flex-col gap-3 border p-4 sm:px-6 sm:py-4"
       aria-labelledby="integrated-midi-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-accent font-mono text-xs tracking-widest uppercase">
-            Project MIDI editor
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <p className="text-accent shrink-0 font-mono text-[10px] tracking-widest uppercase max-sm:hidden">
+            MIDI editor
           </p>
           <h2
             id="integrated-midi-heading"
-            className="mt-1 text-2xl font-semibold"
+            className="truncate text-lg font-semibold"
           >
             {target.operation === "replace"
               ? `Edit ${target.version.name}`
               : "Add a MIDI part"}
           </h2>
-          <p className="text-muted mt-1 text-sm">
-            Note draft autosave is separate from arrangement autosave. Playback
-            and recording follow {tempoBpm} BPM · {timeSignature.numerator}/
-            {timeSignature.denominator} project time.
-          </p>
+          <span className="text-muted shrink-0 text-xs max-md:hidden">
+            {tempoBpm} BPM · {timeSignature.numerator}/
+            {timeSignature.denominator}
+          </span>
         </div>
         <button
           type="button"
-          className="border-strong min-h-11 rounded-full border px-4 text-sm font-semibold"
+          className="border-strong hover:border-accent hover:text-accent min-h-9 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors"
           onClick={onClose}
         >
           Close MIDI editor
         </button>
       </div>
-      {!draft && target.operation === "replace" ? (
-        <div className="border-subtle bg-surface-soft rounded-control space-y-3 border p-4">
-          <label className="block text-sm font-semibold">
-            Private stem name
-            <input
-              className="border-strong bg-canvas rounded-control mt-2 min-h-11 w-full border px-3"
-              value={name}
-              maxLength={120}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 text-sm font-semibold disabled:opacity-50"
-              disabled={busy || !name.trim()}
-              onClick={() => void createDraft()}
-            >
-              {busy ? "Preparing draft…" : "Derive exact version"}
-            </button>
-          </div>
-        </div>
-      ) : draft ? (
+      {draft ? (
         <MidiStemEditor draft={draft} host={host} />
       ) : (
         <div
@@ -236,8 +203,10 @@ export function IntegratedMidiComposer({
         >
           <p className="font-semibold">
             {target.operation === "add" && target.entry === "import"
-              ? "Validating MIDI and preparing a private draftâ€¦"
-              : "Preparing the private piano-roll draftâ€¦"}
+              ? "Validating MIDI and preparing a private draft…"
+              : target.operation === "replace"
+                ? "Deriving an editable copy of this exact version…"
+                : "Preparing the private piano-roll draft…"}
           </p>
           <p className="text-muted mt-1 text-sm">
             Raw MIDI bytes stay outside the arrangement manifest.

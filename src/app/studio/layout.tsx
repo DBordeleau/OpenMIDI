@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { Container } from "@/components/layout/container";
 import { getOptionalViewer } from "@/features/auth/guards";
 import { createProjectAction } from "@/features/projects/actions";
 import { StudioShell } from "@/features/studio/components/studio-shell.client";
@@ -24,18 +23,17 @@ export default async function StudioLayout({
     : null;
 
   return (
-    <main id="main-content">
-      <Container className="py-8 sm:py-10">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <StudioShell
-            initialProjects={initialProjects}
-            projectOptions={projectOptions}
-            createAction={createAction}
-          >
-            {children}
-          </StudioShell>
-        </div>
-      </Container>
+    <main
+      id="main-content"
+      className="flex min-h-[calc(100vh-4.5rem)] flex-col gap-3 px-3 py-3 sm:px-4"
+    >
+      <StudioShell
+        initialProjects={initialProjects}
+        projectOptions={projectOptions}
+        createAction={createAction}
+      >
+        {children}
+      </StudioShell>
     </main>
   );
 }

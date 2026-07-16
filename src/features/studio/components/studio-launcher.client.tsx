@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { VersionedWorkspaceManifest } from "../manifest/schema";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
+import { StudioSkeleton } from "./studio-skeleton";
 import {
   markStudioPerformance,
   studioPerformanceMarks,
@@ -18,14 +19,14 @@ const StudioSurface = dynamic(
     import("../waveform-playlist-adapter/studio-surface").then(
       (module) => module.StudioSurface,
     ),
-  { ssr: false, loading: () => <p role="status">Loading studio controls…</p> },
+  { ssr: false, loading: () => <StudioSkeleton /> },
 );
 const MidiStudioSurface = dynamic(
   () =>
     import("../midi-adapter/midi-studio-surface.client").then(
       (module) => module.MidiStudioSurface,
     ),
-  { ssr: false, loading: () => <p role="status">Loading MIDI Studio…</p> },
+  { ssr: false, loading: () => <StudioSkeleton /> },
 );
 
 type CommonProps = {
@@ -102,14 +103,12 @@ export function StudioLauncher(props: StudioLauncherProps) {
     const timer = window.setTimeout(() => setSupport(getStudioSupport()), 0);
     return () => window.clearTimeout(timer);
   }, []);
+  if (support === "checking") return <StudioSkeleton />;
   if (support !== "ready")
     return (
       <div className="rounded-card border-strong bg-surface border p-6">
-        <p
-          role={support === "checking" ? "status" : "alert"}
-          className="text-muted"
-        >
-          {support === "checking" ? "Preparing studio controls…" : support}
+        <p role="alert" className="text-muted">
+          {support}
         </p>
       </div>
     );

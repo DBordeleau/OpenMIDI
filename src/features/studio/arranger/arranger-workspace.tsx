@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   FiChevronDown,
   FiChevronUp,
@@ -45,8 +47,16 @@ import {
 } from "./commands";
 import { pixelsToTicks } from "./timeline";
 
+// Keep in lockstep with the `17rem` channel column in the grids below: the
+// playhead and timeline are positioned in pixels and must line up with the CSS
+// channel width (17rem × 16px = 272px).
+const CHANNEL_PX = 272;
 const iconButton =
   "border-strong text-muted hover:border-accent hover:text-accent grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-40";
+const channelButton =
+  "border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-40";
+const AUTO_SCROLL_EDGE = 56;
+const AUTO_SCROLL_SPEED = 16;
 const button =
   "border-strong hover:border-accent inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold disabled:opacity-50";
 const field =
@@ -115,11 +125,15 @@ export function ArrangerWorkspace(props: Props) {
   const [follow, setFollow] = useState(true);
   const [snapTicks, setSnapTicks] = useState<number | null>(120);
   const [clipboard, setClipboard] = useState<ArrangementClipboard | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [clipDrag, setClipDrag] = useState<{
     trackId: string;
     clipId: string;
     pointerId: number;
     originX: number;
+    originScrollLeft: number;
     startTick: number;
     previewTick: number;
     targetTrackId: string;
@@ -135,13 +149,75 @@ export function ArrangerWorkspace(props: Props) {
   const [rulerPointerId, setRulerPointerId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingImportRef = useRef<HTMLInputElement>(null);
+  const reduce = useReducedMotion();
+  const clipDragRef = useRef(clipDrag);
+  const dragPointerRef = useRef({ clientX: 0, altKey: false });
+  const autoScrollRef = useRef<number | null>(null);
+  const autoScrollDirRef = useRef(0);
+  useEffect(() => {
+    clipDragRef.current = clipDrag;
+  }, [clipDrag]);
+  useEffect(
+    () => () => {
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+    },
+    [],
+  );
+  const [viewportWidth, setViewportWidth] = useState(0);
   const scale = { tempoBpm: view.tempoBpm, pixelsPerQuarter };
-  const timelineWidth = Math.max(720, ticksToPixels(view.durationTicks, scale));
+  // Fill the visible timeline area even when the arrangement is short, so a
+  // brief clip does not leave a gaping blank region (and lanes do not clip
+  // clips dragged into that space). The channel column is sticky inside the
+  // scroll viewport, so subtract its width.
+  const fillWidth = Math.max(0, viewportWidth - CHANNEL_PX);
+  const timelineWidth = Math.max(
+    240,
+    fillWidth,
+    ticksToPixels(view.durationTicks, scale),
+  );
+  const rulerDurationTicks = Math.max(
+    view.durationTicks,
+    pixelsToTicks(timelineWidth, scale),
+  );
   const playheadLeft = ticksToPixels(props.playheadTick, scale);
   const marks = getRulerMarks({
-    durationTicks: view.durationTicks,
+    durationTicks: rulerDurationTicks,
     ...view.timeSignature,
   });
+
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    const update = () => setViewportWidth(viewport.clientWidth);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const viewport = scrollRef.current;
+    const close = () => setContextMenu(null);
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target as Element | null)?.closest("[data-clip-context-menu]"))
+        setContextMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setContextMenu(null);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", close);
+    viewport?.addEventListener("scroll", close);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", close);
+      viewport?.removeEventListener("scroll", close);
+    };
+  }, [contextMenu]);
 
   useEffect(() => {
     if (!follow || !props.playing || !scrollRef.current) return;
@@ -179,6 +255,71 @@ export function ArrangerWorkspace(props: Props) {
       ? selectedTrack?.clips.find((clip) => clip.clipId === selection.clipId)
       : null;
 
+  function clipDragTick(
+    clientX: number,
+    altKey: boolean,
+    drag: { originX: number; originScrollLeft: number; startTick: number },
+  ) {
+    const scrollLeft = scrollRef.current?.scrollLeft ?? drag.originScrollLeft;
+    const movedPixels =
+      clientX - drag.originX + (scrollLeft - drag.originScrollLeft);
+    const unsnapped = Math.max(
+      0,
+      drag.startTick + pixelsToTicks(movedPixels, scale),
+    );
+    return snapArrangementTick(unsnapped, altKey ? null : snapTicks);
+  }
+
+  function stopAutoScroll() {
+    autoScrollDirRef.current = 0;
+    if (autoScrollRef.current) {
+      cancelAnimationFrame(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  }
+
+  // While a clip is dragged toward either edge of the timeline viewport, scroll
+  // it in that direction and keep the dragged preview under the pointer.
+  function runAutoScroll() {
+    autoScrollRef.current = null;
+    const viewport = scrollRef.current;
+    const drag = clipDragRef.current;
+    if (!viewport || !drag || autoScrollDirRef.current === 0) return;
+    const before = viewport.scrollLeft;
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    const next = Math.max(
+      0,
+      Math.min(max, before + autoScrollDirRef.current * AUTO_SCROLL_SPEED),
+    );
+    if (next !== before) {
+      viewport.scrollLeft = next;
+      const previewTick = clipDragTick(
+        dragPointerRef.current.clientX,
+        dragPointerRef.current.altKey,
+        drag,
+      );
+      setClipDrag((current) =>
+        current ? { ...current, previewTick } : current,
+      );
+    }
+    autoScrollRef.current = requestAnimationFrame(runAutoScroll);
+  }
+
+  function updateAutoScroll(clientX: number) {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    const rect = viewport.getBoundingClientRect();
+    autoScrollDirRef.current =
+      clientX > rect.right - AUTO_SCROLL_EDGE
+        ? 1
+        : clientX < rect.left + CHANNEL_PX + AUTO_SCROLL_EDGE
+          ? -1
+          : 0;
+    if (autoScrollDirRef.current !== 0 && autoScrollRef.current === null)
+      autoScrollRef.current = requestAnimationFrame(runAutoScroll);
+    else if (autoScrollDirRef.current === 0) stopAutoScroll();
+  }
+
   function beginClipDrag(
     event: ReactPointerEvent<HTMLButtonElement>,
     trackId: string,
@@ -188,41 +329,39 @@ export function ArrangerWorkspace(props: Props) {
     if (!props.editable || event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     setSelection({ kind: "clip", trackId, clipId });
-    setClipDrag({
+    const drag = {
       trackId,
       clipId,
       pointerId: event.pointerId,
       originX: event.clientX,
+      originScrollLeft: scrollRef.current?.scrollLeft ?? 0,
       startTick,
       previewTick: startTick,
       targetTrackId: trackId,
       copy: false,
-    });
+    };
+    clipDragRef.current = drag;
+    dragPointerRef.current = { clientX: event.clientX, altKey: event.altKey };
+    setClipDrag(drag);
   }
 
   function previewClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
-    const deltaTicks = pixelsToTicks(event.clientX - clipDrag.originX, scale);
-    const unsnapped = Math.max(0, clipDrag.startTick + deltaTicks);
+    dragPointerRef.current = { clientX: event.clientX, altKey: event.altKey };
     const targetTrackId = findTargetTrackId(event) ?? clipDrag.trackId;
+    updateAutoScroll(event.clientX);
     setClipDrag({
       ...clipDrag,
       targetTrackId,
       copy: event.ctrlKey || event.metaKey,
-      previewTick: snapArrangementTick(
-        unsnapped,
-        event.altKey ? null : snapTicks,
-      ),
+      previewTick: clipDragTick(event.clientX, event.altKey, clipDrag),
     });
   }
 
   function commitClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
-    const deltaTicks = pixelsToTicks(event.clientX - clipDrag.originX, scale);
-    const finalTick = snapArrangementTick(
-      Math.max(0, clipDrag.startTick + deltaTicks),
-      event.altKey ? null : snapTicks,
-    );
+    stopAutoScroll();
+    const finalTick = clipDragTick(event.clientX, event.altKey, clipDrag);
     const targetTrackId = findTargetTrackId(event) ?? clipDrag.targetTrackId;
     const copy = event.ctrlKey || event.metaKey || clipDrag.copy;
     if (targetTrackId !== clipDrag.trackId) {
@@ -289,6 +428,7 @@ export function ArrangerWorkspace(props: Props) {
 
   function cancelClipDrag(event: ReactPointerEvent<HTMLButtonElement>) {
     if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
+    stopAutoScroll();
     setClipDrag(null);
   }
 
@@ -296,7 +436,7 @@ export function ArrangerWorkspace(props: Props) {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(bounds.width, event.clientX - bounds.left));
     props.onSeek(
-      Math.max(0, Math.min(view.durationTicks, pixelsToTicks(x, scale))),
+      Math.max(0, Math.min(rulerDurationTicks, pixelsToTicks(x, scale))),
     );
   }
 
@@ -325,7 +465,7 @@ export function ArrangerWorkspace(props: Props) {
         Math.min(
           view.tracks.length - 1,
           trackDrag.sourceIndex +
-            Math.round((event.clientY - trackDrag.originY) / 128),
+            Math.round((event.clientY - trackDrag.originY) / 176),
         ),
       ),
     });
@@ -345,7 +485,7 @@ export function ArrangerWorkspace(props: Props) {
   return (
     <section
       aria-label="Arrangement workspace"
-      className="rounded-card border-strong bg-surface overflow-hidden border shadow-xl"
+      className="rounded-card border-strong bg-surface flex min-h-0 flex-1 flex-col overflow-hidden border shadow-xl"
       onKeyDown={(event) => {
         if (
           event.target instanceof HTMLElement &&
@@ -453,19 +593,11 @@ export function ArrangerWorkspace(props: Props) {
       }}
       tabIndex={0}
     >
-      <header className="border-subtle bg-surface-raised flex flex-wrap items-center justify-between gap-3 border-b p-3">
-        <div className="flex items-center gap-2" aria-label="Transport">
-          <button
-            type="button"
-            className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg disabled:opacity-50"
-            aria-label={
-              props.playing ? "Pause arrangement" : "Play arrangement"
-            }
-            disabled={view.tracks.length === 0}
-            onClick={props.onTogglePlayback}
-          >
-            {props.playing ? <FiPause /> : <FiPlay />}
-          </button>
+      <header className="border-subtle bg-surface-raised grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3">
+        <div
+          className="flex min-w-0 items-center gap-3"
+          aria-label="Transport position"
+        >
           <p className="min-w-24 font-mono text-sm" aria-live="off">
             {formatMusicalPosition(props.playheadTick, view.timeSignature)}
           </p>
@@ -474,7 +606,16 @@ export function ArrangerWorkspace(props: Props) {
             {view.timeSignature.denominator}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg disabled:opacity-50"
+          aria-label={props.playing ? "Pause arrangement" : "Play arrangement"}
+          disabled={view.tracks.length === 0}
+          onClick={props.onTogglePlayback}
+        >
+          {props.playing ? <FiPause /> : <FiPlay />}
+        </button>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <label className="text-muted hidden text-[10px] font-semibold uppercase md:block">
             Snap
             <select
@@ -551,16 +692,16 @@ export function ArrangerWorkspace(props: Props) {
         </div>
       </header>
 
-      <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="relative flex min-h-0 min-w-0 flex-1">
         <div
           ref={scrollRef}
-          className="max-h-[38rem] min-w-0 overflow-auto overscroll-contain"
+          className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
         >
           <div
             className="relative min-w-max"
-            style={{ width: timelineWidth + 240 }}
+            style={{ width: timelineWidth + CHANNEL_PX }}
           >
-            <div className="border-subtle bg-surface sticky top-0 z-30 grid h-11 grid-cols-[15rem_1fr] border-b">
+            <div className="border-subtle bg-surface sticky top-0 z-30 grid h-11 grid-cols-[17rem_1fr] border-b">
               <div className="border-subtle bg-surface sticky left-0 z-40 flex items-center border-r px-3">
                 <span className="text-muted font-mono text-[10px] tracking-widest uppercase">
                   Channels
@@ -573,7 +714,7 @@ export function ArrangerWorkspace(props: Props) {
                 tabIndex={0}
                 aria-label="Arrangement playhead"
                 aria-valuemin={0}
-                aria-valuemax={view.durationTicks}
+                aria-valuemax={rulerDurationTicks}
                 aria-valuenow={props.playheadTick}
                 onKeyDown={(event) => {
                   if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
@@ -584,7 +725,7 @@ export function ArrangerWorkspace(props: Props) {
                     Math.max(
                       0,
                       Math.min(
-                        view.durationTicks,
+                        rulerDurationTicks,
                         props.playheadTick +
                           (event.key === "ArrowLeft" ? -1 : 1),
                       ),
@@ -624,7 +765,7 @@ export function ArrangerWorkspace(props: Props) {
             </div>
 
             {view.tracks.length === 0 && !props.pendingMidiLane ? (
-              <div className="sticky left-60 grid min-h-40 max-w-[calc(100vw-20rem)] place-items-center px-8 text-center">
+              <div className="sticky left-68 grid min-h-40 max-w-[calc(100vw-19rem)] place-items-center px-8 text-center">
                 <div>
                   <h3 className="text-xl font-semibold">
                     Bring in your first MIDI part.
@@ -644,9 +785,15 @@ export function ArrangerWorkspace(props: Props) {
                       ? props.audioSummaries.get(track.assetId)
                       : null;
                   return (
-                    <li
+                    <motion.li
                       key={track.trackId}
-                      className={`border-subtle grid h-32 grid-cols-[15rem_1fr] border-b ${selected ? "bg-surface-soft" : ""} ${trackDrag?.targetIndex === trackIndex || clipDrag?.targetTrackId === track.trackId ? "ring-accent ring-2 ring-inset" : ""}`}
+                      initial={reduce ? false : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        duration: reduce ? 0 : 0.3,
+                        ease: [0.2, 0.8, 0.2, 1],
+                      }}
+                      className={`border-subtle grid h-44 grid-cols-[17rem_1fr] border-b ${selected ? "bg-surface-soft" : ""} ${trackDrag?.targetIndex === trackIndex || clipDrag?.targetTrackId === track.trackId ? "ring-accent ring-2 ring-inset" : ""}`}
                     >
                       <div className="border-subtle bg-surface sticky left-0 z-20 border-r p-2.5">
                         <button
@@ -712,7 +859,7 @@ export function ArrangerWorkspace(props: Props) {
                             />
                           </label>
                         </div>
-                        <div className="mt-2 flex items-center gap-1.5">
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           <MixerButton
                             label={`Mute ${track.name}`}
                             active={track.muted}
@@ -738,7 +885,7 @@ export function ArrangerWorkspace(props: Props) {
                             S
                           </MixerButton>
                           <button
-                            className={iconButton}
+                            className={channelButton}
                             type="button"
                             aria-label={`Drag ${track.name} to reorder`}
                             title="Drag to reorder"
@@ -752,7 +899,7 @@ export function ArrangerWorkspace(props: Props) {
                             <FiMove />
                           </button>
                           <button
-                            className={iconButton}
+                            className={channelButton}
                             type="button"
                             aria-label={`Move ${track.name} up`}
                             disabled={!props.editable || trackIndex === 0}
@@ -761,7 +908,7 @@ export function ArrangerWorkspace(props: Props) {
                             <FiChevronUp />
                           </button>
                           <button
-                            className={iconButton}
+                            className={channelButton}
                             type="button"
                             aria-label={`Move ${track.name} down`}
                             disabled={
@@ -771,6 +918,28 @@ export function ArrangerWorkspace(props: Props) {
                             onClick={() => props.onMoveTrack(track.trackId, 1)}
                           >
                             <FiChevronDown />
+                          </button>
+                          {track.kind === "midi" && (
+                            <button
+                              className={channelButton}
+                              type="button"
+                              aria-label={`Duplicate ${track.name}`}
+                              title="Duplicate track"
+                              disabled={!props.editable}
+                              onClick={() => duplicateMidiTrack(track.trackId)}
+                            >
+                              <FiLayers />
+                            </button>
+                          )}
+                          <button
+                            className={`${channelButton} hover:border-danger hover:text-danger`}
+                            type="button"
+                            aria-label={`Remove ${track.name}`}
+                            title="Remove track"
+                            disabled={!props.editable}
+                            onClick={() => props.onRemoveTrack(track.trackId)}
+                          >
+                            <FiTrash2 />
                           </button>
                         </div>
                       </div>
@@ -802,7 +971,7 @@ export function ArrangerWorkspace(props: Props) {
                               type="button"
                               key={clip.clipId}
                               data-clip-id={clip.clipId}
-                              className={`focus-visible:ring-accent rounded-control absolute top-3 h-24 overflow-hidden border text-left focus-visible:ring-2 ${selection?.kind === "clip" && selection.clipId === clip.clipId ? "border-accent bg-accent/20" : "border-strong bg-surface-raised"}`}
+                              className={`focus-visible:ring-accent rounded-control absolute top-4 h-36 overflow-hidden border text-left focus-visible:ring-2 ${selection?.kind === "clip" && selection.clipId === clip.clipId ? "border-accent bg-accent/20" : "border-strong bg-surface-raised"}`}
                               style={{ left, width }}
                               aria-label={`${clip.kind === "midi" ? "MIDI" : "Audio"} clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${clip.durationTicks} ticks, credited to ${clip.creditName}.`}
                               onClick={() =>
@@ -812,6 +981,18 @@ export function ArrangerWorkspace(props: Props) {
                                   clipId: clip.clipId,
                                 })
                               }
+                              onContextMenu={(event) => {
+                                event.preventDefault();
+                                setSelection({
+                                  kind: "clip",
+                                  trackId: track.trackId,
+                                  clipId: clip.clipId,
+                                });
+                                setContextMenu({
+                                  x: event.clientX,
+                                  y: event.clientY,
+                                });
+                              }}
                               onDoubleClick={() => {
                                 if (clip.kind === "midi")
                                   props.onEditMidiClip(
@@ -848,13 +1029,13 @@ export function ArrangerWorkspace(props: Props) {
                           );
                         })}
                       </div>
-                    </li>
+                    </motion.li>
                   );
                 })}
               </ol>
             ) : null}
             {props.pendingMidiLane && (
-              <div className="border-accent bg-surface-soft sticky left-0 z-20 grid min-h-32 w-[min(100%,calc(100vw-2rem))] grid-cols-[15rem_minmax(30rem,1fr)] border-y border-dashed">
+              <div className="border-accent bg-surface-soft sticky left-0 z-20 grid min-h-32 w-[min(100%,calc(100vw-2rem))] grid-cols-[17rem_minmax(30rem,1fr)] border-y border-dashed">
                 <div className="border-subtle bg-surface-soft sticky left-0 z-30 flex flex-col justify-center border-r p-3">
                   <label className="text-muted text-[10px] font-semibold tracking-wide uppercase">
                     Pending MIDI track
@@ -940,7 +1121,7 @@ export function ArrangerWorkspace(props: Props) {
                 </div>
               </div>
             )}
-            <div className="border-subtle bg-surface sticky left-0 z-20 grid h-16 w-[min(100%,calc(100vw-2rem))] grid-cols-[15rem_minmax(30rem,1fr)] border-b">
+            <div className="border-subtle bg-surface sticky left-0 z-20 grid h-16 w-[min(100%,calc(100vw-2rem))] grid-cols-[17rem_minmax(30rem,1fr)] border-b">
               <button
                 type="button"
                 className="border-subtle text-accent hover:bg-surface-soft disabled:text-muted sticky left-0 flex items-center gap-2 border-r px-4 text-sm font-semibold disabled:opacity-60"
@@ -958,114 +1139,145 @@ export function ArrangerWorkspace(props: Props) {
             <div
               aria-hidden
               className="bg-ink pointer-events-none absolute top-0 bottom-0 z-10 w-px"
-              style={{ left: 240 + playheadLeft }}
+              style={{ left: CHANNEL_PX + playheadLeft }}
             />
           </div>
         </div>
 
-        <aside
-          className="border-subtle bg-surface-raised min-w-0 border-t p-4 xl:border-t-0 xl:border-l"
-          aria-label="Inspector"
-        >
-          <p className="text-accent font-mono text-[10px] tracking-widest uppercase">
-            Inspector
-          </p>
-          {!selectedTrack ? (
-            <p className="text-muted mt-3 text-sm">
-              Select a track or clip to inspect exact values.
-            </p>
-          ) : selectedClip ? (
-            <ClipInspector
-              key={selectedClip.clipId}
-              clip={selectedClip}
-              track={selectedTrack}
-              editable={props.editable}
-              midiVersions={props.midiVersions}
-              onPatch={(patch, group) =>
-                props.onCommand(
-                  {
-                    type: "patchClip",
-                    trackId: selectedTrack.trackId,
-                    clipId: selectedClip.clipId,
-                    patch,
-                  },
-                  `${selectedClip.clipId}:${group}`,
-                )
-              }
-              onReplace={(versionId) =>
-                props.onReplaceVersion(
-                  selectedTrack.trackId,
-                  selectedClip.clipId,
-                  versionId,
-                )
-              }
-              onEdit={() =>
-                props.onEditMidiClip(selectedTrack.trackId, selectedClip.clipId)
-              }
-              canPaste={
-                clipboard?.kind === selectedTrack.kind &&
-                (clipboard?.kind !== "audio" ||
-                  selectedTrack.assetId === clipboard.assetId)
-              }
-              onCopy={() =>
-                setClipboard(
-                  copyArrangementClip(
-                    props.manifest,
-                    selectedTrack.trackId,
-                    selectedClip.clipId,
-                  ),
-                )
-              }
-              onPaste={() => {
-                if (!clipboard) return;
-                props.onCommand({
-                  type: "pasteClip",
-                  targetTrackId: selectedTrack.trackId,
-                  clipboard,
-                  newClipId: crypto.randomUUID(),
-                  startTick: props.playheadTick,
-                });
-              }}
-              onDelete={() => {
-                props.onCommand({
-                  type: "deleteMidiClip",
-                  trackId: selectedTrack.trackId,
-                  clipId: selectedClip.clipId,
-                });
-                setSelection({
-                  kind: "track",
-                  trackId: selectedTrack.trackId,
-                });
-              }}
-              onSplit={(splitOffsetMs) =>
-                props.onCommand({
-                  type: "splitAudioClip",
-                  trackId: selectedTrack.trackId,
-                  clipId: selectedClip.clipId,
-                  splitOffsetMs,
-                  newClipId: crypto.randomUUID(),
-                })
-              }
-            />
-          ) : (
-            <TrackInspector
-              track={selectedTrack}
-              editable={props.editable}
-              onPatch={(patch) =>
-                props.onTrackPatch(selectedTrack.trackId, patch)
-              }
-              onRemove={() => props.onRemoveTrack(selectedTrack.trackId)}
-              onDuplicate={() => duplicateMidiTrack(selectedTrack.trackId)}
-            />
-          )}
-        </aside>
       </div>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {contextMenu && selectedClip && selectedTrack && (
+              <motion.div
+                key="clip-context-menu"
+                data-clip-context-menu
+                role="dialog"
+                aria-label="Clip options"
+                initial={
+                  reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -4 }
+                }
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+                transition={{
+                  duration: reduce ? 0 : 0.14,
+                  ease: [0.2, 0.8, 0.2, 1],
+                }}
+                className="border-strong bg-surface-raised rounded-card fixed z-50 max-h-[min(28rem,85vh)] w-72 origin-top-left overflow-y-auto border p-4 shadow-2xl"
+                style={{
+                  left: Math.max(
+                    8,
+                    Math.min(contextMenu.x, window.innerWidth - 296),
+                  ),
+                  top: Math.max(
+                    8,
+                    Math.min(contextMenu.y, window.innerHeight - 432),
+                  ),
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-accent font-mono text-[10px] tracking-widest uppercase">
+                    Clip options
+                  </p>
+                  <button
+                    type="button"
+                    className={iconButton}
+                    aria-label="Close clip options"
+                    title="Close"
+                    onClick={() => setContextMenu(null)}
+                  >
+                    <FiX />
+                  </button>
+                </div>
+                <ClipInspector
+                  key={selectedClip.clipId}
+                  clip={selectedClip}
+                  track={selectedTrack}
+                  editable={props.editable}
+                  midiVersions={props.midiVersions}
+                  onPatch={(patch, group) =>
+                    props.onCommand(
+                      {
+                        type: "patchClip",
+                        trackId: selectedTrack.trackId,
+                        clipId: selectedClip.clipId,
+                        patch,
+                      },
+                      `${selectedClip.clipId}:${group}`,
+                    )
+                  }
+                  onReplace={(versionId) =>
+                    props.onReplaceVersion(
+                      selectedTrack.trackId,
+                      selectedClip.clipId,
+                      versionId,
+                    )
+                  }
+                  onEdit={() => {
+                    props.onEditMidiClip(
+                      selectedTrack.trackId,
+                      selectedClip.clipId,
+                    );
+                    setContextMenu(null);
+                  }}
+                  canPaste={
+                    clipboard?.kind === selectedTrack.kind &&
+                    (clipboard?.kind !== "audio" ||
+                      selectedTrack.assetId === clipboard.assetId)
+                  }
+                  onCopy={() =>
+                    setClipboard(
+                      copyArrangementClip(
+                        props.manifest,
+                        selectedTrack.trackId,
+                        selectedClip.clipId,
+                      ),
+                    )
+                  }
+                  onPaste={() => {
+                    if (!clipboard) return;
+                    props.onCommand({
+                      type: "pasteClip",
+                      targetTrackId: selectedTrack.trackId,
+                      clipboard,
+                      newClipId: crypto.randomUUID(),
+                      startTick: props.playheadTick,
+                    });
+                  }}
+                  onDelete={() => {
+                    props.onCommand({
+                      type: "deleteMidiClip",
+                      trackId: selectedTrack.trackId,
+                      clipId: selectedClip.clipId,
+                    });
+                    setSelection({
+                      kind: "track",
+                      trackId: selectedTrack.trackId,
+                    });
+                    setContextMenu(null);
+                  }}
+                  onSplit={(splitOffsetMs) => {
+                    props.onCommand({
+                      type: "splitAudioClip",
+                      trackId: selectedTrack.trackId,
+                      clipId: selectedClip.clipId,
+                      splitOffsetMs,
+                      newClipId: crypto.randomUUID(),
+                    });
+                    setContextMenu(null);
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
       <footer className="border-subtle bg-surface-raised flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2">
         <p className="text-muted text-xs" aria-live="polite">
           {selection?.kind === "clip"
-            ? "Clip selected. Use the inspector for exact values."
+            ? "Clip selected · right-click for options, double-click to edit."
             : selection
-              ? "Track selected. Mixer values are available in the inspector."
+              ? "Track selected · mix and reorder from its channel."
               : "No selection."}
         </p>
         {props.statusRegion}
@@ -1088,7 +1300,7 @@ function MixerButton(props: {
       aria-pressed={props.active}
       disabled={props.disabled}
       onClick={props.onClick}
-      className={`grid h-9 w-9 place-items-center rounded-full border text-xs font-bold ${props.active ? "bg-accent text-accent-contrast border-transparent" : "border-strong text-muted"}`}
+      className={`grid h-8 w-8 place-items-center rounded-full border text-xs font-bold ${props.active ? "bg-accent text-accent-contrast border-transparent" : "border-strong text-muted"}`}
     >
       {props.children}
     </button>
@@ -1152,77 +1364,6 @@ function AudioWaveform({
         />
       ))}
     </span>
-  );
-}
-
-function TrackInspector({
-  track,
-  editable,
-  onPatch,
-  onRemove,
-  onDuplicate,
-}: {
-  track: ReturnType<typeof buildArrangerViewModel>["tracks"][number];
-  editable: boolean;
-  onPatch: (patch: Partial<WorkspaceTrackV2>) => void;
-  onRemove: () => void;
-  onDuplicate: () => void;
-}) {
-  return (
-    <div className="mt-3 space-y-3">
-      <h3 className="truncate font-semibold">{track.name}</h3>
-      <p className="text-muted text-xs">
-        {track.kind} · {track.creditName}
-      </p>
-      <label className="block text-xs font-semibold">
-        Gain (dB)
-        <input
-          aria-label={`${track.name} gain`}
-          className={`${field} mt-1`}
-          type="number"
-          min={-60}
-          max={6}
-          step={0.5}
-          disabled={!editable}
-          value={track.gainDb}
-          onChange={(event) => onPatch({ gainDb: Number(event.target.value) })}
-        />
-      </label>
-      <label className="block text-xs font-semibold">
-        Pan
-        <input
-          aria-label={`${track.name} pan`}
-          className={`${field} mt-1`}
-          type="number"
-          min={-1}
-          max={1}
-          step={0.1}
-          disabled={!editable}
-          value={track.pan}
-          onChange={(event) => onPatch({ pan: Number(event.target.value) })}
-        />
-      </label>
-      {editable && (
-        <div className="flex flex-wrap gap-3">
-          {track.kind === "midi" && (
-            <button
-              className="border-strong hover:border-accent inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold"
-              type="button"
-              onClick={onDuplicate}
-            >
-              <FiLayers /> Duplicate MIDI track
-            </button>
-          )}
-          <button
-            className="text-danger inline-flex items-center gap-2 text-sm underline"
-            type="button"
-            onClick={onRemove}
-          >
-            <FiTrash2 /> Remove track
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
 

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
@@ -75,23 +74,7 @@ export default async function StudioProjectPage({
   const launcherKey = descriptor ? sessionAuthorityKey(descriptor) : projectId;
 
   return (
-    <section className="space-y-8">
-      <div>
-        <Link className="text-accent underline" href={`/projects/${projectId}`}>
-          Return to project
-        </Link>
-        <p className="text-accent mt-6 text-sm font-semibold tracking-widest uppercase">
-          {workspace
-            ? `Private draft from revision ${revision?.revisionNumber ?? "—"}`
-            : `Current revision ${revision?.revisionNumber ?? "—"}`}
-        </p>
-        <h1 className="mt-2 text-4xl font-bold">{project.title} studio</h1>
-        <p className="text-muted mt-3">
-          {workspace
-            ? "Edit and autosave a private workspace. The published revision remains immutable."
-            : "Synchronized playback of the immutable published arrangement."}
-        </p>
-      </div>
+    <section className="flex min-h-0 flex-1 flex-col">
       {workspace && contribution ? (
         <StudioLauncher
           key={launcherKey}

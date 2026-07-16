@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -11,8 +12,9 @@ import {
   useState,
 } from "react";
 import {
+  FiCheck,
   FiChevronDown,
-  FiDownload,
+  FiExternalLink,
   FiFolder,
   FiPlus,
   FiSave,
@@ -34,17 +36,12 @@ import {
   type StudioLifecycleSnapshot,
 } from "@/features/studio/switch-coordinator";
 
-type StudioFileActions = {
-  openExport?(): void;
-};
-
 type StudioShellContextValue = {
   requestNavigation(target: string): void;
   registerLifecycle(
     port: StudioSessionLifecyclePort,
     options: { editable: boolean },
   ): () => void;
-  registerFileActions(actions: StudioFileActions): () => void;
   switching: boolean;
 };
 
@@ -67,12 +64,12 @@ export function StudioShell({
   const pathname = usePathname();
   const lifecycle = useRef<StudioSessionLifecyclePort | null>(null);
   const lifecycleSubscription = useRef<(() => void) | null>(null);
-  const fileMenuRef = useRef<HTMLDetailsElement>(null);
+  const reduce = useReducedMotion();
   const [panel, setPanel] = useState<"browser" | "creator" | null>(null);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [editableSession, setEditableSession] = useState(false);
   const [lifecycleSnapshot, setLifecycleSnapshot] =
     useState<StudioLifecycleSnapshot | null>(null);
-  const [fileActions, setFileActions] = useState<StudioFileActions>({});
   const [projects, setProjects] = useState(initialProjects?.projects ?? []);
   const [nextCursor, setNextCursor] = useState(
     initialProjects?.nextCursor ?? null,
@@ -85,6 +82,12 @@ export function StudioShell({
     resolve(value: boolean): void;
   } | null>(null);
   const activeProjectId = pathname.match(/^\/studio\/([0-9a-f-]+)$/i)?.[1];
+  const activeProject = projects.find(
+    (project) => project.id === activeProjectId,
+  );
+  const projectLabel = activeProjectId
+    ? (activeProject?.title ?? "Current project")
+    : "No project open";
 
   const registerLifecycle = useCallback(
     (port: StudioSessionLifecyclePort, options: { editable: boolean }) => {
@@ -107,12 +110,6 @@ export function StudioShell({
     },
     [],
   );
-
-  const registerFileActions = useCallback((actions: StudioFileActions) => {
-    setFileActions(actions);
-    return () =>
-      setFileActions((current) => (current === actions ? {} : current));
-  }, []);
 
   const confirmLeave = useCallback(
     (kind: StudioLeaveDecision) =>
@@ -139,9 +136,25 @@ export function StudioShell({
   const context: StudioShellContextValue = {
     requestNavigation,
     registerLifecycle,
-    registerFileActions,
     switching: Boolean(switchTarget),
   };
+
+  useEffect(() => {
+    if (!projectMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target as Element | null)?.closest("[data-project-menu]"))
+        setProjectMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProjectMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [projectMenuOpen]);
 
   const saveDisabledReason = !activeProjectId
     ? "Open an editable project before saving."
@@ -155,15 +168,15 @@ export function StudioShell({
             ? "Resolve the draft conflict before saving."
             : null;
 
-  function closeFileMenu() {
-    fileMenuRef.current?.removeAttribute("open");
-  }
-
   function saveSession() {
     const port = lifecycle.current;
     if (!port || saveDisabledReason) return;
     port.requestSave(port.getSnapshot().generation);
-    closeFileMenu();
+  }
+
+  function openProject(target: string) {
+    setProjectMenuOpen(false);
+    requestNavigation(target);
   }
 
   async function prepareCreation() {
@@ -199,100 +212,176 @@ export function StudioShell({
 
   return (
     <StudioShellContext.Provider value={context}>
-      <header className="border-subtle bg-surface/90 rounded-card relative z-40 flex min-h-14 flex-wrap items-center gap-x-5 gap-y-2 border px-3 py-2 shadow-lg backdrop-blur-sm sm:px-4">
-        <div className="mr-auto flex items-center gap-4">
+      <header className="border-subtle bg-surface/95 rounded-card relative z-40 flex min-h-11 flex-wrap items-center gap-1 border px-2 py-1 shadow-lg backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => requestNavigation("/studio")}
+          aria-label="Jam Session Studio"
+          title="Jam Session Studio"
+          className="hover:bg-surface-raised rounded-control mr-1 flex min-h-9 items-center gap-2 px-2 font-bold tracking-tight transition-colors"
+        >
+          <span
+            aria-hidden
+            className="h-2.5 w-2.5 rounded-full"
+            style={{
+              background:
+                "linear-gradient(140deg,var(--color-accent),var(--color-accent-2))",
+              boxShadow: "0 0 12px rgb(255 175 120 / 0.6)",
+            }}
+          />
+          <span className="hidden text-sm sm:inline">Studio</span>
+        </button>
+
+        <div className="relative" data-project-menu>
           <button
             type="button"
-            onClick={() => requestNavigation("/studio")}
-            className="hover:text-accent text-left font-bold tracking-tight transition-colors"
+            onClick={() => setProjectMenuOpen((open) => !open)}
+            disabled={!initialProjects || Boolean(switchTarget)}
+            aria-haspopup="menu"
+            aria-expanded={projectMenuOpen}
+            aria-label={`Project menu — ${projectLabel}`}
+            title="Projects"
+            className="border-strong hover:border-accent hover:text-accent rounded-control flex min-h-9 min-w-0 items-center gap-2 border px-3 text-sm font-semibold transition-colors disabled:opacity-50"
           >
-            Jam Session Studio
+            <FiFolder aria-hidden className="text-muted shrink-0" />
+            <span className="max-w-56 truncate">{projectLabel}</span>
+            <FiChevronDown
+              aria-hidden
+              className={`text-muted shrink-0 transition-transform ${projectMenuOpen ? "rotate-180" : ""}`}
+            />
           </button>
-          <span className="border-subtle text-muted hidden border-l pl-4 text-xs sm:inline">
-            {activeProjectId ? "Project session" : "Blank session"}
-          </span>
-        </div>
-        <nav aria-label="Studio" className="flex items-center gap-1">
-          <details ref={fileMenuRef} className="relative">
-            <summary className="hover:bg-surface-raised rounded-control flex min-h-10 list-none items-center gap-1 px-3 text-sm font-semibold transition-colors">
-              File <FiChevronDown aria-hidden className="text-muted" />
-            </summary>
-            <div className="border-strong bg-surface rounded-control absolute top-11 right-0 z-50 w-72 border p-2 shadow-2xl">
-              <p className="text-muted px-3 pt-2 pb-1 font-mono text-[10px] tracking-widest uppercase">
-                Project
-              </p>
-              <FileMenuButton
-                icon={<FiPlus aria-hidden />}
-                disabled={
-                  !projectOptions || !createAction || Boolean(switchTarget)
+          <AnimatePresence>
+            {projectMenuOpen && (
+              <motion.div
+                role="menu"
+                aria-label="Projects"
+                initial={
+                  reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }
                 }
-                reason="Project creation is unavailable for this account."
-                onClick={() => {
-                  closeFileMenu();
-                  setPanel("creator");
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={
+                  reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }
+                }
+                transition={{
+                  duration: reduce ? 0 : 0.16,
+                  ease: [0.2, 0.8, 0.2, 1],
                 }}
+                className="border-strong bg-surface rounded-control absolute top-11 left-0 z-50 w-80 max-w-[calc(100vw-2rem)] origin-top-left border p-2 shadow-2xl"
               >
-                New project
-              </FileMenuButton>
-              <FileMenuButton
-                icon={<FiFolder aria-hidden />}
-                disabled={!initialProjects || Boolean(switchTarget)}
-                reason="The project browser is unavailable for this account."
-                onClick={() => {
-                  closeFileMenu();
-                  setPanel("browser");
-                }}
-              >
-                Open project
-              </FileMenuButton>
-              <div className="border-subtle my-2 border-t" />
-              <FileMenuButton
-                icon={<FiSave aria-hidden />}
-                disabled={Boolean(saveDisabledReason) || Boolean(switchTarget)}
-                reason={saveDisabledReason ?? "Studio is switching projects."}
-                onClick={saveSession}
-              >
-                Save
-              </FileMenuButton>
-              <FileMenuButton
-                icon={<FiX aria-hidden />}
-                disabled={!activeProjectId || Boolean(switchTarget)}
-                reason="No project is open."
-                onClick={() => {
-                  closeFileMenu();
-                  requestNavigation("/studio");
-                }}
-              >
-                Close project
-              </FileMenuButton>
-              <FileMenuButton
-                icon={<FiDownload aria-hidden />}
-                disabled={!fileActions.openExport || Boolean(switchTarget)}
-                reason="Open a project with downloadable or exportable material first."
-                onClick={() => {
-                  closeFileMenu();
-                  fileActions.openExport?.();
-                }}
-              >
-                Download / export…
-              </FileMenuButton>
-            </div>
-          </details>
-          {activeProjectId ? (
-            <button
-              type="button"
-              disabled={Boolean(switchTarget)}
-              onClick={() => requestNavigation("/studio")}
-              className="border-strong hover:border-accent hover:text-accent hidden min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors disabled:opacity-50 md:inline-flex"
-            >
-              <FiX aria-hidden /> Close project
-            </button>
-          ) : (
-            <span className="text-muted hidden text-xs md:inline">
-              File → New or Open to begin
-            </span>
-          )}
-        </nav>
+                <ProjectMenuButton
+                  icon={<FiPlus aria-hidden />}
+                  accent
+                  disabled={
+                    !projectOptions || !createAction || Boolean(switchTarget)
+                  }
+                  onClick={() => {
+                    setProjectMenuOpen(false);
+                    setPanel("creator");
+                  }}
+                >
+                  New project
+                </ProjectMenuButton>
+                <div className="border-subtle my-2 border-t" />
+                <p className="text-muted px-3 pb-1 font-mono text-[10px] tracking-widest uppercase">
+                  {projects.length ? "Switch to" : "Projects"}
+                </p>
+                <div className="max-h-64 overflow-y-auto">
+                  {projects.length ? (
+                    projects.slice(0, 8).map((project) => {
+                      const current = project.id === activeProjectId;
+                      return (
+                        <button
+                          key={project.id}
+                          type="button"
+                          role="menuitem"
+                          disabled={current || Boolean(switchTarget)}
+                          onClick={() => openProject(`/studio/${project.id}`)}
+                          className="hover:bg-surface-raised rounded-control flex min-h-10 w-full items-center gap-2 px-3 text-left text-sm transition-colors disabled:cursor-default"
+                        >
+                          <span
+                            className="text-accent w-4 shrink-0"
+                            aria-hidden
+                          >
+                            {current ? <FiCheck /> : null}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {project.title}
+                          </span>
+                          {current && (
+                            <span className="text-muted shrink-0 text-[10px] tracking-wide uppercase">
+                              Current
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <p className="text-muted px-3 py-2 text-sm">
+                      No projects yet.
+                    </p>
+                  )}
+                </div>
+                {initialProjects && (
+                  <ProjectMenuButton
+                    icon={<FiFolder aria-hidden />}
+                    disabled={Boolean(switchTarget)}
+                    onClick={() => {
+                      setProjectMenuOpen(false);
+                      setPanel("browser");
+                    }}
+                  >
+                    Browse all projects…
+                  </ProjectMenuButton>
+                )}
+                {activeProjectId && (
+                  <>
+                    <div className="border-subtle my-2 border-t" />
+                    <ProjectMenuButton
+                      icon={<FiExternalLink aria-hidden />}
+                      disabled={Boolean(switchTarget)}
+                      onClick={() => {
+                        setProjectMenuOpen(false);
+                        requestNavigation(`/projects/${activeProjectId}`);
+                      }}
+                    >
+                      View project page
+                    </ProjectMenuButton>
+                    <ProjectMenuButton
+                      icon={<FiX aria-hidden />}
+                      disabled={Boolean(switchTarget)}
+                      onClick={() => openProject("/studio")}
+                    >
+                      Close project
+                    </ProjectMenuButton>
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {editableSession && (
+          <button
+            type="button"
+            onClick={saveSession}
+            disabled={Boolean(saveDisabledReason)}
+            title={saveDisabledReason ?? "Save the arrangement"}
+            className="border-strong hover:border-accent hover:text-accent ml-1 inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors disabled:opacity-40"
+          >
+            <FiSave aria-hidden /> Save
+          </button>
+        )}
+
+        <span
+          className="text-muted ml-auto hidden pr-1 text-xs sm:inline"
+          role="status"
+        >
+          {switchTarget
+            ? "Switching…"
+            : activeProjectId
+              ? "Project session"
+              : "Blank session"}
+        </span>
       </header>
 
       {switchTarget && (
@@ -301,7 +390,7 @@ export function StudioShell({
         </p>
       )}
 
-      {children}
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
       {panel === "browser" && (
         <StudioDialog title="Choose a project" onClose={() => setPanel(null)}>
@@ -404,50 +493,32 @@ export function useStudioLifecycleRegistration(
   );
 }
 
-export function useStudioFileActions(actions: StudioFileActions) {
-  const shell = useContext(StudioShellContext);
-  const registerFileActions = shell?.registerFileActions;
-  const openExport = actions.openExport;
-  useEffect(
-    () => registerFileActions?.({ openExport }),
-    [openExport, registerFileActions],
-  );
-}
-
-function FileMenuButton({
+function ProjectMenuButton({
   icon,
   children,
   disabled,
-  reason,
+  accent,
   onClick,
 }: {
   icon: React.ReactNode;
   children: React.ReactNode;
   disabled: boolean;
-  reason: string;
+  accent?: boolean;
   onClick(): void;
 }) {
-  const reasonId = useId();
   return (
-    <>
-      <button
-        type="button"
-        className="hover:bg-surface-raised rounded-control flex min-h-10 w-full items-center gap-3 px-3 text-left text-sm transition-colors disabled:opacity-40"
-        disabled={disabled}
-        aria-describedby={disabled ? reasonId : undefined}
-        onClick={onClick}
-      >
-        <span className="text-muted" aria-hidden>
-          {icon}
-        </span>
-        {children}
-      </button>
-      {disabled && (
-        <span id={reasonId} className="sr-only">
-          {reason}
-        </span>
-      )}
-    </>
+    <button
+      type="button"
+      role="menuitem"
+      className="hover:bg-surface-raised rounded-control flex min-h-10 w-full items-center gap-3 px-3 text-left text-sm font-semibold transition-colors disabled:opacity-40"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className={accent ? "text-accent" : "text-muted"} aria-hidden>
+        {icon}
+      </span>
+      {children}
+    </button>
   );
 }
 

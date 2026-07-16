@@ -200,9 +200,9 @@ describe("ArrangerWorkspace", () => {
     ).toBeVisible();
     const clips = screen.getAllByRole("button", { name: /MIDI clip on Keys/ });
     expect(clips).toHaveLength(2);
-    fireEvent.click(clips[1]!);
+    fireEvent.contextMenu(clips[1]!);
     expect(
-      screen.getByRole("complementary", { name: "Inspector" }),
+      screen.getByRole("dialog", { name: "Clip options" }),
     ).toHaveTextContent("Keys clip");
     expect(screen.getByLabelText("Start tick")).toHaveValue(960);
     expect(screen.getByRole("button", { name: "Mute Keys" })).toBeDisabled();
@@ -300,9 +300,7 @@ describe("ArrangerWorkspace", () => {
       />,
     );
     const scoped = within(view.container);
-    fireEvent.click(
-      scoped.getByRole("button", { name: "Duplicate MIDI track" }),
-    );
+    fireEvent.click(scoped.getByRole("button", { name: "Duplicate Keys" }));
     expect(onCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "duplicateMidiTrack",

@@ -4,7 +4,6 @@ import { MutableStudioLifecycle } from "../switch-coordinator";
 import type { ProjectSummaryPage } from "@/features/projects/types";
 import {
   StudioShell,
-  useStudioFileActions,
   useStudioLifecycleRegistration,
 } from "./studio-shell.client";
 
@@ -45,7 +44,7 @@ describe("Studio lifecycle registration", () => {
     expect(() => render(<AlternateStudioSurface />)).not.toThrow();
   });
 
-  it("presents project lifecycle commands in File with blank-session reasons", () => {
+  it("opens the project menu and gates creation for an empty blank session", () => {
     render(
       <StudioShell
         initialProjects={emptyProjects}
@@ -56,25 +55,22 @@ describe("Studio lifecycle registration", () => {
       </StudioShell>,
     );
 
-    fireEvent.click(screen.getByText("File"));
+    fireEvent.click(screen.getByRole("button", { name: /Project menu/ }));
 
-    expect(screen.getByRole("button", { name: "Open project" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(
-      screen.getByText("Open an editable project before saving."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Close project" }),
+      screen.getByRole("menuitem", { name: "New project" }),
     ).toBeDisabled();
+    expect(screen.getByText("No projects yet.")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Download / export…" }),
-    ).toBeDisabled();
+      screen.getByRole("menuitem", { name: "Browse all projects…" }),
+    ).toBeEnabled();
+    // No project is open, so a Save control is not offered on a blank session.
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   });
 
-  it("routes File Save and Download to the registered selected session", () => {
+  it("offers a top-bar Save that routes to the registered editable session", () => {
     navigation.pathname = "/studio/10000000-0000-4000-8000-000000000123";
     const save = vi.fn();
-    const openExport = vi.fn();
     const lifecycle = new MutableStudioLifecycle({
       status: "dirty",
       generation: 2,
@@ -89,7 +85,6 @@ describe("Studio lifecycle registration", () => {
 
     function SelectedSession() {
       useStudioLifecycleRegistration(lifecycle, { editable: true });
-      useStudioFileActions({ openExport });
       return <p>Selected workspace</p>;
     }
 
@@ -103,13 +98,8 @@ describe("Studio lifecycle registration", () => {
       </StudioShell>,
     );
 
-    fireEvent.click(screen.getByText("File"));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(save).toHaveBeenCalledWith(2);
-
-    fireEvent.click(screen.getByText("File"));
-    fireEvent.click(screen.getByRole("button", { name: "Download / export…" }));
-    expect(openExport).toHaveBeenCalledOnce();
   });
 });
 

@@ -1,13 +1,16 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiDownload, FiFolderPlus, FiMoreHorizontal } from "react-icons/fi";
-import type { StudioLauncherProps } from "../components/studio-launcher.client";
 import {
-  useStudioFileActions,
-  useStudioLifecycleRegistration,
-} from "../components/studio-shell.client";
+  FiChevronDown,
+  FiDownload,
+  FiFolderPlus,
+  FiMusic,
+} from "react-icons/fi";
+import type { StudioLauncherProps } from "../components/studio-launcher.client";
+import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
 import {
   MIDI_PPQ,
   parseWorkspaceManifestV2,
@@ -67,19 +70,16 @@ const button =
   "border-strong hover:border-accent inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold disabled:opacity-50";
 const input =
   "border-strong bg-canvas min-h-11 rounded-control border px-3 text-sm";
+const toolbarButton =
+  "border-strong text-muted hover:border-accent hover:text-accent inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-40";
 
 export function MidiStudioSurface(props: Props) {
-  const actionsMenuRef = useRef<HTMLDetailsElement>(null);
-  const studioFileActions = useMemo(
-    () => ({
-      openExport: () => {
-        actionsMenuRef.current?.setAttribute("open", "");
-        actionsMenuRef.current?.querySelector<HTMLElement>("summary")?.focus();
-      },
-    }),
-    [],
-  );
-  useStudioFileActions(studioFileActions);
+  const reduce = useReducedMotion();
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Point the arranger↔editor morph originates from, as a `transform-origin`
+  // string. Set to the clicked clip so the editor appears to bloom out of it.
+  const [editorOrigin, setEditorOrigin] = useState("50% 38%");
   const [midiVersions, setMidiVersions] = useState(
     () => props.midiVersions ?? [],
   );
@@ -193,6 +193,23 @@ export function MidiStudioSurface(props: Props) {
   useEffect(() => {
     propsRef.current = props;
   }, [props]);
+
+  useEffect(() => {
+    if (!importMenuOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!(event.target as Element | null)?.closest("[data-import-menu]"))
+        setImportMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setImportMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [importMenuOpen]);
 
   useEffect(() => {
     const next = new BrowserMidiRuntime();
@@ -590,6 +607,20 @@ export function MidiStudioSurface(props: Props) {
     });
   }
 
+  function originFromElement(element: Element | null) {
+    const stage = stageRef.current;
+    if (!element || !stage) return "50% 38%";
+    const stageRect = stage.getBoundingClientRect();
+    if (!stageRect.width || !stageRect.height) return "50% 38%";
+    const rect = element.getBoundingClientRect();
+    const clamp = (value: number) => Math.max(0, Math.min(100, value));
+    const x = ((rect.left + rect.width / 2 - stageRect.left) / stageRect.width) *
+      100;
+    const y = ((rect.top + rect.height / 2 - stageRect.top) / stageRect.height) *
+      100;
+    return `${clamp(x)}% ${clamp(y)}%`;
+  }
+
   function openMidiClipEditor(trackId: string, clipId: string) {
     if (!editable) return;
     const track = manifestRef.current.tracks.find(
@@ -605,6 +636,9 @@ export function MidiStudioSurface(props: Props) {
       setMessage("That exact MIDI clip is not available to edit.");
       return;
     }
+    setEditorOrigin(
+      originFromElement(document.querySelector(`[data-clip-id="${clipId}"]`)),
+    );
     setComposerTarget({
       operation: "replace",
       trackId,
@@ -954,7 +988,7 @@ export function MidiStudioSurface(props: Props) {
 
   if (manifest.manifestVersion === 2)
     return (
-      <section className="space-y-4">
+      <section className="flex min-h-0 flex-1 flex-col gap-4">
         {recovery && editable && (
           <div role="alert" className="rounded-card border-accent border p-5">
             <h2 className="font-bold">
@@ -1029,19 +1063,26 @@ export function MidiStudioSurface(props: Props) {
             )}
           </div>
         )}
-        <div>
-          <p className="text-accent font-mono text-xs tracking-widest uppercase">
-            Jam Session arranger
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold">Arrangement</h2>
-          <p className="text-muted mt-1 text-sm">
-            Audio and MIDI share one musical timeline. Exact immutable source
-            versions remain the authority.
-          </p>
-        </div>
-        <ArrangerWorkspace
-          manifest={manifest}
-          midiVersions={midiVersions}
+        <div
+          ref={stageRef}
+          className="relative flex min-h-0 flex-1 flex-col"
+        >
+          <motion.div
+            className="flex min-h-0 flex-1 flex-col"
+            animate={{
+              opacity: composerTarget ? 0 : 1,
+              scale: reduce ? 1 : composerTarget ? 0.97 : 1,
+            }}
+            transition={{ duration: reduce ? 0 : 0.32, ease: [0.2, 0.8, 0.2, 1] }}
+            style={{
+              transformOrigin: editorOrigin,
+              pointerEvents: composerTarget ? "none" : "auto",
+            }}
+            inert={composerTarget ? true : undefined}
+          >
+            <ArrangerWorkspace
+              manifest={manifest}
+              midiVersions={midiVersions}
           trackCredits={props.tracks}
           audioSummaries={audioSummaries}
           editable={Boolean(editable)}
@@ -1080,6 +1121,7 @@ export function MidiStudioSurface(props: Props) {
           }
           onOpenPendingPianoRoll={() => {
             if (!pendingMidiLane?.name.trim()) return;
+            setEditorOrigin("50% 32%");
             setComposerTarget({
               operation: "add",
               startTick: seekTick,
@@ -1091,6 +1133,7 @@ export function MidiStudioSurface(props: Props) {
           }}
           onImportPendingMidi={(file) => {
             if (!pendingMidiLane?.name.trim()) return;
+            setEditorOrigin("50% 32%");
             setComposerTarget({
               operation: "add",
               startTick: seekTick,
@@ -1114,101 +1157,143 @@ export function MidiStudioSurface(props: Props) {
           onUndo={undo}
           onRedo={redo}
           actionRegion={
-            <details ref={actionsMenuRef} className="relative">
-              <summary className={`${button} list-none gap-2`}>
-                <FiMoreHorizontal /> Actions
-              </summary>
-              <div className="border-strong bg-surface rounded-card absolute top-12 right-0 z-50 w-80 space-y-3 border p-4 shadow-xl">
-                {editable && (
-                  <div>
-                    <label
-                      className="text-xs font-semibold"
-                      htmlFor="arranger-version"
-                    >
-                      Immutable version from My stems
-                    </label>
-                    <select
-                      id="arranger-version"
-                      className={`${input} mt-1 w-full`}
-                      value={selectedVersionId}
-                      onChange={(event) =>
-                        setSelectedVersionId(event.target.value)
-                      }
-                    >
-                      {midiVersions.map((version) => (
-                        <option
-                          key={version.stemVersionId}
-                          value={version.stemVersionId}
-                        >
-                          {version.name} · v{version.version} ·{" "}
-                          {version.creatorCreditName}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className={`${button} mt-2 w-full gap-2`}
-                      type="button"
-                      onClick={() => void importVersion()}
-                      disabled={!selectedVersionId || status === "saving"}
-                    >
-                      <FiFolderPlus /> Import exact version
-                    </button>
-                    <Link className={`${button} mt-2 w-full`} href="/stems">
-                      Open My stems
-                    </Link>
-                  </div>
-                )}
-                <button
-                  className={`${button} w-full gap-2`}
-                  type="button"
-                  disabled={!manifest.tracks.length}
-                  onClick={() =>
-                    download(
-                      exportMidiProject(
-                        manifest,
-                        stemVersions,
-                        props.projectTitle,
-                      ),
-                      "mid",
-                    )
-                  }
-                >
-                  <FiDownload /> Export .mid
-                </button>
-                <button
-                  className={`${button} w-full gap-2`}
-                  type="button"
-                  disabled={!manifest.tracks.length || rendering}
-                  onClick={() =>
-                    void (async () => {
-                      setRendering(true);
-                      try {
-                        download(
-                          await renderMidiProjectWav(
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className={toolbarButton}
+                title="Export a standard MIDI file"
+                disabled={!manifest.tracks.length}
+                onClick={() =>
+                  download(
+                    exportMidiProject(
+                      manifest,
+                      stemVersions,
+                      props.projectTitle,
+                    ),
+                    "mid",
+                  )
+                }
+              >
+                <FiDownload aria-hidden /> .mid
+              </button>
+              <button
+                type="button"
+                className={toolbarButton}
+                title="Render and download a WAV mix locally"
+                disabled={!manifest.tracks.length || rendering}
+                onClick={() =>
+                  void (async () => {
+                    setRendering(true);
+                    try {
+                      download(
+                        await renderMidiProjectWav(
+                          manifest,
+                          stemVersions,
+                          await loadAudioSources(
+                            props,
                             manifest,
-                            stemVersions,
-                            await loadAudioSources(
-                              props,
-                              manifest,
-                              new AbortController().signal,
-                            ),
+                            new AbortController().signal,
                           ),
-                          "wav",
-                        );
-                      } catch {
-                        setMessage(
-                          "The local synth mix could not be rendered in this browser.",
-                        );
-                      } finally {
-                        setRendering(false);
-                      }
-                    })()
-                  }
-                >
-                  <FiDownload /> {rendering ? "Rendering…" : "Export local WAV"}
-                </button>
-              </div>
-            </details>
+                        ),
+                        "wav",
+                      );
+                    } catch {
+                      setMessage(
+                        "The local synth mix could not be rendered in this browser.",
+                      );
+                    } finally {
+                      setRendering(false);
+                    }
+                  })()
+                }
+              >
+                <FiDownload aria-hidden /> {rendering ? "Rendering…" : "WAV"}
+              </button>
+              {editable && (
+                <div className="relative" data-import-menu>
+                  <button
+                    type="button"
+                    className={toolbarButton}
+                    aria-haspopup="menu"
+                    aria-expanded={importMenuOpen}
+                    title="Import a stem version from My stems"
+                    onClick={() => setImportMenuOpen((open) => !open)}
+                  >
+                    <FiFolderPlus aria-hidden /> Library
+                    <FiChevronDown
+                      aria-hidden
+                      className={`transition-transform ${importMenuOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {importMenuOpen && (
+                      <motion.div
+                        role="menu"
+                        aria-label="Stem library"
+                        initial={
+                          reduce
+                            ? { opacity: 0 }
+                            : { opacity: 0, y: -6, scale: 0.98 }
+                        }
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={
+                          reduce
+                            ? { opacity: 0 }
+                            : { opacity: 0, y: -6, scale: 0.98 }
+                        }
+                        transition={{
+                          duration: reduce ? 0 : 0.16,
+                          ease: [0.2, 0.8, 0.2, 1],
+                        }}
+                        className="border-strong bg-surface rounded-card absolute top-11 right-0 z-50 w-80 max-w-[calc(100vw-2rem)] origin-top-right space-y-3 border p-4 shadow-xl"
+                      >
+                        <label
+                          className="block text-xs font-semibold"
+                          htmlFor="arranger-version"
+                        >
+                          Immutable version from My stems
+                          <select
+                            id="arranger-version"
+                            className={`${input} mt-1 w-full`}
+                            value={selectedVersionId}
+                            onChange={(event) =>
+                              setSelectedVersionId(event.target.value)
+                            }
+                          >
+                            {midiVersions.map((version) => (
+                              <option
+                                key={version.stemVersionId}
+                                value={version.stemVersionId}
+                              >
+                                {version.name} · v{version.version} ·{" "}
+                                {version.creatorCreditName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          className={`${button} w-full gap-2`}
+                          type="button"
+                          onClick={() => {
+                            void importVersion();
+                            setImportMenuOpen(false);
+                          }}
+                          disabled={!selectedVersionId || status === "saving"}
+                        >
+                          <FiFolderPlus /> Import exact version
+                        </button>
+                        <Link
+                          className={`${button} w-full gap-2`}
+                          href="/stems"
+                        >
+                          <FiMusic /> Open My stems
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
           }
           statusRegion={
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1255,35 +1340,52 @@ export function MidiStudioSurface(props: Props) {
               </span>
             </div>
           }
-        />
-        {composerTarget && editable && (
-          <IntegratedMidiComposer
-            key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.trackId}`}
-            target={composerTarget}
-            tempoBpm={manifest.tempoBpm}
-            timeSignature={manifest.timeSignature}
-            onClose={() => {
-              stopProjectTransport();
-              setComposerTarget(null);
-              setIntegratedDraftActive(false);
-              setDraftSaveStatus("saved");
-              finalizeIntentRef.current = null;
-              if (status === "saved")
-                acknowledgedGeneration.current = generation.current;
-              lifecycle.update({
-                status,
-                generation: generation.current,
-                acknowledgedGeneration: acknowledgedGeneration.current,
-                recoveryAvailable: status !== "saved",
-              });
-            }}
-            onTransportStart={startProjectTransport}
-            onTransportStop={stopProjectTransport}
-            onFinalize={finalizeIntegratedDraft}
-            onDraftStatusChange={setDraftSaveStatus}
-            onDraftOpened={() => setIntegratedDraftActive(true)}
-          />
-        )}
+            />
+          </motion.div>
+          <AnimatePresence>
+            {composerTarget && editable && (
+              <motion.div
+                key="integrated-editor"
+                className="absolute inset-0 z-20 flex flex-col"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.92 }}
+                transition={{
+                  duration: reduce ? 0 : 0.42,
+                  ease: [0.2, 0.8, 0.2, 1],
+                }}
+                style={{ transformOrigin: editorOrigin }}
+              >
+                <IntegratedMidiComposer
+                  key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.trackId}`}
+                  target={composerTarget}
+                  tempoBpm={manifest.tempoBpm}
+                  timeSignature={manifest.timeSignature}
+                  onClose={() => {
+                    stopProjectTransport();
+                    setComposerTarget(null);
+                    setIntegratedDraftActive(false);
+                    setDraftSaveStatus("saved");
+                    finalizeIntentRef.current = null;
+                    if (status === "saved")
+                      acknowledgedGeneration.current = generation.current;
+                    lifecycle.update({
+                      status,
+                      generation: generation.current,
+                      acknowledgedGeneration: acknowledgedGeneration.current,
+                      recoveryAvailable: status !== "saved",
+                    });
+                  }}
+                  onTransportStart={startProjectTransport}
+                  onTransportStop={stopProjectTransport}
+                  onFinalize={finalizeIntegratedDraft}
+                  onDraftStatusChange={setDraftSaveStatus}
+                  onDraftOpened={() => setIntegratedDraftActive(true)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </section>
     );
 

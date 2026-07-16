@@ -14,24 +14,27 @@ export function BlankStudioWorkspace() {
   return (
     <>
       <section
-        className="border-strong bg-surface rounded-card overflow-hidden border shadow-xl max-md:hidden [@media(pointer:coarse)]:hidden"
+        className="border-strong bg-surface rounded-card flex min-h-0 flex-1 flex-col overflow-hidden border shadow-xl max-md:hidden [@media(pointer:coarse)]:hidden"
         aria-label="Blank arrangement workspace"
       >
-        <header className="border-subtle bg-surface-raised flex flex-wrap items-center justify-between gap-3 border-b p-3">
-          <div className="flex items-center gap-2" aria-label="Transport">
-            <button
-              type="button"
-              className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg opacity-40"
-              aria-label="Play arrangement"
-              aria-describedby="blank-project-control-reason"
-              disabled
-            >
-              <FiPlay aria-hidden />
-            </button>
+        <header className="border-subtle bg-surface-raised grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3">
+          <div
+            className="flex min-w-0 items-center gap-3"
+            aria-label="Transport position"
+          >
             <p className="min-w-24 font-mono text-sm">1.1.1</p>
             <p className="text-muted hidden text-xs lg:block">120 BPM · 4/4</p>
           </div>
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg opacity-40"
+            aria-label="Play arrangement"
+            aria-describedby="blank-project-control-reason"
+            disabled
+          >
+            <FiPlay aria-hidden />
+          </button>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <label className="text-muted hidden text-[10px] font-semibold uppercase md:block">
               Snap
               <select
@@ -64,9 +67,9 @@ export function BlankStudioWorkspace() {
           </div>
         </header>
 
-        <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="min-w-0 overflow-hidden">
-            <div className="border-subtle bg-surface grid h-11 grid-cols-[15rem_1fr] border-b">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="border-subtle bg-surface grid h-11 grid-cols-[17rem_1fr] border-b">
               <div className="border-subtle flex items-center border-r px-3">
                 <span className="text-muted font-mono text-[10px] tracking-widest uppercase">
                   Channels
@@ -86,12 +89,12 @@ export function BlankStudioWorkspace() {
               </div>
             </div>
 
-            <div className="relative min-h-80">
+            <div className="relative min-h-80 flex-1">
               {Array.from({ length: 3 }, (_, index) => (
                 <div
                   aria-hidden
                   key={index}
-                  className="border-subtle grid h-28 grid-cols-[15rem_1fr] border-b"
+                  className="border-subtle grid h-44 grid-cols-[17rem_1fr] border-b"
                 >
                   <div className="border-subtle bg-surface border-r p-3">
                     <span className="bg-surface-raised block h-3 w-24 rounded-full" />
@@ -116,8 +119,8 @@ export function BlankStudioWorkspace() {
                 <div className="border-subtle bg-surface/95 rounded-card max-w-md border px-7 py-6 shadow-xl backdrop-blur-sm">
                   <h1 className="text-xl font-semibold">No project open</h1>
                   <p className="text-muted mt-2 leading-6">
-                    Choose File → New project or File → Open project to start a
-                    private Studio session.
+                    Use the project menu in the top bar to open or create a
+                    project and start a private Studio session.
                   </p>
                   <p className="text-accent-2 mt-3 text-sm font-semibold">
                     This blank arrangement is not saved.
@@ -126,19 +129,6 @@ export function BlankStudioWorkspace() {
               </div>
             </div>
           </div>
-
-          <aside
-            className="border-subtle bg-surface-raised min-w-0 border-t p-4 xl:border-t-0 xl:border-l"
-            aria-label="Inspector"
-          >
-            <p className="text-accent font-mono text-[10px] tracking-widest uppercase">
-              Inspector
-            </p>
-            <p className="text-muted mt-3 text-sm">
-              Open a project, then select a track or clip to inspect exact
-              values.
-            </p>
-          </aside>
         </div>
 
         <footer className="border-subtle bg-surface-raised flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2">

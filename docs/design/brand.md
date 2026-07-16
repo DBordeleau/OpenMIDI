@@ -243,6 +243,14 @@ home. The Google button is a white pill with the 4-colour Google mark.
 [`ArrangerWorkspace`](../../src/features/studio/arranger/arranger-workspace.tsx):
 coral audio summaries and gold MIDI notes share dark plum lanes, with fixed compact
 channel strips, exact-value inspection, and react-icon transport/zoom/follow actions.
+The studio is a deliberate **full-bleed exception** to the 76rem `Container` in §6:
+`/studio` routes render edge-to-edge with tight gutters, drop the marketing footer
+(via [`ConditionalFooter`](../../src/components/layout/conditional-footer.client.tsx)),
+and the arranger fills the viewport height so the timeline behaves like desktop DAW
+software rather than a centered web page. Channel strips are `17rem`; the inspector
+column is `20rem`. When widening the channel column, keep `CHANNEL_PX` in
+`arranger-workspace.tsx` in lockstep — the playhead and timeline are positioned in
+pixels against that CSS width.
 The project-independent `/studio` state uses the same lane, ruler, inspector, and
 status vocabulary as a visibly blank workstation; project lifecycle actions live in
 a compact File menu and never imply that the blank arrangement is persisted.

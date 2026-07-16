@@ -17,7 +17,6 @@ import {
   FiHelpCircle,
   FiMousePointer,
   FiPlay,
-  FiPlus,
   FiSave,
   FiRadio,
   FiSquare,
@@ -1300,51 +1299,6 @@ export function MidiStemEditor({
     performance.previewNote(note.pitch, note.velocity);
   }
 
-  function addStarterPattern() {
-    if (history.notes.length > MAX_MIDI_NOTES_PER_STEM - 4) {
-      setNotice("There is not enough room for the four-note starter pattern.");
-      return;
-    }
-    const pitches =
-      preset.family === "drums"
-        ? [36, 42, 38, 42]
-        : [
-            preset.minNote + 12,
-            preset.minNote + 16,
-            preset.minNote + 19,
-            preset.minNote + 24,
-          ];
-    const start = history.notes.length
-      ? Math.max(
-          ...history.notes.map((note) => note.startTick + note.durationTicks),
-        )
-      : 0;
-    const starter = pitches.map((pitch, index): MidiNoteV1 => ({
-      noteId: crypto.randomUUID(),
-      pitch: Math.min(preset.maxNote, pitch),
-      velocity: index % 2 === 0 ? 100 : 84,
-      startTick: start + index * MIDI_PPQ,
-      durationTicks: preset.family === "drums" ? 120 : MIDI_PPQ,
-    }));
-    if (
-      starter.some(
-        (note) => note.startTick + note.durationTicks > draft.durationTicks,
-      )
-    ) {
-      setNotice("There is not enough room at the end for a starter pattern.");
-      return;
-    }
-    setHistory((current) =>
-      replaceMidiEditorNotes(
-        current,
-        canonicalizeMidiNotes([...current.notes, ...starter]),
-      ),
-    );
-    setSelectedIds(new Set(starter.map(({ noteId }) => noteId)));
-    setNotice("Four-note starter pattern added.");
-    markEdited();
-  }
-
   function deleteSelection() {
     if (!selectedIds.size) return;
     commitCommand(
@@ -1698,11 +1652,13 @@ export function MidiStemEditor({
 
   return (
     <section
-      className="mt-8"
+      className={host ? "" : "mt-8"}
       onKeyDown={handleEditorKeyDown}
       onKeyUp={handleEditorKeyUp}
     >
-      <div className="rounded-card border-subtle bg-surface shadow-raised border p-4 sm:p-6">
+      <div
+        className={`rounded-card border-subtle bg-surface shadow-raised border p-4 ${host ? "sm:p-5" : "sm:p-6"}`}
+      >
         {recovery && (
           <div className="border-accent-2 bg-surface-soft rounded-control mb-5 border p-4">
             <p className="font-semibold">
@@ -1741,8 +1697,8 @@ export function MidiStemEditor({
             </div>
           </div>
         )}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <label className="font-semibold">
+        <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-2">
+          <label className="w-full text-sm font-semibold sm:w-72">
             Stem name
             <input
               className={inputClass}
@@ -1754,7 +1710,7 @@ export function MidiStemEditor({
               }}
             />
           </label>
-          <label className="font-semibold">
+          <label className="w-full text-sm font-semibold sm:w-52">
             Sound
             <select
               className={inputClass}
@@ -1788,10 +1744,12 @@ export function MidiStemEditor({
               ))}
             </select>
           </label>
+          <p className="text-muted max-w-sm pb-2.5 text-xs">
+            {preset.description}
+          </p>
         </div>
-        <p className="text-muted mt-3 text-sm">{preset.description}</p>
         {preset.drumMap && (
-          <p className="text-muted mt-2 text-sm">
+          <p className="text-muted mt-2 text-center text-xs">
             Kit map:{" "}
             {Object.entries(preset.drumMap)
               .map(([pitch, label]) => `${pitch} ${label}`)
@@ -1800,7 +1758,7 @@ export function MidiStemEditor({
         )}
 
         <section
-          className="border-subtle bg-surface-soft rounded-control mt-5 border p-4"
+          className="border-subtle bg-surface-soft rounded-control mx-auto mt-5 w-fit max-w-full border p-4"
           aria-labelledby="performance-heading"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1830,7 +1788,7 @@ export function MidiStemEditor({
             </p>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="mt-4 flex flex-wrap items-end justify-center gap-3">
             <label className="text-sm font-semibold">
               QWERTY octave
               <select
@@ -1888,7 +1846,7 @@ export function MidiStemEditor({
 
           <div
             ref={performanceKeyboardRef}
-            className="mt-4 flex max-w-full gap-1 overflow-x-auto pb-2"
+            className="mt-4 flex max-w-full justify-center gap-1 overflow-x-auto pb-2"
             aria-label="On-screen piano"
             onPointerDown={startPerformanceKeyGesture}
             onPointerMove={movePerformanceKeyGesture}
@@ -1928,7 +1886,7 @@ export function MidiStemEditor({
               : "No piano notes held"}
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             {performance.status === "idle" ? (
               <button
                 type="button"
@@ -1993,40 +1951,20 @@ export function MidiStemEditor({
           )}
         </section>
 
-        <div className="border-subtle mt-5 flex flex-wrap items-center gap-2 border-y py-4">
-          <button
-            type="button"
-            onClick={() => void play()}
-            disabled={playing}
-            className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold disabled:opacity-60"
-          >
-            <FiPlay aria-hidden /> {playing ? "Playing…" : "Play stem"}
-          </button>
+        <div className="border-subtle mt-5 flex flex-wrap items-center justify-center gap-2 border-y py-4">
           <button
             type="button"
             onClick={() => {
-              stopPlayback();
-              stopAudition();
-              performance.releaseActive();
+              if (playing) {
+                stopPlayback();
+                stopAudition();
+                performance.releaseActive();
+              } else void play();
             }}
-            disabled={!playing}
-            className={secondaryButton}
+            className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold"
           >
-            <FiSquare aria-hidden /> Stop
-          </button>
-          <button
-            type="button"
-            onClick={() => void performSave()}
-            disabled={
-              saveState.status === "saved" ||
-              saveState.status === "saving" ||
-              saveState.status === "conflict" ||
-              !name.trim()
-            }
-            className={secondaryButton}
-          >
-            <FiSave aria-hidden />
-            {saveState.status === "saving" ? "Saving…" : "Save now"}
+            {playing ? <FiSquare aria-hidden /> : <FiPlay aria-hidden />}
+            {playing ? "Stop" : "Play stem"}
           </button>
           <button
             type="button"
@@ -2045,7 +1983,7 @@ export function MidiStemEditor({
           </button>
           <span
             role="status"
-            className={`ml-auto text-sm ${
+            className={`w-full text-center text-sm ${
               saveState.status === "error" || saveState.status === "conflict"
                 ? "text-danger"
                 : "text-muted"
@@ -2075,7 +2013,7 @@ export function MidiStemEditor({
         {publicationState.message && (
           <p
             role="status"
-            className={`mt-2 text-sm ${
+            className={`mt-2 text-center text-sm ${
               publicationState.status === "error"
                 ? "text-danger"
                 : publicationState.status === "published"
@@ -2087,7 +2025,7 @@ export function MidiStemEditor({
           </p>
         )}
 
-        <div className="mt-5 flex flex-wrap items-end gap-2">
+        <div className="mt-5 flex flex-wrap items-end justify-center gap-2">
           <div
             className="border-strong inline-flex rounded-full border p-1"
             role="group"
@@ -2137,28 +2075,6 @@ export function MidiStemEditor({
             disabled={!history.future.length}
           >
             <FiCornerUpRight aria-hidden /> Redo
-          </button>
-          <button
-            type="button"
-            className={secondaryButton}
-            onClick={() => addNoteAt()}
-          >
-            <FiPlus aria-hidden /> Add note
-          </button>
-          <button
-            type="button"
-            className={secondaryButton}
-            onClick={addStarterPattern}
-          >
-            <FiPlus aria-hidden /> Add starter pattern
-          </button>
-          <button
-            type="button"
-            className={secondaryButton}
-            onClick={duplicateSelection}
-            disabled={!selectedIds.size}
-          >
-            <FiCopy aria-hidden /> Duplicate
           </button>
           <button
             type="button"
