@@ -151,10 +151,7 @@ async function createProjectInStudio(
   page: import("@playwright/test").Page,
   title: string,
 ) {
-  await page
-    .getByRole("navigation", { name: "Studio" })
-    .getByText("File", { exact: true })
-    .click();
+  await page.getByRole("button", { name: /Project menu/ }).click();
   await page.getByRole("button", { name: "New project" }).click();
   const dialog = page.getByRole("dialog", { name: "Create a project" });
   await dialog.getByLabel("Title").fill(title);

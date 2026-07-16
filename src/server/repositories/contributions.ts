@@ -8,6 +8,7 @@ import type {
   ContributionStatus,
   PatternCreatorAttribution,
 } from "@/features/contributions/types";
+import type { MidiPatternVersionV3 } from "@/features/midi/domain-v3";
 import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
 import type { ArrangementManifestV3 } from "@/features/studio/manifest/v3";
 import { parseArrangementManifestV3 } from "@/features/studio/manifest/v3";
@@ -334,7 +335,8 @@ export async function getContributionForViewer(
 
 type ArrangementDiffInput = {
   manifest: ArrangementManifestV3;
-  patternVersions: StudioPatternVersion[];
+  patternVersions: MidiPatternVersionV3[];
+  studioPatternVersions: StudioPatternVersion[];
   patternAttributions: PatternCreatorAttribution[];
 };
 
@@ -380,6 +382,7 @@ async function getArrangementDiffInput(
     return {
       manifest,
       patternVersions: [],
+      studioPatternVersions: [],
       patternAttributions: [],
     };
   }
@@ -401,10 +404,9 @@ async function getArrangementDiffInput(
     notes.push(note);
     notesByVersion.set(note.midi_pattern_version_id, notes);
   }
-  const patternVersions: StudioPatternVersion[] = versionsResult.data.map(
+  const patternVersions: MidiPatternVersionV3[] = versionsResult.data.map(
     (version) => {
-      const context = patternContexts.get(version.id);
-      if (!context || version.ppq !== 480)
+      if (version.ppq !== 480)
         throw new Error("contribution_patterns_unavailable");
       return {
         midiPatternVersionId: version.id,
@@ -437,7 +439,6 @@ async function getArrangementDiffInput(
           pitch: note.pitch,
           velocity: note.velocity,
         })),
-        ...context,
       };
     },
   );
@@ -446,6 +447,11 @@ async function getArrangementDiffInput(
   return {
     manifest,
     patternVersions,
+    studioPatternVersions: patternVersions.map((pattern) => {
+      const context = patternContexts.get(pattern.midiPatternVersionId);
+      if (!context) throw new Error("contribution_patterns_unavailable");
+      return { ...pattern, ...context };
+    }),
     patternAttributions: versionsResult.data
       .map((version) => ({
         midiPatternVersionId: version.id,
@@ -504,13 +510,19 @@ export async function getContributionArrangementComparison(input: {
     submittedArrangementVersionId: versionResult.data.arrangement_version_id,
     base: {
       manifest: base.manifest,
-      patternVersions: base.patternVersions,
+      patternVersions: base.studioPatternVersions,
     },
     submitted: {
       manifest: submitted.manifest,
-      patternVersions: submitted.patternVersions,
+      patternVersions: submitted.studioPatternVersions,
     },
-    semanticDiff: diffMidiArrangementsV1(base, submitted),
+    semanticDiff: diffMidiArrangementsV1(
+      { manifest: base.manifest, patternVersions: base.patternVersions },
+      {
+        manifest: submitted.manifest,
+        patternVersions: submitted.patternVersions,
+      },
+    ),
     patternAttributions: submitted.patternAttributions,
   };
 }

@@ -47,8 +47,9 @@ function localSupabaseEnv() {
 
 test.describe("source-admission transition", () => {
   test.skip(
-    process.env.ENABLE_TEST_AUTH !== "true",
-    "requires the local gated Auth actor",
+    process.env.ENABLE_TEST_AUTH !== "true" ||
+      process.env.ENABLE_LEGACY_AUDIO_E2E !== "true",
+    "requires explicit legacy-audio fixture authorization",
   );
 
   test("blocks stale UI, direct RPC, and direct Storage bypasses while preserving upload history", async ({

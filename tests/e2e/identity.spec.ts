@@ -1,8 +1,5 @@
 import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 function localSupabaseEnv() {
@@ -33,86 +30,6 @@ function localSupabaseEnv() {
       .filter((match): match is RegExpMatchArray => Boolean(match))
       .map((match) => [match[1], match[2]]),
   );
-}
-
-async function promoteLatestTestAsset() {
-  const env = localSupabaseEnv();
-  if (
-    !env.API_URL?.startsWith("http://127.0.0.1:") ||
-    !env.SERVICE_ROLE_KEY ||
-    !env.PUBLISHABLE_KEY ||
-    !process.env.TEST_AUTH_EMAIL ||
-    !process.env.TEST_AUTH_PASSWORD
-  )
-    throw new Error("Refusing E2E asset promotion outside local Supabase.");
-  const admin = createClient(env.API_URL, env.SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const actor = createClient(env.API_URL, env.PUBLISHABLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { error: signInError } = await actor.auth.signInWithPassword({
-    email: process.env.TEST_AUTH_EMAIL,
-    password: process.env.TEST_AUTH_PASSWORD,
-  });
-  if (signInError) throw signInError;
-  const { data: asset, error: assetError } = await actor
-    .from("assets")
-    .select("id")
-    .eq("status", "processing")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-  if (assetError) throw assetError;
-  const bytes = await readFile(
-    path.join(process.cwd(), "public", "fixtures", "audio", "stem-a.wav"),
-  );
-  const { data: claims, error: claimError } = await admin.rpc(
-    "operator_claim_source_verification",
-    { p_asset_id: asset.id, p_owner_id: null },
-  );
-  const claim = claims?.[0];
-  if (claimError || !claim)
-    throw new Error(
-      `Local source verification preflight failed for ${asset.id}: ${claimError?.message ?? "no claimable verification job"}`,
-    );
-  const { error: verificationError } = await admin.rpc(
-    "operator_complete_source_verification",
-    {
-      p_asset_id: asset.id,
-      p_lease_token: claim.lease_token,
-      p_media_type: "audio/wav",
-      p_byte_size: bytes.byteLength,
-      p_sha256: createHash("sha256").update(bytes).digest("hex"),
-      p_duration_ms: 2_000,
-      p_sample_rate_hz: 44_100,
-      p_channels: 1,
-      p_verification_version: "playwright-fixture-v1",
-    },
-  );
-  if (verificationError) throw verificationError;
-  const { error: creditsError } = await actor.rpc(
-    "confirm_source_asset_credits",
-    {
-      p_asset_id: asset.id,
-      p_request_id: crypto.randomUUID(),
-      p_credits: [{ kind: "self", role: "creator" }],
-    },
-  );
-  if (creditsError) throw creditsError;
-  const { data: publishable, error: stateError } = await actor
-    .from("assets")
-    .select("id,status,credits_confirmed_at")
-    .eq("id", asset.id)
-    .single();
-  if (
-    stateError ||
-    publishable.status !== "ready" ||
-    !publishable.credits_confirmed_at
-  )
-    throw new Error(
-      `Local source fixture is not publishable: ${JSON.stringify({ assetId: asset.id, status: publishable?.status, creditsConfirmed: Boolean(publishable?.credits_confirmed_at), queryError: stateError?.message })}`,
-    );
 }
 
 async function resetTestActorProfile() {
@@ -164,7 +81,7 @@ test.describe("identity vertical slice", () => {
     "requires the local gated Auth actor",
   );
 
-  test("onboards, publishes, edits the profile, and signs out", async ({
+  test("onboards, creates a MIDI project, edits the profile, and signs out", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -195,7 +112,9 @@ test.describe("identity vertical slice", () => {
     await page.getByLabel("Collaboration wanted", { exact: true }).check();
     await page.getByRole("button", { name: "Create project" }).click();
     await expect(
-      page.getByRole("heading", { name: "E2E collaboration draft" }),
+      page.getByRole("button", {
+        name: "Project menu â€” E2E collaboration draft",
+      }),
     ).toBeVisible();
     const studioUrl = new URL(page.url()).pathname;
     const projectId = studioUrl.split("/").at(-1);
@@ -207,24 +126,6 @@ test.describe("identity vertical slice", () => {
     await page.getByLabel("Title").fill("Edited collaboration draft");
     await page.getByRole("button", { name: "Save project" }).click();
     await expect(page.getByText("Project saved.")).toBeVisible();
-
-    await page.goto("/uploads");
-    await page
-      .getByLabel("Choose source audio")
-      .setInputFiles("public/fixtures/audio/stem-a.wav");
-    await page.getByRole("button", { name: "Upload original WAV" }).click();
-    await expect(
-      page.getByText("Upload complete.", { exact: true }).first(),
-    ).toBeVisible({ timeout: 30_000 });
-    await promoteLatestTestAsset();
-
-    await page.goto(`${projectUrl}/publish`);
-    await page
-      .getByRole("checkbox", { name: /stem-a\.wav E2E Credit/ })
-      .first()
-      .check();
-    await page.getByRole("button", { name: "Publish first revision" }).click();
-    await expect(page.getByText("Published arrangement")).toBeVisible();
 
     await page.goto("/@E2EArtist");
     await expect(

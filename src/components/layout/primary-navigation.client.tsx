@@ -49,11 +49,6 @@ const links = [
       (pathname.startsWith("/projects/") &&
         pathname.includes("/contributions")),
   },
-  {
-    href: "/uploads",
-    label: "Uploads",
-    active: (pathname: string) => pathname === "/uploads",
-  },
 ] as const;
 
 export function PrimaryNavigation() {

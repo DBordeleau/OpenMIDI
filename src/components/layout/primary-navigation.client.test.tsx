@@ -19,7 +19,6 @@ describe("PrimaryNavigation", () => {
       ["Studio", "/studio"],
       ["My projects", "/projects"],
       ["New project", "/projects/new"],
-      ["Uploads", "/uploads"],
       ["Contributions", "/contributions"],
     ] as const)
       expect(
@@ -28,6 +27,7 @@ describe("PrimaryNavigation", () => {
           .every((link) => link.getAttribute("href") === href),
       ).toBe(true);
     expect(screen.getByText("Menu")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Uploads" })).toBeNull();
   });
 
   it("marks Studio separately from project routes and project creation", () => {
