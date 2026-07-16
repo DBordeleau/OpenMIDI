@@ -163,30 +163,36 @@ async function setupMidiCollaborationFixture() {
   };
 }
 
-test("reviews, accepts, attributes, and forks one exact MIDI v3 contribution", async ({
-  page,
-}) => {
-  const fixture = await setupMidiCollaborationFixture();
-  await page.goto("/test-auth");
-  await page.getByRole("button", { name: "Sign in test actor" }).click();
-  await page.waitForURL(/\/(onboarding|settings\/profile)$/);
-  await page.goto(
-    `/projects/${fixture.projectId}/contributions/${fixture.contributionId}`,
+test.describe("MIDI v3 collaboration", () => {
+  test.skip(
+    process.env.ENABLE_TEST_AUTH !== "true",
+    "requires the local gated Auth and Postgres fixture",
   );
-  await expect(
-    page.getByRole("heading", { name: "Semantic change summary" }),
-  ).toBeVisible();
-  await expect(page.getByText("Arrangement metadata")).toBeVisible();
-  await expect(page.getByText("Tracks", { exact: true })).toBeVisible();
-  await expect(page.getByText("V3 Browser Owner")).toBeVisible();
-  await expect(page.getByText("CC-BY-4.0")).toBeVisible();
 
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Accept contribution" }).click();
-  await expect(page.getByText("Accepted as revision 2.")).toBeVisible();
+  test("reviews, accepts, attributes, and forks one exact MIDI v3 contribution", async ({
+    page,
+  }) => {
+    const fixture = await setupMidiCollaborationFixture();
+    await page.goto("/test-auth");
+    await page.getByRole("button", { name: "Sign in test actor" }).click();
+    await page.waitForURL(/\/(onboarding|settings\/profile)$/);
+    await page.goto(
+      `/projects/${fixture.projectId}/contributions/${fixture.contributionId}`,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Semantic change summary" }),
+    ).toBeVisible();
+    await expect(page.getByText("Arrangement metadata")).toBeVisible();
+    await expect(page.getByText("Tracks", { exact: true })).toBeVisible();
+    await expect(page.getByText("V3 Browser Owner")).toBeVisible();
+    await expect(page.getByText("CC-BY-4.0")).toBeVisible();
 
-  const accepted = JSON.parse(
-    queryLocalDatabase(`select json_build_object(
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Accept contribution" }).click();
+    await expect(page.getByText("Accepted as revision 2.")).toBeVisible();
+
+    const accepted = JSON.parse(
+      queryLocalDatabase(`select json_build_object(
       'revisionId',r.id,
       'sameArrangement',r.arrangement_version_id=cv.arrangement_version_id,
       'parentRevisionId',r.parent_revision_id,
@@ -195,34 +201,34 @@ test("reviews, accepts, attributes, and forks one exact MIDI v3 contribution", a
     )::text from public.project_revisions r
     join public.contribution_versions cv on cv.id=r.accepted_contribution_version_id
     where r.accepted_contribution_id='${fixture.contributionId}'`),
-  ) as Record<string, unknown>;
-  expect(accepted).toMatchObject({
-    sameArrangement: true,
-    parentRevisionId: fixture.baseRevisionId,
-    publisher: "V3 Browser Owner",
-    contributor: "V3 Browser Contributor",
-  });
-  const acceptedRevisionId = String(accepted.revisionId);
+    ) as Record<string, unknown>;
+    expect(accepted).toMatchObject({
+      sameArrangement: true,
+      parentRevisionId: fixture.baseRevisionId,
+      publisher: "V3 Browser Owner",
+      contributor: "V3 Browser Contributor",
+    });
+    const acceptedRevisionId = String(accepted.revisionId);
 
-  queryLocalDatabase(
-    `update public.profiles set credit_name='Renamed contributor' where id='${contributorId}' returning id`,
-  );
-  expect(
     queryLocalDatabase(
-      `select credit_name from public.revision_attributions where revision_id='${acceptedRevisionId}' and kind='accepted_contributor'`,
-    ),
-  ).toBe("V3 Browser Contributor");
+      `update public.profiles set credit_name='Renamed contributor' where id='${contributorId}' returning id`,
+    );
+    expect(
+      queryLocalDatabase(
+        `select credit_name from public.revision_attributions where revision_id='${acceptedRevisionId}' and kind='accepted_contributor'`,
+      ),
+    ).toBe("V3 Browser Contributor");
 
-  await page.goto(
-    `/projects/${fixture.projectId}/fork?revision=${acceptedRevisionId}`,
-  );
-  await page.getByLabel("Project title").fill("V3 exact lineage fork");
-  await page.getByLabel(/preserve CC BY 4.0 attribution/).check();
-  await page.getByRole("button", { name: "Create private fork" }).click();
-  await page.waitForURL(/\/projects\/[0-9a-f-]{36}\?forked=1$/);
+    await page.goto(
+      `/projects/${fixture.projectId}/fork?revision=${acceptedRevisionId}`,
+    );
+    await page.getByLabel("Project title").fill("V3 exact lineage fork");
+    await page.getByLabel(/preserve CC BY 4.0 attribution/).check();
+    await page.getByRole("button", { name: "Create private fork" }).click();
+    await page.waitForURL(/\/projects\/[0-9a-f-]{36}\?forked=1$/);
 
-  const fork = JSON.parse(
-    queryLocalDatabase(`select json_build_object(
+    const fork = JSON.parse(
+      queryLocalDatabase(`select json_build_object(
       'sourceProjectId',p.source_project_id,'sourceRevisionId',p.source_revision_id,
       'patternVersionId',ac.midi_pattern_version_id,
       'patternVersionCount',(select count(*) from public.midi_pattern_versions)
@@ -230,11 +236,12 @@ test("reviews, accepts, attributes, and forks one exact MIDI v3 contribution", a
     join public.project_revisions r on r.project_id=p.id and r.id=p.current_revision_id
     join public.arrangement_clips ac on ac.arrangement_version_id=r.arrangement_version_id
     where p.title='V3 exact lineage fork'`),
-  ) as Record<string, unknown>;
-  expect(fork).toMatchObject({
-    sourceProjectId: fixture.projectId,
-    sourceRevisionId: acceptedRevisionId,
-    patternVersionId: fixture.patternVersionId,
-    patternVersionCount: 1,
+    ) as Record<string, unknown>;
+    expect(fork).toMatchObject({
+      sourceProjectId: fixture.projectId,
+      sourceRevisionId: acceptedRevisionId,
+      patternVersionId: fixture.patternVersionId,
+      patternVersionCount: 1,
+    });
   });
 });
