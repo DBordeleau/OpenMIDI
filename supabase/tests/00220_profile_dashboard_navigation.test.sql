@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(36);
 
 select has_table('public','profile_avatar_versions','avatar versions exist');
 select has_table('private','profile_image_processing_jobs','private processing jobs exist');
@@ -37,7 +37,13 @@ select is(jsonb_typeof(public.get_viewer_dashboard()),'object','dashboard return
 select is(jsonb_array_length(public.list_viewer_projects('all',false,null,null)),0,'empty project index is bounded');
 select is(jsonb_array_length(public.list_viewer_contributions('active',null,null)),0,'empty contribution index is bounded');
 select lives_ok($$select public.reserve_profile_image_upload('e1000000-0000-4000-8000-000000000001',1024,'avatar.png','image/png')$$,'owner reserves avatar');
-select is((select kind::text from public.assets where owner_id='e0000000-0000-4000-8000-000000000001'),'image','reservation creates image asset');
+select is((select count(*) from public.assets),1::bigint,'owner reads only their private avatar original metadata');
+
+set local request.jwt.claim.sub='e0000000-0000-4000-8000-000000000002';
+select is((select count(*) from public.assets),0::bigint,'unrelated actor cannot read avatar original metadata');
+reset role;
+set local role anon;
+select throws_ok($$select * from public.assets$$,'42501','permission denied for table assets','anonymous cannot read avatar original metadata');
 
 reset role;
 create temp table avatar_upload as

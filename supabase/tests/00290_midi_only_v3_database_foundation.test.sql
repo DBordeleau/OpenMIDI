@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(55);
+select plan(65);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000001','authenticated','authenticated','pivot-owner@example.test','','{}','{}',now(),now()),
@@ -107,8 +107,59 @@ select is((select count(*) from public.arrangement_tracks),1::bigint,'arrangemen
 select is((select count(*) from public.arrangement_clips),1::bigint,'arrangement clips are normalized');
 select ok((select arrangement_version_id is not null from public.project_revisions where manifest_version=3),'revision points to its exact arrangement');
 select is((select count(*) from public.arrangement_versions),1::bigint,'project owner reads the private arrangement');
+select is(jsonb_array_length(public.get_project_revision_history_v3(
+  (select id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'))),1,
+  'private revision history reads the arrangement wrapper');
+select is((public.get_project_revision_history_v3(
+  (select id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'))
+  ->0->'tracks'->0->'credits'->0->>'creditName'),'Pivot Owner',
+  'private revision history derives track credit from pattern creator lineage');
 reset role;
 select throws_ok($$update public.arrangement_clips set start_tick=1$$,'55000','immutable_revision_history','arrangement projections are immutable');
+
+update public.workspaces set status='archived'
+where owner_id='f3000000-0000-4000-8000-000000000001' and contribution_id is null;
+set local role authenticated;
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000001';
+select lives_ok($$select public.create_project_workspace_v3(
+  (select id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'),
+  'f30a0000-0000-4000-8000-000000000001',
+  (select current_revision_id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'))$$,
+  'owner creates an existing-project v3 workspace');
+select lives_ok($$select public.create_project_workspace_v3(
+  (select id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'),
+  'f30a0000-0000-4000-8000-000000000001',
+  (select current_revision_id from public.projects where owner_id='f3000000-0000-4000-8000-000000000001'))$$,
+  'existing-project workspace request replays idempotently');
+select is((select count(*) from public.workspaces where status='active' and contribution_id is null),1::bigint,
+  'idempotent workspace creation leaves one active owner workspace');
+reset role;
+select is((select count(*) from private.workspace_snapshots where request_id='f30a0000-0000-4000-8000-000000000001'),1::bigint,
+  'existing-project creation records its initial bounded Postgres snapshot');
+create temp table existing_project_fixture as
+select id project_id,current_revision_id
+from public.projects where owner_id='f3000000-0000-4000-8000-000000000001';
+grant select on existing_project_fixture to authenticated;
+set local role authenticated;
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000003';
+select throws_ok($$select public.create_project_workspace_v3(
+  (select project_id from existing_project_fixture),gen_random_uuid(),
+  (select current_revision_id from existing_project_fixture))$$,
+  'PT404','workspace_project_not_found','unrelated actor cannot create a private project workspace');
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000004';
+select throws_ok($$select public.create_project_workspace_v3(
+  (select project_id from existing_project_fixture),gen_random_uuid(),
+  (select current_revision_id from existing_project_fixture))$$,
+  'PT403','workspace_actor_ineligible','suspended actor cannot create a project workspace');
+reset role;
+set local role anon;
+select throws_ok($$select public.get_project_revision_history_v3(gen_random_uuid())$$,
+  '42501','permission denied for function get_project_revision_history_v3',
+  'anonymous cannot call private revision history');
+select throws_ok($$select public.create_project_workspace_v3(gen_random_uuid(),gen_random_uuid(),gen_random_uuid())$$,
+  '42501','permission denied for function create_project_workspace_v3',
+  'anonymous cannot create an existing-project workspace');
+reset role;
 
 insert into public.project_members(project_id,user_id,role,created_by)
 select id,'f3000000-0000-4000-8000-000000000002','editor','f3000000-0000-4000-8000-000000000001'

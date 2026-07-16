@@ -145,15 +145,6 @@ const rpcArgs = (input: ProjectInput) => ({
   p_primary_genre_id: input.primaryGenreId,
   p_tag_ids: input.tagIds,
 });
-export async function createProject(input: ProjectInput, requestId: string) {
-  const db = await createSupabaseServerClient();
-  const args = {
-    p_request_id: requestId,
-    ...rpcArgs(input),
-    p_description: input.description ?? "",
-  } as unknown as Database["public"]["Functions"]["create_project"]["Args"];
-  return db.rpc("create_midi_project_workspace", args);
-}
 export async function updateProjectMetadata(
   projectId: string,
   lockVersion: number,

@@ -6,16 +6,6 @@ import {
   getMidiPatternVersionV3,
 } from "@/server/repositories/midi-v3";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/server/repositories/midi-stems", () => ({
-  createImportedMidiStemDraft: vi.fn(),
-  createMidiStemDraft: vi.fn(),
-  getMidiStemDraft: vi.fn(),
-  getMidiStemVersion: vi.fn(),
-}));
-vi.mock("@/server/repositories/workspaces", () => ({
-  finalizeStudioMidiDraft: vi.fn(),
-}));
 vi.mock("@/server/repositories/midi-v3", () => ({
   createMidiPatternV3: vi.fn(),
   createMidiPatternVersionV3: vi.fn(),

@@ -7,21 +7,9 @@ import {
 } from "@/features/studio/manifest/v2";
 import { resolveSynthPreset } from "../presets";
 
+// Transitional editor vocabulary retained only for the integrated Studio
+// piano roll. Standalone stem create/save/publish contracts were removed.
 export const midiStemEntryModeSchema = z.enum(["blank", "import", "derive"]);
-
-export const createMidiStemDraftSchema = z
-  .object({
-    requestId: z.uuid(),
-    name: z.string().trim().min(1).max(120),
-    entryMode: midiStemEntryModeSchema,
-    parentStemVersionId: z.uuid().nullable(),
-  })
-  .strict()
-  .refine(
-    ({ entryMode, parentStemVersionId }) =>
-      (entryMode === "derive") === Boolean(parentStemVersionId),
-    { message: "A derived draft requires one exact parent version." },
-  );
 
 export const midiStemContentSchema = z
   .object({
@@ -65,7 +53,7 @@ export const midiStemContentSchema = z
       if (note.startTick + note.durationTicks > content.durationTicks) {
         context.addIssue({
           code: "custom",
-          message: "Note exceeds the stem duration.",
+          message: "Note exceeds the pattern duration.",
           path: ["notes", index],
         });
       }
@@ -78,32 +66,6 @@ export const midiStemContentSchema = z
       }
     });
   });
-
-export const saveMidiStemDraftSchema = z
-  .object({
-    draftId: z.uuid(),
-    requestId: z.uuid(),
-    expectedLockVersion: z.number().int().positive(),
-    content: midiStemContentSchema,
-  })
-  .strict();
-
-export const publishMidiStemVersionSchema = z
-  .object({
-    draftId: z.uuid(),
-    requestId: z.uuid(),
-    expectedLockVersion: z.number().int().positive(),
-    expectedContentSha256: z.string().regex(/^[0-9a-f]{64}$/),
-  })
-  .strict();
-
-export const createImportedMidiStemSchema = z
-  .object({
-    requestId: z.uuid(),
-    saveRequestId: z.uuid(),
-    content: midiStemContentSchema,
-  })
-  .strict();
 
 export type MidiStemEntryMode = z.infer<typeof midiStemEntryModeSchema>;
 export type MidiStemContent = z.infer<typeof midiStemContentSchema>;

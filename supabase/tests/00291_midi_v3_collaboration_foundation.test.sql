@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(33);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3100000-0000-4000-8000-000000000001','authenticated','authenticated','v3-owner@example.test','','{}','{}',now(),now()),
@@ -133,6 +133,45 @@ select throws_ok($$select public.accept_contribution_v3(
   (select current_version_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
   (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),null)$$,
   'PT409','contribution_base_outdated','accepted contribution cannot be accepted again');
+reset role;
+
+set local role authenticated;
+set local request.jwt.claim.sub='f3100000-0000-4000-8000-000000000002';
+select lives_ok($$select public.create_contribution_workspace_v3(
+  (select id from public.projects where owner_id='f3100000-0000-4000-8000-000000000001'),
+  'f3190000-0000-4000-8000-000000000002',
+  (select current_revision_id from public.projects where owner_id='f3100000-0000-4000-8000-000000000001'),
+  'Second proposal','')$$,'contributor creates a second proposal after acceptance');
+select lives_ok($$select public.submit_contribution_v3(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='draft'),
+  'f31a0000-0000-4000-8000-000000000004',1,
+  (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='draft'),
+  (select manifest_sha256 from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000002' and status='active'),
+  'contributor-attestation-v1')$$,'contributor submits the second proposal');
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub='f3100000-0000-4000-8000-000000000001';
+select lives_ok($$select public.review_contribution(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='submitted'),
+  'f31d0000-0000-4000-8000-000000000001','reject','submitted',
+  (select current_version_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='submitted'),
+  (select current_revision_id from public.projects where owner_id='f3100000-0000-4000-8000-000000000001'),
+  'Not the right fit')$$,'owner rejects the second proposal');
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub='f3100000-0000-4000-8000-000000000002';
+select lives_ok($$select public.delete_own_contribution(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='rejected'),
+  'f31e0000-0000-4000-8000-000000000001')$$,'author starts recoverable rejected-contribution deletion');
+select ok((select deleted_at is not null from public.contributions
+  where author_id='f3100000-0000-4000-8000-000000000002' and status='rejected'),
+  'rejected contribution is hidden during recovery');
+select lives_ok($$select public.restore_own_contribution(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002' and status='rejected'))$$,
+  'author restores rejected contribution inside the recovery window');
+select ok((select deleted_at is null from public.contributions
+  where author_id='f3100000-0000-4000-8000-000000000002' and status='rejected'),
+  'restored contribution returns to its private rejected state');
 reset role;
 
 update public.projects set visibility='public' where owner_id='f3100000-0000-4000-8000-000000000001';
