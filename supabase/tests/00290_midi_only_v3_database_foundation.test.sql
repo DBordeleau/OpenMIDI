@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(41);
+select plan(55);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000001','authenticated','authenticated','pivot-owner@example.test','','{}','{}',now(),now()),
@@ -24,6 +24,10 @@ select has_column('public','project_revisions','arrangement_version_id','revisio
 select has_column('public','contribution_versions','arrangement_version_id','contribution wrapper has expand-first arrangement reference');
 select has_column('public','workspace_clips','midi_pattern_version_id','workspace clips reference exact pattern versions');
 select ok((select count(*)=24 from private.midi_synth_presets where engine_version='jam-session-midi-3_tone-15.1.22_presets-1'),'frozen preset catalog has 24 IDs');
+select ok((select min_note=24 and max_note=60 from private.midi_synth_presets where preset_id='sub-bass' and version=1),'database preset bounds match catalog 1');
+select ok(exists(select 1 from pg_constraint where conrelid='public.midi_pattern_versions'::regclass
+  and pg_get_constraintdef(oid) like 'FOREIGN KEY (midi_pattern_id, parent_pattern_version_id)%'),
+  'pattern parents are constrained to the same pattern identity');
 select ok((select relrowsecurity from pg_class where oid='public.midi_patterns'::regclass),'pattern identities have RLS');
 select ok((select relrowsecurity from pg_class where oid='public.arrangement_versions'::regclass),'arrangements have RLS');
 select ok(not exists(select 1 from information_schema.role_table_grants where table_schema='public'
@@ -39,6 +43,17 @@ select lives_ok($$select public.create_midi_pattern_version_v3(
   'f3020000-0000-4000-8000-000000000001',1,480::smallint,1920,
   '[{"noteId":"f3030000-0000-4000-8000-000000000001","startTick":0,"durationTicks":480,"pitch":60,"velocity":100}]'::jsonb,
   true,'cc-by-4.0-attestation-v1')$$,'owner freezes a public reusable pattern version');
+select lives_ok($$select public.create_midi_pattern_version_v3(
+  (select id from public.midi_patterns where owner_id='f3000000-0000-4000-8000-000000000001'),
+  'f3020000-0000-4000-8000-000000000001',1,480::smallint,1920,
+  '[{"noteId":"f3030000-0000-4000-8000-000000000001","startTick":0,"durationTicks":480,"pitch":60,"velocity":100}]'::jsonb,
+  true,'cc-by-4.0-attestation-v1')$$,'identical pattern-version requests replay idempotently');
+select throws_ok($$select public.create_midi_pattern_version_v3(
+  (select id from public.midi_patterns where owner_id='f3000000-0000-4000-8000-000000000001'),
+  'f3020000-0000-4000-8000-000000000001',1,480::smallint,1920,
+  '[{"noteId":"f3030000-0000-4000-8000-000000000001","startTick":0,"durationTicks":480,"pitch":61,"velocity":100}]'::jsonb,
+  true,'cc-by-4.0-attestation-v1')$$,'PT409','midi_pattern_version_request_conflict',
+  'changed pattern-version payloads cannot reuse a request ID');
 select is((select creator_credit_name from public.midi_pattern_versions),'Pivot Owner','pattern version snapshots creator credit');
 select is((select reuse_license_code from public.midi_pattern_versions),'CC-BY-4.0','public reuse stores exact license code');
 select is((select count(*) from public.midi_pattern_notes),1::bigint,'normalized notes are projected');
@@ -69,6 +84,18 @@ set local role authenticated;
 set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000001';
 select is((select count(*) from public.workspace_clips where midi_pattern_version_id is not null),1::bigint,'workspace projection uses an exact pattern version');
 select throws_ok($$select public.save_midi_workspace_v3(
+  (select id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),gen_random_uuid(),2,
+  jsonb_set((select manifest from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),
+    '{musicalKey}',to_jsonb('h-major'::text)))$$,
+  '22023','midi_manifest_v3_invalid','workspace save rejects musical keys outside the TypeScript contract');
+select throws_ok($$select public.save_midi_workspace_v3(
+  (select id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),gen_random_uuid(),2,
+  jsonb_set((select manifest from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),'{tracks}',(
+    select jsonb_agg(jsonb_build_object('trackId',gen_random_uuid(),'sortOrder',n,'name','Track '||n,
+      'presetId','warm-keys','presetVersion',1,'gainDb',0,'pan',0,'muted',false,'soloed',false,'clips','[]'::jsonb)
+      order by n) from generate_series(0,16) n)))$$,
+  '22023','midi_manifest_v3_track_limit','workspace save enforces the 16-track TypeScript contract');
+select throws_ok($$select public.save_midi_workspace_v3(
   (select id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),gen_random_uuid(),1,
   (select manifest from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'))$$,
   'PT409','midi_workspace_save_conflict','stale workspace saves conflict');
@@ -79,8 +106,21 @@ select is((select count(*) from public.arrangement_versions),1::bigint,'one arra
 select is((select count(*) from public.arrangement_tracks),1::bigint,'arrangement tracks are normalized');
 select is((select count(*) from public.arrangement_clips),1::bigint,'arrangement clips are normalized');
 select ok((select arrangement_version_id is not null from public.project_revisions where manifest_version=3),'revision points to its exact arrangement');
+select is((select count(*) from public.arrangement_versions),1::bigint,'project owner reads the private arrangement');
 reset role;
 select throws_ok($$update public.arrangement_clips set start_tick=1$$,'55000','immutable_revision_history','arrangement projections are immutable');
+
+insert into public.project_members(project_id,user_id,role,created_by)
+select id,'f3000000-0000-4000-8000-000000000002','editor','f3000000-0000-4000-8000-000000000001'
+from public.projects where owner_id='f3000000-0000-4000-8000-000000000001';
+insert into public.project_members(project_id,user_id,role,created_by)
+select id,'f3000000-0000-4000-8000-000000000004','editor','f3000000-0000-4000-8000-000000000001'
+from public.projects where owner_id='f3000000-0000-4000-8000-000000000001';
+
+set local role authenticated;
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000002';
+select is((select count(*) from public.arrangement_versions),1::bigint,'active project member reads a private arrangement');
+reset role;
 
 set local role authenticated;
 set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000003';
@@ -94,8 +134,37 @@ reset role;
 
 set local role authenticated;
 set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000004';
+select is((select count(*) from public.arrangement_versions),0::bigint,'suspended project member cannot read a private arrangement');
 select throws_ok($$select public.create_midi_pattern_v3(gen_random_uuid(),'Blocked')$$,
   'PT403','midi_pattern_actor_ineligible','suspended actor cannot mutate patterns');
+reset role;
+
+select ok(not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname in ('create_midi_pattern_v3','create_midi_pattern_version_v3',
+    'create_midi_project_workspace_v3','save_midi_workspace_v3','publish_midi_workspace_revision_v3',
+    'create_contribution_workspace_v3','submit_contribution_v3','accept_contribution_v3','fork_project_v3')
+    and has_function_privilege('anon',p.oid,'execute')),
+  'anonymous has no execute privilege on MIDI v3 commands');
+select ok(not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public' and p.proname in ('create_midi_pattern_v3','create_midi_pattern_version_v3',
+    'create_midi_project_workspace_v3','save_midi_workspace_v3','publish_midi_workspace_revision_v3',
+    'create_contribution_workspace_v3','submit_contribution_v3','accept_contribution_v3','fork_project_v3')
+    and not has_function_privilege('authenticated',p.oid,'execute')),
+  'authenticated receives only the explicit MIDI v3 command surface');
+
+update public.projects set visibility='public' where owner_id='f3000000-0000-4000-8000-000000000001';
+set local role anon;
+select is((select count(*) from public.arrangement_versions),1::bigint,'anonymous reads a visible public arrangement');
+reset role;
+update public.projects set moderation_state='hidden' where owner_id='f3000000-0000-4000-8000-000000000001';
+set local role anon;
+select is((select count(*) from public.arrangement_versions),0::bigint,'anonymous cannot read a hidden public arrangement');
+reset role;
+update public.projects set moderation_state='visible',visibility='private',status='deleted',
+  open_to_contributions=false,deleted_at=statement_timestamp()
+where owner_id='f3000000-0000-4000-8000-000000000001';
+set local role anon;
+select is((select count(*) from public.arrangement_versions),0::bigint,'anonymous cannot read a deleted public arrangement');
 reset role;
 
 set local role anon;

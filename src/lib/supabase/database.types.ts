@@ -1293,11 +1293,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "midi_pattern_versions_parent_pattern_version_id_fkey"
-            columns: ["parent_pattern_version_id"]
+            foreignKeyName: "midi_pattern_versions_midi_pattern_id_parent_pattern_versi_fkey"
+            columns: ["midi_pattern_id", "parent_pattern_version_id"]
             isOneToOne: false
             referencedRelation: "midi_pattern_versions"
-            referencedColumns: ["id"]
+            referencedColumns: ["midi_pattern_id", "id"]
           },
           {
             foreignKeyName: "midi_pattern_versions_source_pattern_version_id_fkey"

@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(22);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3100000-0000-4000-8000-000000000001','authenticated','authenticated','v3-owner@example.test','','{}','{}',now(),now()),
@@ -52,17 +52,44 @@ select lives_ok($$select public.create_contribution_workspace_v3(
   (select current_revision_id from public.projects where owner_id='f3100000-0000-4000-8000-000000000001'),
   'Exact proposal','')$$,'member creates a v3 contribution workspace');
 select ok((select manifest ? 'workspaceId' from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000002'),'contribution workspace gets its own canonical workspace ID');
+select throws_ok($$select public.submit_contribution_v3(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  'f3180000-0000-4000-8000-000000000001',1,
+  (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  (select manifest_sha256 from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000002'),
+  'contributor-attestation-v1')$$,'PT409','midi_arrangement_request_conflict',
+  'a contribution cannot reuse another actor workspace-freeze request ID');
 select lives_ok($$select public.submit_contribution_v3(
   (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
   'f31a0000-0000-4000-8000-000000000001',1,
   (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
   (select manifest_sha256 from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000002'),
   'contributor-attestation-v1')$$,'submission freezes one shared arrangement snapshot');
+select lives_ok($$select public.submit_contribution_v3(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  'f31a0000-0000-4000-8000-000000000001',1,
+  (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  (select manifest_sha256 from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000002'),
+  'contributor-attestation-v1')$$,'identical contribution submissions replay idempotently');
+select throws_ok($$select public.submit_contribution_v3(
+  (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  'f31a0000-0000-4000-8000-000000000001',1,
+  (select base_revision_id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
+  repeat('0',64),'contributor-attestation-v1')$$,'PT409','contribution_submission_request_conflict',
+  'changed contribution submission payloads cannot reuse a request ID');
 select ok((select arrangement_version_id is not null from public.contribution_versions),'contribution wrapper references an exact arrangement');
+select ok(exists(select 1 from public.arrangement_versions a join public.contribution_versions cv
+  on cv.arrangement_version_id=a.id where cv.contribution_id=(select id from public.contributions
+    where author_id='f3100000-0000-4000-8000-000000000002')),
+  'contribution author reads the submitted arrangement');
 reset role;
 
 set local role authenticated;
 set local request.jwt.claim.sub='f3100000-0000-4000-8000-000000000001';
+select ok(exists(select 1 from public.arrangement_versions a join public.contribution_versions cv
+  on cv.arrangement_version_id=a.id where cv.contribution_id=(select id from public.contributions
+    where author_id='f3100000-0000-4000-8000-000000000002')),
+  'project owner reads a submitted contribution arrangement for review');
 select lives_ok($$select public.accept_contribution_v3(
   (select id from public.contributions where author_id='f3100000-0000-4000-8000-000000000002'),
   'f31b0000-0000-4000-8000-000000000001',

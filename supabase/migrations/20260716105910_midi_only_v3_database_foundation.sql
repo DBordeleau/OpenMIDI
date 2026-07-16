@@ -14,31 +14,32 @@ alter table private.midi_synth_presets
 
 insert into private.midi_synth_presets(preset_id,version,min_note,max_note,engine_version)
 values
-  ('drum-machine',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('electro-kit',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('lofi-kit',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('percussion-rack',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('sub-bass',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('analog-bass',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('fm-bass',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('pluck-bass',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('warm-keys',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('electric-keys',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('organ',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('glass-keys',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('saw-lead',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('square-lead',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('fm-lead',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('soft-lead',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('warm-pad',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('air-pad',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('string-pad',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('choir-pad',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('muted-pluck',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('bright-pluck',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('bell',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('mallet',1,0,127,'jam-session-midi-3_tone-15.1.22_presets-1')
+  ('drum-machine',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('electro-kit',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('lofi-kit',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('percussion-rack',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('sub-bass',1,24,60,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('analog-bass',1,24,67,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('fm-bass',1,24,72,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('pluck-bass',1,28,72,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('warm-keys',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('electric-keys',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('organ',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('glass-keys',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('saw-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('square-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('fm-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('soft-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('warm-pad',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('air-pad',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('string-pad',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('choir-pad',1,36,96,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('muted-pluck',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('bright-pluck',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('bell',1,48,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
+  ('mallet',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1')
 on conflict(preset_id,version) do update set
+  min_note=excluded.min_note,max_note=excluded.max_note,
   engine_version=excluded.engine_version,is_active=true;
 
 create table public.midi_patterns (
@@ -72,7 +73,7 @@ create table public.midi_pattern_versions (
   create_request_id uuid not null,
   creator_id uuid not null references public.profiles(id) on delete restrict,
   creator_credit_name text not null check(creator_credit_name=btrim(creator_credit_name) and char_length(creator_credit_name) between 1 and 120),
-  parent_pattern_version_id uuid references public.midi_pattern_versions(id) on delete restrict,
+  parent_pattern_version_id uuid,
   source_pattern_version_id uuid references public.midi_pattern_versions(id) on delete restrict,
   ppq smallint not null check(ppq=480),
   duration_ticks integer not null check(duration_ticks between 1 and 86400000),
@@ -86,6 +87,8 @@ create table public.midi_pattern_versions (
   unique(midi_pattern_id,create_request_id),
   unique(midi_pattern_id,id),
   unique(id,midi_pattern_id),
+  foreign key(midi_pattern_id,parent_pattern_version_id)
+    references public.midi_pattern_versions(midi_pattern_id,id) on delete restrict,
   check(parent_pattern_version_id is null or parent_pattern_version_id<>id),
   check(source_pattern_version_id is null or source_pattern_version_id<>id),
   check((reuse_license_code is null and reuse_license_version is null and reuse_license_url is null)
@@ -123,7 +126,10 @@ create table public.arrangement_versions (
   tempo_bpm numeric not null check(tempo_bpm between 20 and 300),
   time_signature_numerator smallint not null check(time_signature_numerator between 1 and 32),
   time_signature_denominator smallint not null check(time_signature_denominator in (1,2,4,8,16,32)),
-  musical_key text check(musical_key is null or (musical_key=btrim(musical_key) and char_length(musical_key) between 1 and 32)),
+  musical_key text check(musical_key is null or musical_key in (
+    'c-major','c-sharp-major','d-major','e-flat-major','e-major','f-major','f-sharp-major','g-major',
+    'a-flat-major','a-major','b-flat-major','b-major','c-minor','c-sharp-minor','d-minor','e-flat-minor',
+    'e-minor','f-minor','f-sharp-minor','g-minor','g-sharp-minor','a-minor','b-flat-minor','b-minor')),
   ppq smallint not null check(ppq=480),
   duration_ticks integer not null check(duration_ticks between 1 and 86400000),
   created_at timestamptz not null default statement_timestamp(),
@@ -137,7 +143,7 @@ create table public.arrangement_tracks (
   arrangement_version_id uuid not null,
   project_id uuid not null,
   track_id uuid not null,
-  sort_order smallint not null check(sort_order between 0 and 27),
+  sort_order smallint not null check(sort_order between 0 and 15),
   name text not null check(name=btrim(name) and char_length(name) between 1 and 120),
   preset_id text not null,
   preset_version integer not null,
@@ -384,7 +390,7 @@ create function private.canonical_manifest_v3(
 ) returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare
   v_track jsonb; v_clip jsonb; v_tracks jsonb:='[]'::jsonb; v_clips jsonb;
-  v_track_count integer; v_clip_count integer:=0; v_position integer:=0;
+  v_track_count integer; v_clip_count integer:=0; v_resolved_note_count integer:=0; v_position integer:=0;
   v_tempo numeric; v_num smallint; v_den smallint; v_ppq smallint; v_duration integer;
   v_key text; v_pattern public.midi_pattern_versions%rowtype;
 begin
@@ -418,11 +424,15 @@ begin
   if v_tempo not between 20 and 300 or v_num not between 1 and 32
     or v_den not in (1,2,4,8,16,32) or v_ppq<>480
     or v_duration not between 1 and 86400000
-    or (v_key is not null and (v_key<>btrim(v_key) or char_length(v_key) not between 1 and 32)) then
+    or v_duration>floor(600*v_tempo*480)
+    or (v_key is not null and v_key not in (
+      'c-major','c-sharp-major','d-major','e-flat-major','e-major','f-major','f-sharp-major','g-major',
+      'a-flat-major','a-major','b-flat-major','b-major','c-minor','c-sharp-minor','d-minor','e-flat-minor',
+      'e-minor','f-minor','f-sharp-minor','g-minor','g-sharp-minor','a-minor','b-flat-minor','b-minor')) then
     raise sqlstate '22023' using message='midi_manifest_v3_invalid';
   end if;
   v_track_count:=jsonb_array_length(p_manifest->'tracks');
-  if v_track_count>28 then raise sqlstate '22023' using message='midi_manifest_v3_track_limit'; end if;
+  if v_track_count>16 then raise sqlstate '22023' using message='midi_manifest_v3_track_limit'; end if;
   for v_track in select value from jsonb_array_elements(p_manifest->'tracks') loop
     if jsonb_typeof(v_track)<>'object'
       or not (v_track ?& array['trackId','sortOrder','name','presetId','presetVersion','gainDb','pan','muted','soloed','clips'])
@@ -438,14 +448,14 @@ begin
           and p.engine_version='jam-session-midi-3_tone-15.1.22_presets-1' and p.is_active) then
       raise sqlstate '22023' using message='midi_manifest_v3_invalid';
     end if;
-    if jsonb_array_length(v_track->'clips')>256 then
+    if jsonb_array_length(v_track->'clips')>32 then
       raise sqlstate '22023' using message='midi_manifest_v3_clip_limit';
     end if;
     v_clips:='[]'::jsonb;
     for v_clip in select value from jsonb_array_elements(v_track->'clips')
       order by (value->>'startTick')::integer,(value->>'clipId')::uuid loop
       v_clip_count:=v_clip_count+1;
-      if v_clip_count>1024 or jsonb_typeof(v_clip)<>'object'
+      if v_clip_count>512 or jsonb_typeof(v_clip)<>'object'
         or not (v_clip ?& array['clipId','midiPatternVersionId','startTick','durationTicks','sourceStartTick','loop'])
         or (select count(*) from jsonb_object_keys(v_clip))<>6
         or jsonb_typeof(v_clip->'loop')<>'boolean' then
@@ -460,6 +470,10 @@ begin
         or (not (v_clip->>'loop')::boolean and
           (v_clip->>'sourceStartTick')::integer+(v_clip->>'durationTicks')::integer>v_pattern.duration_ticks) then
         raise sqlstate '22023' using message='midi_manifest_v3_pattern_unavailable';
+      end if;
+      v_resolved_note_count:=v_resolved_note_count+v_pattern.note_count;
+      if v_resolved_note_count>16384 then
+        raise sqlstate '22023' using message='midi_manifest_v3_note_limit';
       end if;
       v_clips:=v_clips||jsonb_build_array(jsonb_build_object(
         'clipId',(v_clip->>'clipId')::uuid,'midiPatternVersionId',(v_clip->>'midiPatternVersionId')::uuid,
@@ -532,20 +546,29 @@ begin
   if not (select private.is_active_project_actor()) then raise sqlstate 'PT403' using message='midi_pattern_actor_ineligible'; end if;
   select * into v_pattern from public.midi_patterns where id=p_pattern_id and owner_id=v_actor and deleted_at is null for update;
   if not found then raise sqlstate 'PT404' using message='midi_pattern_not_found'; end if;
-  select * into v_existing from public.midi_pattern_versions where midi_pattern_id=p_pattern_id and create_request_id=p_request_id;
-  if found then return query select v_existing.id,v_existing.version_number,v_existing.content_sha256,v_existing.created_at; return; end if;
-  v_number:=coalesce((select max(pv.version_number)+1 from public.midi_pattern_versions pv where pv.midi_pattern_id=p_pattern_id),1);
-  if p_request_id is null or p_expected_version_number<>v_number or p_ppq<>480
+  if p_request_id is null or p_ppq<>480
     or (p_publish_for_reuse and p_rights_attestation_version<>'cc-by-4.0-attestation-v1')
     or (not p_publish_for_reuse and p_rights_attestation_version is not null) then
     raise sqlstate 'PT409' using message='midi_pattern_version_conflict'; end if;
   v_notes:=private.canonical_midi_pattern_notes_v3(p_notes,p_duration_ticks);
   if v_notes<>p_notes then raise sqlstate '22023' using message='midi_pattern_notes_not_canonical'; end if;
+  v_hash:=encode(extensions.digest(convert_to(jsonb_build_object('ppq',480,
+    'durationTicks',p_duration_ticks,'notes',v_notes)::text,'UTF8'),'sha256'),'hex');
+  select * into v_existing from public.midi_pattern_versions where midi_pattern_id=p_pattern_id and create_request_id=p_request_id;
+  if found then
+    if v_existing.version_number<>p_expected_version_number or v_existing.duration_ticks<>p_duration_ticks
+      or v_existing.content_sha256<>v_hash
+      or (v_existing.reuse_license_code is not null)<>p_publish_for_reuse then
+      raise sqlstate 'PT409' using message='midi_pattern_version_request_conflict';
+    end if;
+    return query select v_existing.id,v_existing.version_number,v_existing.content_sha256,v_existing.created_at; return;
+  end if;
+  v_number:=coalesce((select max(pv.version_number)+1 from public.midi_pattern_versions pv where pv.midi_pattern_id=p_pattern_id),1);
+  if p_expected_version_number<>v_number then
+    raise sqlstate 'PT409' using message='midi_pattern_version_conflict'; end if;
   select credit_name into v_credit from public.profiles where id=v_actor;
   select * into v_parent from public.midi_pattern_versions where midi_pattern_id=p_pattern_id order by version_number desc limit 1;
   v_source:=coalesce(v_pattern.source_pattern_version_id,v_parent.source_pattern_version_id,v_parent.id);
-  v_hash:=encode(extensions.digest(convert_to(jsonb_build_object('ppq',480,
-    'durationTicks',p_duration_ticks,'notes',v_notes)::text,'UTF8'),'sha256'),'hex');
   insert into public.midi_pattern_versions(midi_pattern_id,version_number,create_request_id,creator_id,
     creator_credit_name,parent_pattern_version_id,source_pattern_version_id,ppq,duration_ticks,note_count,
     content_sha256,reuse_license_code,reuse_license_version,reuse_license_url)
@@ -609,12 +632,17 @@ begin
   select * into v_workspace from public.workspaces where id=p_workspace_id;
   if not found or v_workspace.owner_id<>p_actor or v_workspace.status<>'active' or v_workspace.manifest_version<>3 then
     raise sqlstate 'PT404' using message='midi_workspace_not_found'; end if;
-  select * into v_existing from public.arrangement_versions a
-    where a.project_id=v_workspace.project_id and a.create_request_id=p_request_id;
-  if found then return v_existing.id; end if;
   v_manifest:=v_workspace.manifest-'workspaceId';
   v_manifest:=private.canonical_manifest_v3(v_manifest,v_workspace.project_id,null);
   v_hash:=encode(extensions.digest(convert_to(v_manifest::text,'UTF8'),'sha256'),'hex');
+  select * into v_existing from public.arrangement_versions a
+    where a.project_id=v_workspace.project_id and a.create_request_id=p_request_id;
+  if found then
+    if v_existing.created_by<>p_actor or v_existing.manifest_sha256<>v_hash or v_existing.manifest<>v_manifest then
+      raise sqlstate 'PT409' using message='midi_arrangement_request_conflict';
+    end if;
+    return v_existing.id;
+  end if;
   insert into public.arrangement_versions(project_id,created_by,create_request_id,manifest_version,
     engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,
     time_signature_denominator,musical_key,ppq,duration_ticks)
@@ -725,7 +753,15 @@ begin
     and contribution_id is null and status='active' for update;
   if not found or v_workspace.manifest_version<>3 then raise sqlstate 'PT404' using message='midi_workspace_not_found'; end if;
   select * into v_existing from public.project_revisions r where r.project_id=v_workspace.project_id and r.publish_request_id=p_request_id;
-  if found then return query select v_existing.id,v_existing.revision_number,v_existing.arrangement_version_id,v_existing.created_at; return; end if;
+  if found then
+    if v_existing.expected_base_revision_id is distinct from p_expected_base_revision_id
+      or v_existing.message is distinct from v_message
+      or v_workspace.lock_version<>p_expected_workspace_lock_version
+      or v_existing.manifest<>(v_workspace.manifest-'workspaceId') then
+      raise sqlstate 'PT409' using message='midi_publish_request_conflict';
+    end if;
+    return query select v_existing.id,v_existing.revision_number,v_existing.arrangement_version_id,v_existing.created_at; return;
+  end if;
   select * into v_project from public.projects where id=v_workspace.project_id and owner_id=v_actor
     and deleted_at is null and moderation_state='visible' for update;
   if not found then raise sqlstate 'PT404' using message='midi_publish_project_not_found'; end if;
@@ -803,16 +839,28 @@ begin
   if v_actor is null then raise sqlstate 'PT401' using message='contribution_unauthenticated'; end if;
   if not (select private.is_active_project_actor()) then raise sqlstate 'PT403' using message='contribution_actor_ineligible'; end if;
   select * into v_contribution from public.contributions where id=p_contribution_id and author_id=v_actor for update;
-  if not found or v_contribution.status not in ('draft','changes_requested') then
+  if not found then
     raise sqlstate 'PT404' using message='contribution_not_found'; end if;
-  select * into v_existing from public.contribution_versions cv
-    where cv.contribution_id=p_contribution_id and cv.submission_request_id=p_request_id;
-  if found then return query select v_contribution.id,v_existing.id,v_existing.version_number,
-    v_existing.arrangement_version_id,v_contribution.status,v_contribution.submitted_at; return; end if;
   select * into v_workspace from public.workspaces w where w.contribution_id=p_contribution_id
     and w.owner_id=v_actor and w.status='active' for update;
-  if not found or v_workspace.manifest_version<>3
-    or v_workspace.lock_version<>p_expected_workspace_lock_version
+  if not found or v_workspace.manifest_version<>3 then
+    raise sqlstate 'PT404' using message='contribution_workspace_not_found'; end if;
+  select * into v_existing from public.contribution_versions cv
+    where cv.contribution_id=p_contribution_id and cv.submission_request_id=p_request_id;
+  if found then
+    if v_workspace.lock_version<>p_expected_workspace_lock_version
+      or v_workspace.base_revision_id<>p_expected_base_revision_id
+      or v_workspace.manifest_sha256<>p_expected_manifest_sha256
+      or v_existing.base_revision_id<>p_expected_base_revision_id
+      or v_existing.attestation_version<>p_attestation_version then
+      raise sqlstate 'PT409' using message='contribution_submission_request_conflict';
+    end if;
+    return query select v_contribution.id,v_existing.id,v_existing.version_number,
+      v_existing.arrangement_version_id,v_contribution.status,v_contribution.submitted_at; return;
+  end if;
+  if v_contribution.status not in ('draft','changes_requested') then
+    raise sqlstate 'PT404' using message='contribution_not_found'; end if;
+  if v_workspace.lock_version<>p_expected_workspace_lock_version
     or v_workspace.base_revision_id<>p_expected_base_revision_id
     or v_workspace.manifest_sha256<>p_expected_manifest_sha256
     or v_contribution.base_revision_id<>p_expected_base_revision_id
@@ -919,7 +967,8 @@ begin
   select * into v_existing from public.projects p where p.owner_id=v_actor and p.create_request_id=p_request_id;
   if found then
     if v_existing.source_project_id<>p_source_project_id or v_existing.source_revision_id<>p_source_revision_id
-      or v_existing.title<>v_title or v_existing.description is distinct from v_description then
+      or v_existing.title<>v_title or v_existing.description is distinct from v_description
+      or p_expected_license_code<>'cc-by-4.0' then
       raise sqlstate 'PT409' using message='fork_request_conflict'; end if;
     select * into v_revision from public.project_revisions r where r.project_id=v_existing.id and r.revision_number=1;
     select * into v_workspace from public.workspaces w where w.project_id=v_existing.id and w.owner_id=v_actor and w.status='active';
