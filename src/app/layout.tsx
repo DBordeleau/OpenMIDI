@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: "%s | Jam Session",
   },
   description:
-    "Jam Session is where unfinished songs find their people. Upload stems, collaborate in the browser, and keep every contributor credited.",
+    "Jam Session is where MIDI ideas become shared arrangements, with every contributor credited.",
 };
 
 export default function RootLayout({

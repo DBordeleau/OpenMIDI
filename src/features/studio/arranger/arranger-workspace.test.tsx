@@ -34,7 +34,6 @@ describe("ArrangerWorkspace", () => {
         manifest={manifest}
         midiVersions={[]}
         trackCredits={[]}
-        audioSummaries={new Map()}
         editable
         playing={false}
         playheadTick={0}
@@ -166,7 +165,6 @@ describe("ArrangerWorkspace", () => {
         trackCredits={[
           { trackId: uuid(2), instrumentName: null, creditName: "Ada" },
         ]}
-        audioSummaries={new Map()}
         editable={false}
         playing={false}
         playheadTick={0}
@@ -271,7 +269,6 @@ describe("ArrangerWorkspace", () => {
         manifest={manifest}
         midiVersions={[version]}
         trackCredits={[]}
-        audioSummaries={new Map()}
         editable
         playing={false}
         playheadTick={0}

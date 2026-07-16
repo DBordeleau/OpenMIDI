@@ -18,7 +18,6 @@ import {
   type WorkspaceManifestV2,
   type WorkspaceTrackV2,
 } from "../manifest/v2";
-import type { ManifestV3 } from "../manifest/v3";
 import {
   toEditorManifest,
   toEditorPatternVersion,
@@ -32,7 +31,7 @@ import {
   renderStudioWavV3,
 } from "./local-export-v3.client";
 import { sanitizeFilenamePart } from "@/features/exports/filename";
-import { sha256PostgresJsonb } from "../manifest/schema";
+import { sha256PostgresJsonb } from "../manifest/canonical-json";
 import {
   publishMidiWorkspaceV3Action,
   saveMidiWorkspaceV3Action,
@@ -45,7 +44,6 @@ import {
 import type { MidiLocalRecoveryEnvelope } from "@/features/workspaces/schema";
 import { MutableStudioLifecycle } from "../switch-coordinator";
 import { ArrangerWorkspace } from "../arranger/arranger-workspace";
-import type { AudioLaneSummary } from "../arranger/audio-peaks.client";
 import {
   applyArrangementCommand,
   ArrangementCommandError,
@@ -65,9 +63,7 @@ import { freezeStudioPatternAction } from "../integrated-midi/actions";
 import type { FinalizePatternInput } from "../integrated-midi/integrated-midi-composer.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
 
-type Props = StudioLauncherProps & {
-  manifest: WorkspaceManifestV2 | ManifestV3;
-};
+type Props = StudioLauncherProps;
 type SaveStatus =
   "saved" | "dirty" | "saving" | "offline" | "conflict" | "error";
 
@@ -95,19 +91,14 @@ export function MidiStudioSurface(props: Props) {
       : props.mode === "contribution" && props.canEdit
         ? props
         : null;
-  const initialManifest =
-    props.manifest.manifestVersion === 3
-      ? toEditorManifest(props.manifest)
-      : props.manifest;
+  const initialManifest = toEditorManifest(props.manifest);
   const v3Authority = {
     workspaceId:
-      props.manifest.manifestVersion === 3 && props.manifest.workspaceId
-        ? props.manifest.workspaceId
-        : props.mode === "workspace" || props.mode === "contribution"
-          ? props.workspaceId
-          : props.projectId,
-    musicalKey:
-      props.manifest.manifestVersion === 3 ? props.manifest.musicalKey : null,
+      props.manifest.workspaceId ??
+      (props.mode === "workspace" || props.mode === "contribution"
+        ? props.workspaceId
+        : props.projectId),
+    musicalKey: props.manifest.musicalKey,
   };
   const [manifest, setManifest] = useState(initialManifest);
   const manifestRef = useRef(initialManifest);
@@ -144,10 +135,6 @@ export function MidiStudioSurface(props: Props) {
   const [draftSaveStatus, setDraftSaveStatus] =
     useState<MidiDraftSaveStatus>("saved");
   const [integratedDraftActive, setIntegratedDraftActive] = useState(false);
-  const audioSummaries = useMemo<ReadonlyMap<string, AudioLaneSummary>>(
-    () => new Map(),
-    [],
-  );
   const [recovery, setRecovery] = useState<MidiLocalRecoveryEnvelope | null>(
     () =>
       editable
@@ -193,7 +180,6 @@ export function MidiStudioSurface(props: Props) {
           version.durationTicks,
         ]),
       ),
-      audioAssetDurations: new Map<string, number>(),
     }),
     [midiVersions],
   );
@@ -236,7 +222,6 @@ export function MidiStudioSurface(props: Props) {
         .catch(() =>
           setMessage("Some local Studio instruments could not be prepared."),
         );
-      next.updateManifest(manifest);
     } catch {
       // Draft timing is validated and reported by the explicit save/play action.
     }
@@ -1081,7 +1066,6 @@ export function MidiStudioSurface(props: Props) {
               manifest={manifest}
               midiVersions={midiVersions}
               trackCredits={props.tracks}
-              audioSummaries={audioSummaries}
               editable={Boolean(editable)}
               playing={playing}
               playheadTick={seekTick}
@@ -1577,135 +1561,6 @@ export function MidiStudioSurface(props: Props) {
       ) : (
         <ol className="space-y-4">
           {manifest.tracks.map((track) => {
-            if (track.kind === "audio") {
-              const clip = track.clips[0]!;
-              return (
-                <li
-                  key={track.trackId}
-                  className="rounded-control border-subtle grid gap-4 border p-4 lg:grid-cols-[1fr_2fr]"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {track.sortOrder + 1}. {track.name}
-                    </p>
-                    <p className="text-muted mt-1 text-sm">
-                      Compatibility track unavailable in MIDI-only Studio
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <label className="text-xs font-semibold">
-                      Gain dB
-                      <input
-                        className={`${input} mt-1 w-full`}
-                        type="number"
-                        min={-60}
-                        max={6}
-                        step={0.5}
-                        disabled={!editable}
-                        value={track.gainDb}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            gainDb: Number(event.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="text-xs font-semibold">
-                      Pan
-                      <input
-                        className={`${input} mt-1 w-full`}
-                        type="number"
-                        min={-1}
-                        max={1}
-                        step={0.1}
-                        disabled={!editable}
-                        value={track.pan}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            pan: Number(event.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="text-xs font-semibold">
-                      Start ms
-                      <input
-                        className={`${input} mt-1 w-full`}
-                        type="number"
-                        min={0}
-                        disabled={!editable}
-                        value={clip.positionMs}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            clips: [
-                              {
-                                ...clip,
-                                positionMs: Number(event.target.value),
-                              },
-                            ],
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="text-xs font-semibold">
-                      Length ms
-                      <input
-                        className={`${input} mt-1 w-full`}
-                        type="number"
-                        min={1}
-                        disabled={!editable}
-                        value={clip.durationMs}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            clips: [
-                              {
-                                ...clip,
-                                durationMs: Number(event.target.value),
-                              },
-                            ],
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={track.muted}
-                        disabled={!editable}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            muted: event.target.checked,
-                          })
-                        }
-                      />
-                      Mute
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={track.soloed}
-                        disabled={!editable}
-                        onChange={(event) =>
-                          updateTrack(track.trackId, {
-                            soloed: event.target.checked,
-                          })
-                        }
-                      />
-                      Solo
-                    </label>
-                    {editable && (
-                      <button
-                        className="text-danger text-left text-sm underline"
-                        type="button"
-                        onClick={() => removeTrack(track.trackId)}
-                      >
-                        Remove track
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            }
             const clip = track.clips[0]!;
             const version = stemVersions.get(clip.midiStemVersionId);
             return (

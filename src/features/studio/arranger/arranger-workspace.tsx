@@ -23,14 +23,12 @@ import {
   FiPlus,
   FiRotateCcw,
   FiRotateCw,
-  FiScissors,
   FiTrash2,
   FiUpload,
   FiX,
 } from "react-icons/fi";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
 import type { WorkspaceManifestV2, WorkspaceTrackV2 } from "../manifest/v2";
-import type { AudioLaneSummary } from "./audio-peaks.client";
 import { type ArrangerSelection, moveSelection } from "./selection";
 import {
   clampZoom,
@@ -70,7 +68,6 @@ type Props = {
     instrumentName: string | null;
     creditName: string;
   }[];
-  audioSummaries: ReadonlyMap<string, AudioLaneSummary>;
   editable: boolean;
   playing: boolean;
   playheadTick: number;
@@ -783,10 +780,6 @@ export function ArrangerWorkspace(props: Props) {
               <ol aria-label="Arrangement tracks">
                 {view.tracks.map((track, trackIndex) => {
                   const selected = selection?.trackId === track.trackId;
-                  const readiness =
-                    track.kind === "audio" && track.assetId
-                      ? props.audioSummaries.get(track.assetId)
-                      : null;
                   return (
                     <motion.li
                       key={track.trackId}
@@ -816,12 +809,8 @@ export function ArrangerWorkspace(props: Props) {
                           <span className="text-muted block truncate text-[11px]">
                             {track.instrument} · {track.creditName}
                           </span>
-                          <span
-                            className={`mt-1 block text-[10px] font-semibold uppercase ${readiness?.status === "failed" ? "text-danger" : readiness?.status === "ready" || track.kind === "midi" ? "text-accent-2" : "text-muted"}`}
-                          >
-                            {track.kind === "midi"
-                              ? "Ready · note summary"
-                              : (readiness?.status ?? "Loading source")}
+                          <span className="text-accent-2 mt-1 block text-[10px] font-semibold uppercase">
+                            Ready · note summary
                           </span>
                         </button>
                         <div className="mt-1 grid grid-cols-2 gap-2">
@@ -976,7 +965,7 @@ export function ArrangerWorkspace(props: Props) {
                               data-clip-id={clip.clipId}
                               className={`focus-visible:ring-accent rounded-control absolute top-4 h-36 overflow-hidden border text-left focus-visible:ring-2 ${selection?.kind === "clip" && selection.clipId === clip.clipId ? "border-accent bg-accent/20" : "border-strong bg-surface-raised"}`}
                               style={{ left, width }}
-                              aria-label={`${clip.kind === "midi" ? "MIDI" : "Audio"} clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${clip.durationTicks} ticks, credited to ${clip.creditName}.`}
+                              aria-label={`MIDI clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${clip.durationTicks} ticks, credited to ${clip.creditName}.`}
                               onClick={() =>
                                 setSelection({
                                   kind: "clip",
@@ -997,11 +986,10 @@ export function ArrangerWorkspace(props: Props) {
                                 });
                               }}
                               onDoubleClick={() => {
-                                if (clip.kind === "midi")
-                                  props.onEditMidiClip(
-                                    track.trackId,
-                                    clip.clipId,
-                                  );
+                                props.onEditMidiClip(
+                                  track.trackId,
+                                  clip.clipId,
+                                );
                               }}
                               onPointerDown={(event) =>
                                 beginClipDrag(
@@ -1019,15 +1007,11 @@ export function ArrangerWorkspace(props: Props) {
                               <span className="text-ink absolute top-1 left-2 z-10 max-w-[calc(100%-1rem)] truncate text-[10px] font-semibold">
                                 {track.name}
                               </span>
-                              {clip.kind === "midi" ? (
-                                <MidiNotes
-                                  notes={clip.notes}
-                                  clipStart={clip.startTick}
-                                  clipDuration={clip.durationTicks}
-                                />
-                              ) : (
-                                <AudioWaveform summary={readiness} />
-                              )}
+                              <MidiNotes
+                                notes={clip.notes}
+                                clipStart={clip.startTick}
+                                clipDuration={clip.durationTicks}
+                              />
                             </button>
                           );
                         })}
@@ -1222,11 +1206,7 @@ export function ArrangerWorkspace(props: Props) {
                     );
                     setContextMenu(null);
                   }}
-                  canPaste={
-                    clipboard?.kind === selectedTrack.kind &&
-                    (clipboard?.kind !== "audio" ||
-                      selectedTrack.assetId === clipboard.assetId)
-                  }
+                  canPaste={clipboard?.kind === selectedTrack.kind}
                   onCopy={() =>
                     setClipboard(
                       copyArrangementClip(
@@ -1255,16 +1235,6 @@ export function ArrangerWorkspace(props: Props) {
                     setSelection({
                       kind: "track",
                       trackId: selectedTrack.trackId,
-                    });
-                    setContextMenu(null);
-                  }}
-                  onSplit={(splitOffsetMs) => {
-                    props.onCommand({
-                      type: "splitAudioClip",
-                      trackId: selectedTrack.trackId,
-                      clipId: selectedClip.clipId,
-                      splitOffsetMs,
-                      newClipId: crypto.randomUUID(),
                     });
                     setContextMenu(null);
                   }}
@@ -1345,30 +1315,6 @@ function MidiNotes({
   );
 }
 
-function AudioWaveform({
-  summary,
-}: {
-  summary: AudioLaneSummary | null | undefined;
-}) {
-  const peaks = summary?.peaks.length
-    ? summary.peaks
-    : Array.from({ length: 48 }, (_, index) => 0.2 + ((index * 17) % 7) / 14);
-  return (
-    <span
-      aria-hidden
-      className={`absolute inset-x-0 top-7 bottom-2 flex items-center gap-px px-1 ${summary?.status === "failed" ? "opacity-25" : ""}`}
-    >
-      {peaks.map((peak, index) => (
-        <span
-          key={index}
-          className="bg-accent min-w-px flex-1 rounded-full"
-          style={{ height: `${Math.max(8, peak * 92)}%` }}
-        />
-      ))}
-    </span>
-  );
-}
-
 function ClipInspector({
   clip,
   track,
@@ -1381,7 +1327,6 @@ function ClipInspector({
   onCopy,
   onPaste,
   onDelete,
-  onSplit,
 }: {
   clip: ReturnType<
     typeof buildArrangerViewModel
@@ -1396,11 +1341,7 @@ function ClipInspector({
   onCopy: () => void;
   onPaste: () => void;
   onDelete: () => void;
-  onSplit: (splitOffsetMs: number) => void;
 }) {
-  const [splitOffsetMs, setSplitOffsetMs] = useState(
-    Math.max(1, Math.floor(clip.durationMs / 2)),
-  );
   return (
     <div className="mt-3 space-y-3">
       <h3 className="truncate font-semibold">{track.name} clip</h3>
@@ -1428,134 +1369,82 @@ function ClipInspector({
           >
             <FiLayers />
           </button>
-          {clip.kind === "midi" && (
-            <button
-              type="button"
-              className={`${iconButton} text-danger`}
-              aria-label="Delete selected MIDI clip"
-              title="Delete selected MIDI clip"
-              onClick={onDelete}
-            >
-              <FiTrash2 />
-            </button>
-          )}
+          <button
+            type="button"
+            className={`${iconButton} text-danger`}
+            aria-label="Delete selected MIDI clip"
+            title="Delete selected MIDI clip"
+            onClick={onDelete}
+          >
+            <FiTrash2 />
+          </button>
         </div>
       )}
       <p className="text-muted text-[11px]">
         Clipboard data stays in this Studio session. MIDI adopts a compatible
-        destination track&apos;s sound; audio remains on the same source. Hold
-        Alt while dragging for no snap.
+        destination track&apos;s sound. Hold Alt while dragging for no snap.
       </p>
-      {clip.kind === "midi" ? (
-        <>
-          {editable && (
-            <button
-              type="button"
-              className="border-strong min-h-11 w-full rounded-full border px-3 text-sm font-semibold"
-              onClick={onEdit}
-            >
-              Edit MIDI part
-            </button>
-          )}
-          <label className="block text-xs font-semibold">
-            Exact pattern version
-            <select
-              aria-label={`Replace ${track.name} clip version`}
-              className={`${field} mt-1`}
-              disabled={!editable}
-              value={clip.versionId ?? ""}
-              onChange={(event) => onReplace(event.target.value)}
-            >
-              {midiVersions.map((version) => (
-                <option
-                  key={version.stemVersionId}
-                  value={version.stemVersionId}
-                >
-                  {version.name} · v{version.version}
-                </option>
-              ))}
-            </select>
-          </label>
-          <ExactNumber
-            label="Start tick"
-            value={clip.startTick}
-            editable={editable}
-            min={0}
-            onChange={(startTick) => onPatch({ startTick }, "start")}
-          />
-          <ExactNumber
-            label="Source offset ticks"
-            value={clip.sourceStartTick ?? 0}
-            editable={editable}
-            min={0}
-            onChange={(sourceStartTick) =>
-              onPatch({ sourceStartTick }, "source-offset")
+      <>
+        {editable && (
+          <button
+            type="button"
+            className="border-strong min-h-11 w-full rounded-full border px-3 text-sm font-semibold"
+            onClick={onEdit}
+          >
+            Edit MIDI part
+          </button>
+        )}
+        <label className="block text-xs font-semibold">
+          Exact pattern version
+          <select
+            aria-label={`Replace ${track.name} clip version`}
+            className={`${field} mt-1`}
+            disabled={!editable}
+            value={clip.versionId ?? ""}
+            onChange={(event) => onReplace(event.target.value)}
+          >
+            {midiVersions.map((version) => (
+              <option key={version.stemVersionId} value={version.stemVersionId}>
+                {version.name} · v{version.version}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ExactNumber
+          label="Start tick"
+          value={clip.startTick}
+          editable={editable}
+          min={0}
+          onChange={(startTick) => onPatch({ startTick }, "start")}
+        />
+        <ExactNumber
+          label="Source offset ticks"
+          value={clip.sourceStartTick ?? 0}
+          editable={editable}
+          min={0}
+          onChange={(sourceStartTick) =>
+            onPatch({ sourceStartTick }, "source-offset")
+          }
+        />
+        <ExactNumber
+          label="Length ticks"
+          value={clip.durationTicks}
+          editable={editable}
+          min={1}
+          onChange={(durationTicks) => onPatch({ durationTicks }, "duration")}
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={clip.loop}
+            disabled={!editable}
+            onChange={(event) =>
+              onPatch({ loop: event.target.checked }, "loop")
             }
           />
-          <ExactNumber
-            label="Length ticks"
-            value={clip.durationTicks}
-            editable={editable}
-            min={1}
-            onChange={(durationTicks) => onPatch({ durationTicks }, "duration")}
-          />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={clip.loop}
-              disabled={!editable}
-              onChange={(event) =>
-                onPatch({ loop: event.target.checked }, "loop")
-              }
-            />
-            Loop
-          </label>
-        </>
-      ) : (
-        <>
-          <ExactNumber
-            label="Start ms"
-            value={clip.startMs}
-            editable={editable}
-            min={0}
-            onChange={(positionMs) => onPatch({ positionMs }, "start")}
-          />
-          <ExactNumber
-            label="Trim start ms"
-            value={clip.trimStartMs ?? 0}
-            editable={editable}
-            min={0}
-            onChange={(trimStartMs) =>
-              onPatch({ trimStartMs }, "source-offset")
-            }
-          />
-          <ExactNumber
-            label="Length ms"
-            value={clip.durationMs}
-            editable={editable}
-            min={1}
-            onChange={(durationMs) => onPatch({ durationMs }, "duration")}
-          />
-          {editable && (
-            <div className="border-subtle rounded-control space-y-2 border p-3">
-              <ExactNumber
-                label="Split offset ms"
-                value={splitOffsetMs}
-                editable
-                min={1}
-                onChange={setSplitOffsetMs}
-              />
-              <button
-                type="button"
-                className="border-strong hover:border-accent inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border px-3 text-sm font-semibold"
-                onClick={() => onSplit(splitOffsetMs)}
-              >
-                <FiScissors /> Split inside immutable source
-              </button>
-            </div>
-          )}
-        </>
-      )}
+          Loop
+        </label>
+      </>
     </div>
   );
 }

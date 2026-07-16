@@ -66,10 +66,3 @@ export const contributionDeletionSchema = z.object({
   contributionId: z.uuid(),
   requestId: z.uuid(),
 });
-
-export const uploadRejectionSchema = z.object({
-  assetId: z.uuid(),
-  requestId: z.uuid(),
-  expectedStatus: z.enum(["reserved", "uploading", "processing", "failed"]),
-  reason: z.string().trim().min(1).max(500),
-});

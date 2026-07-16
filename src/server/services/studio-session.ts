@@ -43,7 +43,6 @@ export async function resolveStudioSession(
       canStartContribution: Boolean(
         revision && !owner && project.openToContributions,
       ),
-      canDownloadSources: false,
       canFork: Boolean(revision && project.license.allowsDerivatives),
     },
     canonicalLinks: {

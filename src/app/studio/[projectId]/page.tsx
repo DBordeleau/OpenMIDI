@@ -68,8 +68,6 @@ export default async function StudioProjectPage({
           projectTimeSignature={project.timeSignature}
           durationMs={workspaceDurationMs}
           tracks={studioTrackCredits(workspace.manifest, patternVersions)}
-          assets={[]}
-          instruments={[]}
           patternVersions={patternVersions}
         />
       ) : workspace ? (
@@ -90,8 +88,6 @@ export default async function StudioProjectPage({
           projectTimeSignature={project.timeSignature}
           durationMs={workspaceDurationMs}
           tracks={studioTrackCredits(workspace.manifest, patternVersions)}
-          assets={[]}
-          instruments={[]}
           patternVersions={patternVersions}
         />
       ) : revision && editable ? (

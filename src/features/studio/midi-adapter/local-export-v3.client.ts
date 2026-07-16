@@ -25,7 +25,6 @@ export function renderStudioWavV3(
   return renderMidiProjectWav(
     toEditorManifest(manifest),
     patternVersions,
-    [],
     manifest.engineVersion,
   );
 }

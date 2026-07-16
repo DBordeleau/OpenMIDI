@@ -6,7 +6,7 @@ import {
 import { schedulePublicMidiRevision } from "./schedule";
 
 describe("public MIDI scheduling", () => {
-  it("deterministically resolves structured v3 clips without an audio source", () => {
+  it("deterministically resolves structured v3 clips without network media", () => {
     const patterns = new Map([
       [V3_PATTERN_VERSION_1.midiPatternVersionId, V3_PATTERN_VERSION_1],
     ]);
@@ -17,7 +17,7 @@ describe("public MIDI scheduling", () => {
     expect(first).toHaveLength(4);
     expect(first.map((event) => event.startTick)).toEqual([0, 240, 960, 1200]);
     expect(first.every((event) => event.presetId.length > 0)).toBe(true);
-    expect(JSON.stringify(first)).not.toMatch(/signedUrl|assetId|storage/i);
+    expect(JSON.stringify(first)).not.toMatch(/signedUrl|storage/i);
   });
 
   it("honors solo and mute state before scheduling", () => {

@@ -11,7 +11,6 @@ import {
   applyModerationAction,
   placeContentHold,
   releaseContentHold,
-  rejectAdminUpload,
   submitReport,
 } from "@/server/repositories/moderation";
 import {
@@ -20,7 +19,6 @@ import {
   holdActionSchema,
   moderationActionSchema,
   reportInputSchema,
-  uploadRejectionSchema,
 } from "./schema";
 
 export type FormState = { message?: string };
@@ -189,28 +187,4 @@ export async function restoreAccountAction() {
   const { error } = await db.rpc("restore_own_account");
   if (error) redirect("/account-recovery?error=1");
   redirect("/dashboard?recovered=1");
-}
-
-export async function rejectAdminUploadAction(
-  _state: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const parsed = uploadRejectionSchema.safeParse({
-    assetId: formData.get("assetId"),
-    requestId: formData.get("requestId"),
-    expectedStatus: formData.get("expectedStatus"),
-    reason: formData.get("reason"),
-  });
-  if (!parsed.success) return { message: "Check the rejection reason." };
-  const { error } = await rejectAdminUpload(parsed.data);
-  if (error) {
-    return {
-      message:
-        error.code === "PT409"
-          ? "This upload changed. Reload before rejecting it."
-          : "The upload could not be rejected.",
-    };
-  }
-  revalidatePath("/admin/operations");
-  return { message: "Upload rejected and queued for safe cleanup." };
 }

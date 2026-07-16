@@ -64,30 +64,25 @@ export function toWorkspaceManifestV3(
     musicalKey: authority.musicalKey,
     ppq: 480,
     durationTicks: manifest.durationTicks,
-    tracks: manifest.tracks.map((track) => {
-      if (track.kind !== "midi") {
-        throw new Error("Manifest v3 cannot contain audio tracks");
-      }
-      return {
-        trackId: track.trackId,
-        sortOrder: track.sortOrder,
-        name: track.name,
-        presetId: track.presetId,
-        presetVersion: track.presetVersion,
-        gainDb: track.gainDb,
-        pan: track.pan,
-        muted: track.muted,
-        soloed: track.soloed,
-        clips: track.clips.map((clip) => ({
-          clipId: clip.clipId,
-          midiPatternVersionId: clip.midiStemVersionId,
-          startTick: clip.startTick,
-          durationTicks: clip.durationTicks,
-          sourceStartTick: clip.sourceStartTick,
-          loop: clip.loop,
-        })),
-      };
-    }),
+    tracks: manifest.tracks.map((track) => ({
+      trackId: track.trackId,
+      sortOrder: track.sortOrder,
+      name: track.name,
+      presetId: track.presetId,
+      presetVersion: track.presetVersion,
+      gainDb: track.gainDb,
+      pan: track.pan,
+      muted: track.muted,
+      soloed: track.soloed,
+      clips: track.clips.map((clip) => ({
+        clipId: clip.clipId,
+        midiPatternVersionId: clip.midiStemVersionId,
+        startTick: clip.startTick,
+        durationTicks: clip.durationTicks,
+        sourceStartTick: clip.sourceStartTick,
+        loop: clip.loop,
+      })),
+    })),
   });
 }
 

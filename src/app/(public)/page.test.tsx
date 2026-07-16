@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
-vi.mock("./_components/hero-waveform.client", () => ({
-  HeroWaveform: () => null,
+vi.mock("./_components/hero-midi-grid", () => ({
+  HeroMidiGrid: () => null,
 }));
 vi.mock("./_components/floating-cta.client", () => ({
   FloatingCta: () => null,

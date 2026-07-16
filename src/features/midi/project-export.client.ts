@@ -6,7 +6,6 @@ import {
   type MidiStemVersionV1,
   type WorkspaceManifestV2,
 } from "@/features/studio/manifest/v2";
-import type { SignedAudioSource } from "@/features/studio/source-contract";
 
 export function exportMidiProject(
   manifest: WorkspaceManifestV2,
@@ -65,29 +64,14 @@ export function exportMidiProject(
 export async function renderMidiProjectWav(
   manifest: WorkspaceManifestV2,
   stemVersions: ReadonlyMap<string, MidiStemVersionV1>,
-  audioSources: readonly SignedAudioSource[] = [],
   presetEngineVersion: string = manifest.engineVersion,
 ) {
   const Tone = await import("tone");
   const events = projectMidiSchedule({ manifest, stemVersions });
-  const context = Tone.getContext().rawContext;
-  const audioBuffers = new Map(
-    await Promise.all(
-      audioSources.map(async (source) => {
-        const response = await fetch(source.signedUrl);
-        if (!response.ok) throw new Error("Audio source unavailable");
-        return [
-          source.assetId,
-          await context.decodeAudioData(await response.arrayBuffer()),
-        ] as const;
-      }),
-    ),
-  );
   const durationSeconds =
     (manifest.durationTicks * 60) / (manifest.tempoBpm * MIDI_PPQ);
   const sampleRate = 44_100;
   const disposableVoices: Awaited<ReturnType<typeof createPresetVoice>>[] = [];
-  const disposableNodes: { dispose: () => void }[] = [];
   let rendered: Awaited<ReturnType<typeof Tone.Offline>>;
   try {
     rendered = await Tone.Offline(
@@ -119,33 +103,6 @@ export async function renderMidiProjectWav(
             event.velocity / 127,
           );
         }
-        const hasSolo = manifest.tracks.some(
-          (track) => track.soloed && !track.muted,
-        );
-        for (const track of manifest.tracks) {
-          if (
-            track.kind !== "audio" ||
-            track.muted ||
-            (hasSolo && !track.soloed)
-          )
-            continue;
-          const buffer = audioBuffers.get(track.assetId);
-          if (!buffer) throw new Error("Audio track was not prepared");
-          const panner = new Tone.Panner(track.pan).toDestination();
-          const gain = new Tone.Gain(Tone.dbToGain(track.gainDb)).connect(
-            panner,
-          );
-          disposableNodes.push(panner, gain);
-          for (const clip of track.clips) {
-            const player = new Tone.Player(buffer).connect(gain);
-            disposableNodes.push(player);
-            player.start(
-              clip.positionMs / 1_000,
-              clip.trimStartMs / 1_000,
-              clip.durationMs / 1_000,
-            );
-          }
-        }
       },
       durationSeconds + 1,
       2,
@@ -153,7 +110,6 @@ export async function renderMidiProjectWav(
     );
   } finally {
     disposableVoices.forEach((voice) => voice.dispose());
-    disposableNodes.forEach((node) => node.dispose());
   }
   const channels = [rendered.getChannelData(0), rendered.getChannelData(1)];
   return encodePcm16Wav(channels, sampleRate);

@@ -3,7 +3,7 @@ import { Container } from "@/components/layout/container";
 import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { FloatingCta } from "./_components/floating-cta.client";
-import { HeroWaveform } from "./_components/hero-waveform.client";
+import { HeroMidiGrid } from "./_components/hero-midi-grid";
 
 const ctaPrimary =
   "cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-[22px] py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px";
@@ -17,8 +17,8 @@ const lede = "mt-4 max-w-[48ch] text-lg leading-relaxed text-muted";
 const steps = [
   [
     "Step 01",
-    "Bring your stems",
-    "Drop in a beat, a hook, or a half-finished demo. It stays yours, with a clear starting point.",
+    "Sketch a MIDI idea",
+    "Draw a beat, hook, or chord loop with bundled instruments and a clear starting point.",
   ],
   [
     "Step 02",
@@ -28,7 +28,7 @@ const steps = [
   [
     "Step 03",
     "Build together",
-    "Others add vocals, bass, or a new arrangement — right in the browser, no DAW required.",
+    "Others add bass, drums, melody, or a new arrangement — right in the browser, no DAW required.",
   ],
   [
     "Step 04",
@@ -41,7 +41,7 @@ const tracks = [
   { name: "Drums", who: "Mara K.", mute: false, solo: false, seed: 2 },
   { name: "Bass", who: "Deniz V.", mute: false, solo: true, seed: 5 },
   { name: "Keys", who: "Mara K.", mute: true, solo: false, seed: 8 },
-  { name: "Vocals", who: "Jae B. · new", mute: false, solo: false, seed: 11 },
+  { name: "Lead", who: "Jae B. · new", mute: false, solo: false, seed: 11 },
 ] as const;
 
 const lineage = [
@@ -49,14 +49,14 @@ const lineage = [
     ver: "Rev. 01",
     who: "Mara Keller",
     title: ["The first ", "loop", ""],
-    body: "A four-bar keys idea, uploaded as a single stem and opened for collaboration.",
+    body: "A four-bar keys pattern is published and opened for collaboration.",
     fork: false,
   },
   {
     ver: "Rev. 04",
     who: "+ Jae Brooks",
     title: ["A ", "voice", " arrives"],
-    body: "A vocal topline is proposed, reviewed, and accepted as a new revision — credit recorded.",
+    body: "A new lead pattern is proposed, reviewed, and accepted as a revision — credit recorded.",
     fork: false,
   },
   {
@@ -77,7 +77,7 @@ const lineage = [
 
 const credits = [
   { role: "Written by", name: "Mara Keller", note: "original" },
-  { role: "Vocals", name: "Jae Brooks", note: null },
+  { role: "Lead", name: "Jae Brooks", note: null },
   { role: "Bass & drums", name: "Deniz Vural", note: null },
   { role: "Add'l keys", name: "Mara Keller", note: null },
   { role: "Mix", name: "Priya Anand", note: null },
@@ -121,9 +121,8 @@ export default function Home() {
             <Reveal delay={0.1}>
               <p className="text-muted mt-7 max-w-[52ch] text-[clamp(16px,1.7vw,20px)] leading-[1.62]">
                 Jam Session is where an unfinished idea finds its collaborators.
-                Upload your stems, open the doors, and let producers, vocalists,
-                and players around the world turn it into something none of you
-                could make alone.
+                Shape MIDI patterns, open the doors, and let musicians around
+                the world turn them into something none of you could make alone.
               </p>
             </Reveal>
             <Reveal delay={0.15}>
@@ -155,7 +154,7 @@ export default function Home() {
             </Reveal>
             <Reveal delay={0.28}>
               <div className="mt-16">
-                <HeroWaveform />
+                <HeroMidiGrid />
               </div>
             </Reveal>
           </section>
@@ -214,10 +213,9 @@ export default function Home() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className={lede}>
-              Open a project and hear every contribution mixed together in real
-              time. Reach for faders, not file transfers — audition
-              anyone&apos;s take, then keep experimenting in your own private
-              space that autosaves as you go.
+              Open a project and hear every contribution synthesized in real
+              time. Audition exact pattern versions, then keep experimenting in
+              your own private space that autosaves as you go.
             </p>
           </Reveal>
           <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.32fr)_minmax(0,0.68fr)]">
@@ -312,8 +310,8 @@ export default function Home() {
                   0 Revisions lost
                 </div>
                 <p className="text-muted mt-3 text-sm leading-relaxed">
-                  Every stem and version lives in one shared project — no
-                  &ldquo;final_final_v3.&rdquo;
+                  Every pattern and arrangement version lives in one shared
+                  project — no &ldquo;final_final_v3.&rdquo;
                 </p>
               </Reveal>
               <Reveal

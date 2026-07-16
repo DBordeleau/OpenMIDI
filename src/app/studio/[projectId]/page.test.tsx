@@ -99,11 +99,9 @@ describe("canonical selected Studio route", () => {
     const launcher = page.props.children as ReactElement<{
       manifest: unknown;
       patternVersions: unknown;
-      assets: unknown;
     }>;
 
     expect(launcher.props.manifest).toEqual(manifest);
     expect(launcher.props.patternVersions).toEqual([]);
-    expect(launcher.props.assets).toEqual([]);
   });
 });

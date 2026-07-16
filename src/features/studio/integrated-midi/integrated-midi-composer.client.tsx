@@ -6,7 +6,7 @@ import { MidiStemEditor } from "@/features/midi/stems/stem-editor.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
 import type { MidiStemDraft } from "@/features/midi/stems/types";
 import { MIDI_PPQ } from "../manifest/v2";
-import { sha256PostgresJsonb } from "../manifest/schema";
+import { sha256PostgresJsonb } from "../manifest/canonical-json";
 
 export type IntegratedMidiTarget =
   | {

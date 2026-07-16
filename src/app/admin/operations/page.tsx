@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layout/container";
 import { requireAdmin } from "@/features/auth/guards";
-import { UploadRejectionForm } from "@/features/moderation/upload-rejection-form";
-import {
-  getAdminStorageSummary,
-  listAdminRejectableUploads,
-} from "@/server/repositories/moderation";
+import { getAdminStorageSummary } from "@/server/repositories/moderation";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Storage operations" };
@@ -14,10 +10,7 @@ const mib = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 
 export default async function OperationsPage() {
   await requireAdmin("/admin/operations");
-  const [summary, rejectableUploads] = await Promise.all([
-    getAdminStorageSummary(),
-    listAdminRejectableUploads(),
-  ]);
+  const summary = await getAdminStorageSummary();
   const warning = summary.total.bytes >= summary.thresholds.warningBytes;
   return (
     <main id="main-content">
@@ -70,44 +63,6 @@ export default async function OperationsPage() {
               </tbody>
             </table>
           </div>
-        </section>
-        <section className="mt-8">
-          <h2 className="text-2xl font-bold">Rejectable uploads</h2>
-          <p className="text-muted mt-2 max-w-3xl">
-            Only incomplete or failed, unreferenced uploads appear here.
-            Rejection records an administrator audit action before safe cleanup.
-          </p>
-          {rejectableUploads.length === 0 ? (
-            <p className="text-muted mt-4">No eligible uploads.</p>
-          ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr>
-                    <th className="p-3">File</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Reserved</th>
-                    <th className="p-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rejectableUploads.map((upload) => (
-                    <tr className="border-subtle border-t" key={upload.id}>
-                      <td className="p-3">{upload.original_filename}</td>
-                      <td className="p-3 capitalize">{upload.status}</td>
-                      <td className="p-3">{mib(upload.reserved_byte_size)}</td>
-                      <td className="p-3">
-                        <UploadRejectionForm
-                          assetId={upload.id}
-                          expectedStatus={upload.status}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </section>
         <section className="rounded-card border-subtle mt-8 border p-6">
           <h2 className="text-xl font-bold">Retention</h2>

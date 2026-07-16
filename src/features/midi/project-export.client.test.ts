@@ -86,7 +86,6 @@ describe("exportMidiProject", () => {
     await renderMidiProjectWav(
       manifest,
       stemVersions,
-      [],
       "jam-session-midi-3_tone-15.1.22_presets-1",
     );
 

@@ -77,11 +77,7 @@ test.describe("anonymous public discovery", () => {
     seedDiscoveryFixture();
     const forbiddenRequests: string[] = [];
     page.on("request", (request) => {
-      if (
-        /audio-sources|downloads\/stems|storage\/v1\/object|waveform-playlist|tone/i.test(
-          request.url(),
-        )
-      )
+      if (/storage\/v1\/object/i.test(request.url()))
         forbiddenRequests.push(request.url());
     });
 

@@ -13,12 +13,6 @@ import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
 import type { ArrangementManifestV3 } from "@/features/studio/manifest/v3";
 import { parseArrangementManifestV3 } from "@/features/studio/manifest/v3";
 import type { StudioPatternVersion } from "@/features/studio/midi-adapter/manifest-v3-editor";
-import {
-  parseAnyWorkspaceManifest,
-  STUDIO_ENGINE_VERSION,
-} from "@/features/studio/manifest/schema";
-import { COMPOSITE_STUDIO_ENGINE_VERSION } from "@/features/studio/manifest/v2";
-import type { RevisionPlayback } from "@/server/repositories/revisions";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
@@ -524,120 +518,6 @@ export async function getContributionArrangementComparison(input: {
       },
     ),
     patternAttributions: submitted.patternAttributions,
-  };
-}
-
-/** Transitional compatibility for Wave 3-owned audio routes only. */
-export async function getContributionVersionPlayback(input: {
-  projectId: string;
-  contributionId: string;
-  versionId: string;
-}): Promise<RevisionPlayback | null> {
-  const db = await createSupabaseServerClient();
-  const { data, error } = await db
-    .from("contribution_versions")
-    .select(
-      "id,contribution_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,contributions!contribution_versions_contribution_id_fkey(project_id),contribution_version_tracks(track_id,kind,asset_id,name,duration_ms,sort_order,preset_id,preset_version,instruments(name),assets(duration_ms,asset_credits(credit_name,role,position,profiles!asset_credits_user_id_fkey(username))),contribution_version_clips(clip_id,kind,position_ms,trim_start_ms,duration_ms,midi_stem_version_id,start_tick,duration_ticks,source_start_tick,loop),contribution_version_midi_track_credits(credited_stem_version_id,creator_credit_name,credit_role,profiles!contribution_version_midi_track_credits_creator_id_fkey(username)))",
-    )
-    .eq("id", input.versionId)
-    .eq("contribution_id", input.contributionId)
-    .maybeSingle();
-  if (error) throw new Error("contribution_version_unavailable");
-  if (!data || data.contributions.project_id !== input.projectId) return null;
-  const v1 =
-    data.manifest_version === 1 &&
-    data.engine === "waveform-playlist" &&
-    data.engine_version === STUDIO_ENGINE_VERSION;
-  const v2 =
-    data.manifest_version === 2 &&
-    data.engine === "jam-session-composite" &&
-    data.engine_version === COMPOSITE_STUDIO_ENGINE_VERSION;
-  if (!v1 && !v2) throw new Error("contribution_version_invalid");
-  const manifest = parseAnyWorkspaceManifest(data.manifest);
-  const tracks = [...data.contribution_version_tracks].sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
-  if (
-    (manifest.manifestVersion === 1
-      ? manifest.workspaceId !== input.projectId
-      : manifest.projectId !== input.projectId) ||
-    tracks.length !== manifest.tracks.length ||
-    tracks.some((track, index) => {
-      const item = manifest.tracks[index];
-      if (manifest.manifestVersion === 1)
-        return (
-          !item ||
-          !("positionMs" in item) ||
-          item.trackId !== track.track_id ||
-          item.assetId !== track.asset_id ||
-          item.name !== track.name ||
-          item.durationMs !== track.duration_ms ||
-          item.sortOrder !== track.sort_order ||
-          track.assets?.duration_ms === null
-        );
-      return (
-        !item ||
-        !("kind" in item) ||
-        item.trackId !== track.track_id ||
-        item.kind !== track.kind ||
-        item.name !== track.name ||
-        item.sortOrder !== track.sort_order ||
-        (item.kind === "audio"
-          ? item.assetId !== track.asset_id
-          : item.presetId !== track.preset_id ||
-            item.presetVersion !== track.preset_version) ||
-        item.clips.length !== track.contribution_version_clips.length
-      );
-    })
-  )
-    throw new Error("contribution_version_invalid");
-  return {
-    projectId: input.projectId,
-    revisionId: data.id,
-    revisionNumber: 0,
-    manifest,
-    manifestSha256: data.manifest_sha256,
-    durationMs: data.duration_ms,
-    tracks: tracks.map((track) => ({
-      trackId: track.track_id,
-      kind: track.kind as "audio" | "midi",
-      assetId: track.asset_id,
-      displayName: track.name,
-      verifiedDurationMs: track.assets?.duration_ms ?? track.duration_ms ?? 0,
-      instrumentName: track.instruments?.name ?? null,
-      credits:
-        track.kind === "midi"
-          ? [...track.contribution_version_midi_track_credits]
-              .sort(
-                (a, b) =>
-                  a.credit_role.localeCompare(b.credit_role) ||
-                  a.creator_credit_name.localeCompare(b.creator_credit_name),
-              )
-              .map((credit, position) => ({
-                creditName: credit.creator_credit_name,
-                role:
-                  credit.credit_role === "derivation_source"
-                    ? ("derivation" as const)
-                    : ("creator" as const),
-                position,
-                profileUsername: credit.profiles?.username ?? null,
-              }))
-          : [...(track.assets?.asset_credits ?? [])]
-              .sort((a, b) => a.position - b.position)
-              .map((credit) => ({
-                creditName: credit.credit_name,
-                role: credit.role,
-                position: credit.position,
-                profileUsername: credit.profiles?.username ?? null,
-              })),
-      creditName:
-        track.assets?.asset_credits.find((credit) => credit.position === 0)
-          ?.credit_name ??
-        track.contribution_version_midi_track_credits.find(
-          (credit) => credit.credit_role === "creator",
-        )?.creator_credit_name ??
-        "Unknown creator",
-    })),
   };
 }
 

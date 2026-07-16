@@ -8,8 +8,12 @@ describe("MIDI browser engine boundary", () => {
     const forbiddenImports = [
       /from ["']tone["']/,
       /import\(["']tone["']\)/,
+      /from ["']@tonejs\/midi["']/,
       /preset-voice\.client/,
       /project-export\.client/,
+      /browser-midi-runtime\.client/,
+      /interchange\.client/,
+      /local-export-v3\.client/,
     ];
     const files = roots.flatMap((root) =>
       sourceFiles(path.join(process.cwd(), root)),

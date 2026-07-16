@@ -6,7 +6,7 @@ import { exportStudioMidiV3 } from "./local-export-v3.client";
 import { importMidiBytes } from "@/features/midi/interchange.client";
 
 describe("manifest-v3 local MIDI export", () => {
-  it("exports multiple clips locally without requesting Storage audio", () => {
+  it("exports multiple clips locally without requesting network media", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const patternId = "00000000-0000-4000-8000-000000000009";
     const manifest = {

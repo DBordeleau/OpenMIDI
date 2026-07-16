@@ -15,7 +15,6 @@ describe("parseSupabasePublicEnv", () => {
     ).toEqual({
       url,
       publishableKey,
-      storageTusUrl: `${url}/storage/v1/upload/resumable`,
     });
   });
 

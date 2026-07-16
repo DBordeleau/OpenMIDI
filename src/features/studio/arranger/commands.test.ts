@@ -5,7 +5,6 @@ import {
 } from "../manifest/v2";
 import {
   applyArrangementCommand,
-  ArrangementCommandError,
   copyArrangementClip,
   snapArrangementTick,
 } from "./commands";
@@ -14,10 +13,8 @@ const uuid = (suffix: number) =>
   `00000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
 
 const midiVersionId = uuid(20);
-const audioAssetId = uuid(30);
 const context = {
   midiVersionDurations: new Map([[midiVersionId, 960]]),
-  audioAssetDurations: new Map([[audioAssetId, 4_000]]),
 };
 
 function fixture(): WorkspaceManifestV2 {
@@ -54,11 +51,12 @@ function fixture(): WorkspaceManifestV2 {
         ],
       },
       {
-        kind: "audio",
+        kind: "midi",
         trackId: uuid(4),
-        assetId: audioAssetId,
-        name: "Guitar",
+        name: "Bass",
         instrumentId: null,
+        presetId: "mono-bass-v1",
+        presetVersion: 1,
         gainDb: -3,
         pan: 0,
         muted: false,
@@ -67,9 +65,11 @@ function fixture(): WorkspaceManifestV2 {
         clips: [
           {
             clipId: uuid(5),
-            positionMs: 0,
-            trimStartMs: 0,
-            durationMs: 1_000,
+            midiStemVersionId: midiVersionId,
+            startTick: 0,
+            sourceStartTick: 0,
+            durationTicks: 480,
+            loop: false,
           },
         ],
       },
@@ -78,7 +78,7 @@ function fixture(): WorkspaceManifestV2 {
 }
 
 describe("arrangement commands", () => {
-  it("reorders tracks and moves MIDI and audio clips on the canonical timeline", () => {
+  it("reorders tracks and moves MIDI clips on the canonical timeline", () => {
     let manifest = fixture();
     manifest = applyArrangementCommand(
       manifest,
@@ -103,10 +103,10 @@ describe("arrangement commands", () => {
       [uuid(2), 1],
     ]);
     expect(manifest.tracks[1]?.clips[0]).toMatchObject({ startTick: 960 });
-    expect(manifest.tracks[0]?.clips[0]).toMatchObject({ positionMs: 500 });
+    expect(manifest.tracks[0]?.clips[0]).toMatchObject({ startTick: 480 });
   });
 
-  it("copies, pastes, splits, and deletes with fresh stable IDs", () => {
+  it("copies, pastes, and deletes with fresh stable IDs", () => {
     let manifest = fixture();
     const clipboard = copyArrangementClip(manifest, uuid(2), uuid(3));
     manifest = applyArrangementCommand(
@@ -121,28 +121,12 @@ describe("arrangement commands", () => {
     );
     manifest = applyArrangementCommand(
       manifest,
-      {
-        type: "splitAudioClip",
-        trackId: uuid(4),
-        clipId: uuid(5),
-        splitOffsetMs: 400,
-        newClipId: uuid(8),
-      },
-      context,
-    );
-    manifest = applyArrangementCommand(
-      manifest,
       { type: "deleteMidiClip", trackId: uuid(2), clipId: uuid(7) },
       context,
     );
 
     const midi = manifest.tracks.find((track) => track.trackId === uuid(2))!;
-    const audio = manifest.tracks.find((track) => track.trackId === uuid(4))!;
     expect(midi.clips.map(({ clipId }) => clipId)).toEqual([uuid(3)]);
-    expect(audio.clips).toEqual([
-      { clipId: uuid(5), positionMs: 0, trimStartMs: 0, durationMs: 400 },
-      { clipId: uuid(8), positionMs: 400, trimStartMs: 400, durationMs: 600 },
-    ]);
   });
 
   it("duplicates a complete MIDI track into a new lane with fresh stable IDs", () => {
@@ -323,7 +307,7 @@ describe("arrangement commands", () => {
     ]);
   });
 
-  it("rejects overlap, source-bound, incompatible-target, and project-bound changes", () => {
+  it("rejects overlap, source-bound, and project-bound changes", () => {
     const source = fixture();
     const manifest = applyArrangementCommand(
       source,
@@ -342,31 +326,6 @@ describe("arrangement commands", () => {
         context,
       ),
     ).toThrow(/cannot overlap/);
-    expect(() =>
-      applyArrangementCommand(
-        fixture(),
-        {
-          type: "patchClip",
-          trackId: uuid(4),
-          clipId: uuid(5),
-          patch: { trimStartMs: 3_500, durationMs: 1_000 },
-        },
-        context,
-      ),
-    ).toThrow(/immutable source/);
-    const clipboard = copyArrangementClip(manifest, uuid(2), uuid(3));
-    expect(() =>
-      applyArrangementCommand(
-        manifest,
-        {
-          type: "pasteClip",
-          targetTrackId: uuid(4),
-          clipboard,
-          newClipId: uuid(9),
-        },
-        context,
-      ),
-    ).toThrow(ArrangementCommandError);
     expect(() =>
       applyArrangementCommand(
         fixture(),

@@ -1,4 +1,4 @@
-import { sha256PostgresJsonb } from "@/features/studio/manifest/schema";
+import { sha256PostgresJsonb } from "@/features/studio/manifest/canonical-json";
 import {
   canonicalizeStemContent,
   type MidiStemDraftV1,

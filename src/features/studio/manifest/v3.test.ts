@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MIDI_SINGLE_TRACK_FIXTURE } from "@/features/midi/fixtures";
-import { STUDIO_FIXTURE_MANIFEST } from "./fixtures";
-import { mapManifestV1ToV2 } from "./v1-to-v2";
-import { convertMidiOnlyManifestV2ToV3 } from "./temporary-compatibility";
+import { convertMidiOnlyManifestV2ToV3 } from "./v2-to-v3";
 import {
   reconstructManifestV3,
   parseArrangementManifestV3,
@@ -84,11 +82,11 @@ describe("MIDI manifest v3", () => {
     ).toBe(await sha256ManifestV3(V3_MANIFEST_BEFORE));
   });
 
-  it("rejects audio fields, duplicate IDs, invalid bounds, and unknown fields", () => {
+  it("rejects unknown fields, duplicate IDs, and invalid bounds", () => {
     expect(() =>
       parseManifestV3({
         ...V3_MANIFEST_BEFORE,
-        assetId: V3_IDS.project,
+        binaryObjectPath: "not-part-of-manifest-v3",
       }),
     ).toThrow();
     expect(() =>
@@ -152,7 +150,7 @@ describe("MIDI manifest v3", () => {
     ).toThrow("Missing MIDI pattern version");
   });
 
-  it("converts MIDI-only v2 manifests and refuses audio compatibility", () => {
+  it("converts MIDI-only v2 manifests", () => {
     const converted = convertMidiOnlyManifestV2ToV3(
       MIDI_SINGLE_TRACK_FIXTURE.manifest,
       { workspaceId: V3_IDS.workspace, musicalKey: "c-major" },
@@ -161,8 +159,5 @@ describe("MIDI manifest v3", () => {
       [...MIDI_SINGLE_TRACK_FIXTURE.stemVersions.keys()][0],
     );
     expect(converted).not.toHaveProperty("kind");
-    expect(() =>
-      convertMidiOnlyManifestV2ToV3(mapManifestV1ToV2(STUDIO_FIXTURE_MANIFEST)),
-    ).toThrow("audio tracks cannot be converted");
   });
 });

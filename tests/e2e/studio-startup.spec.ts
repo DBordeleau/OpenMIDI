@@ -9,18 +9,14 @@ test.describe("MIDI-only Studio v3", () => {
     "requires the local gated Auth actor",
   );
 
-  test("creates, edits, recovers, publishes, and exports an exact multi-track arrangement without Storage audio", async ({
+  test("creates, edits, recovers, publishes, and exports an exact multi-track MIDI arrangement", async ({
     page,
   }) => {
     test.setTimeout(180_000);
     const actorId = await ensureStudioActorProfile();
     const forbiddenRequests: string[] = [];
     page.on("request", (request) => {
-      if (
-        /audio-sources|downloads\/stems|storage\/v1\/object|waveform|source-loader/i.test(
-          request.url(),
-        )
-      ) {
+      if (/storage\/v1\/object/i.test(request.url())) {
         forbiddenRequests.push(request.url());
       }
     });
@@ -115,9 +111,6 @@ test.describe("MIDI-only Studio v3", () => {
     expect(revision.manifestVersion).toBe(3);
     expect(revision.engine).toBe("jam-session-midi");
     expect(revision.arrangementVersionId).toBeTruthy();
-    expect(JSON.stringify(revision.manifest)).not.toMatch(
-      /assetId|signedUrl|waveform|positionMs|trimStartMs/,
-    );
 
     const counts = JSON.parse(
       queryLocalDatabase(`select json_build_object(

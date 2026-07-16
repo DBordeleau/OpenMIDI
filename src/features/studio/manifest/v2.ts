@@ -4,7 +4,6 @@ export const MIDI_PPQ = 480 as const;
 export const MAX_MIDI_NOTES_PER_STEM = 2_048;
 export const MAX_RESOLVED_MIDI_NOTES_PER_PROJECT = 16_384;
 export const MAX_MIDI_TRACKS = 16;
-export const MAX_AUDIO_TRACKS = 12;
 export const MAX_CLIPS_PER_TRACK = 32;
 export const MAX_PROJECT_MINUTES = 10;
 export const MAX_MIDI_STEM_DURATION_TICKS = 86_400_000;
@@ -85,15 +84,6 @@ export type MidiStemContentV1 = z.infer<typeof stemContentSchema>;
 export type MidiStemDraftV1 = z.infer<typeof midiStemDraftV1Schema>;
 export type MidiStemVersionV1 = z.infer<typeof midiStemVersionV1Schema>;
 
-export const audioClipReferenceV1Schema = z
-  .object({
-    clipId: uuidSchema,
-    positionMs: z.number().int().nonnegative(),
-    trimStartMs: z.number().int().nonnegative(),
-    durationMs: z.number().int().positive(),
-  })
-  .strict();
-
 export const midiClipReferenceV1Schema = z
   .object({
     clipId: uuidSchema,
@@ -112,32 +102,6 @@ const commonTrackSchema = {
   ...mixerSchema,
 } as const;
 
-export const audioTrackV2Schema = z
-  .object({
-    kind: z.literal("audio"),
-    ...commonTrackSchema,
-    assetId: uuidSchema,
-    clips: z.array(audioClipReferenceV1Schema).min(1).max(MAX_CLIPS_PER_TRACK),
-  })
-  .strict()
-  .superRefine(({ clips }, context) => {
-    const ordered = [...clips].sort(
-      (left, right) =>
-        left.positionMs - right.positionMs ||
-        left.clipId.localeCompare(right.clipId),
-    );
-    ordered.forEach((clip, index) => {
-      const next = ordered[index + 1];
-      if (next && clip.positionMs + clip.durationMs > next.positionMs) {
-        context.addIssue({
-          code: "custom",
-          message: "Audio clips on one track cannot overlap",
-          path: ["clips"],
-        });
-      }
-    });
-  });
-
 export const midiTrackV2Schema = z
   .object({
     kind: z.literal("midi"),
@@ -148,10 +112,7 @@ export const midiTrackV2Schema = z
   })
   .strict();
 
-export const workspaceTrackV2Schema = z.discriminatedUnion("kind", [
-  audioTrackV2Schema,
-  midiTrackV2Schema,
-]);
+export const workspaceTrackV2Schema = midiTrackV2Schema;
 
 export const workspaceManifestV2Schema = z
   .object({
@@ -174,9 +135,7 @@ export const workspaceManifestV2Schema = z
       })
       .strict(),
     durationTicks: positiveTickSchema,
-    tracks: z
-      .array(workspaceTrackV2Schema)
-      .max(MAX_AUDIO_TRACKS + MAX_MIDI_TRACKS),
+    tracks: z.array(workspaceTrackV2Schema).max(MAX_MIDI_TRACKS),
   })
   .strict()
   .superRefine(({ durationTicks, tempoBpm, tracks }, context) => {
@@ -191,23 +150,14 @@ export const workspaceManifestV2Schema = z
       });
     }
 
-    const audioCount = tracks.filter(({ kind }) => kind === "audio").length;
-    const midiCount = tracks.length - audioCount;
-    if (audioCount > MAX_AUDIO_TRACKS) {
-      context.addIssue({
-        code: "custom",
-        message: "Too many audio tracks",
-        path: ["tracks"],
-      });
-    }
-    if (midiCount > MAX_MIDI_TRACKS) {
+    if (tracks.length > MAX_MIDI_TRACKS) {
       context.addIssue({
         code: "custom",
         message: "Too many MIDI tracks",
         path: ["tracks"],
       });
     }
-    if (midiCount > 0 && tempoBpm > 300) {
+    if (tracks.length > 0 && tempoBpm > 300) {
       context.addIssue({
         code: "custom",
         message: "MIDI projects cannot exceed 300 BPM",
@@ -239,13 +189,7 @@ export const workspaceManifestV2Schema = z
           });
         }
         clipIds.add(clip.clipId);
-        const clipEnd =
-          "startTick" in clip
-            ? clip.startTick + clip.durationTicks
-            : Math.ceil(
-                ((clip.positionMs + clip.durationMs) * tempoBpm * MIDI_PPQ) /
-                  60_000,
-              );
+        const clipEnd = clip.startTick + clip.durationTicks;
         if (clipEnd > durationTicks) {
           context.addIssue({
             code: "custom",
@@ -267,9 +211,7 @@ export const workspaceManifestV2Schema = z
     }
   });
 
-export type AudioClipReferenceV1 = z.infer<typeof audioClipReferenceV1Schema>;
 export type MidiClipReferenceV1 = z.infer<typeof midiClipReferenceV1Schema>;
-export type AudioTrackV2 = z.infer<typeof audioTrackV2Schema>;
 export type MidiTrackV2 = z.infer<typeof midiTrackV2Schema>;
 export type WorkspaceTrackV2 = z.infer<typeof workspaceTrackV2Schema>;
 export type WorkspaceManifestV2 = z.infer<typeof workspaceManifestV2Schema>;
@@ -309,16 +251,12 @@ export function canonicalizeManifestV2(
       .sort((left, right) => left.sortOrder - right.sortOrder)
       .map((track) => ({
         ...track,
-        clips: [...track.clips].sort((left, right) => {
-          const leftStart =
-            "startTick" in left ? left.startTick : left.positionMs;
-          const rightStart =
-            "startTick" in right ? right.startTick : right.positionMs;
-          return (
-            leftStart - rightStart || left.clipId.localeCompare(right.clipId)
-          );
-        }),
-      })) as WorkspaceTrackV2[],
+        clips: [...track.clips].sort(
+          (left, right) =>
+            left.startTick - right.startTick ||
+            left.clipId.localeCompare(right.clipId),
+        ),
+      })),
   };
 }
 
