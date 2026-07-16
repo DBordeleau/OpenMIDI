@@ -8,12 +8,20 @@ import {
 } from "./project-export.client";
 
 const renderMock = vi.hoisted(() => ({
+  create: vi.fn(async () => ({
+    triggerAttack: vi.fn(),
+    triggerRelease: vi.fn(),
+    triggerAttackRelease: vi.fn(),
+    setMixer: vi.fn(),
+    allNotesOff: vi.fn(),
+    dispose: vi.fn(),
+  })),
   trigger: vi.fn(),
   dispose: vi.fn(),
 }));
 
 vi.mock("./browser-engine/preset-voice.client", () => ({
-  createPresetVoice: vi.fn(async () => ({
+  createPresetVoice: renderMock.create.mockImplementation(async () => ({
     triggerAttack: vi.fn(),
     triggerRelease: vi.fn(),
     triggerAttackRelease: renderMock.trigger,
@@ -56,6 +64,7 @@ describe("exportMidiProject", () => {
   });
 
   it("renders a browser-local PCM WAV and disposes scheduled voices", async () => {
+    renderMock.create.mockClear();
     renderMock.trigger.mockClear();
     renderMock.dispose.mockClear();
     const { manifest, stemVersions } = MIDI_SINGLE_TRACK_FIXTURE;
@@ -68,6 +77,25 @@ describe("exportMidiProject", () => {
     expect(wav.type).toBe("audio/wav");
     expect(renderMock.trigger).toHaveBeenCalledTimes(16);
     expect(renderMock.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("can resolve presets against an authoritative engine override", async () => {
+    renderMock.create.mockClear();
+    const { manifest, stemVersions } = MIDI_SINGLE_TRACK_FIXTURE;
+
+    await renderMidiProjectWav(
+      manifest,
+      stemVersions,
+      [],
+      "jam-session-midi-3_tone-15.1.22_presets-1",
+    );
+
+    expect(renderMock.create).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Number),
+      expect.any(Object),
+      "jam-session-midi-3_tone-15.1.22_presets-1",
+    );
   });
 
   it("encodes equal-length channels and clamps samples to PCM16", async () => {

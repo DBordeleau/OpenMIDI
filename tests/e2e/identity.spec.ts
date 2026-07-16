@@ -113,7 +113,7 @@ test.describe("identity vertical slice", () => {
     await page.getByRole("button", { name: "Create project" }).click();
     await expect(
       page.getByRole("button", {
-        name: "Project menu â€” E2E collaboration draft",
+        name: /Project menu.*E2E collaboration draft/,
       }),
     ).toBeVisible();
     const studioUrl = new URL(page.url()).pathname;
