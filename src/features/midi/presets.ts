@@ -52,6 +52,8 @@ export type SynthPresetV1 = z.infer<typeof synthPresetV1Schema>;
 
 export const MIDI_ENGINE_ID = "jam-session-midi";
 export const MIDI_ENGINE_VERSION = "jam-session-midi-3_tone-15.1.22_presets-1";
+export const LEGACY_MIDI_ENGINE_VERSION =
+  "jam-session-composite-2_tone-15.1.22";
 export const INSTRUMENT_CATALOG_VERSION = 1;
 
 export const INSTRUMENT_FAMILIES = [
@@ -875,11 +877,27 @@ export const INSTRUMENT_PRESETS_CATALOG_1 = deepFreeze([
   }),
 ] satisfies readonly InstrumentPresetV1[]);
 
-export function resolveSynthPreset(presetId: string, version: number) {
-  const preset = [...INSTRUMENT_PRESETS_CATALOG_1, ...SYNTH_PRESETS_V1].find(
+export function resolveSynthPreset(
+  presetId: string,
+  version: number,
+  engineVersion?: string,
+) {
+  const catalogPreset = INSTRUMENT_PRESETS_CATALOG_1.find(
     (candidate) =>
       candidate.presetId === presetId && candidate.version === version,
   );
+  const legacyPreset = SYNTH_PRESETS_V1.find(
+    (candidate) =>
+      candidate.presetId === presetId && candidate.version === version,
+  );
+  const preset =
+    engineVersion === MIDI_ENGINE_VERSION
+      ? catalogPreset
+      : engineVersion === LEGACY_MIDI_ENGINE_VERSION
+        ? legacyPreset
+        : engineVersion === undefined
+          ? (legacyPreset ?? catalogPreset)
+          : undefined;
   if (!preset)
     throw new Error(`Unsupported synth preset ${presetId}@${version}`);
   return preset;

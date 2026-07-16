@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   INSTRUMENT_FAMILIES,
   INSTRUMENT_PRESETS_CATALOG_1,
+  LEGACY_MIDI_ENGINE_VERSION,
   MAX_PROJECT_SYNTH_VOICES,
   MIDI_ENGINE_VERSION,
   resolveCatalogPreset,
@@ -83,5 +84,20 @@ describe("instrument preset catalog 1", () => {
     expect(() => resolveSynthPreset("warm-poly", 2)).toThrow(
       "Unsupported synth preset",
     );
+  });
+
+  it("keeps the overlapping glass-keys version engine scoped", () => {
+    const legacy = resolveSynthPreset(
+      "glass-keys",
+      1,
+      LEGACY_MIDI_ENGINE_VERSION,
+    );
+    const catalog = resolveSynthPreset("glass-keys", 1, MIDI_ENGINE_VERSION);
+    expect(legacy).toMatchObject({ oscillator: "sine", gainDb: -9 });
+    expect(catalog).toMatchObject({
+      family: "keys",
+      parameters: { voice: "fm", gainDb: -15 },
+    });
+    expect(resolveSynthPreset("glass-keys", 1)).toBe(legacy);
   });
 });

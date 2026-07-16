@@ -56,8 +56,9 @@ export async function createPresetVoice(
   presetId: string,
   version: number,
   mixer: { gainDb: number; pan: number } = { gainDb: 0, pan: 0 },
+  engineVersion?: string,
 ): Promise<PresetVoice> {
-  const preset = resolveSynthPreset(presetId, version);
+  const preset = resolveSynthPreset(presetId, version, engineVersion);
   const parameters = getPresetRuntimeDefinition(preset);
   const Tone = await import("tone");
   const panner = new Tone.Panner(mixer.pan).toDestination();
@@ -156,21 +157,31 @@ export async function createPresetVoice(
 export async function benchmarkPresetVoice(
   presetId: string,
   version: number,
+  engineVersion?: string,
 ): Promise<PresetBenchmark> {
-  const preset = resolveSynthPreset(presetId, version);
+  const preset = resolveSynthPreset(presetId, version, engineVersion);
   const Tone = await import("tone");
   const voices: PresetVoice[] = [];
   const start = performance.now();
-  const buffer = await Tone.Offline(async () => {
-    const voice = await createPresetVoice(presetId, version);
-    voices.push(voice);
-    for (let index = 0; index < preset.maxPolyphony; index += 1) {
-      const note = Math.min(preset.maxNote, preset.minNote + (index % 12));
-      voice.triggerAttackRelease(note, 0.35, 0.05, 0.85);
-    }
-  }, 1.25);
+  let buffer: Awaited<ReturnType<typeof Tone.Offline>>;
+  try {
+    buffer = await Tone.Offline(async () => {
+      const voice = await createPresetVoice(
+        presetId,
+        version,
+        undefined,
+        engineVersion,
+      );
+      voices.push(voice);
+      for (let index = 0; index < preset.maxPolyphony; index += 1) {
+        const note = Math.min(preset.maxNote, preset.minNote + (index % 12));
+        voice.triggerAttackRelease(note, 0.35, 0.05, 0.85);
+      }
+    }, 1.25);
+  } finally {
+    voices.forEach((voice) => voice.dispose());
+  }
   const renderMs = performance.now() - start;
-  voices.forEach((voice) => voice.dispose());
   const samples = buffer.getChannelData(0);
   let peak = 0;
   for (const sample of samples) peak = Math.max(peak, Math.abs(sample));

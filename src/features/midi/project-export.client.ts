@@ -106,6 +106,7 @@ export async function renderMidiProjectWav(
                 gainDb: event.gainDb,
                 pan: event.pan,
               },
+              manifest.engineVersion,
             );
             voices.set(key, voice);
             disposableVoices.push(voice);
