@@ -1,4 +1,4 @@
-import type { SynthPresetV1 } from "../presets";
+import type { ResolvedSynthPreset, SynthesisParametersV1 } from "../presets";
 import { resolveSynthPreset } from "../presets";
 
 export type PresetVoice = {
@@ -58,33 +58,34 @@ export async function createPresetVoice(
   mixer: { gainDb: number; pan: number } = { gainDb: 0, pan: 0 },
 ): Promise<PresetVoice> {
   const preset = resolveSynthPreset(presetId, version);
+  const parameters = getPresetRuntimeDefinition(preset);
   const Tone = await import("tone");
   const panner = new Tone.Panner(mixer.pan).toDestination();
   const outputSafety = new Tone.Gain(Tone.dbToGain(-6 + mixer.gainDb)).connect(
     panner,
   );
   const limiter = new Tone.Limiter(-3).connect(outputSafety);
-  const gain = new Tone.Gain(Tone.dbToGain(preset.gainDb)).connect(limiter);
-  const reverb = new Tone.Reverb({ decay: 1.4, wet: preset.reverbWet }).connect(
-    gain,
-  );
-  await reverb.ready;
+  const gain = new Tone.Gain(Tone.dbToGain(parameters.gainDb)).connect(limiter);
+  const reverb = new Tone.JCReverb({
+    roomSize: 0.7,
+    wet: parameters.reverbWet,
+  }).connect(gain);
   const delay = new Tone.FeedbackDelay({
     delayTime: 0.18,
     feedback: 0.16,
-    wet: preset.delayWet,
+    wet: parameters.delayWet,
   }).connect(reverb);
   const chorus = new Tone.Chorus({
     frequency: 1.2,
     delayTime: 2.5,
     depth: 0.25,
-    wet: preset.chorusWet,
+    wet: parameters.chorusWet,
   })
     .start()
     .connect(delay);
   const filter = new Tone.Filter({
-    frequency: preset.filterHz,
-    Q: preset.filterQ,
+    frequency: parameters.filterHz,
+    Q: parameters.filterQ,
     type: "lowpass",
   }).connect(chorus);
   const synth = makeSynth(Tone, preset).connect(filter);
@@ -183,17 +184,52 @@ export async function benchmarkPresetVoice(
 
 type ToneModule = typeof import("tone");
 
-function makeSynth(Tone: ToneModule, preset: SynthPresetV1) {
-  if (preset.family === "drums") {
+export function getPresetRuntimeDefinition(
+  preset: ResolvedSynthPreset,
+): SynthesisParametersV1 {
+  if ("parameters" in preset) return preset.parameters;
+  return {
+    voice: preset.family === "drums" ? "membrane" : "synth",
+    oscillator: preset.oscillator,
+    envelope: preset.envelope,
+    harmonicity: 1,
+    modulationIndex: 2,
+    filterHz: preset.filterHz,
+    filterQ: preset.filterQ,
+    chorusWet: preset.chorusWet,
+    delayWet: preset.delayWet,
+    reverbWet: preset.reverbWet,
+    gainDb: preset.gainDb,
+  };
+}
+
+function makeSynth(Tone: ToneModule, preset: ResolvedSynthPreset) {
+  const parameters = getPresetRuntimeDefinition(preset);
+  if (parameters.voice === "membrane") {
     return new Tone.PolySynth(Tone.MembraneSynth, {
-      envelope: preset.envelope,
-      oscillator: { type: preset.oscillator },
+      envelope: parameters.envelope,
+      oscillator: { type: parameters.oscillator },
       pitchDecay: 0.04,
       octaves: 4,
     });
   }
+  if (parameters.voice === "fm") {
+    return new Tone.PolySynth(Tone.FMSynth, {
+      envelope: parameters.envelope,
+      oscillator: { type: parameters.oscillator },
+      harmonicity: parameters.harmonicity,
+      modulationIndex: parameters.modulationIndex,
+    });
+  }
+  if (parameters.voice === "am") {
+    return new Tone.PolySynth(Tone.AMSynth, {
+      envelope: parameters.envelope,
+      oscillator: { type: parameters.oscillator },
+      harmonicity: parameters.harmonicity,
+    });
+  }
   return new Tone.PolySynth(Tone.Synth, {
-    envelope: preset.envelope,
-    oscillator: { type: preset.oscillator },
+    envelope: parameters.envelope,
+    oscillator: { type: parameters.oscillator },
   });
 }

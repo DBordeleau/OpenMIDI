@@ -85,59 +85,96 @@ export async function renderMidiProjectWav(
   const durationSeconds =
     (manifest.durationTicks * 60) / (manifest.tempoBpm * MIDI_PPQ);
   const sampleRate = 44_100;
-  const rendered = await Tone.Offline(
-    async () => {
-      const voices = new Map<
-        string,
-        Awaited<ReturnType<typeof createPresetVoice>>
-      >();
-      for (const event of events) {
-        const key = `${event.trackId}:${event.presetId}:${event.presetVersion}:${event.gainDb}:${event.pan}`;
-        let voice = voices.get(key);
-        if (!voice) {
-          voice = await createPresetVoice(event.presetId, event.presetVersion, {
-            gainDb: event.gainDb,
-            pan: event.pan,
-          });
-          voices.set(key, voice);
-        }
-        voice.triggerAttackRelease(
-          event.pitch,
-          event.durationSeconds,
-          event.startSeconds,
-          event.velocity / 127,
-        );
-      }
-      const hasSolo = manifest.tracks.some(
-        (track) => track.soloed && !track.muted,
-      );
-      for (const track of manifest.tracks) {
-        if (track.kind !== "audio" || track.muted || (hasSolo && !track.soloed))
-          continue;
-        const buffer = audioBuffers.get(track.assetId);
-        if (!buffer) throw new Error("Audio track was not prepared");
-        const panner = new Tone.Panner(track.pan).toDestination();
-        const gain = new Tone.Gain(Tone.dbToGain(track.gainDb)).connect(panner);
-        for (const clip of track.clips) {
-          const player = new Tone.Player(buffer).connect(gain);
-          player.start(
-            clip.positionMs / 1_000,
-            clip.trimStartMs / 1_000,
-            clip.durationMs / 1_000,
+  const disposableVoices: Awaited<ReturnType<typeof createPresetVoice>>[] = [];
+  const disposableNodes: { dispose: () => void }[] = [];
+  let rendered: Awaited<ReturnType<typeof Tone.Offline>>;
+  try {
+    rendered = await Tone.Offline(
+      async () => {
+        const voices = new Map<
+          string,
+          Awaited<ReturnType<typeof createPresetVoice>>
+        >();
+        for (const event of events) {
+          const key = `${event.trackId}:${event.presetId}:${event.presetVersion}:${event.gainDb}:${event.pan}`;
+          let voice = voices.get(key);
+          if (!voice) {
+            voice = await createPresetVoice(
+              event.presetId,
+              event.presetVersion,
+              {
+                gainDb: event.gainDb,
+                pan: event.pan,
+              },
+            );
+            voices.set(key, voice);
+            disposableVoices.push(voice);
+          }
+          voice.triggerAttackRelease(
+            event.pitch,
+            event.durationSeconds,
+            event.startSeconds,
+            event.velocity / 127,
           );
         }
-      }
-    },
-    durationSeconds + 1,
-    2,
-    sampleRate,
-  );
+        const hasSolo = manifest.tracks.some(
+          (track) => track.soloed && !track.muted,
+        );
+        for (const track of manifest.tracks) {
+          if (
+            track.kind !== "audio" ||
+            track.muted ||
+            (hasSolo && !track.soloed)
+          )
+            continue;
+          const buffer = audioBuffers.get(track.assetId);
+          if (!buffer) throw new Error("Audio track was not prepared");
+          const panner = new Tone.Panner(track.pan).toDestination();
+          const gain = new Tone.Gain(Tone.dbToGain(track.gainDb)).connect(
+            panner,
+          );
+          disposableNodes.push(panner, gain);
+          for (const clip of track.clips) {
+            const player = new Tone.Player(buffer).connect(gain);
+            disposableNodes.push(player);
+            player.start(
+              clip.positionMs / 1_000,
+              clip.trimStartMs / 1_000,
+              clip.durationMs / 1_000,
+            );
+          }
+        }
+      },
+      durationSeconds + 1,
+      2,
+      sampleRate,
+    );
+  } finally {
+    disposableVoices.forEach((voice) => voice.dispose());
+    disposableNodes.forEach((node) => node.dispose());
+  }
   const channels = [rendered.getChannelData(0), rendered.getChannelData(1)];
   return encodePcm16Wav(channels, sampleRate);
 }
 
-function encodePcm16Wav(channels: readonly Float32Array[], sampleRate: number) {
+export function encodePcm16Wav(
+  channels: readonly Float32Array[],
+  sampleRate: number,
+) {
+  if (channels.length === 0 || channels.length > 2) {
+    throw new RangeError("WAV rendering requires one or two channels");
+  }
+  if (
+    !Number.isInteger(sampleRate) ||
+    sampleRate < 8_000 ||
+    sampleRate > 192_000
+  ) {
+    throw new RangeError("Invalid WAV sample rate");
+  }
   const frames = channels[0]?.length ?? 0;
+  if (!channels.every((channel) => channel.length === frames)) {
+    throw new RangeError("WAV channels must have equal frame counts");
+  }
   const buffer = new ArrayBuffer(44 + frames * channels.length * 2);
   const view = new DataView(buffer);
   const text = (offset: number, value: string) =>

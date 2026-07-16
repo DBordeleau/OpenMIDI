@@ -5,6 +5,10 @@ import {
   MIDI_PPQ,
   type MidiStemVersionV1,
 } from "@/features/studio/manifest/v2";
+import {
+  mapGeneralMidiProgram,
+  type GeneralMidiPresetMapping,
+} from "./general-midi";
 
 const MAX_MIDI_FILE_BYTES = 1_048_576;
 
@@ -20,6 +24,8 @@ export type ImportedMidiData = {
   tempoBpm: number;
   durationTicks: number;
   notes: ImportedMidiNote[];
+  suggestedPreset: GeneralMidiPresetMapping;
+  instrumentMappings: (GeneralMidiPresetMapping & { trackName: string })[];
   warnings: string[];
 };
 
@@ -110,6 +116,20 @@ export function importMidiBytes(bytes: Uint8Array): ImportedMidiData {
       track.pitchBends.length,
     0,
   );
+  const instrumentMappings = midi.tracks
+    .filter((track) => track.notes.length > 0)
+    .map((track) => ({
+      ...mapGeneralMidiProgram(
+        track.instrument.number,
+        track.instrument.percussion,
+      ),
+      trackName: track.name.trim(),
+      noteCount: track.notes.length,
+    }));
+  const suggestedPreset =
+    [...instrumentMappings].sort(
+      (left, right) => right.noteCount - left.noteCount,
+    )[0] ?? mapGeneralMidiProgram(0);
   const warnings: string[] = [];
   if (midi.tracks.length > 1) {
     warnings.push(
@@ -124,9 +144,13 @@ export function importMidiBytes(bytes: Uint8Array): ImportedMidiData {
       `Ignored ${midi.header.meta.length} unsupported text or attribution ${midi.header.meta.length === 1 ? "event" : "events"}.`,
     );
   }
-  if (midi.tracks.some((track) => track.instrument.number !== 0)) {
+  if (
+    instrumentMappings.some(
+      ({ program, percussion }) => program !== 0 || percussion,
+    )
+  ) {
     warnings.push(
-      "Ignored General MIDI program choices; select a Jam Session sound instead.",
+      "Mapped General MIDI programs to the closest Jam Session instrument families.",
     );
   }
   if (midi.tracks.filter((track) => track.name.trim()).length > 1) {
@@ -147,6 +171,15 @@ export function importMidiBytes(bytes: Uint8Array): ImportedMidiData {
     tempoBpm,
     durationTicks,
     notes,
+    suggestedPreset,
+    instrumentMappings: instrumentMappings.map((mapping) => ({
+      program: mapping.program,
+      percussion: mapping.percussion,
+      presetId: mapping.presetId,
+      version: mapping.version,
+      family: mapping.family,
+      trackName: mapping.trackName,
+    })),
     warnings,
   };
 }
