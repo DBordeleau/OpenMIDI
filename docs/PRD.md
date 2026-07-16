@@ -1,248 +1,563 @@
-# Jam Session - Product Requirements Document
+# Jam Session — Product Requirements Document
 
-## Elevator Pitch
+Status: Product pivot approved in principle; this PRD defines the new MIDI-only MVP
 
-**Jam Session** is a collaborative music production platform inspired by Git and open-source software development. Musicians create versioned MIDI arrangements—and, when sustainable storage is available, audio-stem projects—that others can contribute to, remix, or fork into entirely new works. Instead of collaborating through scattered files and messaging apps, creators work together in a shared, versioned workspace designed specifically for music.
+Last updated: 2026-07-16
 
----
+Supersedes: The collaboration-first, MIDI-plus-legacy-audio MVP definition
 
-## Problem
+## Product summary
 
-Modern music production is more accessible than ever, but it remains a largely solitary hobby. Many producers and musicians struggle to find collaborators with compatible interests, schedules, or technical ability. Remote collaboration is often fragmented across file-sharing services, messaging apps, and DAWs with little visibility into project history or contributor attribution.
+Jam Session is a public playground for making, remixing, and competing with MIDI music.
 
-Jam Session makes collaboration asynchronous and accessible by treating songs like open-source projects. Musicians can compose and record MIDI tracks in the browser, propose arrangement changes, contribute compatible material, remix existing work, and receive credit without needing to coordinate traditional studio sessions or share one desktop DAW.
+Bedroom producers and casual musicians create complete arrangements in a browser Studio, publish meaningful musical revisions, fork each other's work, reuse credited MIDI clips, and enter playful composition challenges with machine-checkable constraints. Jam Session borrows the best ideas from open-source development—version history, diffs, forks, contributions, and durable attribution—without requiring users to understand Git or own a professional DAW.
 
----
+The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute uploaded source-audio files.
 
-## Target Users
+## Product thesis
 
-- Hobbyist producers
-- Amateur musicians
-- Bedroom producers
-- Students learning music production
-- Small independent artists and bands
-- Online music communities
+Most beginner and hobbyist music tools optimize for solitary creation or professional production. They give users a blank canvas, then leave them to find inspiration, material, feedback, and an audience elsewhere.
 
-And to a lesser extent:
+Jam Session should optimize for a different moment:
 
-- Producers looking for session musicians
-- Content creators searching for royalty-free collaborations
+> “I want to make something fun, see how other people would change it, and have a reason to come back tomorrow.”
 
----
+MIDI makes that experience unusually tractable:
+
+- projects remain lightweight enough for a free prototype;
+- every note, clip, instrument, tempo, and arrangement decision is structured data;
+- revisions can explain what musically changed instead of only showing version numbers;
+- constraints can be checked automatically;
+- clips can be searched, reused, transformed, and credited without copying large media files;
+- every project can play in the browser with deterministic versioned instruments.
+
+The product is not primarily a collaborator-matching service, cloud drive, audio-hosting platform, or simplified professional DAW. It is a creative community built around playable MIDI source, remixable history, and structured challenges.
+
+## Target users
+
+### Primary audience
+
+#### Bedroom producers
+
+People who make beats and electronic music at home, enjoy experimenting with instruments and arrangements, and want a lower-friction way to publish ideas, remix others, and receive recognition.
+
+#### Casual and hobbyist musicians
+
+People who enjoy composing but do not need professional recording, mixing, or release workflows. They value immediate playback, prompts, constraints, and approachable tools over deep DAW parity.
+
+#### Music-production learners
+
+People learning rhythm, harmony, arrangement, and MIDI sequencing who benefit from inspecting how projects evolved, modifying reusable parts, and composing within understandable constraints.
+
+### Secondary audience
+
+- Small online beat-making and game-music communities
+- Content creators who want lightweight, reusable MIDI ideas
+- Experienced producers who enjoy quick challenges, teaching through remixing, or publishing source material
+
+### Explicitly not the initial audience
+
+- Bands exchanging multitrack recordings
+- Vocalists or instrumentalists collaborating through recorded audio
+- Professional engineers managing masters, stems, and client deliverables
+- Musicians seeking full desktop-DAW replacement or plugin hosting
+
+## User needs
+
+Jam Session must help users:
+
+1. Start creating without facing an empty professional DAW.
+2. Finish small musical ideas by giving them prompts, boundaries, and deadlines.
+3. Understand how another producer constructed and changed a piece.
+4. Remix and reuse musical material without losing its origin or creator credit.
+5. Receive lightweight recognition for creative work without needing an existing following.
+6. Discover playable material and active creative events instead of browsing a passive feed.
+7. Create and participate without uploading large files or installing desktop software.
+
+## Product principles
+
+### Play before configuration
+
+The fastest route from arrival to value is hearing something and changing it. Avoid setup-heavy creation flows, blank dashboards, and forms that precede the Studio unnecessarily.
+
+### Constraints create momentum
+
+Challenges should provide useful creative boundaries, not imitate a generic popularity contest. A good constraint changes how someone composes and is clear enough to verify.
+
+### Musical changes should be legible
+
+“Revision 4” is not enough. Jam Session should explain which tracks, clips, notes, instruments, tempo, meter, key, and mixer values changed.
+
+### Reuse should preserve provenance
+
+Forking a project or importing a public MIDI clip must retain durable lineage and attribution automatically. Credit should not depend on copy-and-pasted text.
+
+### Lightweight competition, not a grind economy
+
+Recognition should reward completed creative work. The MVP may award challenge winner, Community Favorite, finalist, and participation badges. It will not launch with XP, levels, streak pressure, loot mechanics, or purchasable status.
+
+### Public by purpose, private while drafting
+
+Published projects, challenge entries, revision summaries, and explicitly published library clips are designed for public discovery. Workspaces and unfinished drafts remain private. Users must make an explicit publish or submit decision before work becomes public.
+
+### MIDI-only means MIDI-only
+
+Do not preserve a hidden product promise that source-audio uploads will return soon. Any future audio support requires a new product decision, sustainable storage and bandwidth model, and a replacement PRD/architecture decision.
 
 ## Goals
 
-- Make remote, asynchronous music collaboration as simple as recording/editing MIDI tracks—or, when audio admission is available, uploading a stem—and submitting the result like a PR.
-- Reduce the friction involved in finding collaborators.
-- Encourage experimentation through remixing and project forking.
-- Allow musicians to create, audition, and mix MIDI arrangements and compatible project stems without requiring every collaborator to own the same desktop DAW.
-- Give contributors enough in-browser production tooling to understand a project and make meaningful changes.
-- Reduce the friction involved in exchanging project files, synchronizing arrangements, and reproducing collaborators' instrument parts.
-- Preserve clear attribution and project lineage across contributions, revisions, and forks.
+- Make it possible to create and publish a playable multi-track MIDI project entirely in the browser.
+- Give users repeatable reasons to create through curated constraint challenges.
+- Make forks, contributions, and revisions understandable through semantic musical diffs.
+- Turn public MIDI material into a useful, searchable, automatically credited creative library.
+- Establish a healthy creation-remix-vote-return loop before investing in broad social mechanics.
+- Keep the prototype viable on a $0 infrastructure budget by avoiding uploaded source audio.
+- Preserve deterministic playback, immutable published history, attribution, and moderation boundaries.
 
----
-
-## Non-Goals
-
-Jam Session is not intended to replace a professional desktop DAW.
+## Non-goals
 
 The MVP will not include:
 
-- Feature parity with established DAWs such as Ableton Live, Logic Pro, FL Studio, or Pro Tools
-- Support for third-party desktop audio plugins such as VST, Audio Units, or AAX plugins
-- Compatibility with every proprietary DAW project format
-- Real-time, multi-user editing of the same project
-- A complete professional mixing and mastering workflow
-- Advanced notation, scoring, or audio-engineering tools
-- Native desktop or mobile applications
+- Source-audio, stem, sample, vocal, or microphone uploads
+- Audio recording, waveform editing, time stretching, mastering, or server-stored audio exports/previews
+- Professional DAW parity
+- VST, Audio Unit, AAX, or other third-party plugin hosting
+- Proprietary DAW project import or export
+- Real-time multi-user editing or live jam sessions
+- Automatic merging of divergent musical changes
+- User-created challenge rule programming
+- Cash prizes, entry fees, betting, or paid competition placement
+- XP, levels, daily streak penalties, or an economy of virtual goods
+- Direct messages, generic follower feeds, or broad social networking
+- Algorithmic collaborator matchmaking
+- AI-generated music, AI judging, or generative composition
 - Music distribution to streaming platforms
-- A marketplace, payment system, or rights-dispute resolution service
-- Copyright dispute resolution
-- AI-generated music features
+- Rights-dispute resolution or a commercial MIDI marketplace
+- Native desktop or mobile applications
 
-The browser workspace should support the Jam Session collaboration workflow, rather than expose every possible feature of the underlying audio editor.
+Standard MIDI File import and export remain supported. The browser Studio should be capable and enjoyable, but it is not intended to replace Ableton Live, FL Studio, Logic, REAPER, or another professional DAW.
 
----
+Users may render a deterministic local audio file from MIDI synthesis as a browser-only download. That file is never uploaded, versioned, shared, or treated as project authority.
 
-## Core Features
+## MVP product loop
 
-### Authentication
+The primary loop is:
 
-- Sign in with Google
-- User profiles with username and avatar
+1. A user discovers an active challenge, interesting project, revision, or reusable clip.
+2. They listen immediately in the browser.
+3. They create from a blank project, fork a project, import a clip, or open a challenge starter.
+4. They compose and arrange in the Studio.
+5. They publish a revision or submit an immutable challenge entry.
+6. Jam Session shows what changed and preserves every source relationship and credit.
+7. Other users listen, vote during the appropriate phase, fork, contribute, or reuse published material.
+8. Results, badges, feedback, and new challenges give the creator a reason to return.
 
-### User Profiles
+The MVP succeeds when users repeatedly move through this loop. Passive listening and raw account growth are secondary.
 
-- Public profile page
-- Projects created
-- Contributions made
-- Followers (future-ready, optional in MVP)
+## Core MVP features
 
-### Music Projects
+### 1. MIDI Studio and piano roll
 
-- Create a new project
-- Create multiple MIDI instrument tracks
-- Upload stems when audio admission is available
-- Add project description, genre, BPM, key, and tags
-- Mark projects as open for collaboration
+The existing Studio remains the core creation surface.
 
-### MIDI Composition
+Users can:
 
-- Create and edit MIDI parts directly inside the selected project Studio
-- Choose from versioned built-in synth and drum sounds
-- Draw and edit notes in a piano roll
-- Organize notes into clips and loops
-- Record from an on-screen piano or computer keyboard
-- Record from supported hardware MIDI devices as an optional enhancement
-- Import and export a bounded Standard MIDI File subset
+- Start from an empty MIDI project or an eligible project/challenge starter.
+- Create multiple instrument and drum tracks.
+- Select deterministic, versioned built-in presets.
+- Draw, move, resize, duplicate, delete, and velocity-edit notes.
+- Select and transform groups of notes.
+- Record notes from the on-screen keyboard and computer keyboard.
+- Use supported Web MIDI input as a progressive enhancement.
+- Arrange multiple clips on a continuous timeline.
+- Copy, paste, loop, split, move, and duplicate compatible clips.
+- Adjust tempo, meter, project key metadata, gain, pan, mute, and solo.
+- Save private drafts with conflict-safe autosave.
+- Publish an immutable revision.
+- Import and export the supported Standard MIDI File subset.
+- Render a local synthesized audio download without uploading it to Jam Session.
 
-### Legacy Audio Management
+The Studio must open quickly without network-bound media hydration. Playback uses deterministic versioned instrument definitions so a published revision remains reproducible.
 
-- Preserve authorized playback, preview, download, export, attribution, and arrangement of existing stems
-- Label retained stems by instrument or role
-- Re-enable new stem admission only after a sustainable storage decision; it becomes unavailable only after the Studio-native MIDI parity transition during the prototype
+#### MVP quality bar
 
-### Browser Track Mixer
+- A new user can create their first note without navigating away from the Studio.
+- Empty-track and add-track actions are visible and understandable.
+- Playback, playhead, note events, mixer changes, and visualization remain synchronized.
+- Keyboard-only creation and editing paths remain usable.
+- A published project can be reconstructed from structured Jam Session data without live editor objects.
 
-- Play MIDI and compatible legacy audio tracks in sync
-- Individual volume controls
-- Mute and solo tracks
-- Pan controls
-- Timeline playback
+### 2. Projects, revisions, contributions, and forks
 
-### Contributions
+Projects are public containers for evolving MIDI arrangements. Private workspaces hold drafts; published revisions are immutable.
 
-- Submit MIDI arrangement/track changes and compatible changes to legacy projects
-- Project owner reviews submissions
-- Accept or reject contributions
+Users can:
 
-### Forking
+- Create, title, describe, tag, and publish a MIDI project.
+- Browse its revision history.
+- Fork an exact revision and continue independently.
+- Propose a contribution derived from an exact project revision.
+- Review, accept, request changes to, or reject a contribution.
+- Preserve lineage when an accepted contribution creates a new project revision.
+- Export a revision as a supported Standard MIDI File.
 
-- Fork an existing project
-- Continue development independently
-- Preserve attribution to the original project
+Projects should default to private while empty or unpublished. Publishing makes the selected immutable revision discoverable unless moderation has hidden it.
 
-### Discovery
+#### Semantic revision summaries
 
-- Browse projects
-- Search by genre, tags, BPM, key, and instruments
-- View recent and trending projects
+Every published revision and submitted contribution must have a deterministic structured change summary relative to its parent/base version. It should report applicable changes such as:
 
-### Integrated Browser Workspace
+- tracks added, removed, renamed, or reordered;
+- clips added, removed, moved, resized, looped, or reassigned;
+- notes added, removed, moved, resized, or velocity-changed;
+- instrument preset changes;
+- tempo, meter, key metadata, duration, gain, pan, mute, or solo changes.
 
-Studio is a first-class authenticated workspace: users open Studio, then create, choose, or safely switch the project they want to work on. Projects remain the durable authorization, collaboration, and history boundary; Studio is not a new persisted domain entity. A selected project remains deep-linkable and only one live editor/audio graph is active at a time.
+Summaries must be computed from canonical structured data, not supplied by a language model. Users may add an optional human revision message.
 
-Inside that browser-based music workspace, users can:
+#### Visual diff
 
-- Play MIDI and compatible legacy audio tracks in sync
-- View and arrange MIDI clips and compatible audio regions on a timeline
-- Draw, move, resize, duplicate, delete, velocity-edit, and quantize MIDI notes
-- Record MIDI notes into an armed track
-- Choose deterministic versioned instrument sounds
-- Adjust volume and stereo position
-- Mute and solo tracks
-- Add, remove, and reposition compatible MIDI material
-- Save the resulting project state
-- Export or submit their work through Jam Session's contribution workflow
+The MVP includes a bounded visual comparison for one selected MIDI track or clip:
 
-The primary workflow keeps composition and arrangement in this Studio. Adding a MIDI track opens the Jam Session piano roll within the Studio shell; recording follows the project transport so the musician can perform against the other audible tracks. Editing an existing MIDI clip creates a private draft derived from its exact immutable stem version. Draft autosave protects the musician's work, but it does not change the project. An explicit **Save version and add to arrangement** or **Save new version and replace clip** action freezes immutable notes and updates the private workspace under optimistic concurrency. My stems and the standalone editor remain available for library management, direct editing, import/export, and accessibility fallback.
+- before/after note overlays in the piano roll;
+- clear added, removed, and changed states that do not rely on color alone;
+- a track/clip navigator linked to the structured summary;
+- playback of either immutable side;
+- no attempt to automatically merge the two versions.
 
-Additional audio editing/recording, effects, automation, advanced MIDI expression, and notation capabilities may be exposed where they are stable and appropriate, but they are not all required for the initial release.
+A full project-wide animated diff, notation diff, or three-way merge is deferred.
 
-For the MVP, this workspace uses a Jam Session-owned composite client-only adapter: the pinned MIT-licensed Tone.js runtime schedules MIDI synthesis, while Waveform Playlist retains compatibility with existing audio projects. Manifest v2 gives MIDI and compatible audio regions stable clip identities; existing manifest-v1 history remains readable and immutable. Jam Session's versioned manifest remains the persisted authority; the application must not depend on editor objects or an opaque project format. A fuller OpenDAW integration is a post-MVP option and is not an MVP dependency.
+### 3. Jam Session Challenges
 
----
+Challenges are the MVP's primary recurring community event and home-page focus.
 
-## MVP Scope
+The initial launch uses curated, administrator-created challenges. Broad user-created challenge hosting is deferred until participation and moderation are healthy.
 
-The active prototype creation path is MIDI-first so the application can remain inside a $0 infrastructure budget. New source-audio admission is disabled only after the complete MIDI creation and collaboration journey is available. This is a global prototype capability, not a payment or entitlement system.
+Each challenge includes:
 
-Repository implementation now covers that Studio-native journey and its compatibility regressions. The hosted capability remains enabled until an authorized operator accepts the parity evidence and performs the separately approved transition; repository completion is not authority to mutate hosted admission.
+- title, creative prompt, artwork/presentation, and description;
+- lifecycle: draft, scheduled, open, voting, completed, or cancelled;
+- opening, submission, voting, and result timestamps;
+- an optional immutable starter project/revision;
+- machine-readable constraints;
+- human-readable rules generated from the same constraint contract;
+- eligibility and permitted-use terms;
+- maximum entries per user;
+- judging method and named host/judges where applicable;
+- immutable submitted revision references.
 
-Existing audio projects and immutable history remain private, playable, downloadable, exportable, forkable, and compatible with publication/contribution workflows. They are not deleted, hidden, converted to MIDI, or made public. New projects default to MIDI; a legacy project may combine its already-referenced audio with newly created MIDI tracks.
+#### Initial constraint vocabulary
 
-At minimum, users must be able to:
+The MVP supports deterministic constraints that can be evaluated from canonical MIDI/project data:
 
-- Open a Jam Session project in the browser
-- Create multiple MIDI tracks with deterministic built-in instrument sounds
-- Draw and edit notes and clips in an accessible Studio-integrated piano roll
-- Record notes from on-screen/computer-keyboard input and supported hardware MIDI input
-- Load MIDI and compatible legacy audio tracks into synchronized playback
-- Play, pause, seek, mute, solo, pan, and adjust track volume
-- Add, remove, position, loop, and quantize compatible MIDI material
-- Save the project's editable workspace state
-- Create a contribution from their changes
-- Fork a project while preserving its attribution and lineage
-- Export a standard MIDI file and retain authorized downloads/exports for existing audio projects
+- maximum or exact track count;
+- allowed or required instrument presets/families;
+- tempo range or exact tempo;
+- meter;
+- maximum duration;
+- allowed pitch classes, key, or scale;
+- maximum note count;
+- maximum simultaneous notes/polyphony;
+- required use of a starter clip or project lineage;
+- clip-count or loop-use bounds.
 
-Advanced capabilities available through the underlying browser audio technology are optional for the MVP unless explicitly promoted into scope.
+Rules such as “use only three-note chords” should launch only when their musical definition is unambiguous in the constraint contract. Natural-language prompts such as “compose something happy” remain creative guidance and are not machine judged.
 
----
+The server validates constraints when an entry is submitted and again when submissions close. The checker decides eligibility, never artistic quality.
 
-## User Stories
+#### Entry workflow
 
-### As a producer
+- Start from blank, an allowed starter revision, or an allowed library clip.
+- Compose in the normal Studio.
+- Submit one exact immutable revision before the deadline.
+- Show failed constraints with actionable musical explanations.
+- Permit explicit replacement before the deadline; never mutate a submitted revision silently.
+- Freeze the accepted entry reference when submissions close.
 
-- I can create a MIDI project, choose sounds, and compose or record multiple tracks.
-- I can record a MIDI part against the rest of my arrangement and place it on the shared Studio timeline without leaving the Studio.
-- When audio admission is available in a future storage model, I can create projects from uploaded stems.
-- I can invite the community to contribute new ideas.
-- I can review submissions before accepting them.
-- I can fork someone else's project and create my own version.
+#### Voting and winners
 
-### As a musician
+Community voting opens only after submissions close. Entry ordering is randomized or rotated to reduce early-entry and popularity advantages.
 
-- I can discover projects looking for contributions.
-- I can edit or record MIDI parts without owning the creator's desktop DAW.
-- I can export MIDI for use inside my preferred DAW.
-- I retain authorized stem downloads for existing audio projects.
-- I receive credit when my contribution is accepted.
+- One vote per authenticated account per entry.
+- No self-voting.
+- Votes may be changed or removed until voting closes.
+- Suspicious voting can be reviewed or excluded.
+- Vote totals remain hidden until voting closes.
+- Community votes select a **Community Favorite**.
+- The challenge host or named judges select the official winner where the challenge has a judged winner.
+
+The first release does not claim that a raw vote count objectively identifies the best composition.
+
+#### Recognition
+
+Profiles may display durable, non-transferable badges for:
+
+- official challenge winner;
+- Community Favorite;
+- finalist or honorable mention;
+- participation in selected milestone/seasonal events.
+
+No XP or level system is included in MVP. Add it only if later evidence shows it improves creation and retention without rewarding spam.
+
+### 4. Public MIDI clip library
+
+The library turns Jam Session's structured source material into a reusable commons. It should feel closer to browsing useful open-source components than downloading anonymous files, but it is not a package manager or commercial asset marketplace.
+
+Users can explicitly publish an immutable MIDI clip/stem version from an eligible public project to the library with:
+
+- title and description;
+- creator and source project/revision lineage;
+- instrument family and compatible preset information;
+- tempo, meter, musical key/scale where declared;
+- duration, bar count, note range, polyphony, and note count derived automatically;
+- tags and supported reuse license/terms;
+- an immediate deterministic browser preview.
+
+Other users can:
+
+- search and filter library material;
+- audition it without opening the full Studio;
+- inspect its notes in a read-only piano roll;
+- import a compatible copy into a private workspace;
+- fork/edit it into a new immutable version;
+- export the supported Standard MIDI File subset.
+
+Importing or forking must retain machine-readable lineage and creator attribution. Published project/revision credits snapshot the reused material so later profile or library changes do not rewrite history.
+
+#### MVP boundaries
+
+- Publishing to the library is explicit; public project clips are not automatically listed.
+- No dependency graph, semantic-version resolver, install command, or executable content.
+- No audio samples, soundfonts, plugin presets, or external binary assets.
+- No paid licenses or revenue splits.
+- Removal from discovery does not rewrite already published revision attribution.
+
+### 5. Discovery, profiles, and lightweight community actions
+
+Discovery should prioritize playable creative opportunities rather than a generic social feed.
+
+The landing and Explore surfaces feature:
+
+- the active curated challenge and its lifecycle state;
+- challenge entries during voting/results phases;
+- recent and notable MIDI projects;
+- meaningful forks and revisions;
+- reusable library clips;
+- creators recognized by recent work rather than follower count alone.
+
+Users can search/filter projects and library items by compatible structured metadata. Every card intended for discovery supports immediate deterministic playback without loading source audio.
+
+Profiles include:
+
+- public MIDI projects and revisions;
+- accepted contributions and forks;
+- published library material;
+- challenge entries, placements, and badges;
+- durable attribution and lineage links.
+
+The MVP may support voting and existing contribution review actions. Generic likes, follower counts, comments, direct messages, and a personalized algorithmic feed are deferred.
+
+### 6. Authentication, moderation, and administration
+
+The prototype retains:
+
+- Google sign-in and gated beta invitations where the beta remains invite-only;
+- unique usernames and completed public profiles;
+- administrator-managed invitations;
+- reporting and administrator visibility controls;
+- recoverable project/account deletion;
+- holds and auditable moderation actions;
+- rate limits on challenge submissions, votes, reports, project creation, and library publishing.
+
+New moderation targets must include challenges, challenge entries, votes where abuse review requires them, and library listings. Hiding a listing or entry affects discovery and eligibility without mutating immutable project history.
+
+## Features deliberately deferred
+
+### Daily composition prompts
+
+Do not build a separate daily-prompt product in the MVP. It would divide a small community across too many simultaneous events and produce empty leaderboards.
+
+Use the challenge system to run one prominent recurring prompt at a sustainable cadence—initially weekly or biweekly. If participation supports it, a future lightweight daily format can reuse the same challenge, submission, validation, voting, and result primitives.
+
+### “One more instrument” matchmaking
+
+The underlying idea is useful, but automated or queue-based matchmaking requires community liquidity, abandonment handling, compatible skill matching, notifications, and turn ownership. Defer it.
+
+The existing contribution model may later expose structured open track slots such as “add bass” or “add drums” without promising matchmaking.
+
+### Collaborative soundtracks and playlists
+
+The “RPG soundtrack” concept is compelling but introduces a second hierarchy above projects, multiple requested deliverables, collection-level review, sequencing, completion state, and rights rules. Defer it until individual challenge and contribution loops are healthy.
+
+It should eventually become a **Collection Project**: a themed collection with named slots, exact accepted project revisions, an owner/editorial workflow, and collection playback.
+
+### Seasonal community albums
+
+Community albums are a strong future editorial event, not a separate foundational system. Build them later from challenges plus Collection Projects. Curated selection should combine judges and Community Favorite recognition rather than blindly selecting the highest raw vote totals.
+
+### XP and levels
+
+Defer numerical progression. XP systems reward whatever is easiest to count and create incentives for spam, vote trading, low-effort submissions, and status anxiety. Launch with specific earned badges tied to real creative outcomes; revisit progression only with evidence.
+
+## Key user stories
+
+### As a bedroom producer
+
+- I can open the Studio and start a playable MIDI idea quickly.
+- I can publish a version and see a useful explanation of what changed.
+- I can fork an interesting project and make it my own without losing attribution.
+- I can enter a constraint challenge and understand why my entry is or is not eligible.
+- I can receive recognition even if I do not already have a large following.
+
+### As a casual musician or learner
+
+- I can inspect the notes and arrangement behind something I hear.
+- I can compare two versions visually and learn how the music changed.
+- I can begin with a prompt, starter project, or reusable clip instead of a blank canvas.
+- I can import a clip, transform it, and know that its creator remains credited.
+- I can export MIDI to continue experimenting elsewhere.
+
+### As a remixer or contributor
+
+- I can derive work from an exact public revision.
+- I can submit an immutable change proposal or publish an independent fork.
+- I can see semantic differences before submitting or reviewing.
+- I can understand the lineage and permitted use of material I reuse.
+
+### As a challenge participant
+
+- I can see the creative prompt, exact rules, deadline, and judging method before composing.
+- I can validate my work before final submission.
+- I can replace my entry explicitly before the deadline.
+- I can listen to entries in a fairer browsing order and vote after submissions close.
+- My placement and participation remain connected to the exact work I submitted.
 
 ### As a listener
 
-- I can explore projects.
-- I can compare different forks and remixes.
-- I can discover new musicians through their work.
+- I can play projects, entries, revisions, and clips immediately.
+- I can discover how a project evolved and follow its remix lineage.
+- I can vote without creating or downloading audio files.
 
----
+### As an administrator
 
-## Future Ideas
+- I can create and schedule a challenge from a bounded rule vocabulary.
+- I can preview how its rules will be presented and validated.
+- I can moderate projects, entries, library listings, accounts, and suspicious votes.
+- I can record official results without changing submitted revisions.
 
-### Collaboration
+## MVP release requirements
 
-- Real-time collaborative editing
-- Live jam sessions
-- Comments on timelines
-- Review threads on contributions
+The MIDI-only MVP is ready for invited public testing when all of the following are true:
 
-### DAW
+### Creation
 
-- Audio recording
-- Advanced MIDI expression and controllers
-- Effects chains
-- Automation
-- Plugin support
-- Waveform editing
+- A new user can create, save, reload, play, and publish a multi-track MIDI project.
+- Studio timing and controls remain synchronized during normal editing and playback.
+- Standard MIDI import/export works for the documented bounded subset.
+- No normal product route offers source-audio upload or depends on legacy audio data.
 
-### Social
+### Versioning and reuse
 
-- Following creators
-- Likes
-- Comments
-- Playlists
-- Activity feed
+- Revisions, contributions, and forks preserve immutable lineage and attribution.
+- Structured summaries are deterministic and correct for supported changes.
+- A selected clip/track can be compared with a useful visual diff.
+- A published library clip can be discovered, previewed, imported, transformed, and credited.
 
-### Project Management
+### Challenges
 
-- Branches
-- Version history
-- Release tags
-- Project milestones
+- An administrator can schedule a curated challenge with supported constraints.
+- Users can compose, preflight, submit, and explicitly replace an eligible entry.
+- Submission closure, voting, official results, and Community Favorite are deterministic and auditable.
+- Invalid or late entries cannot bypass authoritative validation.
+- Challenge pages remain useful with a small invited community.
 
-### Monetization
+### Safety and operations
 
-- Paid collaboration requests
-- More stem/project storage
-- Tip creators
-- Marketplace for stems
-- Licensing options
+- RLS and command authorization cover all challenge, vote, library, revision, and draft paths.
+- Suspended or hidden actors cannot publish, submit, vote, or bypass moderation.
+- Rate limits and uniqueness constraints prevent obvious vote and submission abuse.
+- User content and challenge terms have reporting and moderation paths.
+- The application runs within the prototype's $0 database, compute, and bandwidth budget under the intended invited-user load.
+- The production schema can be reset/seeded deliberately before launch without preserving experimental audio data.
+
+### Accessibility and experience
+
+- Studio, challenge submission, voting, project history, diff navigation, and clip import support keyboard use.
+- Status, eligibility, added/removed/changed diff states, and playback are not communicated by color or animation alone.
+- Reduced-motion preferences are respected.
+- Primary creation and playback flows work on the supported desktop browser baseline; smaller screens retain discovery and listening even when full editing is constrained.
+
+## Success measures
+
+Initial measurements should establish a baseline rather than optimize vanity metrics.
+
+### Activation
+
+- Percentage of invited users who play something, enter the Studio, and create a meaningful edit
+- Percentage who publish a first project, fork, library clip, or challenge entry
+- Median time from first sign-in to first audible edit and first publication
+
+### Creation and return behavior
+
+- Completed eligible entries per active challenge
+- Percentage of starters who reach publication/submission
+- Users returning for a later challenge or another project
+- Revisions per active creator without counting autosaves
+
+### Remix and reuse
+
+- Public projects that receive a fork or contribution
+- Library clips imported into another user's project
+- Imported clips that lead to a published revision
+- Fork and contribution histories that continue beyond one derivative
+
+### Competition health
+
+- Unique listeners distributed across entries
+- Percentage of eligible entries receiving meaningful exposure
+- Vote participation without suspicious concentration
+- Repeat participation and first-time entrant representation
+- Moderator interventions and disqualifications
+
+Follower count, total raw votes, total notes, total projects, and time spent in the app are not sufficient success measures by themselves.
+
+## Product risks and mitigations
+
+### Empty-community risk
+
+Too many simultaneous formats will make every surface feel abandoned. Launch with one curated challenge at a time, seed a small set of strong public projects/clips, and reuse the same primitives instead of launching daily prompts, albums, soundtracks, and matchmaking together.
+
+### Popularity bias and vote abuse
+
+Hide totals during voting, separate Community Favorite from judged winner, randomize/rotate exposure, prevent self-votes, enforce uniqueness and rate limits, and retain auditable moderation state.
+
+### Weak instrument quality
+
+MIDI projects are only enjoyable if deterministic built-in instruments sound good enough. Maintain a small, versioned, curated preset set rather than a large inconsistent catalog. Instrument upgrades create new versions; they do not rewrite published playback.
+
+### Copyright and reuse confusion
+
+Require explicit supported reuse terms for library publishing and challenge starters. Preserve source lineage and immutable credit snapshots. Do not claim to adjudicate ownership disputes.
+
+### Studio scope expansion
+
+Use challenge, diff, and reuse outcomes to prioritize editor work. Do not chase professional DAW parity, audio support, advanced synthesis, notation, or plugin hosting before the core loop is proven.
+
+### Existing audio architecture
+
+The current repository contains legacy audio code, schema, migrations, tests, and documentation. This PRD intentionally makes that behavior out of scope. Whether to remove it through a staged refactor or begin from a clean repository is a separate technical/product-delivery decision and must be made before producing the replacement roadmap.
+
+## Decisions required before the replacement roadmap
+
+The next planning stage must resolve:
+
+1. Refactor the current repository versus start a clean MIDI-only repository.
+2. Whether any existing hosted data/schema is retained or the prototype is reset completely.
+3. The canonical MIDI project, revision, clip, and semantic-diff contracts after audio removal.
+4. Challenge constraint representation, authoritative validation, voting, and result semantics.
+5. Public library reuse terms and immutable credit/lineage behavior.
+6. Which existing moderation, identity, Studio, project, contribution, and fork implementations are retained.
+7. Supported browser and built-in instrument strategy.
+8. Migration/decommissioning treatment for every audio route, bucket, worker, cron job, quota, table, and test.
+
+Do not update the implementation roadmap or begin destructive repository/database work until these decisions are documented.
