@@ -4,7 +4,9 @@ import { Container } from "@/components/layout/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
+import { AdminInviteForm } from "@/features/invitations/admin-invite-form.client";
 import { getViewerDashboard } from "@/server/repositories/dashboard";
+import { assertViewerAdmin } from "@/server/repositories/moderation";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -29,7 +31,10 @@ function Empty({
 
 export default async function DashboardPage() {
   await requireViewer("/dashboard");
-  const dashboard = await getViewerDashboard();
+  const [dashboard, isAdmin] = await Promise.all([
+    getViewerDashboard(),
+    assertViewerAdmin(),
+  ]);
   return (
     <main id="main-content">
       <Container className="py-12 sm:py-16">
@@ -71,6 +76,29 @@ export default async function DashboardPage() {
             Open projects needing review →
           </Link>
         </Reveal>
+        {isAdmin && (
+          <Reveal
+            as="section"
+            delay={0.1}
+            className="rounded-card border-subtle bg-surface-raised mt-8 border p-6 shadow-[0_24px_70px_-45px_#000] sm:p-7"
+            aria-labelledby="beta-invite-heading"
+          >
+            <p className="text-accent font-mono text-[11px] tracking-[0.2em] uppercase">
+              Beta access
+            </p>
+            <h2
+              id="beta-invite-heading"
+              className="mt-2 text-2xl font-semibold"
+            >
+              Invite a collaborator
+            </h2>
+            <p className="text-muted mt-2 max-w-2xl">
+              Add one musician to the beta list so they can join with their
+              matching Google account.
+            </p>
+            <AdminInviteForm />
+          </Reveal>
+        )}
         <Reveal delay={0.12} className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-card border-subtle bg-surface border p-6">
             <div className="flex justify-between gap-4">

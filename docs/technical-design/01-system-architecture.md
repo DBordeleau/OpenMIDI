@@ -245,6 +245,12 @@ MIDI-07 implements and tests the trusted source-admission capability, including 
 - Never log OAuth tokens, signed URLs, manifests containing private object references, or decoded audio.
 - Soft deletion hides content immediately. A retention job later removes unreferenced assets after the recovery window.
 
+## MVP beta admission
+
+The existing Before User Created Postgres hook remains the sole account-creation admission authority and exact-matches `lower(btrim(email))` against active rows in the private signup invitation table. An active, completed administrator can activate one current-state invitation from the authenticated dashboard through a narrowly granted security-definer command. The command independently calls the exception-raising private administrator guard, serializes by normalized email, and is idempotent for active rows; reactivation records the current administrator and timestamp.
+
+This operation adds allowlist access only. It does not call the Supabase Auth Admin invitation API, send email, pre-create an Auth user, or expose invitation addresses through the Data API. The administrator tells the collaborator separately to visit Jam Session and choose the matching Google account. The dashboard visibility probe is display-only and returns `false` for ineligible viewers; all administrator mutations continue to use the exception-raising command guard.
+
 ## MVP moderation and retention
 
 The implemented invite-only demo provides in-product report actions on projects, profiles and contributions. Reports require a fixed reason (`copyright`, `harassment`, `sexual_content`, `hate_or_violence`, `spam`, or `other`) plus optional bounded detail and enter a private administrator queue. Administrator authority is checked in the database for every queue/action/hold command. Administrators can hide content, reject an eligible unreferenced upload, suspend an account, restore an item, or place/release a legal or abuse hold; every applied action is append-only and records actor, reason and timestamp. There is no automated content classification in the MVP.

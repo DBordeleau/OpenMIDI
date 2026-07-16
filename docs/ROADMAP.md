@@ -1,9 +1,9 @@
 # Jam Session MVP Roadmap
 
 Status: Active  
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
-Repository checkpoint: PRs 01–17, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 complete; the Studio usability pulse is accepted, the hosted database capability is recorded enabled, and PR 18 is next
+Repository checkpoint: PRs 01–18, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 complete; the Studio usability pulse is accepted, administrator-managed beta admission is implemented as a focused operations interruption, and PR 19 is next
 
 ## Purpose
 
@@ -40,7 +40,7 @@ The completed interruption programs before PR 18 are:
 2. **`STUDIO-01`–`STUDIO-06` — Studio-native creation and arrangement:** repository complete. Hosted application parity and any separately authorized source-admission transition are deferred to PR 20 because deployment follows PR 19.
 3. **`UX-01`–`UX-05` — Studio and MIDI usability:** complete with its milestone pulse accepted. This bounded pass repairs transport/mixer correctness, establishes a familiar DAW shell and inline track workflow, improves piano interaction, and adds spatial block editing without changing immutable history or manifest compatibility.
 
-With the UX pass complete and the hosted database capability read-only confirmed enabled on 2026-07-15, **PR 18 — Moderation, retention, quotas, and storage operations** resumes with legacy audio, derived peaks, and MIDI relational history included in its reference and capacity model. The application remains undeployed through PR 18 and PR 19; PR 20 owns staged deployment, hosted application parity, and any separately authorized source-admission transition. Any separately approved audio preview must be included only if it lands before PR 18 re-anchors. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
+PR 18 is complete in the repository. A focused beta-operations interruption now lets database-verified administrators activate one normalized signup address from the dashboard while the existing Before User Created hook remains the admission authority; it sends no email and creates no Auth user. The application remains undeployed through PR 19; PR 20 owns staged deployment, hosted application parity, and any separately authorized source-admission transition. PRs 19–20 remain final hardening and release gates, not buckets for known feature debt.
 
 ### Progress at a glance
 

@@ -54,7 +54,7 @@ set local role authenticated;
 set local request.jwt.claim.sub='f8000000-0000-4000-8000-000000000001';
 select is(jsonb_array_length(public.list_viewer_reports(null,null)),1,'reporter receives one coarse status row');
 select ok(not ((public.list_viewer_reports(null,null)->0) ? 'detail'),'reporter payload omits detail');
-select throws_ok($$select public.assert_viewer_admin()$$,'PT404','admin_not_found','non-admin assertion is non-enumerable');
+select is(public.assert_viewer_admin(),false,'non-admin display probe returns false without raising');
 reset role;
 
 set local role authenticated;
