@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
 import { MidiStemEditor } from "@/features/midi/stems/stem-editor.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
-import { MIDI_PPQ } from "../manifest/v2";
-import {
-  createIntegratedImportedMidiDraftAction,
-  createIntegratedMidiDraftAction,
-} from "./actions";
 import type { MidiStemDraft } from "@/features/midi/stems/types";
+import { MIDI_PPQ } from "../manifest/v2";
+import { sha256PostgresJsonb } from "../manifest/schema";
 
 export type IntegratedMidiTarget =
   | {
@@ -28,14 +25,23 @@ export type IntegratedMidiTarget =
       startTick: number;
     };
 
-type FinalizeInput = {
+export type FinalizePatternInput = {
   draftId: string;
   expectedLockVersion: number;
   expectedContentSha256: string;
+  content: {
+    name: string;
+    presetId: string;
+    presetVersion: 1;
+    ppq: 480;
+    durationTicks: number;
+    notes: MidiStemVersion["notes"];
+  };
 };
 
 export function IntegratedMidiComposer({
   target,
+  ownerId,
   tempoBpm,
   timeSignature,
   onClose,
@@ -46,25 +52,23 @@ export function IntegratedMidiComposer({
   onDraftOpened,
 }: {
   target: IntegratedMidiTarget;
+  ownerId: string;
   tempoBpm: number;
   timeSignature: { numerator: number; denominator: number };
   onClose: () => void;
   onTransportStart: (startTick: number, countInSeconds: number) => void;
   onTransportStop: () => void;
   onFinalize: (
-    input: FinalizeInput,
+    input: FinalizePatternInput,
     target: IntegratedMidiTarget,
   ) => Promise<{ ok: boolean; message: string }>;
   onDraftStatusChange: (status: MidiDraftSaveStatus) => void;
   onDraftOpened: () => void;
 }) {
   const [draft, setDraft] = useState<MidiStemDraft | null>(null);
-  const name =
-    target.operation === "replace"
-      ? `${target.version.name} variation`
-      : target.name;
   const [message, setMessage] = useState("");
-  const startedRef = useRef(false);
+  const lockVersion = useRef(1);
+
   const host = useMemo(
     () => ({
       tempoBpm,
@@ -77,9 +81,27 @@ export function IntegratedMidiComposer({
       ) => onTransportStart(target.startTick + editorStartTick, countInSeconds),
       onTransportStop,
       onDraftStatusChange,
-      finalize: (input: FinalizeInput) => onFinalize(input, target),
+      persistDraft: async (content: {
+        name: string;
+        defaultPresetId: string;
+        defaultPresetVersion: 1;
+        ppq: 480;
+        durationTicks: number;
+        notes: MidiStemVersion["notes"];
+      }) => ({
+        ok: true,
+        lockVersion: ++lockVersion.current,
+        contentSha256: await sha256PostgresJsonb({
+          ppq: content.ppq,
+          durationTicks: content.durationTicks,
+          notes: content.notes,
+        }),
+      }),
+      finalize: (input: FinalizePatternInput) => onFinalize(input, target),
       finalizeLabel:
-        target.operation === "replace" ? "Save and replace" : "Save and add",
+        target.operation === "replace"
+          ? "Freeze and replace clip"
+          : "Freeze and add pattern",
       onClose,
     }),
     [
@@ -94,127 +116,103 @@ export function IntegratedMidiComposer({
     ],
   );
 
-  const createDraft = useCallback(async () => {
-    setMessage("");
-    const result = await createIntegratedMidiDraftAction({
-      requestId: crypto.randomUUID(),
-      name,
-      parentStemVersionId:
-        target.operation === "replace" ? target.version.stemVersionId : null,
-    });
-    if (result.ok) {
-      setDraft(result.draft);
-      onDraftOpened();
-    } else
-      setMessage(
-        result.code === "parent_unavailable"
-          ? "That exact version is no longer available to derive."
-          : "The private MIDI draft could not be created.",
-      );
-  }, [name, onDraftOpened, target]);
-
-  const importFile = useCallback(
-    async (file: File) => {
-      setMessage("");
-      try {
-        const { importMidiBytes } =
-          await import("@/features/midi/interchange.client");
-        const imported = importMidiBytes(
-          new Uint8Array(await file.arrayBuffer()),
-        );
-        const result = await createIntegratedImportedMidiDraftAction({
-          requestId: crypto.randomUUID(),
-          saveRequestId: crypto.randomUUID(),
-          content: {
-            name,
-            defaultPresetId: "warm-poly",
-            defaultPresetVersion: 1,
-            ppq: MIDI_PPQ,
-            durationTicks: imported.durationTicks,
-            notes: imported.notes.map((note) => ({
-              ...note,
-              noteId: crypto.randomUUID(),
-            })),
-          },
-        });
-        if (result.ok) {
-          setDraft(result.draft);
-          onDraftOpened();
-          setMessage(
-            imported.tempoBpm === tempoBpm
-              ? imported.warnings.join(" ")
-              : `Imported notes use project tempo ${tempoBpm} BPM. ${imported.warnings.join(" ")}`,
-          );
-        } else setMessage("That MIDI file could not become a private draft.");
-      } catch (error) {
-        setMessage(
-          error instanceof Error ? error.message : "MIDI import failed.",
-        );
-      }
-    },
-    [name, onDraftOpened, tempoBpm],
-  );
-
   useEffect(() => {
-    if (startedRef.current) return;
-    const timeout = window.setTimeout(() => {
-      if (startedRef.current) return;
-      startedRef.current = true;
-      if (
-        target.operation === "add" &&
-        target.entry === "import" &&
-        target.file
-      )
-        void importFile(target.file);
-      else void createDraft();
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, [createDraft, importFile, target]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const name =
+          target.operation === "replace"
+            ? `${target.version.name} variation`
+            : target.name;
+        let presetId =
+          target.operation === "replace"
+            ? target.version.defaultPresetId
+            : "warm-keys";
+        let durationTicks =
+          target.operation === "replace" ? target.version.durationTicks : 7680;
+        let notes =
+          target.operation === "replace" ? [...target.version.notes] : [];
+        if (
+          target.operation === "add" &&
+          target.entry === "import" &&
+          target.file
+        ) {
+          const { importMidiBytes } =
+            await import("@/features/midi/interchange.client");
+          const imported = importMidiBytes(
+            new Uint8Array(await target.file.arrayBuffer()),
+          );
+          presetId = imported.suggestedPreset.presetId;
+          durationTicks = imported.durationTicks;
+          notes = imported.notes.map((note) => ({
+            ...note,
+            noteId: crypto.randomUUID(),
+          }));
+          setMessage(imported.warnings.join(" "));
+        }
+        const now = new Date().toISOString();
+        const contentSha256 = await sha256PostgresJsonb({
+          ppq: MIDI_PPQ,
+          durationTicks,
+          notes,
+        });
+        if (cancelled) return;
+        setDraft({
+          draftId: crypto.randomUUID(),
+          stemId: crypto.randomUUID(),
+          ownerId,
+          entryMode: target.operation === "replace" ? "derive" : "blank",
+          parentStemVersionId:
+            target.operation === "replace"
+              ? target.version.stemVersionId
+              : null,
+          name,
+          defaultPresetId: presetId,
+          defaultPresetVersion: 1,
+          ppq: MIDI_PPQ,
+          durationTicks,
+          notes,
+          noteCount: notes.length,
+          contentSha256,
+          lockVersion: lockVersion.current,
+          createdAt: now,
+          updatedAt: now,
+        });
+        onDraftOpened();
+      } catch (error) {
+        if (!cancelled)
+          setMessage(
+            error instanceof Error ? error.message : "MIDI import failed.",
+          );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [onDraftOpened, ownerId, target]);
 
   return (
     <section
       className="rounded-card border-accent bg-surface flex min-h-0 flex-1 flex-col gap-3 border p-4 sm:px-6 sm:py-4"
       aria-labelledby="integrated-midi-heading"
     >
-      {/* The loaded editor renders its own single-line header (identity, sound,
-          tempo, save, close), so only the pre-draft state needs chrome here. */}
       <h2 id="integrated-midi-heading" className="sr-only">
         {target.operation === "replace"
           ? `Edit ${target.version.name}`
-          : "Add a MIDI part"}
+          : "Add a MIDI pattern"}
       </h2>
       {draft ? (
         <MidiStemEditor draft={draft} host={host} />
       ) : (
-        <>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-accent shrink-0 font-mono text-[10px] tracking-widest uppercase">
-              MIDI editor
-            </p>
-            <button
-              type="button"
-              className="border-strong hover:border-accent hover:text-accent min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors"
-              onClick={onClose}
-            >
-              Close MIDI editor
-            </button>
-          </div>
-          <div
-            className="border-subtle bg-surface-soft rounded-control border p-6 text-center"
-            role="status"
-          >
-            <p className="font-semibold">
-              {target.operation === "add" && target.entry === "import"
-                ? "Validating MIDI and preparing a private draft…"
-                : target.operation === "replace"
-                  ? "Deriving an editable copy of this exact version…"
-                  : "Preparing the private piano-roll draft…"}
-            </p>
-            <p className="text-muted mt-1 text-sm">
-              Raw MIDI bytes stay outside the arrangement manifest.
-            </p>
-          </div>
-        </>
+        <div
+          className="border-subtle bg-surface-soft rounded-control border p-6 text-center"
+          role="status"
+        >
+          <p className="font-semibold">Preparing the private piano roll…</p>
+          <button className="mt-3 underline" type="button" onClick={onClose}>
+            Close MIDI editor
+          </button>
+        </div>
       )}
       {message && (
         <p role="status" className="text-muted text-sm">

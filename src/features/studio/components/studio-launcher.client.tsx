@@ -4,23 +4,14 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { VersionedWorkspaceManifest } from "../manifest/schema";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
+import type { ManifestV3 } from "../manifest/v3";
+import type { StudioPatternVersion } from "../midi-adapter/manifest-v3-editor";
 import { StudioSkeleton } from "./studio-skeleton";
-import {
-  markStudioPerformance,
-  studioPerformanceMarks,
-} from "../waveform-playlist-adapter/performance-marks.client";
 import type {
   WorkspaceAssetOption,
   WorkspaceInstrumentOption,
 } from "@/features/workspaces/types";
 
-const StudioSurface = dynamic(
-  () =>
-    import("../waveform-playlist-adapter/studio-surface").then(
-      (module) => module.StudioSurface,
-    ),
-  { ssr: false, loading: () => <StudioSkeleton /> },
-);
 const MidiStudioSurface = dynamic(
   () =>
     import("../midi-adapter/midi-studio-surface.client").then(
@@ -33,10 +24,11 @@ type CommonProps = {
   viewerId: string;
   projectId: string;
   projectTitle: string;
-  manifest: VersionedWorkspaceManifest;
+  manifest: VersionedWorkspaceManifest | ManifestV3;
   projectTimeSignature?: { numerator: number; denominator: number };
   durationMs: number;
   midiVersions?: MidiStemVersion[];
+  patternVersions?: StudioPatternVersion[];
   tracks: Array<{
     trackId: string;
     kind?: "audio" | "midi";
@@ -97,7 +89,7 @@ export function StudioLauncher(props: StudioLauncherProps) {
   );
   useEffect(() => {
     if (!routeMarked.current) {
-      markStudioPerformance(studioPerformanceMarks.routeStart);
+      performance.mark("jam-session:studio:route-start");
       routeMarked.current = true;
     }
     const timer = window.setTimeout(() => setSupport(getStudioSupport()), 0);
@@ -112,10 +104,15 @@ export function StudioLauncher(props: StudioLauncherProps) {
         </p>
       </div>
     );
-  return props.manifest.manifestVersion === 2 ? (
+  return props.manifest.manifestVersion === 2 ||
+    props.manifest.manifestVersion === 3 ? (
     <MidiStudioSurface {...props} manifest={props.manifest} />
   ) : (
-    <StudioSurface {...props} manifest={props.manifest} />
+    <div className="rounded-card border-strong bg-surface border p-6">
+      <p role="alert" className="text-muted">
+        This legacy audio workspace cannot open in the MIDI-only Studio.
+      </p>
+    </div>
   );
 }
 

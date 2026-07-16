@@ -1458,7 +1458,7 @@ function ClipInspector({
             </button>
           )}
           <label className="block text-xs font-semibold">
-            Exact stem version
+            Exact pattern version
             <select
               aria-label={`Replace ${track.name} clip version`}
               className={`${field} mt-1`}

@@ -18,19 +18,24 @@ import {
   type WorkspaceManifestV2,
   type WorkspaceTrackV2,
 } from "../manifest/v2";
+import type { ManifestV3 } from "../manifest/v3";
+import {
+  toEditorManifest,
+  toEditorPatternVersion,
+  toWorkspaceManifestV3,
+} from "./manifest-v3-editor";
 import { BrowserMidiRuntime } from "./browser-midi-runtime.client";
 import { projectMidiSchedule } from "@/features/midi/scheduler";
 import { SYNTH_PRESETS_V1 } from "@/features/midi/presets";
 import {
-  exportMidiProject,
-  renderMidiProjectWav,
-} from "@/features/midi/project-export.client";
+  exportStudioMidiV3,
+  renderStudioWavV3,
+} from "./local-export-v3.client";
 import { sanitizeFilenamePart } from "@/features/exports/filename";
-import type { SignedAudioSource } from "@/features/studio/source-contract";
 import { sha256PostgresJsonb } from "../manifest/schema";
 import {
-  publishMidiWorkspaceAction,
-  saveMidiWorkspaceAction,
+  publishMidiWorkspaceV3Action,
+  saveMidiWorkspaceV3Action,
 } from "@/features/workspaces/actions";
 import {
   clearMidiLocalRecovery,
@@ -40,10 +45,7 @@ import {
 import type { MidiLocalRecoveryEnvelope } from "@/features/workspaces/schema";
 import { MutableStudioLifecycle } from "../switch-coordinator";
 import { ArrangerWorkspace } from "../arranger/arranger-workspace";
-import {
-  loadAudioLaneSummaries,
-  type AudioLaneSummary,
-} from "../arranger/audio-peaks.client";
+import type { AudioLaneSummary } from "../arranger/audio-peaks.client";
 import {
   applyArrangementCommand,
   ArrangementCommandError,
@@ -59,10 +61,13 @@ import {
   IntegratedMidiComposer,
   type IntegratedMidiTarget,
 } from "../integrated-midi/integrated-midi-composer.client";
-import { finalizeIntegratedMidiDraftAction } from "../integrated-midi/actions";
+import { freezeStudioPatternAction } from "../integrated-midi/actions";
+import type { FinalizePatternInput } from "../integrated-midi/integrated-midi-composer.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
 
-type Props = StudioLauncherProps & { manifest: WorkspaceManifestV2 };
+type Props = StudioLauncherProps & {
+  manifest: WorkspaceManifestV2 | ManifestV3;
+};
 type SaveStatus =
   "saved" | "dirty" | "saving" | "offline" | "conflict" | "error";
 
@@ -80,19 +85,33 @@ export function MidiStudioSurface(props: Props) {
   // Point the arranger↔editor morph originates from, as a `transform-origin`
   // string. Set to the clicked clip so the editor appears to bloom out of it.
   const [editorOrigin, setEditorOrigin] = useState("50% 38%");
-  const [midiVersions, setMidiVersions] = useState(
-    () => props.midiVersions ?? [],
-  );
+  const [midiVersions, setMidiVersions] = useState(() => [
+    ...(props.patternVersions ?? []).map(toEditorPatternVersion),
+    ...(props.midiVersions ?? []),
+  ]);
   const editable =
     props.mode === "workspace"
       ? props
       : props.mode === "contribution" && props.canEdit
         ? props
         : null;
-  const [manifest, setManifest] = useState(props.manifest);
-  const manifestRef = useRef(props.manifest);
-  const propsRef = useRef(props);
-  const historyRef = useRef(createArrangementHistory(props.manifest));
+  const initialManifest =
+    props.manifest.manifestVersion === 3
+      ? toEditorManifest(props.manifest)
+      : props.manifest;
+  const v3Authority = {
+    workspaceId:
+      props.manifest.manifestVersion === 3 && props.manifest.workspaceId
+        ? props.manifest.workspaceId
+        : props.mode === "workspace" || props.mode === "contribution"
+          ? props.workspaceId
+          : props.projectId,
+    musicalKey:
+      props.manifest.manifestVersion === 3 ? props.manifest.musicalKey : null,
+  };
+  const [manifest, setManifest] = useState(initialManifest);
+  const manifestRef = useRef(initialManifest);
+  const historyRef = useRef(createArrangementHistory(initialManifest));
   const [historyAvailability, setHistoryAvailability] = useState({
     canUndo: false,
     canRedo: false,
@@ -125,9 +144,10 @@ export function MidiStudioSurface(props: Props) {
   const [draftSaveStatus, setDraftSaveStatus] =
     useState<MidiDraftSaveStatus>("saved");
   const [integratedDraftActive, setIntegratedDraftActive] = useState(false);
-  const [audioSummaries, setAudioSummaries] = useState<
-    ReadonlyMap<string, AudioLaneSummary>
-  >(new Map());
+  const audioSummaries = useMemo<ReadonlyMap<string, AudioLaneSummary>>(
+    () => new Map(),
+    [],
+  );
   const [recovery, setRecovery] = useState<MidiLocalRecoveryEnvelope | null>(
     () =>
       editable
@@ -135,7 +155,6 @@ export function MidiStudioSurface(props: Props) {
         : null,
   );
   const runtime = useRef<BrowserMidiRuntime | null>(null);
-  const runtimeAbort = useRef<AbortController | null>(null);
   const playbackTimer = useRef<number | null>(null);
   const playbackStartTimer = useRef<number | null>(null);
   const autosaveTimer = useRef<number | null>(null);
@@ -147,7 +166,8 @@ export function MidiStudioSurface(props: Props) {
   const acknowledgedGeneration = useRef(0);
   const finalizeIntentRef = useRef<{
     draftId: string;
-    requestId: string;
+    patternRequestId: string;
+    versionRequestId: string;
     trackId: string;
     clipId: string;
   } | null>(null);
@@ -173,26 +193,10 @@ export function MidiStudioSurface(props: Props) {
           version.durationTicks,
         ]),
       ),
-      audioAssetDurations: new Map(
-        (editable?.assets ?? []).map((asset) => [asset.id, asset.durationMs]),
-      ),
+      audioAssetDurations: new Map<string, number>(),
     }),
-    [editable?.assets, midiVersions],
+    [midiVersions],
   );
-  const audioAssetKey = manifest.tracks
-    .flatMap((track) => (track.kind === "audio" ? [track.assetId] : []))
-    .sort()
-    .join(":");
-  const audioSourceScope =
-    props.mode === "workspace" || props.mode === "contribution"
-      ? `${props.mode}:${props.projectId}:${props.workspaceId}`
-      : props.mode === "revision"
-        ? `${props.mode}:${props.projectId}:${props.revisionId}`
-        : `${props.mode}:${props.projectId}:${props.contributionId}:${props.versionId}`;
-
-  useEffect(() => {
-    propsRef.current = props;
-  }, [props]);
 
   useEffect(() => {
     if (!importMenuOpen) return;
@@ -237,74 +241,6 @@ export function MidiStudioSurface(props: Props) {
       // Draft timing is validated and reported by the explicit save/play action.
     }
   }, [manifest, stemVersions]);
-
-  useEffect(() => {
-    const next = runtime.current;
-    if (!next) return;
-    const controller = new AbortController();
-    runtimeAbort.current = controller;
-    void (async () => {
-      const currentManifest = manifestRef.current;
-      const sources = await loadAudioSources(
-        propsRef.current,
-        currentManifest,
-        controller.signal,
-      );
-      if (controller.signal.aborted) return;
-      setAudioSummaries(
-        new Map(
-          sources.map((source) => [
-            source.assetId,
-            { status: "loading", peaks: [] } satisfies AudioLaneSummary,
-          ]),
-        ),
-      );
-      void loadAudioLaneSummaries({
-        sources,
-        signal: controller.signal,
-        onSummary: (assetId, summary) =>
-          setAudioSummaries((current) =>
-            new Map(current).set(assetId, summary),
-          ),
-      });
-      const decoded = await next.prepareAudio(
-        currentManifest,
-        sources,
-        controller.signal,
-      );
-      setAudioSummaries((current) => {
-        const updated = new Map(current);
-        for (const [assetId, peaks] of decoded)
-          updated.set(assetId, { status: "ready", peaks });
-        for (const source of sources)
-          if (!decoded.has(source.assetId))
-            updated.set(source.assetId, {
-              status: "failed",
-              peaks: updated.get(source.assetId)?.peaks ?? [],
-            });
-        return updated;
-      });
-    })().catch(() => {
-      if (controller.signal.aborted) return;
-      setAudioSummaries((current) => {
-        const updated = new Map(current);
-        for (const track of manifestRef.current.tracks)
-          if (track.kind === "audio")
-            updated.set(track.assetId, {
-              status: "failed",
-              peaks: updated.get(track.assetId)?.peaks ?? [],
-            });
-        setMessage(
-          "Some local Studio instruments or audio sources could not be prepared.",
-        );
-        return updated;
-      });
-    });
-    return () => {
-      controller.abort();
-      if (runtimeAbort.current === controller) runtimeAbort.current = null;
-    };
-  }, [audioAssetKey, audioSourceScope]);
 
   useEffect(() => {
     const pauseForOtherPlayer = (event: Event) => {
@@ -468,13 +404,13 @@ export function MidiStudioSurface(props: Props) {
       acknowledgedGeneration: acknowledgedGeneration.current,
       recoveryAvailable: true,
     });
-    let result: Awaited<ReturnType<typeof saveMidiWorkspaceAction>>;
+    let result: Awaited<ReturnType<typeof saveMidiWorkspaceV3Action>>;
     try {
-      result = await saveMidiWorkspaceAction({
+      result = await saveMidiWorkspaceV3Action({
         workspaceId: editable.workspaceId,
         requestId: crypto.randomUUID(),
         expectedLockVersion: lockVersionRef.current,
-        manifest: canonical,
+        manifest: toWorkspaceManifestV3(canonical, v3Authority),
       });
     } catch {
       setStatus("error");
@@ -492,7 +428,7 @@ export function MidiStudioSurface(props: Props) {
       setStatus(result.code === "conflict" ? "conflict" : "error");
       setMessage(
         result.code === "conflict"
-          ? "This workspace changed in another session. Reload before replacing an exact stem version."
+          ? "This workspace changed in another session. Reload before replacing an exact pattern version."
           : "The arrangement could not be saved.",
       );
       const recoveryAvailable = await cacheRecovery(
@@ -720,14 +656,7 @@ export function MidiStudioSurface(props: Props) {
   );
 
   const finalizeIntegratedDraft = useCallback(
-    async (
-      input: {
-        draftId: string;
-        expectedLockVersion: number;
-        expectedContentSha256: string;
-      },
-      target: IntegratedMidiTarget,
-    ) => {
+    async (input: FinalizePatternInput, target: IntegratedMidiTarget) => {
       if (!editable || status !== "saved")
         return {
           ok: false,
@@ -737,7 +666,8 @@ export function MidiStudioSurface(props: Props) {
       if (!intent || intent.draftId !== input.draftId) {
         intent = {
           draftId: input.draftId,
-          requestId: crypto.randomUUID(),
+          patternRequestId: crypto.randomUUID(),
+          versionRequestId: crypto.randomUUID(),
           trackId: target.trackId,
           clipId:
             target.operation === "replace"
@@ -746,50 +676,120 @@ export function MidiStudioSurface(props: Props) {
         };
         finalizeIntentRef.current = intent;
       }
-      const result = await finalizeIntegratedMidiDraftAction({
-        projectId: props.projectId,
-        draftId: input.draftId,
-        requestId: intent.requestId,
-        expectedDraftLockVersion: input.expectedLockVersion,
-        expectedContentSha256: input.expectedContentSha256,
-        workspaceId: editable.workspaceId,
-        expectedWorkspaceLockVersion: lockVersionRef.current,
-        operation: target.operation,
-        trackId: intent.trackId,
-        clipId: intent.clipId,
-        startTick: target.operation === "add" ? target.startTick : null,
+      const result = await freezeStudioPatternAction({
+        patternRequestId: intent.patternRequestId,
+        versionRequestId: intent.versionRequestId,
+        name: input.content.name,
+        existingPatternId:
+          target.operation === "replace" &&
+          target.version.creatorId === props.viewerId
+            ? target.version.stemId
+            : null,
+        expectedVersionNumber:
+          target.operation === "replace" &&
+          target.version.creatorId === props.viewerId
+            ? target.version.version + 1
+            : 1,
+        sourcePatternVersionId:
+          target.operation === "replace" &&
+          target.version.creatorId !== props.viewerId
+            ? target.version.stemVersionId
+            : null,
+        content: {
+          ppq: input.content.ppq,
+          durationTicks: input.content.durationTicks,
+          notes: input.content.notes,
+        },
       });
       if (!result.ok)
         return {
           ok: false,
-          message:
-            result.code === "workspace_conflict"
-              ? "The arrangement changed elsewhere. Reload before applying this version."
-              : result.code === "draft_conflict"
-                ? "The private MIDI draft changed elsewhere. Reload before applying it."
-                : result.code === "target_missing"
-                  ? "The selected clip moved or was removed. Choose it again."
-                  : "The version and arrangement were left unchanged. Retry when ready.",
+          message: "The pattern could not be frozen. Retry when ready.",
         };
-
+      const editorVersion = toEditorPatternVersion({
+        ...result.version,
+        name: input.content.name,
+        presetId: input.content.presetId,
+        presetVersion: input.content.presetVersion,
+      });
+      const current = manifestRef.current;
+      const next = parseWorkspaceManifestV2({
+        ...current,
+        durationTicks: Math.max(
+          current.durationTicks,
+          target.startTick + result.version.durationTicks,
+        ),
+        tracks:
+          target.operation === "add"
+            ? [
+                ...current.tracks,
+                {
+                  kind: "midi" as const,
+                  trackId: intent.trackId,
+                  name: input.content.name,
+                  instrumentId: null,
+                  presetId: input.content.presetId,
+                  presetVersion: input.content.presetVersion,
+                  gainDb: 0,
+                  pan: 0,
+                  muted: false,
+                  soloed: false,
+                  sortOrder: current.tracks.length,
+                  clips: [
+                    {
+                      clipId: intent.clipId,
+                      midiStemVersionId: editorVersion.stemVersionId,
+                      startTick: target.startTick,
+                      durationTicks: editorVersion.durationTicks,
+                      sourceStartTick: 0,
+                      loop: false,
+                    },
+                  ],
+                },
+              ]
+            : current.tracks.map((track) =>
+                track.trackId !== target.trackId || track.kind !== "midi"
+                  ? track
+                  : {
+                      ...track,
+                      presetId: input.content.presetId,
+                      presetVersion: input.content.presetVersion,
+                      clips: track.clips.map((clip) =>
+                        clip.clipId !== target.clipId
+                          ? clip
+                          : {
+                              ...clip,
+                              midiStemVersionId: editorVersion.stemVersionId,
+                              durationTicks: editorVersion.durationTicks,
+                              sourceStartTick: 0,
+                              loop: false,
+                            },
+                      ),
+                    },
+              ),
+      });
       historyRef.current = commitArrangementHistory(
         historyRef.current,
-        result.manifest,
+        next,
         null,
       );
-      manifestRef.current = result.manifest;
-      setManifest(result.manifest);
+      manifestRef.current = next;
+      setManifest(next);
       setMidiVersions((current) => [
-        result.version,
+        editorVersion,
         ...current.filter(
-          (version) => version.stemVersionId !== result.version.stemVersionId,
+          (version) => version.stemVersionId !== editorVersion.stemVersionId,
         ),
       ]);
-      lockVersionRef.current = result.workspaceLockVersion;
-      setLockVersion(result.workspaceLockVersion);
       generation.current += 1;
-      acknowledgedGeneration.current = generation.current;
-      setStatus("saved");
+      setStatus("dirty");
+      const saved = await persistRef.current(next);
+      if (!saved)
+        return {
+          ok: false,
+          message:
+            "The immutable pattern was created, but the arrangement needs to be saved again.",
+        };
       setHistoryAvailability({
         canUndo: historyRef.current.past.length > 0,
         canRedo: historyRef.current.future.length > 0,
@@ -815,12 +815,12 @@ export function MidiStudioSurface(props: Props) {
       setDraftSaveStatus("saved");
       const outcome =
         target.operation === "replace"
-          ? `Version ${result.version.version} is immutable and replaced only the selected clip.`
-          : `Version ${result.version.version} is immutable and was added to the arrangement.`;
+          ? `Pattern version ${result.version.version} is immutable and replaced only the selected clip.`
+          : `Pattern version ${result.version.version} is immutable and was added to the arrangement.`;
       setMessage(outcome);
       return { ok: true, message: outcome };
     },
-    [editable, lifecycle, props.projectId, status],
+    [editable, lifecycle, props.viewerId, status],
   );
 
   function updateTrack(trackId: string, patch: Partial<WorkspaceTrackV2>) {
@@ -908,7 +908,7 @@ export function MidiStudioSurface(props: Props) {
     )
       return;
     setMessage("Publishing immutable revision…");
-    const result = await publishMidiWorkspaceAction(props.projectId, {
+    const result = await publishMidiWorkspaceV3Action(props.projectId, {
       workspaceId: props.workspaceId,
       requestId: crypto.randomUUID(),
       expectedLockVersion: lockVersion,
@@ -921,12 +921,10 @@ export function MidiStudioSurface(props: Props) {
       );
       return;
     }
-    setLockVersion(result.workspaceLockVersion);
     setBaseRevisionId(result.revisionId);
-    lockVersionRef.current = result.workspaceLockVersion;
     baseRevisionIdRef.current = result.revisionId;
     setMessage(
-      `Revision ${result.revisionNumber} published with exact MIDI stem references.`,
+      `Revision ${result.revisionNumber} published with exact pattern and arrangement versions.`,
     );
   }
 
@@ -975,7 +973,6 @@ export function MidiStudioSurface(props: Props) {
         ),
       dispose: async () => {
         if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
-        runtimeAbort.current?.abort();
         if (playbackStartTimer.current)
           clearTimeout(playbackStartTimer.current);
         if (playbackTimer.current) cancelAnimationFrame(playbackTimer.current);
@@ -1165,8 +1162,8 @@ export function MidiStudioSurface(props: Props) {
                     disabled={!manifest.tracks.length}
                     onClick={() =>
                       download(
-                        exportMidiProject(
-                          manifest,
+                        exportStudioMidiV3(
+                          toWorkspaceManifestV3(manifest, v3Authority),
                           stemVersions,
                           props.projectTitle,
                         ),
@@ -1186,14 +1183,9 @@ export function MidiStudioSurface(props: Props) {
                         setRendering(true);
                         try {
                           download(
-                            await renderMidiProjectWav(
-                              manifest,
+                            await renderStudioWavV3(
+                              toWorkspaceManifestV3(manifest, v3Authority),
                               stemVersions,
-                              await loadAudioSources(
-                                props,
-                                manifest,
-                                new AbortController().signal,
-                              ),
                             ),
                             "wav",
                           );
@@ -1217,7 +1209,7 @@ export function MidiStudioSurface(props: Props) {
                         className={toolbarButton}
                         aria-haspopup="menu"
                         aria-expanded={importMenuOpen}
-                        title="Import a stem version from My stems"
+                        title="Reuse an exact pattern version from this project"
                         onClick={() => setImportMenuOpen((open) => !open)}
                       >
                         <FiFolderPlus aria-hidden /> Library
@@ -1230,7 +1222,7 @@ export function MidiStudioSurface(props: Props) {
                         {importMenuOpen && (
                           <motion.div
                             role="menu"
-                            aria-label="Stem library"
+                            aria-label="Pattern versions"
                             initial={
                               reduce
                                 ? { opacity: 0 }
@@ -1252,7 +1244,7 @@ export function MidiStudioSurface(props: Props) {
                               className="block text-xs font-semibold"
                               htmlFor="arranger-version"
                             >
-                              Immutable version from My stems
+                              Exact pattern version
                               <select
                                 id="arranger-version"
                                 className={`${input} mt-1 w-full`}
@@ -1287,9 +1279,9 @@ export function MidiStudioSurface(props: Props) {
                             </button>
                             <Link
                               className={`${button} w-full gap-2`}
-                              href="/stems"
+                              href="#arrangement"
                             >
-                              <FiMusic /> Open My stems
+                              <FiMusic /> Back to arrangement
                             </Link>
                           </motion.div>
                         )}
@@ -1362,6 +1354,7 @@ export function MidiStudioSurface(props: Props) {
                 <IntegratedMidiComposer
                   key={`${composerTarget.operation}:${composerTarget.operation === "replace" ? composerTarget.clipId : composerTarget.trackId}`}
                   target={composerTarget}
+                  ownerId={props.viewerId}
                   tempoBpm={manifest.tempoBpm}
                   timeSignature={manifest.timeSignature}
                   onClose={() => {
@@ -1441,8 +1434,8 @@ export function MidiStudioSurface(props: Props) {
             Contribution: {props.contributionTitle}
           </p>
           <p className="text-muted mt-1 text-sm">
-            Replace exact stem versions here, then return to the contribution to
-            submit an immutable snapshot.
+            Replace exact pattern versions here, then return to the contribution
+            to submit an immutable snapshot.
           </p>
           {composerTarget ? (
             <p className="text-muted mt-2 text-sm" role="status">
@@ -1460,13 +1453,11 @@ export function MidiStudioSurface(props: Props) {
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-accent font-mono text-xs uppercase">
-            Composite MIDI Studio
-          </p>
+          <p className="text-accent font-mono text-xs uppercase">MIDI Studio</p>
           <h2 className="mt-1 text-2xl font-semibold">Arrangement</h2>
           <p className="text-muted mt-1 text-sm">
-            Stem notes are immutable here. Arrange, mix, or explicitly replace
-            an exact version.
+            Pattern notes freeze into immutable versions. Arrange, mix, or
+            explicitly replace one clip.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1484,7 +1475,11 @@ export function MidiStudioSurface(props: Props) {
             disabled={!manifest.tracks.length}
             onClick={() =>
               download(
-                exportMidiProject(manifest, stemVersions, props.projectTitle),
+                exportStudioMidiV3(
+                  toWorkspaceManifestV3(manifest, v3Authority),
+                  stemVersions,
+                  props.projectTitle,
+                ),
                 "mid",
               )
             }
@@ -1500,14 +1495,9 @@ export function MidiStudioSurface(props: Props) {
                 setRendering(true);
                 try {
                   download(
-                    await renderMidiProjectWav(
-                      manifest,
+                    await renderStudioWavV3(
+                      toWorkspaceManifestV3(manifest, v3Authority),
                       stemVersions,
-                      await loadAudioSources(
-                        props,
-                        manifest,
-                        new AbortController().signal,
-                      ),
                     ),
                     "wav",
                   );
@@ -1542,7 +1532,7 @@ export function MidiStudioSurface(props: Props) {
       {editable && (
         <div className="rounded-control border-subtle bg-surface-soft flex flex-wrap items-end gap-3 border p-4">
           <label className="min-w-64 flex-1 text-sm font-semibold">
-            Immutable version from My stems
+            Exact pattern version
             <select
               className={`${input} mt-2 w-full`}
               value={selectedVersionId}
@@ -1567,8 +1557,8 @@ export function MidiStudioSurface(props: Props) {
           >
             Import exact version
           </button>
-          <Link className={button} href="/stems">
-            Open My stems
+          <Link className={button} href="#arrangement">
+            Back to arrangement
           </Link>
         </div>
       )}
@@ -1579,8 +1569,7 @@ export function MidiStudioSurface(props: Props) {
             Bring in your first MIDI part.
           </h3>
           <p className="text-muted mt-2">
-            Save a version in My stems, then import that exact immutable take
-            here.
+            Draw or record a pattern in the piano roll, or import a MIDI file.
           </p>
         </div>
       ) : (
@@ -1598,7 +1587,7 @@ export function MidiStudioSurface(props: Props) {
                       {track.sortOrder + 1}. {track.name}
                     </p>
                     <p className="text-muted mt-1 text-sm">
-                      Private legacy audio - mixed locally with MIDI
+                      Compatibility track unavailable in MIDI-only Studio
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1945,43 +1934,4 @@ export function MidiStudioSurface(props: Props) {
       )}
     </section>
   );
-}
-
-async function loadAudioSources(
-  props: Props,
-  manifest: WorkspaceManifestV2,
-  signal: AbortSignal,
-): Promise<SignedAudioSource[]> {
-  const assetIds = [
-    ...new Set(
-      manifest.tracks.flatMap((track) =>
-        track.kind === "audio" ? [track.assetId] : [],
-      ),
-    ),
-  ];
-  if (assetIds.length === 0) return [];
-  const endpoint =
-    props.mode === "workspace" || props.mode === "contribution"
-      ? `/api/projects/${props.projectId}/workspaces/${props.workspaceId}/audio-sources`
-      : props.mode === "revision"
-        ? `/api/projects/${props.projectId}/revisions/${props.revisionId}/audio-sources`
-        : props.mode === "contributionVersion"
-          ? `/api/projects/${props.projectId}/contributions/${props.contributionId}/versions/${props.versionId}/audio-sources`
-          : null;
-  if (!endpoint) throw new Error("Mixed contribution playback is not enabled");
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(
-      props.mode === "workspace" || props.mode === "contribution"
-        ? { mode: "load", assetIds }
-        : { assetIds },
-    ),
-    signal,
-  });
-  if (!response.ok) throw new Error("Private audio could not be authorized");
-  const payload = (await response.json()) as { sources?: SignedAudioSource[] };
-  if (!payload.sources || payload.sources.length !== assetIds.length)
-    throw new Error("Private audio descriptor mismatch");
-  return payload.sources;
 }

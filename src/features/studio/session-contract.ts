@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { workspaceManifestV1Schema } from "./manifest/schema";
 import { workspaceManifestV2Schema } from "./manifest/v2";
+import { manifestV3Schema } from "./manifest/v3";
 
 export const studioCapabilitiesSchema = z
   .object({
@@ -36,7 +37,11 @@ const projectSchema = z
 const commonSessionSchema = {
   viewerId: z.uuid().nullable(),
   project: projectSchema,
-  manifest: z.union([workspaceManifestV1Schema, workspaceManifestV2Schema]),
+  manifest: z.union([
+    workspaceManifestV1Schema,
+    workspaceManifestV2Schema,
+    manifestV3Schema,
+  ]),
   capabilities: studioCapabilitiesSchema,
   canonicalLinks: canonicalLinksSchema,
 } as const;

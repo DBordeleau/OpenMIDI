@@ -5,8 +5,10 @@ import {
   type StudioSessionDescriptor,
 } from "@/features/studio/session-contract";
 import { getProjectForViewer } from "@/server/repositories/projects";
-import { getRevisionPlayback } from "@/server/repositories/revisions";
-import { getActiveWorkspace } from "@/server/repositories/workspaces";
+import {
+  getStudioRevisionV3,
+  getStudioWorkspaceV3,
+} from "@/server/repositories/studio-v3";
 
 export async function resolveStudioSession(
   projectId: string,
@@ -15,9 +17,9 @@ export async function resolveStudioSession(
   const project = await getProjectForViewer(projectId);
   if (!project) return null;
   const [workspace, revision] = await Promise.all([
-    getActiveWorkspace(projectId),
+    getStudioWorkspaceV3(projectId),
     project.currentRevisionId
-      ? getRevisionPlayback({
+      ? getStudioRevisionV3({
           projectId,
           revisionId: project.currentRevisionId,
         })
@@ -41,7 +43,7 @@ export async function resolveStudioSession(
       canStartContribution: Boolean(
         revision && !owner && project.openToContributions,
       ),
-      canDownloadSources: Boolean(revision),
+      canDownloadSources: false,
       canFork: Boolean(revision && project.license.allowsDerivatives),
     },
     canonicalLinks: {

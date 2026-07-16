@@ -2,18 +2,12 @@ import { notFound } from "next/navigation";
 import { requireViewer } from "@/features/auth/guards";
 import { projectIdSchema } from "@/features/projects/schema";
 import { StudioLauncher } from "@/features/studio/components/studio-launcher.client";
-import {
-  MIDI_PPQ,
-  type WorkspaceManifestV2,
-} from "@/features/studio/manifest/v2";
+import { MIDI_V3_PPQ } from "@/features/midi/domain-v3";
+import type { ManifestV3 } from "@/features/studio/manifest/v3";
 import type { StudioSessionDescriptor } from "@/features/studio/session-contract";
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form";
 import { getContributionForViewer } from "@/server/repositories/contributions";
-import {
-  getMidiStemVersionsByIds,
-  listMidiStemVersionsForStudio,
-} from "@/server/repositories/midi-stems";
-import { listWorkspaceAssetOptions } from "@/server/repositories/revisions";
+import { loadStudioPatternVersions } from "@/server/repositories/studio-v3";
 import { resolveStudioSession } from "@/server/services/studio-session";
 
 // Intentionally omit this segment's loading.tsx while using Next.js 16.2.10.
@@ -35,41 +29,15 @@ export default async function StudioProjectPage({
     ? await getContributionForViewer(workspace.contributionId)
     : null;
   const editable = project.ownerId === viewer.id;
-  const options =
-    workspace?.manifest.manifestVersion === 1
-      ? await listWorkspaceAssetOptions()
-      : null;
   const sessionManifest = workspace?.manifest ?? revision?.manifest;
-  const referencedMidiVersions =
-    sessionManifest?.manifestVersion === 2
-      ? await getMidiStemVersionsByIds(
-          collectMidiStemVersionIds(sessionManifest),
-        )
-      : [];
-  const ownedMidiVersions =
-    workspace &&
-    (project.ownerId === viewer.id || workspace.contributionId !== null)
-      ? await listMidiStemVersionsForStudio()
-      : [];
-  const midiVersions = [
-    ...new Map(
-      [...referencedMidiVersions, ...ownedMidiVersions].map((version) => [
-        version.stemVersionId,
-        version,
-      ]),
-    ).values(),
-  ];
+  const patternVersions = sessionManifest
+    ? await loadStudioPatternVersions(sessionManifest)
+    : [];
   const workspaceDurationMs = workspace
-    ? workspace.manifest.manifestVersion === 1
-      ? Math.max(
-          ...workspace.manifest.tracks.map(
-            (track) => track.positionMs + track.durationMs,
-          ),
-        )
-      : Math.ceil(
-          (workspace.manifest.durationTicks * 60_000) /
-            (workspace.manifest.tempoBpm * MIDI_PPQ),
-        )
+    ? Math.ceil(
+        (workspace.manifest.durationTicks * 60_000) /
+          (workspace.manifest.tempoBpm * MIDI_V3_PPQ),
+      )
     : 0;
   const launcherKey = descriptor ? sessionAuthorityKey(descriptor) : projectId;
 
@@ -99,15 +67,10 @@ export default async function StudioProjectPage({
           manifest={workspace.manifest}
           projectTimeSignature={project.timeSignature}
           durationMs={workspaceDurationMs}
-          tracks={workspace.tracks}
-          assets={(options?.assets ?? []).map((asset) => ({
-            id: asset.id,
-            filename: asset.filename,
-            durationMs: asset.durationMs,
-            creditName: asset.creditName,
-          }))}
-          instruments={options?.instruments ?? []}
-          midiVersions={midiVersions}
+          tracks={studioTrackCredits(workspace.manifest, patternVersions)}
+          assets={[]}
+          instruments={[]}
+          patternVersions={patternVersions}
         />
       ) : workspace ? (
         <StudioLauncher
@@ -126,15 +89,10 @@ export default async function StudioProjectPage({
           manifest={workspace.manifest}
           projectTimeSignature={project.timeSignature}
           durationMs={workspaceDurationMs}
-          tracks={workspace.tracks}
-          assets={(options?.assets ?? []).map((asset) => ({
-            id: asset.id,
-            filename: asset.filename,
-            durationMs: asset.durationMs,
-            creditName: asset.creditName,
-          }))}
-          instruments={options?.instruments ?? []}
-          midiVersions={midiVersions}
+          tracks={studioTrackCredits(workspace.manifest, patternVersions)}
+          assets={[]}
+          instruments={[]}
+          patternVersions={patternVersions}
         />
       ) : revision && editable ? (
         <CreateWorkspaceForm
@@ -154,15 +112,8 @@ export default async function StudioProjectPage({
           manifest={revision.manifest}
           projectTimeSignature={project.timeSignature}
           durationMs={revision.durationMs}
-          tracks={revision.tracks.map(
-            ({ trackId, kind, instrumentName, creditName }) => ({
-              trackId,
-              kind,
-              instrumentName,
-              creditName,
-            }),
-          )}
-          midiVersions={midiVersions}
+          tracks={studioTrackCredits(revision.manifest, patternVersions)}
+          patternVersions={patternVersions}
         />
       ) : (
         <section className="rounded-card border-strong border border-dashed p-8">
@@ -190,10 +141,19 @@ function sessionAuthorityKey(descriptor: StudioSessionDescriptor) {
   }
 }
 
-function collectMidiStemVersionIds(manifest: WorkspaceManifestV2) {
-  return manifest.tracks.flatMap((track) =>
-    track.kind === "midi"
-      ? track.clips.map((clip) => clip.midiStemVersionId)
-      : [],
+function studioTrackCredits(
+  manifest: ManifestV3,
+  patterns: Awaited<ReturnType<typeof loadStudioPatternVersions>>,
+) {
+  const byId = new Map(
+    patterns.map((pattern) => [pattern.midiPatternVersionId, pattern]),
   );
+  return manifest.tracks.map((track) => ({
+    trackId: track.trackId,
+    kind: "midi" as const,
+    instrumentName: track.presetId,
+    creditName:
+      byId.get(track.clips[0]?.midiPatternVersionId ?? "")?.creatorCreditName ??
+      "You",
+  }));
 }

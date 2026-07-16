@@ -8,6 +8,7 @@ import {
   reserveWorkspaceSnapshotSchema,
   restartWorkspaceSchema,
   saveMidiWorkspaceSchema,
+  saveMidiWorkspaceV3Schema,
   saveWorkspaceSchema,
 } from "./schema";
 import {
@@ -19,6 +20,10 @@ import {
   saveWorkspace,
   saveMidiWorkspace,
 } from "@/server/repositories/workspaces";
+import {
+  publishMidiWorkspaceRevisionV3,
+  saveMidiWorkspaceV3,
+} from "@/server/repositories/midi-v3";
 
 export type CreateWorkspaceState = { message?: string };
 
@@ -113,6 +118,34 @@ export async function saveMidiWorkspaceAction(input: unknown) {
   };
 }
 
+export async function saveMidiWorkspaceV3Action(input: unknown) {
+  const parsed = saveMidiWorkspaceV3Schema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  try {
+    const saved = await saveMidiWorkspaceV3({
+      ...parsed.data,
+      manifest: parsed.data.manifest,
+    });
+    return {
+      ok: true as const,
+      lockVersion: saved.lock_version,
+      manifestSha256: saved.manifest_sha256,
+      updatedAt: saved.updated_at,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return {
+      ok: false as const,
+      code: message.includes("conflict")
+        ? ("conflict" as const)
+        : message.includes("not_found")
+          ? ("invalid_state" as const)
+          : ("unavailable" as const),
+    };
+  }
+}
+
 export async function publishWorkspaceAction(
   projectId: string,
   input: unknown,
@@ -174,6 +207,43 @@ export async function publishMidiWorkspaceAction(
     revisionNumber: data[0].revision_number,
     workspaceLockVersion: data[0].workspace_lock_version,
   };
+}
+
+export async function publishMidiWorkspaceV3Action(
+  projectId: string,
+  input: unknown,
+) {
+  const parsed = publishWorkspaceSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, code: "invalid_request" as const };
+  try {
+    const published = await publishMidiWorkspaceRevisionV3({
+      workspaceId: parsed.data.workspaceId,
+      requestId: parsed.data.requestId,
+      expectedWorkspaceLockVersion: parsed.data.expectedLockVersion,
+      expectedBaseRevisionId: parsed.data.expectedBaseRevisionId,
+      message: parsed.data.message,
+    });
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/studio/${projectId}`);
+    revalidatePath("/explore");
+    return {
+      ok: true as const,
+      revisionId: published.revision_id,
+      revisionNumber: published.revision_number,
+      arrangementVersionId: published.arrangement_version_id,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return {
+      ok: false as const,
+      code: message.includes("stale")
+        ? ("stale_base" as const)
+        : message.includes("conflict")
+          ? ("conflict" as const)
+          : ("unavailable" as const),
+    };
+  }
 }
 
 export async function restartWorkspaceAction(

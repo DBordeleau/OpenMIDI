@@ -41,7 +41,8 @@ import {
   type MidiStemCommand,
 } from "../semantic-commands";
 import type { PresetVoice } from "../browser-engine/preset-voice.client";
-import { SYNTH_PRESETS_V1, resolveSynthPreset } from "../presets";
+import { INSTRUMENT_PRESETS_CATALOG_1, resolveSynthPreset } from "../presets";
+import { MIDI_V3_ENGINE_VERSION } from "../domain-v3";
 import {
   publishMidiStemVersionAction,
   saveMidiStemDraftAction,
@@ -91,10 +92,30 @@ export type MidiStemEditorHost = {
   ) => void;
   onTransportStop: () => void;
   onDraftStatusChange: (status: MidiDraftSaveStatus) => void;
+  persistDraft?: (content: {
+    name: string;
+    defaultPresetId: string;
+    defaultPresetVersion: 1;
+    ppq: 480;
+    durationTicks: number;
+    notes: MidiNoteV1[];
+  }) => Promise<{
+    ok: boolean;
+    lockVersion: number;
+    contentSha256: string;
+  }>;
   finalize: (input: {
     draftId: string;
     expectedLockVersion: number;
     expectedContentSha256: string;
+    content: {
+      name: string;
+      presetId: string;
+      presetVersion: 1;
+      ppq: 480;
+      durationTicks: number;
+      notes: MidiNoteV1[];
+    };
   }) => Promise<{ ok: boolean; message: string }>;
   finalizeLabel: string;
   onClose: () => void;
@@ -275,7 +296,7 @@ export function MidiStemEditor({
   }>({ timeout: null, frame: null, repeated: false });
 
   const notes = previewNotes ?? history.notes;
-  const preset = resolveSynthPreset(presetId, 1);
+  const preset = resolveSynthPreset(presetId, 1, MIDI_V3_ENGINE_VERSION);
   const selectedNotes = useMemo(
     () => history.notes.filter(({ noteId }) => selectedIds.has(noteId)),
     [history.notes, selectedIds],
@@ -512,15 +533,20 @@ export function MidiStemEditor({
       notes: [...history.notes],
     };
     try {
-      const result = await saveMidiStemDraftAction({
-        draftId: draft.draftId,
-        requestId: crypto.randomUUID(),
-        expectedLockVersion: lockVersionRef.current,
-        content,
-      });
+      const result = host?.persistDraft
+        ? await host.persistDraft(content)
+        : await saveMidiStemDraftAction({
+            draftId: draft.draftId,
+            requestId: crypto.randomUUID(),
+            expectedLockVersion: lockVersionRef.current,
+            content,
+          });
       if (!result.ok) {
         dispatchSave({
-          type: result.code === "conflict" ? "conflict" : "error",
+          type:
+            "code" in result && result.code === "conflict"
+              ? "conflict"
+              : "error",
         });
         return;
       }
@@ -546,6 +572,7 @@ export function MidiStemEditor({
     history.notes,
     name,
     presetId,
+    host,
   ]);
 
   useEffect(() => {
@@ -1701,6 +1728,14 @@ export function MidiStemEditor({
         draftId: draft.draftId,
         expectedLockVersion: lockVersionRef.current,
         expectedContentSha256: contentSha256Ref.current,
+        content: {
+          name,
+          presetId,
+          presetVersion: 1,
+          ppq: MIDI_PPQ,
+          durationTicks: draft.durationTicks,
+          notes: [...history.notes],
+        },
       });
       setPublicationState({
         status: result.ok ? "published" : "error",
@@ -1851,7 +1886,11 @@ export function MidiStemEditor({
                 title={preset.description}
                 value={presetId}
                 onChange={(event) => {
-                  const nextPreset = resolveSynthPreset(event.target.value, 1);
+                  const nextPreset = resolveSynthPreset(
+                    event.target.value,
+                    1,
+                    MIDI_V3_ENGINE_VERSION,
+                  );
                   if (
                     history.notes.some(
                       (note) =>
@@ -1872,7 +1911,7 @@ export function MidiStemEditor({
                   markEdited();
                 }}
               >
-                {SYNTH_PRESETS_V1.map((item) => (
+                {INSTRUMENT_PRESETS_CATALOG_1.map((item) => (
                   <option key={item.presetId} value={item.presetId}>
                     {item.name}
                   </option>
