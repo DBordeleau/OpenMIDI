@@ -2498,6 +2498,19 @@ export type Database = {
           title: string
         }[]
       }
+      create_project_workspace_v3: {
+        Args: {
+          p_expected_current_revision_id: string
+          p_project_id: string
+          p_request_id: string
+        }
+        Returns: {
+          base_revision_id: string
+          created_at: string
+          lock_version: number
+          workspace_id: string
+        }[]
+      }
       delete_own_contribution: {
         Args: { p_contribution_id: string; p_request_id: string }
         Returns: Json
@@ -2536,11 +2549,16 @@ export type Database = {
         Args: { p_report_id: string }
         Returns: Json
       }
+      get_admin_storage_summary: { Args: never; Returns: Json }
       get_contribution_project_context: {
         Args: { p_contribution_id: string }
         Returns: Json
       }
       get_own_account_recovery: { Args: never; Returns: Json }
+      get_project_revision_history_v3: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       get_public_profile_history: {
         Args: { p_profile_id: string }
         Returns: Json

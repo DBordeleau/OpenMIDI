@@ -48,10 +48,6 @@ import {
 } from "../presets";
 import { MIDI_V3_ENGINE_VERSION } from "../domain-v3";
 import {
-  publishMidiStemVersionAction,
-  saveMidiStemDraftAction,
-} from "./actions";
-import {
   getMidiDraftAutosaveDelay,
   initialMidiDraftSaveState,
   reduceMidiDraftSave,
@@ -543,18 +539,10 @@ export function MidiStemEditor({
     try {
       const result = host?.persistDraft
         ? await host.persistDraft(content)
-        : await saveMidiStemDraftAction({
-            draftId: draft.draftId,
-            requestId: crypto.randomUUID(),
-            expectedLockVersion: lockVersionRef.current,
-            content,
-          });
+        : { ok: false, lockVersion: 0, contentSha256: "" };
       if (!result.ok) {
         dispatchSave({
-          type:
-            "code" in result && result.code === "conflict"
-              ? "conflict"
-              : "error",
+          type: "error",
         });
         return;
       }
@@ -1731,47 +1719,29 @@ export function MidiStemEditor({
       status: "publishing",
       message: "Freezing an immutable version…",
     });
-    if (host) {
-      const result = await host.finalize({
-        draftId: draft.draftId,
-        expectedLockVersion: lockVersionRef.current,
-        expectedContentSha256: contentSha256Ref.current,
-        content: {
-          name,
-          presetId,
-          presetVersion: 1,
-          ppq: MIDI_PPQ,
-          durationTicks: draft.durationTicks,
-          notes: [...history.notes],
-        },
-      });
-      setPublicationState({
-        status: result.ok ? "published" : "error",
-        message: result.message,
-      });
-      return;
-    }
-    const result = await publishMidiStemVersionAction({
-      draftId: draft.draftId,
-      requestId: crypto.randomUUID(),
-      expectedLockVersion: lockVersionRef.current,
-      expectedContentSha256: contentSha256Ref.current,
-    });
-    if (!result.ok) {
+    if (!host) {
       setPublicationState({
         status: "error",
-        message:
-          result.code === "conflict"
-            ? "The draft changed before publication. Reload its latest save and try again."
-            : result.code === "limit"
-              ? "Your prototype library has reached 500 immutable versions."
-              : "This version could not be frozen right now.",
+        message: "Open this pattern in Studio before freezing a version.",
       });
       return;
     }
+    const result = await host.finalize({
+      draftId: draft.draftId,
+      expectedLockVersion: lockVersionRef.current,
+      expectedContentSha256: contentSha256Ref.current,
+      content: {
+        name,
+        presetId,
+        presetVersion: 1,
+        ppq: MIDI_PPQ,
+        durationTicks: draft.durationTicks,
+        notes: [...history.notes],
+      },
+    });
     setPublicationState({
-      status: "published",
-      message: `Version ${result.version} is immutable and credited to ${result.creatorCreditName}.`,
+      status: result.ok ? "published" : "error",
+      message: result.message,
     });
   }
 

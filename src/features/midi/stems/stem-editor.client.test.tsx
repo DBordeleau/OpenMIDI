@@ -34,11 +34,6 @@ vi.mock("./use-midi-performance.client", () => ({
   useMidiPerformance: () => performanceMock,
 }));
 
-vi.mock("./actions", () => ({
-  publishMidiStemVersionAction: vi.fn(),
-  saveMidiStemDraftAction: vi.fn(),
-}));
-
 const draft: MidiStemDraft = {
   draftId: "00000000-0000-4000-8000-000000000001",
   stemId: "00000000-0000-4000-8000-000000000002",
