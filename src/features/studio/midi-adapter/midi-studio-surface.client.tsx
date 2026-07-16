@@ -26,7 +26,7 @@ import {
 } from "./manifest-v3-editor";
 import { BrowserMidiRuntime } from "./browser-midi-runtime.client";
 import { projectMidiSchedule } from "@/features/midi/scheduler";
-import { SYNTH_PRESETS_V1 } from "@/features/midi/presets";
+import { INSTRUMENT_PRESETS_CATALOG_1 } from "@/features/midi/presets";
 import {
   exportStudioMidiV3,
   renderStudioWavV3,
@@ -1755,7 +1755,7 @@ export function MidiStudioSurface(props: Props) {
                         });
                       }}
                     >
-                      {SYNTH_PRESETS_V1.map((preset) => (
+                      {INSTRUMENT_PRESETS_CATALOG_1.map((preset) => (
                         <option
                           key={`${preset.presetId}:${preset.version}`}
                           value={`${preset.presetId}:${preset.version}`}

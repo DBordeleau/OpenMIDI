@@ -41,7 +41,11 @@ import {
   type MidiStemCommand,
 } from "../semantic-commands";
 import type { PresetVoice } from "../browser-engine/preset-voice.client";
-import { INSTRUMENT_PRESETS_CATALOG_1, resolveSynthPreset } from "../presets";
+import {
+  INSTRUMENT_PRESETS_CATALOG_1,
+  resolveSynthPreset,
+  SYNTH_PRESETS_V1,
+} from "../presets";
 import { MIDI_V3_ENGINE_VERSION } from "../domain-v3";
 import {
   publishMidiStemVersionAction,
@@ -296,7 +300,11 @@ export function MidiStemEditor({
   }>({ timeout: null, frame: null, repeated: false });
 
   const notes = previewNotes ?? history.notes;
-  const preset = resolveSynthPreset(presetId, 1, MIDI_V3_ENGINE_VERSION);
+  const preset = resolveSynthPreset(
+    presetId,
+    1,
+    host ? MIDI_V3_ENGINE_VERSION : undefined,
+  );
   const selectedNotes = useMemo(
     () => history.notes.filter(({ noteId }) => selectedIds.has(noteId)),
     [history.notes, selectedIds],
@@ -1889,7 +1897,7 @@ export function MidiStemEditor({
                   const nextPreset = resolveSynthPreset(
                     event.target.value,
                     1,
-                    MIDI_V3_ENGINE_VERSION,
+                    host ? MIDI_V3_ENGINE_VERSION : undefined,
                   );
                   if (
                     history.notes.some(
@@ -1911,11 +1919,13 @@ export function MidiStemEditor({
                   markEdited();
                 }}
               >
-                {INSTRUMENT_PRESETS_CATALOG_1.map((item) => (
-                  <option key={item.presetId} value={item.presetId}>
-                    {item.name}
-                  </option>
-                ))}
+                {(host ? INSTRUMENT_PRESETS_CATALOG_1 : SYNTH_PRESETS_V1).map(
+                  (item) => (
+                    <option key={item.presetId} value={item.presetId}>
+                      {item.name}
+                    </option>
+                  ),
+                )}
               </select>
             </span>
           </label>
