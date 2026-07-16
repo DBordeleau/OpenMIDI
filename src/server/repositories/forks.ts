@@ -2,9 +2,7 @@ import "server-only";
 
 import type { ForkProjectInput } from "@/features/forks/schema";
 import type { ForkSource, ProjectLineage } from "@/features/forks/types";
-import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getPublicProject } from "@/server/repositories/public-projects";
 
 export async function getForkSourceForViewer(input: {
   projectId: string;
@@ -14,12 +12,14 @@ export async function getForkSourceForViewer(input: {
   const [projectResult, revisionResult] = await Promise.all([
     db
       .from("projects")
-      .select("id,title,description,status,deleted_at,license_code")
+      .select("id,title,description,status,visibility,deleted_at,license_code")
       .eq("id", input.projectId)
       .maybeSingle(),
     db
       .from("project_revisions")
-      .select("id,project_id,revision_number,duration_ms,revision_tracks(id)")
+      .select(
+        "id,project_id,revision_number,duration_ms,arrangement_version_id",
+      )
       .eq("project_id", input.projectId)
       .eq("id", input.revisionId)
       .maybeSingle(),
@@ -28,39 +28,13 @@ export async function getForkSourceForViewer(input: {
     throw new Error("fork_source_unavailable");
   const project = projectResult.data;
   const revision = revisionResult.data;
-  if (!project || !revision) {
-    const publicProject = await getPublicProject(input.projectId);
-    if (!publicProject || publicProject.currentRevisionId !== input.revisionId)
-      return null;
-    const { data: publicLicense, error: publicLicenseError } = await db
-      .from("licenses")
-      .select(
-        "code,name,url,summary,allows_derivatives,requires_attribution,share_alike",
-      )
-      .eq("code", publicProject.license.code)
-      .maybeSingle();
-    if (publicLicenseError) throw new Error("fork_source_unavailable");
-    if (!publicLicense) return null;
-    return {
-      projectId: publicProject.projectId,
-      projectTitle: publicProject.title,
-      projectDescription: publicProject.description,
-      revisionId: publicProject.currentRevisionId,
-      revisionNumber: publicProject.revisionNumber,
-      durationMs: publicProject.durationMs,
-      trackCount: publicProject.tracks.length,
-      license: {
-        code: publicLicense.code,
-        name: publicLicense.name,
-        url: publicLicense.url,
-        summary: publicLicense.summary,
-        allowsDerivatives: publicLicense.allows_derivatives,
-        requiresAttribution: publicLicense.requires_attribution,
-        shareAlike: publicLicense.share_alike,
-      },
-    };
-  }
-  if (project.status !== "active" || project.deleted_at !== null) return null;
+  if (!project || !revision?.arrangement_version_id) return null;
+  if (
+    project.status !== "active" ||
+    project.visibility !== "public" ||
+    project.deleted_at !== null
+  )
+    return null;
 
   const { data: license, error: licenseError } = await db
     .from("licenses")
@@ -70,7 +44,13 @@ export async function getForkSourceForViewer(input: {
     .eq("code", project.license_code)
     .maybeSingle();
   if (licenseError) throw new Error("fork_source_unavailable");
-  if (!license) return null;
+  if (!license || license.code !== "cc-by-4.0") return null;
+  const { count: trackCount, error: tracksError } = await db
+    .from("arrangement_tracks")
+    .select("track_id", { count: "exact", head: true })
+    .eq("arrangement_version_id", revision.arrangement_version_id);
+  if (tracksError || trackCount === null)
+    throw new Error("fork_source_unavailable");
 
   return {
     projectId: project.id,
@@ -79,7 +59,7 @@ export async function getForkSourceForViewer(input: {
     revisionId: revision.id,
     revisionNumber: revision.revision_number,
     durationMs: revision.duration_ms,
-    trackCount: revision.revision_tracks.length,
+    trackCount,
     license: {
       code: license.code,
       name: license.name,
@@ -94,14 +74,15 @@ export async function getForkSourceForViewer(input: {
 
 export async function forkProject(input: ForkProjectInput) {
   const db = await createSupabaseServerClient();
-  return db.rpc("fork_project", {
+  return db.rpc("fork_project_v3", {
     p_source_project_id: input.sourceProjectId,
     p_source_revision_id: input.sourceRevisionId,
     p_request_id: input.requestId,
     p_expected_license_code: input.expectedLicenseCode,
+    p_rights_attestation_version: input.rightsAttestationVersion,
     p_title: input.title,
-    p_description: input.description,
-  } as Database["public"]["Functions"]["fork_project"]["Args"]);
+    p_description: input.description ?? "",
+  });
 }
 
 export async function getProjectLineage(input: {

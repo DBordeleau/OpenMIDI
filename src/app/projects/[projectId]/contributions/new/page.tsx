@@ -48,7 +48,8 @@ export default async function NewContributionPage({
     project.owner ||
     !project.active ||
     !project.open ||
-    !project.currentRevisionId
+    !project.currentRevisionId ||
+    project.license.code !== "cc-by-4.0"
   )
     notFound();
   return (
@@ -88,6 +89,7 @@ export default async function NewContributionPage({
           <CreateContributionForm
             projectId={projectId}
             currentRevisionId={project.currentRevisionId}
+            expectedLicenseCode="cc-by-4.0"
           />
         </div>
       </Container>

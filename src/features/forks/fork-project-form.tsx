@@ -2,7 +2,11 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { forkProjectAction, type ForkProjectState } from "./actions";
-import { defaultForkTitle } from "./schema";
+import {
+  defaultForkTitle,
+  FORK_RIGHTS_ATTESTATION_TEXT,
+  FORK_RIGHTS_ATTESTATION_VERSION,
+} from "./schema";
 import type { ForkSource } from "./types";
 
 export function ForkProjectForm({ source }: { source: ForkSource }) {
@@ -25,6 +29,11 @@ export function ForkProjectForm({ source }: { source: ForkSource }) {
   return (
     <form action={formAction} className="mt-8 space-y-5">
       <input type="hidden" name="requestId" value={requestId} />
+      <input
+        type="hidden"
+        name="rightsAttestationVersion"
+        value={FORK_RIGHTS_ATTESTATION_VERSION}
+      />
       <div>
         <label className="block font-semibold" htmlFor="fork-title">
           Project title
@@ -50,6 +59,10 @@ export function ForkProjectForm({ source }: { source: ForkSource }) {
           name="description"
         />
       </div>
+      <label className="border-subtle flex gap-3 border p-4">
+        <input type="checkbox" name="attested" required />
+        <span>{FORK_RIGHTS_ATTESTATION_TEXT}</span>
+      </label>
       {state.message && (
         <p role="alert" className="text-red-700">
           {state.message}

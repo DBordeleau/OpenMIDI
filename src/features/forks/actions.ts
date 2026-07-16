@@ -18,6 +18,8 @@ export async function forkProjectAction(
     sourceProjectId,
     sourceRevisionId,
     expectedLicenseCode,
+    rightsAttestationVersion: formData.get("rightsAttestationVersion"),
+    attested: formData.get("attested") === "on",
     requestId: formData.get("requestId"),
     title: formData.get("title"),
     description: formData.get("description") ?? "",
@@ -31,7 +33,8 @@ export async function forkProjectAction(
     const message = error?.message;
     return {
       message:
-        message === "fork_license_unavailable"
+        message === "fork_license_unavailable" ||
+        message === "fork_source_not_found"
           ? "This project’s license no longer permits a fork. Reload to review it."
           : error?.code === "PT404"
             ? "The source revision is no longer available to fork."

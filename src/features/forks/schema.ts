@@ -1,10 +1,17 @@
 import { z } from "zod";
 
+export const FORK_RIGHTS_ATTESTATION_VERSION =
+  "cc-by-4.0-reuse-attestation-v1" as const;
+export const FORK_RIGHTS_ATTESTATION_TEXT =
+  "I will preserve CC BY 4.0 attribution and source lineage for the MIDI patterns reused by this fork.";
+
 export const forkProjectInputSchema = z.object({
   sourceProjectId: z.string().uuid(),
   sourceRevisionId: z.string().uuid(),
   requestId: z.string().uuid(),
-  expectedLicenseCode: z.string().trim().min(1).max(40),
+  expectedLicenseCode: z.literal("cc-by-4.0"),
+  rightsAttestationVersion: z.literal(FORK_RIGHTS_ATTESTATION_VERSION),
+  attested: z.literal(true),
   title: z.string().trim().min(1, "Enter a title.").max(120),
   description: z
     .string()

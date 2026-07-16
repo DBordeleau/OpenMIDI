@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTRIBUTOR_ATTESTATION_VERSION,
+  MIDI_PUBLIC_LICENSE_CODE,
   createContributionSchema,
   reviewContributionSchema,
   submitContributionSchema,
@@ -15,6 +16,7 @@ describe("contribution schemas", () => {
       createContributionSchema.parse({
         requestId: id,
         expectedCurrentRevisionId: id,
+        expectedLicenseCode: MIDI_PUBLIC_LICENSE_CODE,
         title: "  New bridge  ",
         description: "   ",
       }),
@@ -28,12 +30,19 @@ describe("contribution schemas", () => {
       expectedWorkspaceLockVersion: 2,
       expectedBaseRevisionId: id,
       expectedManifestSha256: "a".repeat(64),
+      expectedLicenseCode: MIDI_PUBLIC_LICENSE_CODE,
       attestationVersion: CONTRIBUTOR_ATTESTATION_VERSION,
       attested: true,
     } as const;
     expect(submitContributionSchema.safeParse(input).success).toBe(true);
     expect(
       submitContributionSchema.safeParse({ ...input, attested: false }).success,
+    ).toBe(false);
+    expect(
+      submitContributionSchema.safeParse({
+        ...input,
+        expectedLicenseCode: "all-rights-reserved",
+      }).success,
     ).toBe(false);
   });
 
@@ -66,5 +75,12 @@ describe("contribution schemas", () => {
       reviewContributionSchema.safeParse({ ...input, decision: "accept" })
         .success,
     ).toBe(true);
+    expect(
+      reviewContributionSchema.safeParse({
+        ...input,
+        decision: "accept",
+        note: "x".repeat(501),
+      }).success,
+    ).toBe(false);
   });
 });

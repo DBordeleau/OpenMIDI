@@ -49,8 +49,8 @@ export default async function ForkProjectPage({
           </h1>
           <p className="text-muted mt-4 leading-7">
             This creates a separate private project that you own. The existing
-            audio and ordered credits are referenced without copying the source
-            files.
+            immutable MIDI pattern versions are reused copy-on-write with exact
+            creator and source lineage.
           </p>
           <dl className="rounded-card border-subtle bg-surface mt-8 grid gap-5 border p-6 sm:grid-cols-2">
             <div>

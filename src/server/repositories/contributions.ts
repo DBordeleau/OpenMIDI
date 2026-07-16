@@ -1,11 +1,17 @@
 import "server-only";
 
 import type {
+  ContributionArrangementComparison,
   ContributionDetail,
   ContributionListItem,
   ContributionReviewDecision,
   ContributionStatus,
+  PatternCreatorAttribution,
 } from "@/features/contributions/types";
+import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
+import type { ArrangementManifestV3 } from "@/features/studio/manifest/v3";
+import { parseArrangementManifestV3 } from "@/features/studio/manifest/v3";
+import type { StudioPatternVersion } from "@/features/studio/midi-adapter/manifest-v3-editor";
 import {
   parseAnyWorkspaceManifest,
   STUDIO_ENGINE_VERSION,
@@ -33,6 +39,12 @@ const contributionProjectContextSchema = z.object({
     summary: z.string(),
   }),
 });
+
+const MIDI_PUBLIC_LICENSE_CODE = "cc-by-4.0" as const;
+
+function collaborationContractError(message: string) {
+  return { message, code: "PT409", details: "", hint: "" };
+}
 
 export async function listContributionsByAuthor(
   viewerId: string,
@@ -126,18 +138,37 @@ export async function listContributionsForOwnerReview(
       id: string;
       version_number: number;
       duration_ms: number;
-      contribution_version_tracks: { track_id: string }[];
+      arrangement_version_id: string | null;
     }
   >();
   if (currentVersionIds.length > 0) {
     const { data: versions, error: versionsError } = await db
       .from("contribution_versions")
-      .select(
-        "id,version_number,duration_ms,contribution_version_tracks(track_id)",
-      )
+      .select("id,version_number,duration_ms,arrangement_version_id")
       .in("id", currentVersionIds);
     if (versionsError) throw new Error("contribution_versions_unavailable");
     for (const version of versions) versionsById.set(version.id, version);
+  }
+  const arrangementIds = [
+    ...new Set(
+      [...versionsById.values()]
+        .map((version) => version.arrangement_version_id)
+        .filter((id): id is string => id !== null),
+    ),
+  ];
+  const trackCounts = new Map<string, number>();
+  if (arrangementIds.length > 0) {
+    const { data: tracks, error: tracksError } = await db
+      .from("arrangement_tracks")
+      .select("arrangement_version_id")
+      .in("arrangement_version_id", arrangementIds);
+    if (tracksError) throw new Error("contribution_versions_unavailable");
+    for (const track of tracks) {
+      trackCounts.set(
+        track.arrangement_version_id,
+        (trackCounts.get(track.arrangement_version_id) ?? 0) + 1,
+      );
+    }
   }
   const revisionIds = [
     ...new Set(
@@ -171,7 +202,9 @@ export async function listContributionsForOwnerReview(
       status: row.status,
       baseRevisionId: row.base_revision_id,
       currentVersionNumber: version?.version_number ?? null,
-      trackCount: version?.contribution_version_tracks.length ?? 0,
+      trackCount: version?.arrangement_version_id
+        ? (trackCounts.get(version.arrangement_version_id) ?? 0)
+        : 0,
       durationMs: version?.duration_ms ?? 0,
       submittedAt: row.submitted_at,
       baseRevisionNumber: revisionNumbers.get(row.base_revision_id) ?? null,
@@ -210,7 +243,7 @@ export async function getContributionForViewer(
     db
       .from("contribution_versions")
       .select(
-        "id,version_number,base_revision_id,duration_ms,attestation_version,created_at,contribution_version_tracks(track_id)",
+        "id,version_number,base_revision_id,arrangement_version_id,duration_ms,attestation_version,created_at",
       )
       .eq("contribution_id", contributionId)
       .order("version_number", { ascending: false }),
@@ -231,6 +264,23 @@ export async function getContributionForViewer(
   if (versionsError) throw new Error("contribution_versions_unavailable");
   if (reviewsResult.error || acceptedResult.error)
     throw new Error("contribution_review_unavailable");
+  const arrangementIds = versions
+    .map((version) => version.arrangement_version_id)
+    .filter((id): id is string => id !== null);
+  const trackCounts = new Map<string, number>();
+  if (arrangementIds.length > 0) {
+    const { data: tracks, error: tracksError } = await db
+      .from("arrangement_tracks")
+      .select("arrangement_version_id")
+      .in("arrangement_version_id", arrangementIds);
+    if (tracksError) throw new Error("contribution_versions_unavailable");
+    for (const track of tracks) {
+      trackCounts.set(
+        track.arrangement_version_id,
+        (trackCounts.get(track.arrangement_version_id) ?? 0) + 1,
+      );
+    }
+  }
   return {
     id: contribution.id,
     projectId: contribution.project_id,
@@ -263,18 +313,209 @@ export async function getContributionForViewer(
       resultingRevisionId: review.resulting_revision_id,
       createdAt: review.created_at,
     })),
-    versions: versions.map((version) => ({
-      id: version.id,
-      versionNumber: version.version_number,
-      baseRevisionId: version.base_revision_id,
-      durationMs: version.duration_ms,
-      trackCount: version.contribution_version_tracks.length,
-      attestationVersion: version.attestation_version,
-      createdAt: version.created_at,
-    })),
+    versions: versions.flatMap((version) =>
+      version.arrangement_version_id
+        ? [
+            {
+              id: version.id,
+              arrangementVersionId: version.arrangement_version_id,
+              versionNumber: version.version_number,
+              baseRevisionId: version.base_revision_id,
+              durationMs: version.duration_ms,
+              trackCount: trackCounts.get(version.arrangement_version_id) ?? 0,
+              attestationVersion: version.attestation_version,
+              createdAt: version.created_at,
+            },
+          ]
+        : [],
+    ),
   };
 }
 
+type ArrangementDiffInput = {
+  manifest: ArrangementManifestV3;
+  patternVersions: StudioPatternVersion[];
+  patternAttributions: PatternCreatorAttribution[];
+};
+
+async function getArrangementDiffInput(
+  db: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  arrangementVersionId: string,
+): Promise<ArrangementDiffInput> {
+  const [arrangementResult, clipsResult] = await Promise.all([
+    db
+      .from("arrangement_versions")
+      .select("id,manifest")
+      .eq("id", arrangementVersionId)
+      .maybeSingle(),
+    db
+      .from("arrangement_clips")
+      .select("midi_pattern_version_id")
+      .eq("arrangement_version_id", arrangementVersionId),
+  ]);
+  if (arrangementResult.error || clipsResult.error || !arrangementResult.data)
+    throw new Error("contribution_arrangement_unavailable");
+
+  const manifest = parseArrangementManifestV3(arrangementResult.data.manifest);
+  const patternContexts = new Map<
+    string,
+    { name: string; presetId: string; presetVersion: number }
+  >();
+  for (const track of manifest.tracks) {
+    for (const clip of track.clips) {
+      if (!patternContexts.has(clip.midiPatternVersionId)) {
+        patternContexts.set(clip.midiPatternVersionId, {
+          name: track.name,
+          presetId: track.presetId,
+          presetVersion: track.presetVersion,
+        });
+      }
+    }
+  }
+
+  const patternVersionIds = [
+    ...new Set(clipsResult.data.map((clip) => clip.midi_pattern_version_id)),
+  ];
+  if (patternVersionIds.length === 0) {
+    return {
+      manifest,
+      patternVersions: [],
+      patternAttributions: [],
+    };
+  }
+  const [versionsResult, notesResult] = await Promise.all([
+    db.from("midi_pattern_versions").select("*").in("id", patternVersionIds),
+    db
+      .from("midi_pattern_notes")
+      .select("*")
+      .in("midi_pattern_version_id", patternVersionIds)
+      .order("start_tick")
+      .order("pitch")
+      .order("note_id"),
+  ]);
+  if (versionsResult.error || notesResult.error)
+    throw new Error("contribution_patterns_unavailable");
+  const notesByVersion = new Map<string, typeof notesResult.data>();
+  for (const note of notesResult.data) {
+    const notes = notesByVersion.get(note.midi_pattern_version_id) ?? [];
+    notes.push(note);
+    notesByVersion.set(note.midi_pattern_version_id, notes);
+  }
+  const patternVersions: StudioPatternVersion[] = versionsResult.data.map(
+    (version) => {
+      const context = patternContexts.get(version.id);
+      if (!context || version.ppq !== 480)
+        throw new Error("contribution_patterns_unavailable");
+      return {
+        midiPatternVersionId: version.id,
+        midiPatternId: version.midi_pattern_id,
+        version: version.version_number,
+        creatorId: version.creator_id,
+        creatorCreditName: version.creator_credit_name,
+        parentMidiPatternVersionId: version.parent_pattern_version_id,
+        sourceMidiPatternVersionId: version.source_pattern_version_id,
+        contentSha256: version.content_sha256,
+        ppq: 480,
+        durationTicks: version.duration_ticks,
+        noteCount: version.note_count,
+        reuseLicense:
+          version.reuse_license_code === "CC-BY-4.0" &&
+          version.reuse_license_version === "4.0" &&
+          version.reuse_license_url ===
+            "https://creativecommons.org/licenses/by/4.0/"
+            ? {
+                code: "CC-BY-4.0",
+                version: "4.0",
+                url: "https://creativecommons.org/licenses/by/4.0/",
+              }
+            : null,
+        createdAt: version.created_at,
+        notes: (notesByVersion.get(version.id) ?? []).map((note) => ({
+          noteId: note.note_id,
+          startTick: note.start_tick,
+          durationTicks: note.duration_ticks,
+          pitch: note.pitch,
+          velocity: note.velocity,
+        })),
+        ...context,
+      };
+    },
+  );
+  if (patternVersions.length !== patternVersionIds.length)
+    throw new Error("contribution_patterns_unavailable");
+  return {
+    manifest,
+    patternVersions,
+    patternAttributions: versionsResult.data
+      .map((version) => ({
+        midiPatternVersionId: version.id,
+        midiPatternId: version.midi_pattern_id,
+        creatorId: version.creator_id,
+        creatorCreditName: version.creator_credit_name,
+        parentMidiPatternVersionId: version.parent_pattern_version_id,
+        sourceMidiPatternVersionId: version.source_pattern_version_id,
+        reuseLicenseCode: version.reuse_license_code,
+        reuseLicenseUrl: version.reuse_license_url,
+      }))
+      .sort((left, right) =>
+        left.midiPatternVersionId.localeCompare(right.midiPatternVersionId),
+      ),
+  };
+}
+
+export async function getContributionArrangementComparison(input: {
+  projectId: string;
+  contributionId: string;
+  versionId: string;
+}): Promise<ContributionArrangementComparison | null> {
+  const db = await createSupabaseServerClient();
+  const [contributionResult, versionResult] = await Promise.all([
+    db
+      .from("contributions")
+      .select("id,project_id")
+      .eq("id", input.contributionId)
+      .eq("project_id", input.projectId)
+      .maybeSingle(),
+    db
+      .from("contribution_versions")
+      .select("id,contribution_id,base_revision_id,arrangement_version_id")
+      .eq("id", input.versionId)
+      .eq("contribution_id", input.contributionId)
+      .maybeSingle(),
+  ]);
+  if (contributionResult.error || versionResult.error)
+    throw new Error("contribution_comparison_unavailable");
+  if (!contributionResult.data || !versionResult.data?.arrangement_version_id)
+    return null;
+  const { data: baseRevision, error: baseError } = await db
+    .from("project_revisions")
+    .select("arrangement_version_id")
+    .eq("id", versionResult.data.base_revision_id)
+    .eq("project_id", input.projectId)
+    .maybeSingle();
+  if (baseError) throw new Error("contribution_comparison_unavailable");
+  if (!baseRevision?.arrangement_version_id) return null;
+  const [base, submitted] = await Promise.all([
+    getArrangementDiffInput(db, baseRevision.arrangement_version_id),
+    getArrangementDiffInput(db, versionResult.data.arrangement_version_id),
+  ]);
+  return {
+    baseArrangementVersionId: baseRevision.arrangement_version_id,
+    submittedArrangementVersionId: versionResult.data.arrangement_version_id,
+    base: {
+      manifest: base.manifest,
+      patternVersions: base.patternVersions,
+    },
+    submitted: {
+      manifest: submitted.manifest,
+      patternVersions: submitted.patternVersions,
+    },
+    semanticDiff: diffMidiArrangementsV1(base, submitted),
+    patternAttributions: submitted.patternAttributions,
+  };
+}
+
+/** Transitional compatibility for Wave 3-owned audio routes only. */
 export async function getContributionVersionPlayback(input: {
   projectId: string;
   contributionId: string;
@@ -398,6 +639,34 @@ export async function reviewContribution(input: {
   note: string | null;
 }) {
   const db = await createSupabaseServerClient();
+  if (input.decision === "accept") {
+    const { data, error } = await db.rpc("accept_contribution_v3", {
+      p_contribution_id: input.contributionId,
+      p_request_id: input.requestId,
+      p_expected_contribution_version_id: input.expectedCurrentVersionId,
+      p_expected_project_revision_id: input.expectedProjectRevisionId,
+      ...(input.note ? { p_message: input.note } : {}),
+    });
+    const accepted = data?.[0];
+    return {
+      data: accepted
+        ? [
+            {
+              contribution_id: input.contributionId,
+              contribution_version_id: input.expectedCurrentVersionId,
+              requested_decision: "accept" as const,
+              applied_decision: "accept" as const,
+              reason: null,
+              status: "accepted" as const,
+              revision_id: accepted.revision_id,
+              revision_number: accepted.revision_number,
+              reviewed_at: accepted.created_at,
+            },
+          ]
+        : null,
+      error,
+    };
+  }
   return db.rpc("review_contribution", {
     p_contribution_id: input.contributionId,
     p_request_id: input.requestId,
@@ -415,9 +684,24 @@ export async function createContributionWorkspace(input: {
   expectedCurrentRevisionId: string;
   title: string;
   description: string | null;
+  expectedLicenseCode: typeof MIDI_PUBLIC_LICENSE_CODE;
 }) {
   const db = await createSupabaseServerClient();
-  return db.rpc("create_contribution_workspace", {
+  const { data: project, error: projectError } = await db
+    .from("projects")
+    .select("license_code")
+    .eq("id", input.projectId)
+    .maybeSingle();
+  if (
+    projectError ||
+    project?.license_code !== MIDI_PUBLIC_LICENSE_CODE ||
+    input.expectedLicenseCode !== MIDI_PUBLIC_LICENSE_CODE
+  )
+    return {
+      data: null,
+      error: collaborationContractError("contribution_license_unavailable"),
+    };
+  return db.rpc("create_contribution_workspace_v3", {
     p_project_id: input.projectId,
     p_request_id: input.requestId,
     p_expected_current_revision_id: input.expectedCurrentRevisionId,
@@ -432,10 +716,44 @@ export async function submitContribution(input: {
   expectedWorkspaceLockVersion: number;
   expectedBaseRevisionId: string;
   expectedManifestSha256: string;
-  attestationVersion: string;
+  expectedLicenseCode: typeof MIDI_PUBLIC_LICENSE_CODE;
+  attestationVersion: "contributor-attestation-v1";
 }) {
   const db = await createSupabaseServerClient();
-  return db.rpc("submit_contribution", {
+  const { data: contribution, error: contributionError } = await db
+    .from("contributions")
+    .select(
+      "base_revision_id,projects(license_code,current_revision_id,open_to_contributions)",
+    )
+    .eq("id", input.contributionId)
+    .maybeSingle();
+  if (contributionError || !contribution)
+    return {
+      data: null,
+      error: collaborationContractError("contribution_unavailable"),
+    };
+  if (
+    contribution.projects.license_code !== MIDI_PUBLIC_LICENSE_CODE ||
+    input.expectedLicenseCode !== MIDI_PUBLIC_LICENSE_CODE
+  )
+    return {
+      data: null,
+      error: collaborationContractError("contribution_license_unavailable"),
+    };
+  if (
+    contribution.base_revision_id !== input.expectedBaseRevisionId ||
+    contribution.projects.current_revision_id !== input.expectedBaseRevisionId
+  )
+    return {
+      data: null,
+      error: collaborationContractError("contribution_base_changed"),
+    };
+  if (!contribution.projects.open_to_contributions)
+    return {
+      data: null,
+      error: collaborationContractError("contribution_submissions_closed"),
+    };
+  return db.rpc("submit_contribution_v3", {
     p_contribution_id: input.contributionId,
     p_request_id: input.requestId,
     p_expected_workspace_lock_version: input.expectedWorkspaceLockVersion,

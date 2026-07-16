@@ -62,8 +62,8 @@ export function ReviewContributionForm({
       });
       if (!result.ok) {
         setMessage(
-          result.code === "quota"
-            ? "The project storage limit would be exceeded. Nothing was accepted."
+          result.code === "stale_base"
+            ? "The project advanced. This exact contribution can no longer be accepted; request changes so the contributor can rebase."
             : result.code === "conflict"
               ? "The contribution or project changed. Reload before reviewing."
               : result.code === "invalid_request"
@@ -91,8 +91,8 @@ export function ReviewContributionForm({
       {stale && (
         <p className="mt-3" role="alert">
           The project has advanced since this contribution was submitted.
-          Accepting will request changes with reason <code>base_outdated</code>;
-          Jam Session will not merge automatically.
+          Acceptance is blocked for this exact base. Request changes so the
+          contributor can rebase; Jam Session will not merge automatically.
         </p>
       )}
       <label className="mt-5 block font-semibold" htmlFor="review-note">

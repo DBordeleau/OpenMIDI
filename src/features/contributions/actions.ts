@@ -26,6 +26,7 @@ export async function createContributionAction(
   const parsed = createContributionSchema.safeParse({
     requestId: formData.get("requestId"),
     expectedCurrentRevisionId: formData.get("expectedCurrentRevisionId"),
+    expectedLicenseCode: formData.get("expectedLicenseCode"),
     title: formData.get("title"),
     description: formData.get("description") ?? "",
   });
@@ -60,6 +61,7 @@ export async function submitContributionAction(
     expectedWorkspaceLockVersion: parsed.data.expectedWorkspaceLockVersion,
     expectedBaseRevisionId: parsed.data.expectedBaseRevisionId,
     expectedManifestSha256: parsed.data.expectedManifestSha256,
+    expectedLicenseCode: parsed.data.expectedLicenseCode,
     attestationVersion: parsed.data.attestationVersion,
   });
   if (error || !data?.[0]) {
@@ -126,8 +128,8 @@ export async function reviewContributionAction(
     return {
       ok: false as const,
       code:
-        error?.message === "contribution_review_project_quota_exceeded"
-          ? ("quota" as const)
+        error?.message === "contribution_base_outdated"
+          ? ("stale_base" as const)
           : error?.code === "PT409"
             ? ("conflict" as const)
             : ("unavailable" as const),
