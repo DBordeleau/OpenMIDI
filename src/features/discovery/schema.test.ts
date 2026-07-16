@@ -8,6 +8,13 @@ import {
 } from "./schema";
 
 describe("discovery URL contract", () => {
+  it("ignores empty values submitted by any-value selects", () => {
+    expect(parseDiscoveryFilters({ key: "", instrument: "" })).toMatchObject({
+      success: true,
+      data: { keys: [], instruments: [] },
+    });
+  });
+
   it("normalizes repeated filters into a canonical bounded shape", () => {
     const parsed = parseDiscoveryFilters({
       q: "  midnight  ",

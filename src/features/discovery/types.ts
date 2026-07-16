@@ -22,23 +22,12 @@ export type DiscoveryCursor = {
   publishedAt: string;
   score: number | null;
 };
-export type PublicCredit = {
-  position: number;
-  creditName: string;
-  role: string;
-  profileId: string | null;
-  profileUsername: string | null;
-};
 export type PublicTrack = {
   id: string;
-  kind: "audio" | "midi";
   name: string;
-  durationMs: number;
-  positionMs: number;
   sortOrder: number;
-  instrument: TaxonomyOption | null;
-  preset: { id: string; version: number } | null;
-  credits: PublicCredit[];
+  preset: { id: string; version: number };
+  clipCount: number;
 };
 export type PublicAttribution = {
   kind: "publisher" | "accepted_contributor";
