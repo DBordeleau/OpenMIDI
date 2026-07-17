@@ -10,7 +10,10 @@ import { WithdrawContributionForm } from "@/features/contributions/withdraw-cont
 import { ContributionDeletionForm } from "@/features/moderation/contribution-deletion-form";
 import { projectIdSchema } from "@/features/projects/schema";
 import type { StudioLauncherProps } from "@/features/studio/components/studio-launcher.client";
-import type { ContributionReviewStudio } from "@/features/contributions/types";
+import type {
+  ContributionArrangementComparison,
+  ContributionReviewStudio,
+} from "@/features/contributions/types";
 import {
   getContributionArrangementComparison,
   getContributionForViewer,
@@ -75,14 +78,19 @@ export default async function ContributionDetailPage({
   const currentVersion = contribution.versions.find(
     (version) => version.id === contribution.currentVersionId,
   );
-  const comparison =
-    isOwner && currentVersion
-      ? await getContributionArrangementComparison({
-          projectId,
-          contributionId,
-          versionId: currentVersion.id,
-        })
-      : null;
+  let comparison: ContributionArrangementComparison | null = null;
+  let comparisonLoadFailed = false;
+  if (isOwner && currentVersion) {
+    try {
+      comparison = await getContributionArrangementComparison({
+        projectId,
+        contributionId,
+        versionId: currentVersion.id,
+      });
+    } catch {
+      comparisonLoadFailed = true;
+    }
+  }
   const stale =
     contribution.currentProjectRevisionId !== contribution.baseRevisionId;
   return (
@@ -128,34 +136,43 @@ export default async function ContributionDetailPage({
               </dd>
             </div>
           </dl>
-          {isOwner && comparison && currentVersion && (
-            <ReviewComparison
-              comparison={comparison}
-              base={reviewStudioProps({
-                studio: comparison.base,
-                viewerId: viewer.id,
-                projectId,
-                projectTitle: contribution.projectTitle,
-                mode: {
-                  mode: "revision",
-                  revisionId: contribution.baseRevisionId,
-                  revisionNumber: contribution.baseRevisionNumber,
-                },
-              })}
-              submitted={reviewStudioProps({
-                studio: comparison.submitted,
-                viewerId: viewer.id,
-                projectId,
-                projectTitle: contribution.projectTitle,
-                mode: {
-                  mode: "contributionVersion",
-                  contributionId,
-                  versionId: currentVersion.id,
-                  versionNumber: currentVersion.versionNumber,
-                },
-              })}
-            />
-          )}
+          {isOwner &&
+            currentVersion &&
+            (comparison ? (
+              <ReviewComparison
+                comparison={comparison}
+                base={reviewStudioProps({
+                  studio: comparison.base,
+                  viewerId: viewer.id,
+                  projectId,
+                  projectTitle: contribution.projectTitle,
+                  mode: {
+                    mode: "revision",
+                    revisionId: contribution.baseRevisionId,
+                    revisionNumber: contribution.baseRevisionNumber,
+                  },
+                })}
+                submitted={reviewStudioProps({
+                  studio: comparison.submitted,
+                  viewerId: viewer.id,
+                  projectId,
+                  projectTitle: contribution.projectTitle,
+                  mode: {
+                    mode: "contributionVersion",
+                    contributionId,
+                    versionId: currentVersion.id,
+                    versionNumber: currentVersion.versionNumber,
+                  },
+                })}
+              />
+            ) : (
+              <ReviewComparison
+                comparison={null}
+                unavailableReason={
+                  comparisonLoadFailed ? "inconsistent" : "unavailable"
+                }
+              />
+            ))}
           {isAuthor && linkedWorkspace && editable && (
             <Link
               className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"

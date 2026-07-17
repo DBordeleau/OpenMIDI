@@ -34,47 +34,55 @@ const common = {
 };
 
 describe("ReviewComparison", () => {
-  it("remounts Studio when switching immutable versions", () => {
+  it("preserves exact-side Studio audition and renders unchanged input", () => {
     render(
       <ReviewComparison
-        comparison={
-          {
-            semanticDiff: {
-              algorithmVersion: "jam-session-midi-semantic-diff-1",
-              unchanged: true,
-              metadata: [],
-              tracks: [],
-              clips: [],
-              notes: [],
-              lineage: [],
-            },
-            patternAttributions: [],
-          } as never
-        }
-        base={
-          {
-            ...common,
-            mode: "revision",
-            revisionId: "30000000-0000-4000-8000-000000000123",
-            revisionNumber: 1,
-          } as StudioLauncherProps
-        }
-        submitted={
-          {
-            ...common,
-            mode: "contributionVersion",
-            contributionId: "40000000-0000-4000-8000-000000000123",
-            versionId: "50000000-0000-4000-8000-000000000123",
-            versionNumber: 1,
-          } as StudioLauncherProps
-        }
+        comparison={{
+          baseArrangementVersionId: "60000000-0000-4000-8000-000000000123",
+          submittedArrangementVersionId: "70000000-0000-4000-8000-000000000123",
+          base: { manifest, patternVersions: [] },
+          submitted: { manifest, patternVersions: [] },
+          semanticDiff: {
+            algorithmVersion: "jam-session-midi-semantic-diff-1",
+            unchanged: true,
+            metadata: [],
+            tracks: [],
+            clips: [],
+            notes: [],
+            lineage: [],
+          },
+          patternAttributions: [],
+        }}
+        base={{
+          ...common,
+          mode: "revision",
+          revisionId: "30000000-0000-4000-8000-000000000123",
+          revisionNumber: 1,
+        }}
+        submitted={{
+          ...common,
+          mode: "contributionVersion",
+          contributionId: "40000000-0000-4000-8000-000000000123",
+          versionId: "50000000-0000-4000-8000-000000000123",
+          versionNumber: 1,
+        }}
       />,
     );
 
     expect(screen.getByTestId("studio-mode")).toHaveTextContent(
       "contributionVersion",
     );
+    expect(
+      screen.getByRole("heading", { name: "No musical changes found" }),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Base revision" }));
     expect(screen.getByTestId("studio-mode")).toHaveTextContent("revision");
+  });
+
+  it("renders an actionable unavailable state", () => {
+    render(<ReviewComparison comparison={null} />);
+    expect(
+      screen.getByRole("heading", { name: "Comparison unavailable" }),
+    ).toBeVisible();
   });
 });
