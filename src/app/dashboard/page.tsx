@@ -76,6 +76,38 @@ export default async function DashboardPage() {
             Open projects needing review →
           </Link>
         </Reveal>
+        <Reveal
+          as="section"
+          delay={0.1}
+          className="rounded-card border-subtle bg-surface mt-8 border p-6"
+          aria-labelledby="feedback-heading"
+        >
+          <p className="text-accent font-mono text-xs uppercase">
+            OpenMIDI beta
+          </p>
+          <h2 id="feedback-heading" className="mt-2 text-2xl font-semibold">
+            Help tune the next session
+          </h2>
+          <p className="text-muted mt-2">
+            Found a rough edge or have an idea? Send a private note to the beta
+            team.
+          </p>
+          <Link
+            className="text-accent mt-3 inline-block font-semibold"
+            href="/feedback?from=/dashboard"
+          >
+            Send feedback →
+          </Link>
+          {isAdmin && <span className="text-muted mx-3">·</span>}
+          {isAdmin && (
+            <Link
+              className="text-accent mt-3 inline-block font-semibold"
+              href="/admin/feedback"
+            >
+              Triage feedback →
+            </Link>
+          )}
+        </Reveal>
         {isAdmin && (
           <Reveal
             as="section"

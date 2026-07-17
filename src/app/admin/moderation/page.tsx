@@ -25,12 +25,20 @@ export default async function AdminModerationPage({
             </p>
             <h1 className="mt-3 text-4xl font-bold">Moderation queue</h1>
           </div>
-          <Link
-            className="border-strong rounded-full border px-5 py-3 font-semibold"
-            href="/admin/operations"
-          >
-            Storage operations
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="border-strong rounded-full border px-5 py-3 font-semibold"
+              href="/admin/feedback"
+            >
+              Beta feedback
+            </Link>
+            <Link
+              className="border-strong rounded-full border px-5 py-3 font-semibold"
+              href="/admin/operations"
+            >
+              Storage operations
+            </Link>
+          </div>
         </div>
         {query.updated && (
           <p

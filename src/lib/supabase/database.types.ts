@@ -2222,6 +2222,10 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      get_admin_beta_feedback: {
+        Args: { p_feedback_id: string }
+        Returns: Json
+      }
       get_admin_moderation_target: {
         Args: { p_report_id: string }
         Returns: Json
@@ -2260,6 +2264,15 @@ export type Database = {
           username: string
           username_normalized: string
         }[]
+      }
+      list_admin_beta_feedback: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_kind?: string
+          p_status?: string
+        }
+        Returns: Json
       }
       list_admin_moderation_queue: {
         Args: { p_after_created_at?: string; p_after_id?: string }
@@ -2302,6 +2315,18 @@ export type Database = {
       }
       list_viewer_reports: {
         Args: { p_after_created_at?: string; p_after_id?: string }
+        Returns: Json
+      }
+      mutate_admin_beta_feedback: {
+        Args: {
+          p_action: string
+          p_deletion_reason?: string
+          p_expected_lock_version: number
+          p_feedback_id: string
+          p_kind?: string
+          p_note?: string
+          p_request_id: string
+        }
         Returns: Json
       }
       operator_claim_profile_avatar_cleanup: {
@@ -2586,6 +2611,21 @@ export type Database = {
           project_id: string
           updated_at: string
           visibility: Database["public"]["Enums"]["project_visibility"]
+        }[]
+      }
+      submit_beta_feedback: {
+        Args: {
+          p_application_version: string
+          p_browser_context?: string
+          p_details: string
+          p_kind: string
+          p_request_id: string
+          p_source_pathname: string
+          p_summary: string
+        }
+        Returns: {
+          created_at: string
+          reference_id: string
         }[]
       }
       submit_contribution_v3: {
