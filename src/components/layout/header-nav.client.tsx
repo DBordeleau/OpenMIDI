@@ -8,15 +8,17 @@ import { PrimaryNavigation } from "./primary-navigation.client";
 
 const sectionLinks = [
   { href: "/explore", label: "Explore" },
-  { href: "/#how", label: "How it works" },
-  { href: "/#console", label: "The studio" },
-  { href: "/#credits", label: "Credits" },
+  { href: "/#library", label: "The MIDI Library" },
+  { href: "/#versioning", label: "Versioning" },
+  { href: "/#challenges", label: "Challenges" },
 ] as const;
 
 /**
  * The header adapts to auth state: signed-out visitors get the marketing shell
  * (section links that smooth-scroll the landing page), while signed-in members
- * get the app's primary workspace navigation.
+ * get the app's primary workspace navigation. Note the shared header is hidden
+ * on the landing itself (it ships its own nav); these links matter when a
+ * visitor jumps to a landing section from another route.
  */
 export function HeaderNav() {
   const [isSignedIn, setIsSignedIn] = useState(false);

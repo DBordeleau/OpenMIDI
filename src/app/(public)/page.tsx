@@ -1,538 +1,641 @@
-import Link from "next/link";
-import { Container } from "@/components/layout/container";
+import type { Metadata } from "next";
+import { FiHeadphones, FiPlus } from "react-icons/fi";
 import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
-import { FloatingCta } from "./_components/floating-cta.client";
-import { HeroMidiGrid } from "./_components/hero-midi-grid";
+import { ChallengeGauges } from "./_components/challenge-gauges.client";
+import { DiffMachine } from "./_components/diff-machine.client";
+import { HeroCanvas } from "./_components/hero-canvas.client";
+import { RadialClose } from "./_components/radial-close.client";
+import { ScrollCue } from "./_components/scroll-cue";
+import { SectionScroller } from "./_components/section-scroller.client";
+import styles from "./_components/landing.module.css";
 
-const ctaPrimary =
-  "cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-[22px] py-3 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px";
-const ctaSecondary =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-strong px-[22px] py-3 text-sm font-semibold text-ink transition duration-200 hover:-translate-y-px hover:border-accent-2 hover:text-accent-2";
-const kicker = "font-mono text-[11px] uppercase tracking-[0.2em] text-accent";
-const h2 =
-  "mt-3.5 max-w-[20ch] text-3xl font-bold tracking-[-0.03em] text-balance sm:text-4xl lg:text-5xl";
-const lede = "mt-4 max-w-[48ch] text-lg leading-relaxed text-muted";
+export const metadata: Metadata = {
+  title: { absolute: "OpenMIDI - A MIDI Playground" },
+  description:
+    "Write MIDI in your browser and publish it to a public repository where anyone can open, listen, and remix it while your name stays on every note you wrote.",
+};
 
-const steps = [
-  [
-    "Step 01",
-    "Sketch a MIDI idea",
-    "Draw a beat, hook, or chord loop with bundled instruments and a clear starting point.",
-  ],
-  [
-    "Step 02",
-    "Open the doors",
-    "Mark it open for collaboration and let the community hear where it could go.",
-  ],
-  [
-    "Step 03",
-    "Build together",
-    "Others add bass, drums, melody, or a new arrangement — right in the browser, no DAW required.",
-  ],
-  [
-    "Step 04",
-    "Credit everyone",
-    "Accept the ideas you love. Every contributor keeps their credit, for good.",
-  ],
-] as const;
+// Decorative note figures for the library cards' mini piano rolls. Steps are
+// out of 16, rows out of 8 — matching the mockup's flow() coordinates.
+type Fig = readonly (readonly [step: number, len: number, row: number])[];
+const SEED: Fig = [
+  [0, 2, 6],
+  [2, 1, 6],
+  [4, 2, 5],
+  [6, 1, 6],
+  [8, 2, 6],
+  [10, 1, 6],
+  [12, 2, 5],
+  [14, 2, 4],
+];
+const HALF: Fig = [
+  [0, 4, 6],
+  [4, 2, 6],
+  [8, 4, 5],
+  [12, 4, 4],
+];
+const REST: Fig = [
+  [0, 3, 3],
+  [4, 3, 2],
+  [8, 3, 3],
+  [12, 3, 1],
+  [2, 1, 0],
+  [6, 2, 0],
+  [10, 1, 1],
+];
 
-const tracks = [
-  { name: "Drums", who: "Mara K.", mute: false, solo: false, seed: 2 },
-  { name: "Bass", who: "Deniz V.", mute: false, solo: true, seed: 5 },
-  { name: "Keys", who: "Mara K.", mute: true, solo: false, seed: 8 },
-  { name: "Lead", who: "Jae B. · new", mute: false, solo: false, seed: 11 },
-] as const;
-
-const lineage = [
-  {
-    ver: "Rev. 01",
-    who: "Mara Keller",
-    title: ["The first ", "loop", ""],
-    body: "A four-bar keys pattern is published and opened for collaboration.",
-    fork: false,
-  },
-  {
-    ver: "Rev. 04",
-    who: "+ Jae Brooks",
-    title: ["A ", "voice", " arrives"],
-    body: "A new lead pattern is proposed, reviewed, and accepted as a revision — credit recorded.",
-    fork: false,
-  },
-  {
-    ver: "Fork · Rev. 01",
-    who: "Deniz Vural",
-    title: ["A ", "heavier", " direction"],
-    body: "Deniz forks the song for a bassier club remix. The original lineage stays intact on both branches.",
-    fork: true,
-  },
-  {
-    ver: "Rev. 07",
-    who: "+ Priya Anand",
-    title: ["", "Mixed", " and shipped"],
-    body: "A final mix ships with all six contributors named — permanently, wherever it travels.",
-    fork: false,
-  },
-] as const;
-
-const credits = [
-  { role: "Written by", name: "Mara Keller", note: "original" },
-  { role: "Lead", name: "Jae Brooks", note: null },
-  { role: "Bass & drums", name: "Deniz Vural", note: null },
-  { role: "Add'l keys", name: "Mara Keller", note: null },
-  { role: "Mix", name: "Priya Anand", note: null },
-  { role: "Forked from", name: "“Loop 001”", note: "R. Okafor" },
-] as const;
-
-function trackBars(seed: number) {
-  return Array.from({ length: 46 }, (_, i) =>
-    Math.min(100, 16 + Math.abs(Math.sin(i * 0.7 + seed)) * 72 + (i % 3) * 6),
+function RollNotes({
+  groups,
+}: {
+  groups: readonly { notes: Fig; color: string; dim?: boolean }[];
+}) {
+  return (
+    <>
+      {groups.flatMap((g, gi) =>
+        g.notes.map(([s, l, row], i) => (
+          <span
+            key={`${gi}-${i}`}
+            className={styles.mn}
+            style={{
+              left: `${(s / 16) * 100}%`,
+              width: `calc(${(l / 16) * 100}% - 2px)`,
+              top: `${(row / 8) * 100}%`,
+              background: g.color,
+              opacity: g.dim ? 0.4 : undefined,
+            }}
+          />
+        )),
+      )}
+    </>
   );
 }
 
 export default function Home() {
   return (
-    <>
-      <div className="relative">
-        {/* HERO */}
-        <Container className="relative pt-8 pb-20 sm:pt-10 sm:pb-28">
-          <section aria-labelledby="page-title">
+    <div className={styles.root} data-landing-scroll>
+      <SectionScroller />
+      {/* ================= HERO ================= */}
+      <header className={styles.hero} id="top" data-snap>
+        <HeroCanvas />
+        <div className={styles.scrim} />
+
+        <nav className={styles.nav} aria-label="Primary">
+          <div className={`${styles.wrap} ${styles.navIn}`}>
+            <a className={styles.brand} href="#top" aria-label="OpenMIDI home">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 22 22"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="mk" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stopColor="#ff8d63" />
+                    <stop offset="1" stopColor="#ffc879" />
+                  </linearGradient>
+                </defs>
+                <rect
+                  x="0"
+                  y="2"
+                  width="13"
+                  height="4"
+                  rx="1.6"
+                  fill="url(#mk)"
+                />
+                <rect
+                  x="4"
+                  y="9"
+                  width="18"
+                  height="4"
+                  rx="1.6"
+                  fill="url(#mk)"
+                  opacity="0.78"
+                />
+                <rect
+                  x="2"
+                  y="16"
+                  width="9"
+                  height="4"
+                  rx="1.6"
+                  fill="url(#mk)"
+                  opacity="0.5"
+                />
+              </svg>
+              <span className={styles.brandWord}>
+                <b>Open</b>
+                <i>MIDI</i>
+              </span>
+            </a>
+            <div className={styles.navLinks}>
+              <a href="#library">The MIDI Library</a>
+              <a href="#versioning">Versioning</a>
+              <a href="#challenges">Challenges</a>
+            </div>
+            <AuthAwareLink
+              signedOut={{ href: "/sign-in", label: "Sign In" }}
+              signedIn={{ href: "/projects", label: "Open app" }}
+              className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}
+            />
+          </div>
+        </nav>
+
+        <div className={`${styles.wrap} ${styles.heroIn}`}>
+          <Reveal>
+            <p className={`${styles.kicker} ${styles.kickerGold}`}>
+              A public playground for MIDI
+            </p>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <h1>
+              The song is
+              <br />
+              the <em className={styles.em}>source</em>.
+            </h1>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <p className={styles.lede}>
+              Write MIDI in your browser and publish it to a public repository
+              where anyone can open, listen, and remix/reuse it while your name
+              stays on every note you wrote.
+            </p>
+          </Reveal>
+          <Reveal delay={0.18}>
+            <div className={styles.ctaRow}>
+              <AuthAwareLink
+                signedOut={{ href: "/sign-in", label: "Create Something" }}
+                signedIn={{ href: "/projects/new", label: "Create Something" }}
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                icon={<FiPlus className={styles.btnI} aria-hidden="true" />}
+              />
+              <a className={`${styles.btn} ${styles.btnGhost}`} href="#library">
+                <FiHeadphones className={styles.btnI} aria-hidden="true" />
+                Listen in
+              </a>
+            </div>
+          </Reveal>
+          <Reveal delay={0.24}>
+            <div className={`${styles.heroMeta}`}>
+              <span>Create</span>
+              <span>Collab</span>
+              <span>Compete</span>
+            </div>
+          </Reveal>
+        </div>
+
+        <div className={`${styles.wrap} ${styles.nowPlaying}`}>
+          <span className={styles.np}>
+            <span className={styles.pulse} />
+            <b>nocturne · v3 · @nova</b>
+          </span>
+        </div>
+
+        <ScrollCue href="#library" />
+      </header>
+
+      {/* ================= LIBRARY ================= */}
+      <section className={styles.sec} id="library" data-snap>
+        <div className={styles.wrap}>
+          <div className={styles.head} style={{ maxWidth: "46rem" }}>
             <Reveal>
-              <p className="text-accent-2 font-mono text-[11.5px] font-semibold tracking-[0.24em] uppercase">
-                Open-sourcing collaborative music production
-              </p>
+              <p className={styles.kicker}>The MIDI library</p>
             </Reveal>
-            <Reveal delay={0.05}>
-              <h1
-                id="page-title"
-                className="mt-5 max-w-[16ch] text-[clamp(42px,6.8vw,92px)] leading-[0.97] font-bold tracking-[-0.035em] text-balance"
-              >
-                Your song isn&apos;t done.
-                <br />
-                It&apos;s waiting for
-                <br />
-                the{" "}
-                <em className="text-accent font-serif font-medium">
-                  right people
-                </em>
-                .
-              </h1>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <p className="text-muted mt-7 max-w-[52ch] text-[clamp(16px,1.7vw,20px)] leading-[1.62]">
-                Jam Session is where an unfinished idea finds its collaborators.
-                Shape MIDI patterns, open the doors, and let musicians around
-                the world turn them into something none of you could make alone.
-              </p>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <div className="mt-9 flex flex-wrap items-center gap-4">
-                <AuthAwareLink
-                  signedOut={{ href: "/sign-in", label: "Create something" }}
-                  signedIn={{
-                    href: "/projects/new",
-                    label: "Create something",
-                  }}
-                  className={ctaPrimary}
-                />
-                <a href="#console" className={`${ctaSecondary} group gap-1.5`}>
-                  Hear what&apos;s brewing
-                  <span
-                    aria-hidden="true"
-                    className="transition-transform duration-200 group-hover:translate-x-1"
-                  >
-                    →
-                  </span>
-                </a>
-              </div>
-            </Reveal>
-            <Reveal delay={0.2}>
-              <p className="text-muted mt-5 flex items-center gap-2.5 text-[13px]">
-                <span className="bg-accent-2 h-1.5 w-1.5 rounded-full shadow-[0_0_10px_var(--color-accent-2)]" />
-                Invite-only while we&apos;re in beta
-              </p>
-            </Reveal>
-            <Reveal delay={0.28}>
-              <div className="mt-16">
-                <HeroMidiGrid />
-              </div>
-            </Reveal>
-          </section>
-        </Container>
-
-        {/* HOW A SONG GROWS */}
-        <Container className="py-20 sm:py-24" id="how">
-          <Reveal>
-            <p className={kicker}>How a song grows here</p>
-          </Reveal>
-          <Reveal delay={0.05}>
-            <h2 className={h2}>
-              Four steps from a lonely idea to a shared record.
-            </h2>
-          </Reveal>
-          <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(([n, title, body], i) => (
-              <Reveal
-                key={title}
-                delay={i * 0.06}
-                className="relative border-t border-[var(--color-border)] pt-6.5"
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute top-[-1px] left-0 h-0.5 w-9"
-                  style={{
-                    background:
-                      "linear-gradient(90deg,var(--color-accent),var(--color-accent-2))",
-                  }}
-                />
-                <span className="text-accent-2 font-mono text-xs tracking-[0.1em]">
-                  {n}
+            <Reveal delay={0.06}>
+              <p className={styles.kickerSub}>
+                <span>Public</span>
+                <span>Free for anyone with an account</span>
+                <span className={styles.attr}>
+                  Every creator credited automatically
                 </span>
-                <h3 className="mt-4 text-lg font-semibold tracking-[-0.01em]">
-                  {title}
-                </h3>
-                <p className="text-muted mt-2 text-sm leading-relaxed">
-                  {body}
-                </p>
-              </Reveal>
-            ))}
-          </ol>
-        </Container>
-
-        {/* SHARED CONSOLE */}
-        <Container className="py-20 sm:py-24" id="console">
-          <Reveal>
-            <p className={kicker}>Build it together, in the browser</p>
-          </Reveal>
-          <Reveal delay={0.05}>
-            <h2 className={h2}>
-              One project. Every take.{" "}
-              <em className="text-accent font-serif font-medium">Everyone</em>{" "}
-              in the mix.
-            </h2>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <p className={lede}>
-              Open a project and hear every contribution synthesized in real
-              time. Audition exact pattern versions, then keep experimenting in
-              your own private space that autosaves as you go.
-            </p>
-          </Reveal>
-          <div className="mt-12 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.32fr)_minmax(0,0.68fr)]">
-            <Reveal
-              className="rounded-card border-subtle min-w-0 overflow-hidden border p-2 shadow-[0_34px_90px_-46px_#000]"
-              style={{
-                background:
-                  "linear-gradient(180deg,var(--color-surface-raised),var(--color-surface-soft))",
-              }}
-            >
-              <div className="border-subtle flex flex-col items-start gap-1.5 border-b px-3 pt-3.5 pb-3 sm:flex-row sm:items-center sm:gap-3 sm:px-[18px]">
-                <b className="text-sm font-semibold">Midnight Loop</b>
-                <span className="text-muted font-mono text-[10px] leading-relaxed tracking-[0.12em] uppercase sm:ml-auto sm:text-right">
-                  <span className="text-accent-2 inline-flex items-center gap-1.5">
-                    <span className="bg-accent-2 h-[7px] w-[7px] rounded-full shadow-[0_0_10px_var(--color-accent-2)]" />
-                    Live mix
-                  </span>{" "}
-                  · 124 BPM · Am
-                </span>
-              </div>
-              {tracks.map((t, ti) => (
-                <div
-                  key={t.name}
-                  className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:gap-3.5 sm:px-4 sm:py-3.5 ${
-                    ti > 0 ? "border-subtle border-t" : ""
-                  }`}
-                >
-                  <div className="flex min-w-0 flex-col gap-[3px]">
-                    <b className="text-sm font-semibold tracking-[-0.01em]">
-                      {t.name}
-                    </b>
-                    <span
-                      className={`font-mono text-[10px] tracking-[0.08em] uppercase ${
-                        t.who.includes("new") ? "text-berry" : "text-muted"
-                      }`}
-                    >
-                      {t.who}
-                    </span>
-                  </div>
-                  <span className="col-span-2 row-start-2 flex h-[30px] min-w-0 items-center gap-[2px] sm:col-span-1 sm:col-start-2 sm:row-start-1">
-                    {trackBars(t.seed).map((height, bi) => (
-                      <i
-                        key={bi}
-                        className="flex-1 rounded-[1px] opacity-50"
-                        style={{
-                          height: `${height}%`,
-                          background:
-                            "linear-gradient(var(--color-accent),var(--color-accent-2))",
-                        }}
-                      />
-                    ))}
-                  </span>
-                  <span className="col-start-2 row-start-1 flex gap-1.5 sm:col-start-3">
-                    <span
-                      className={`grid h-[27px] w-[27px] place-items-center rounded-lg font-mono text-[10px] ${
-                        t.mute
-                          ? "bg-accent text-accent-contrast border border-transparent font-bold"
-                          : "border-strong text-muted border"
-                      }`}
-                    >
-                      M
-                    </span>
-                    <span
-                      className={`grid h-[27px] w-[27px] place-items-center rounded-lg font-mono text-[10px] ${
-                        t.solo
-                          ? "bg-accent-2 text-accent-contrast border border-transparent font-bold"
-                          : "border-strong text-muted border"
-                      }`}
-                    >
-                      S
-                    </span>
-                  </span>
-                </div>
-              ))}
+              </p>
             </Reveal>
-            <div className="flex min-w-0 flex-col gap-4">
-              <Reveal
-                delay={0.08}
-                className="rounded-card border-subtle border p-6"
-                style={{
-                  background:
-                    "linear-gradient(160deg,var(--color-surface-raised),#31213a)",
-                }}
-              >
-                <div
-                  className="bg-clip-text text-[44px] leading-none font-bold tracking-[-0.03em] text-transparent"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(120deg,var(--color-accent),var(--color-accent-2))",
-                  }}
-                >
-                  0 Revisions lost
-                </div>
-                <p className="text-muted mt-3 text-sm leading-relaxed">
-                  Every pattern and arrangement version lives in one shared
-                  project — no &ldquo;final_final_v3.&rdquo;
-                </p>
-              </Reveal>
-              <Reveal
-                delay={0.14}
-                className="rounded-card border-subtle border p-6"
-                style={{
-                  background:
-                    "linear-gradient(160deg,var(--color-surface-raised),#31213a)",
-                }}
-              >
-                <div
-                  className="bg-clip-text text-[44px] leading-none font-bold tracking-[-0.03em] text-transparent"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(120deg,var(--color-accent),var(--color-accent-2))",
-                  }}
-                >
-                  &infin; Experiments
-                </div>
-                <p className="text-muted mt-3 text-sm leading-relaxed">
-                  Fork any version into a new direction and keep going, with
-                  attribution intact.
-                </p>
-              </Reveal>
-            </div>
+            <Reveal delay={0.12}>
+              <h2>
+                Every clip remembers{" "}
+                <em className={styles.emGold}>where it came from</em>.
+              </h2>
+            </Reveal>
+            <Reveal delay={0.18}>
+              <p className={styles.lede}>
+                Publish a bassline, a drum fill, a chord loop. Anyone can drop
+                it into their project - and the credit travels with it,
+                automatically, forever.
+              </p>
+            </Reveal>
+            <Reveal delay={0.24}>
+              <p className={styles.lede}>
+                Not a marketplace. An open library where every piece knows who
+                wrote it and what it grew out of.
+              </p>
+            </Reveal>
           </div>
-        </Container>
 
-        {/* VERSION HISTORY / LINEAGE */}
-        <Container className="py-20 sm:py-24" id="history">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.06fr_0.94fr]">
-            <div className="order-1 lg:order-2">
-              <Reveal>
-                <p className={kicker}>The story of the song</p>
-              </Reveal>
-              <Reveal delay={0.05}>
-                <h2 className={h2}>
-                  Nothing gets lost when a song{" "}
-                  <em className="text-accent font-serif font-medium">grows</em>.
-                </h2>
-              </Reveal>
-              <Reveal delay={0.1}>
-                <p className={lede}>
-                  Every accepted idea becomes a version you can play, compare,
-                  or build on. Fork a track into a bolder direction and its
-                  whole history travels with it — so the record of how it came
-                  to be is never overwritten.
-                </p>
-              </Reveal>
-              <Reveal delay={0.15}>
-                <AuthAwareLink
-                  signedOut={{
-                    href: "/sign-in",
-                    label: "See a project's history",
-                  }}
-                  signedIn={{
-                    href: "/projects",
-                    label: "See a project's history",
-                  }}
-                  className={`${ctaSecondary} mt-8`}
-                />
-              </Reveal>
-            </div>
-            <Reveal className="order-2 lg:order-1">
-              <ol>
-                {lineage.map((node) => (
-                  <li
-                    key={node.ver + node.who}
-                    className={`border-subtle relative grid grid-cols-[104px_1fr] gap-5 border-t py-5.5 ${
-                      node.fork ? "pl-8" : ""
-                    }`}
-                  >
-                    {node.fork && (
+          <div className={styles.flow}>
+            <Reveal className={styles.fl}>
+              <div className={styles.flCard}>
+                <div className={styles.flBar}>
+                  <b>Rain Bassline</b>
+                  <span className={styles.step}>v1</span>
+                </div>
+                <div className={styles.flRoll}>
+                  <RollNotes
+                    groups={[{ notes: SEED, color: "var(--berry)" }]}
+                  />
+                </div>
+                <div className={styles.flBody}>
+                  <p className={styles.flWhat}>
+                    @mara writes it and publishes it to the library.
+                  </p>
+                  <div className={styles.credits}>
+                    <p className={styles.creditsL}>Credit</p>
+                    <p className={styles.cred}>
                       <span
-                        aria-hidden="true"
-                        className="absolute top-6 bottom-[22px] left-[7px] w-0.5"
-                        style={{
-                          background:
-                            "linear-gradient(var(--color-berry),transparent)",
-                        }}
+                        className={styles.chip}
+                        style={{ background: "var(--berry)" }}
                       />
-                    )}
-                    <div className="text-accent font-mono text-[11.5px] leading-[1.35] tracking-[0.04em]">
-                      {node.ver}
-                      <span className="text-muted mt-1 block text-[11px]">
-                        {node.who}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-serif text-[22px] font-semibold tracking-[-0.01em]">
-                        {node.title[0]}
-                        <em className="text-accent-2 font-semibold">
-                          {node.title[1]}
-                        </em>
-                        {node.title[2]}
-                      </h3>
-                      <p className="text-ink/90 mt-1.5 text-sm leading-relaxed">
-                        {node.body}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Reveal>
-          </div>
-        </Container>
-
-        {/* CREDITS */}
-        <Container className="py-20 sm:py-24" id="credits">
-          <div className="grid items-center gap-14 lg:grid-cols-[0.92fr_1.08fr]">
-            <div>
-              <Reveal>
-                <p className={kicker}>Credit that sticks</p>
-              </Reveal>
-              <Reveal delay={0.05}>
-                <h2 className={h2}>
-                  Everyone who shaped it —{" "}
-                  <em className="text-accent font-serif font-medium">
-                    named, for good
-                  </em>
-                  .
-                </h2>
-              </Reveal>
-              <Reveal delay={0.1}>
-                <p className={lede}>
-                  Every contribution is recorded like a line in the liner notes.
-                  When a song gets remixed, forked, or shared, the credits come
-                  with it — so the people who made it always get their name on
-                  it.
-                </p>
-              </Reveal>
-              <Reveal delay={0.15}>
-                <p className="text-muted mt-3.5 max-w-[48ch] text-lg leading-relaxed">
-                  No spreadsheets. No forgotten features. No &ldquo;who played
-                  that bassline again?&rdquo;
-                </p>
-              </Reveal>
-            </div>
-            <Reveal delay={0.1}>
-              <aside
-                aria-label="Example credits sleeve"
-                className="border-subtle relative rounded-[16px] border p-8 shadow-[0_40px_100px_-54px_#000]"
-                style={{
-                  background:
-                    "radial-gradient(120% 130% at 100% 0%,rgba(231,122,166,0.14),transparent 55%),linear-gradient(165deg,var(--color-surface-raised),var(--color-surface-soft))",
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="border-subtle pointer-events-none absolute inset-[11px] rounded-[6px] border opacity-60"
-                />
-                <h3 className="font-serif text-2xl font-semibold tracking-[-0.01em]">
-                  Midnight Loop
-                </h3>
-                <p className="text-muted mt-[7px] mb-5.5 font-mono text-[10.5px] tracking-[0.12em] uppercase">
-                  Jam Session · Rev. 07 · Lo-fi house · 124 BPM
-                </p>
-                {credits.map((c) => (
-                  <div
-                    key={c.role + c.name}
-                    className="border-subtle grid grid-cols-[auto_1fr] gap-x-[18px] gap-y-1.5 border-t py-[11px] text-[14.5px]"
-                  >
-                    <span className="text-accent-2 pt-[3px] font-mono text-[10.5px] tracking-[0.06em] uppercase">
-                      {c.role}
-                    </span>
-                    <span className="font-medium">
-                      {c.name}
-                      {c.note && (
-                        <span className="text-muted font-normal">
-                          {" "}
-                          · {c.note}
-                        </span>
-                      )}
-                    </span>
+                      <b>@mara</b>
+                      <span className={styles.role}>wrote</span>
+                    </p>
                   </div>
-                ))}
-                <div className="border-strong text-muted mt-5 flex flex-wrap items-center gap-x-2 border-t border-dashed pt-4 font-mono text-[10.5px] tracking-[0.08em]">
-                  Credits travel with every fork &amp; export ·{" "}
-                  <b className="text-accent-2 font-semibold">
-                    always attributed
-                  </b>
                 </div>
-              </aside>
+              </div>
+            </Reveal>
+
+            <Reveal className={styles.fl} delay={0.08}>
+              <div className={styles.flCard}>
+                <div className={styles.flBar}>
+                  <b>Rain Bassline</b>
+                  <span className={styles.step}>v2 · halftime</span>
+                </div>
+                <div className={styles.flRoll}>
+                  <RollNotes
+                    groups={[{ notes: HALF, color: "var(--berry)" }]}
+                  />
+                </div>
+                <div className={styles.flBody}>
+                  <p className={styles.flWhat}>
+                    @dorian halves the tempo and republishes the new version.
+                  </p>
+                  <div className={styles.credits}>
+                    <p className={styles.creditsL}>Credit</p>
+                    <p className={styles.cred}>
+                      <span
+                        className={styles.chip}
+                        style={{ background: "var(--berry)" }}
+                      />
+                      <b>@mara</b>
+                      <span className={styles.role}>wrote</span>
+                    </p>
+                    <p className={styles.cred}>
+                      <span
+                        className={styles.chip}
+                        style={{ background: "var(--coral)" }}
+                      />
+                      <b>@dorian</b>
+                      <span className={styles.role}>adapted</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal className={styles.fl} delay={0.16}>
+              <div className={styles.flCard}>
+                <div className={styles.flBar}>
+                  <b>Nocturne</b>
+                  <span className={styles.step}>v3</span>
+                </div>
+                <div className={styles.flRoll}>
+                  <RollNotes
+                    groups={[
+                      { notes: REST, color: "var(--coral)", dim: true },
+                      { notes: HALF, color: "var(--berry)" },
+                    ]}
+                  />
+                </div>
+                <div className={styles.flBody}>
+                  <p className={styles.flWhat}>
+                    @nova drops v2 into a whole arrangement. Nobody typed a
+                    credit.
+                  </p>
+                  <div className={styles.credits}>
+                    <p className={styles.creditsL}>Credit</p>
+                    <p className={styles.cred}>
+                      <span
+                        className={styles.chip}
+                        style={{ background: "var(--berry)" }}
+                      />
+                      <b>@mara</b>
+                      <span className={styles.role}>wrote</span>
+                    </p>
+                    <p className={styles.cred}>
+                      <span
+                        className={styles.chip}
+                        style={{ background: "var(--coral)" }}
+                      />
+                      <b>@dorian</b>
+                      <span className={styles.role}>adapted</span>
+                    </p>
+                    <p className={styles.cred}>
+                      <span
+                        className={styles.chip}
+                        style={{ background: "var(--gold)" }}
+                      />
+                      <b>@nova</b>
+                      <span className={styles.role}>used</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </Reveal>
           </div>
-        </Container>
 
-        {/* FINAL CTA */}
-        <Container className="py-20 sm:py-28">
-          <Reveal
-            className="rounded-card border-subtle flex flex-col items-center border px-6 py-14 text-center sm:px-16 sm:py-20"
-            style={{
-              background:
-                "radial-gradient(120% 150% at 8% 0%,rgba(255,141,99,0.24),transparent 55%),radial-gradient(120% 150% at 100% 100%,rgba(231,122,166,0.22),transparent 55%),var(--color-surface-raised)",
-            }}
-          >
-            <h2 className="max-w-[18ch] text-3xl font-bold tracking-[-0.035em] text-balance sm:text-5xl">
-              The best part of a song is the people you{" "}
-              <em className="text-accent font-serif font-medium">
-                make it with
-              </em>
-              .
-            </h2>
-            <p className="text-muted mt-5 max-w-[44ch] text-lg leading-relaxed">
-              Find collaborators who hear what you hear. Start something today.
+          <Reveal>
+            <span className={styles.licWrap}>
+              <a
+                className={styles.licStrip}
+                href="https://creativecommons.org/licenses/by/4.0/"
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-describedby="lic-tip"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="6.6"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                  />
+                  <path
+                    d="M10 6.2a2.6 2.6 0 1 0 0 3.6"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>
+                  CC BY 4.0 — reuse it anywhere, just keep the <b>names</b>{" "}
+                  attached
+                </span>
+                <svg
+                  className={styles.licQ}
+                  width="13"
+                  height="13"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="6.6"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M6.2 6.1a1.85 1.85 0 1 1 2.1 2.2v1"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="8.3" cy="11.4" r="0.75" fill="currentColor" />
+                </svg>
+              </a>
+              <span className={styles.tip} id="lic-tip" role="tooltip">
+                <b>Every clip published to OpenMIDI uses CC BY 4.0.</b>
+                It is the default, and the only option — so you never have to
+                read the small print before reusing something. Anyone may copy
+                it, change it, and use it commercially, as long as the original
+                creators stay credited. We attach those credits for you.
+                <span className={styles.tipGo}>
+                  Read the full licence at creativecommons.org →
+                </span>
+              </span>
+            </span>
+          </Reveal>
+        </div>
+
+        <ScrollCue href="#versioning" />
+      </section>
+
+      {/* ================= DIFF ================= */}
+      <section className={styles.sec} id="versioning" data-snap>
+        <DiffMachine />
+        <ScrollCue href="#challenges" />
+      </section>
+
+      {/* ================= BRIEF / CHALLENGE ================= */}
+      <section className={styles.sec} id="challenges" data-snap>
+        <div className={`${styles.wrap} ${styles.briefGrid}`}>
+          <div className={styles.head}>
+            <Reveal>
+              <p className={styles.kicker}>Competitive Challenges</p>
+            </Reveal>
+            <Reveal delay={0.06}>
+              <h2>
+                Constraints foster <em className={styles.em}>creativity</em>
+              </h2>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <p className={styles.lede}>
+                Compete against other producers in unique challenges that change
+                every week. Match a theme, build a track under defined
+                constraints, or remix a provided clip. The only goal is to
+                submit something that&apos;s fun to listen to, and that
+                you&apos;re proud of.
+              </p>
+            </Reveal>
+            <Reveal delay={0.24}>
+              <p className={styles.lede}>
+                The best submissions are chosed by the community.{" "}
+                <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>
+                  Winners unlock permanent badges
+                </strong>{" "}
+                to display on their profile, and wherever they post or fork a
+                project.
+              </p>
+            </Reveal>
+          </div>
+
+          <Reveal delay={0.12}>
+            <div className={styles.ticket}>
+              <div className={styles.ticketTop}>
+                <div className={styles.ticketEyebrow}>
+                  <span className={styles.live}>
+                    <span className={styles.pulse} />
+                    Round 014 · open now
+                  </span>
+                  <span className={styles.clock}>closes in 4d 06h</span>
+                </div>
+                <p className={styles.ticketTitle}>Two Tracks, Sixty Seconds</p>
+                <p className={styles.ticketSub}>
+                  Use only two tracks and create a song in C minor that is no
+                  longer than 60 seconds. Make the two tracks sound like
+                  they&apos;re arguing.
+                </p>
+                <div className={styles.stakes}>
+                  <span className={styles.stake}>
+                    <b>214</b> entered
+                  </span>
+                  <span className={styles.stake}>
+                    <b>1</b> guest pick
+                  </span>
+                  <span className={styles.stake}>
+                    <b>1 </b> people&apos;s pick
+                  </span>
+                </div>
+              </div>
+              <ChallengeGauges />
+            </div>
+          </Reveal>
+        </div>
+
+        <div className={styles.wrap}>
+          <Reveal className={styles.loot}>
+            <div className={styles.lootHead}>
+              <p className={styles.lootCap}>Rewards</p>
+              <p className={styles.lootNote}>
+                Unlock permanent badges to display on your profile and projects!
+              </p>
+            </div>
+
+            <div className={styles.lootRow}>
+              <div className={`${styles.medal} ${styles.won}`}>
+                <span className={styles.medalFace}>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M7 4h10v5a5 5 0 0 1-10 0V4Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3M12 14v4M9 20h6"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                <span className={styles.medalName}>Round winner</span>
+                <span className={styles.medalSub}>Guest pick</span>
+              </div>
+
+              <div className={`${styles.medal} ${styles.won}`}>
+                <span className={styles.medalFace}>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.8 6.7 19.7l1.1-6.1L3.4 9.4l6-.8L12 3Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className={styles.medalName}>People&apos;s pick</span>
+                <span className={styles.medalSub}>Voted by entrants</span>
+              </div>
+
+              <div className={styles.medal}>
+                <span className={styles.medalFace}>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 3 21 12l-9 9-9-9 9-9Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className={styles.medalName}>Finalist</span>
+                <span className={styles.medalSub}>Top ten</span>
+              </div>
+
+              <div className={styles.medal}>
+                <span className={styles.medalFace}>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 12.5 9.5 18 20 6.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className={styles.medalName}>Shipped it</span>
+                <span className={styles.medalSub}>Entered before the bell</span>
+              </div>
+
+              <div className={styles.titleCard}>
+                <p className={styles.titleCap}>Unlocked title</p>
+                <p className={styles.titleLine}>
+                  <span className={styles.handle}>@nova</span>
+                </p>
+                <p className={styles.titleName}>Two-time round winner</p>
+                <p className={styles.titleFoot}>
+                  Shown wherever you post, fork, or enter.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+
+        <ScrollCue href="#close" />
+      </section>
+
+      {/* ================= CLOSE ================= */}
+      <section className={styles.close} id="close" data-snap>
+        <RadialClose />
+        <div className={styles.closeScrim} />
+        <div className={`${styles.wrap} ${styles.closeIn}`}>
+          <Reveal>
+            <p
+              className={`${styles.kicker} ${styles.kickerGold}`}
+              style={{ justifyContent: "center" }}
+            >
+              openmidi.app
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
+          </Reveal>
+          <Reveal delay={0.06}>
+            <h2>
+              Publish the notes. See what comes{" "}
+              <em className={styles.em}>back</em>.
+            </h2>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <p className={styles.lede}>
+              Post a simple jingle tonight and wake up to an accompanying
+              arrangement tomorrow.
+            </p>
+          </Reveal>
+          <Reveal delay={0.18}>
+            <div className={styles.ctaRow}>
               <AuthAwareLink
                 signedOut={{ href: "/sign-in", label: "Join the beta" }}
-                signedIn={{ href: "/projects/new", label: "Create something" }}
-                className={ctaPrimary}
+                signedIn={{ href: "/projects/new", label: "Create Something" }}
+                className={`${styles.btn} ${styles.btnPrimary}`}
               />
-              <Link href="/explore" className={ctaSecondary}>
-                Explore projects
-              </Link>
             </div>
           </Reveal>
-        </Container>
-      </div>
+        </div>
+      </section>
 
-      <FloatingCta />
-    </>
+      <footer className={`${styles.wrap} ${styles.footer}`}>
+        <span>OpenMIDI — the song is the source.</span>
+        <span className={styles.footLinks}>
+          <a href="#library">The MIDI Library</a>
+          <a href="#versioning">Versioning</a>
+          <a href="#challenges">Challenges</a>
+        </span>
+      </footer>
+    </div>
   );
 }

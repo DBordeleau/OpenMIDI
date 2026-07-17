@@ -1,31 +1,30 @@
 import { expect, test } from "@playwright/test";
 
-test("loads the Jam Session product shell without browser errors", async ({
-  page,
-}) => {
+test("loads the OpenMIDI landing without browser errors", async ({ page }) => {
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => pageErrors.push(error));
 
   await page.goto("/");
 
-  await expect(page).toHaveTitle("Jam Session");
+  await expect(page).toHaveTitle("OpenMIDI - A MIDI Playground");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Your song isn't done.",
+    "The song is",
   );
-  const navigation = page.getByRole("navigation", { name: "Sections" });
+  // The landing ships its own transparent nav instead of the shared header.
+  const navigation = page.getByRole("navigation", { name: "Primary" });
   await expect(navigation).toBeVisible();
   await expect(
-    navigation.getByRole("link", { name: "Explore" }),
-  ).toHaveAttribute("href", "/explore");
+    navigation.getByRole("link", { name: "The MIDI Library" }),
+  ).toHaveAttribute("href", "#library");
   await expect(
-    navigation.getByRole("link", { name: "How it works" }),
-  ).toHaveAttribute("href", "/#how");
-  await expect(
-    page.getByRole("banner").getByRole("link", { name: "Sign in" }),
+    navigation.getByRole("link", { name: "Sign In" }),
   ).toHaveAttribute("href", "/sign-in");
   await expect(
-    page.getByRole("link", { name: "Explore projects" }),
-  ).toHaveAttribute("href", "/explore");
+    page.getByRole("link", { name: "Create Something" }).first(),
+  ).toHaveAttribute("href", "/sign-in");
+  await expect(
+    page.getByRole("link", { name: "Join the beta" }),
+  ).toHaveAttribute("href", "/sign-in");
   expect(pageErrors).toEqual([]);
 });
 
@@ -39,15 +38,9 @@ test("supports keyboard navigation and narrow screens", async ({ page }) => {
   await page.getByRole("link", { name: "Skip to main content" }).press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
   await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
-  await expect(
-    page.getByRole("banner").getByRole("link", { name: "Sign in" }),
-  ).toBeInViewport();
-  const exploreProjects = page.getByRole("link", { name: "Explore projects" });
-  await exploreProjects.scrollIntoViewIfNeeded();
-  await expect(exploreProjects).toBeInViewport();
-  await expect(
-    page.getByRole("navigation", { name: "Sections" }),
-  ).toBeVisible();
+  const joinBeta = page.getByRole("link", { name: "Join the beta" });
+  await joinBeta.scrollIntoViewIfNeeded();
+  await expect(joinBeta).toBeInViewport();
 });
 
 test("renders a useful not-found state", async ({ page }) => {

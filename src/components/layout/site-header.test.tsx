@@ -15,14 +15,14 @@ describe("SiteHeader", () => {
 
     const sections = screen.getByRole("navigation", { name: "Sections" });
     expect(
-      within(sections).getByRole("link", { name: "How it works" }),
-    ).toHaveAttribute("href", "/#how");
+      within(sections).getByRole("link", { name: "The MIDI Library" }),
+    ).toHaveAttribute("href", "/#library");
     expect(
-      within(sections).getByRole("link", { name: "The studio" }),
-    ).toHaveAttribute("href", "/#console");
+      within(sections).getByRole("link", { name: "Versioning" }),
+    ).toHaveAttribute("href", "/#versioning");
     expect(
-      within(sections).getByRole("link", { name: "Credits" }),
-    ).toHaveAttribute("href", "/#credits");
+      within(sections).getByRole("link", { name: "Challenges" }),
+    ).toHaveAttribute("href", "/#challenges");
 
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",

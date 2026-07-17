@@ -1,0 +1,1354 @@
+/* ==========================================================
+   OpenMIDI landing — "inside the roll".
+   Ported verbatim (tuned values preserved) from the approved
+   v2 mockup. The page is not a stack of cards on a background;
+   the arrangement IS the background, and the content lives in it.
+
+   Local token names below alias the app's global brand palette
+   (globals.css) so this surface stays in lockstep with the rest
+   of the app while keeping the mockup's authoring vocabulary.
+   ========================================================== */
+.root {
+  --canvas: var(--color-canvas);
+  --surface: var(--color-surface);
+  --raised: var(--color-surface-raised);
+  --soft: #100a14;
+
+  --ink: var(--color-text);
+  --muted: var(--color-text);
+  --faint: #8d7a86;
+
+  --line: var(--color-border);
+  --line-strong: var(--color-border-strong);
+
+  --coral: var(--color-accent);
+  --gold: var(--color-accent-2);
+  --berry: var(--color-berry);
+  --on-accent: var(--color-accent-contrast);
+
+  --grad: linear-gradient(120deg, var(--coral), var(--gold));
+  --mono: var(--font-mono);
+  --serif: var(--font-serif);
+  --page: var(--content-width);
+  --ease: var(--ease-standard);
+
+  position: relative;
+  overflow-x: hidden;
+
+  /* The landing is its own snapping scroll port, so full-height sections snap
+     into view without touching document scroll on any other route. Proximity
+     (not mandatory) so the tall sections can still be scrolled through freely
+     instead of trapping the reader. */
+  height: 100svh;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+
+  /* Opaque dark base. Without this the app's global warm ambient (the body
+     radial gradients + the animated Aurora canvas) bleeds through the
+     transparent sections and lifts the whole page well above the artifact's
+     flat-dark look. Cover it so the hero canvas and scrims read as intended. */
+  background: var(--canvas);
+}
+
+/* The global `[id] { scroll-margin-top: 7rem }` offsets anchor jumps for the
+   shared sticky header — but the landing has no sticky header and is its own
+   scroll port, so that offset would leave the previous section (and the cue you
+   just clicked) peeking at the top. Zero it out for every target in here. */
+.root [id] {
+  scroll-margin-top: 0;
+}
+
+.root h1,
+.root h2 {
+  margin: 0;
+  letter-spacing: -0.038em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+.root h1 {
+  font-size: clamp(3rem, 8.2vw, 6.4rem);
+  line-height: 0.94;
+}
+.root h2 {
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1.02;
+}
+.root h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.root p {
+  margin: 0;
+}
+
+.em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  color: var(--coral);
+}
+.emGold {
+  color: var(--gold);
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--page);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+@media (min-width: 60rem) {
+  .wrap {
+    padding-inline: 3rem;
+  }
+}
+
+.kicker {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--coral);
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.kicker::before {
+  content: "";
+  width: 1.6rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.55;
+}
+.kickerGold {
+  color: var(--gold);
+}
+.lede {
+  color: var(--muted);
+  font-size: 1.0625rem;
+  max-width: 52ch;
+}
+
+/* ---------------- nav ---------------- */
+.nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+.navIn {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 4.5rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: auto;
+  color: var(--ink);
+}
+.brandWord {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.brandWord b {
+  font-weight: 700;
+  color: var(--ink);
+}
+.brandWord i {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 500;
+}
+.navLinks {
+  display: none;
+  gap: 1.75rem;
+}
+@media (min-width: 64rem) {
+  .navLinks {
+    display: flex;
+  }
+}
+.navLinks a {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color 0.2s var(--ease);
+}
+.navLinks a:hover {
+  color: var(--coral);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.875rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease),
+    filter 0.2s var(--ease);
+}
+.btnPrimary {
+  background: var(--grad);
+  color: var(--on-accent);
+  box-shadow: 0 12px 34px -12px rgb(255 141 99 / 75%);
+}
+/* No transform on hover here: translating a gradient-filled pill re-rasterizes
+   its rounded corners and reads as a jitter. Lift it with shadow + brightness
+   instead, so the geometry never moves. (The ghost button has no fill to jitter,
+   so it keeps the 1px lift.) */
+.btnPrimary:hover {
+  box-shadow: 0 18px 44px -12px rgb(255 141 99 / 92%);
+  filter: brightness(1.05);
+}
+.btnGhost {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.btnGhost:hover {
+  transform: translate3d(0, -1px, 0);
+  border-color: var(--coral);
+  color: var(--coral);
+}
+.btnSm {
+  min-height: 2.375rem;
+  font-size: 0.8125rem;
+  padding: 0 1rem;
+}
+.btnI {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+}
+
+/* ================= HERO ================= */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+.field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+/* Carves readability out of the left without ever putting the music in a box. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      var(--canvas) 4%,
+      rgb(20 13 25 / 93%) 30%,
+      rgb(20 13 25 / 55%) 58%,
+      rgb(20 13 25 / 12%) 90%
+    ),
+    linear-gradient(
+      to bottom,
+      rgb(20 13 25 / 88%) 0%,
+      rgb(20 13 25 / 10%) 20%,
+      rgb(20 13 25 / 5%) 55%,
+      var(--canvas) 97%
+    );
+}
+.heroIn {
+  position: relative;
+  z-index: 2;
+  padding: 8rem 0 5rem;
+  width: 100%;
+}
+.hero h1 {
+  margin: 1.4rem 0 0;
+}
+.hero .lede {
+  margin-top: 1.6rem;
+  font-size: 1.15rem;
+}
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2.2rem;
+}
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.2rem;
+  margin-top: 2.2rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.heroMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.heroMeta span::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--gold);
+  /* soft gold halo so the dots read as lit, not printed */
+  box-shadow: 0 0 6px 1px rgb(255 200 121 / 65%);
+}
+
+.nowPlaying {
+  position: absolute;
+  z-index: 2;
+  bottom: 1.6rem;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.np {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  background: rgb(20 13 25 / 55%);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+}
+.np b {
+  color: var(--gold);
+  font-weight: 600;
+}
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gold);
+  animation: pulse 2s var(--ease) infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 200 121 / 55%);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgb(255 200 121 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 200 121 / 0%);
+  }
+}
+
+/* ================= sections ================= */
+.sec {
+  position: relative;
+  padding: clamp(5rem, 10vw, 8.5rem) 0;
+  /* Fill the screen and centre the content so short sections don't leave a
+     sliver of the next one showing. Tall sections grow past 100svh and scroll
+     normally — justify-center only adds slack when there's room to spare. */
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  scroll-snap-align: start;
+}
+.sec + .sec {
+  border-top: 1px solid var(--line);
+}
+.head {
+  display: grid;
+  gap: 1.1rem;
+}
+
+/* ---------------- DIFF: the time machine ---------------- */
+.diffHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.statCap {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 0.7rem;
+}
+.statRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+/* These are controls: each one plays its stage of the machine. */
+.stat {
+  display: grid;
+  gap: 0.15rem;
+  cursor: pointer;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.25s var(--ease),
+    background 0.25s var(--ease),
+    transform 0.2s var(--ease);
+}
+.stat:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.stat.on {
+  background: rgb(255 255 255 / 4%);
+}
+.sAdd.on {
+  border-color: rgb(255 200 121 / 55%);
+}
+.sMov.on {
+  border-color: rgb(255 141 99 / 55%);
+}
+.sDel.on {
+  border-color: rgb(198 173 180 / 45%);
+}
+.statN {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.statL {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.sAdd .statN {
+  color: var(--gold);
+}
+.sMov .statN {
+  color: var(--coral);
+}
+.sDel .statN {
+  color: var(--muted);
+}
+
+.machine {
+  margin-top: 2rem;
+  position: relative;
+  border: 1px solid var(--line-strong);
+  border-radius: 1rem;
+  background: linear-gradient(160deg, var(--surface), var(--soft));
+  box-shadow: 0 44px 90px -44px #000;
+  overflow: hidden;
+}
+.diff {
+  display: block;
+  width: 100%;
+  height: clamp(15rem, 27vw, 20rem);
+}
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem 1.1rem;
+  border-top: 1px solid var(--line);
+}
+.rev {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  transition: color 0.3s var(--ease);
+}
+.rev.on {
+  color: var(--ink);
+}
+.slot {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2.5rem;
+  background: transparent;
+  cursor: grab;
+  margin: 0;
+}
+.scrub:active {
+  cursor: grabbing;
+}
+.trackLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: var(--line-strong);
+  pointer-events: none;
+}
+.trackFill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: var(--grad);
+  pointer-events: none;
+  width: 0%;
+}
+/* detents, so the stops are visible before you drag */
+.stops {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  padding: 0 0.1rem;
+}
+.stops i {
+  width: 2px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+.stageName {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  padding: 0 1.1rem 0.9rem;
+}
+.scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--gold);
+  border: 3px solid var(--canvas);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    0 0 18px rgb(255 200 121 / 60%);
+}
+.scrub::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--gold);
+  border: 3px solid var(--canvas);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    0 0 18px rgb(255 200 121 / 60%);
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  margin-top: 1.25rem;
+}
+.lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+.lg i {
+  width: 1.5rem;
+  height: 0.85rem;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--on-accent);
+}
+
+/* ---------------- BRIEF: gauges ---------------- */
+.briefGrid {
+  display: grid;
+  gap: clamp(2rem, 4vw, 3.5rem);
+}
+@media (min-width: 66rem) {
+  .briefGrid {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+  }
+}
+
+.ticket {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--raised), var(--soft));
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 40px 80px -44px #000;
+}
+.ticketTop {
+  padding: 1.4rem 1.4rem 1.2rem;
+  background:
+    radial-gradient(
+      24rem 10rem at 0% 0%,
+      rgb(255 141 99 / 14%),
+      transparent 70%
+    ),
+    radial-gradient(
+      20rem 10rem at 100% 0%,
+      rgb(255 200 121 / 10%),
+      transparent 70%
+    );
+  border-bottom: 1px dashed var(--line-strong);
+}
+.ticketEyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.ticketEyebrow .live {
+  color: var(--on-accent);
+  background: var(--gold);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+}
+.ticketEyebrow .live .pulse {
+  background: var(--on-accent);
+}
+.ticketEyebrow .clock {
+  color: var(--coral);
+  font-variant-numeric: tabular-nums;
+}
+.ticketTitle {
+  font-size: clamp(1.6rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin-top: 0.9rem;
+  line-height: 1.02;
+}
+.ticketSub {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.stakes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+.stake {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+}
+.stake b {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ticketBody {
+  padding: 1.2rem 1.4rem 1.4rem;
+}
+
+.gauge {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.gauge:last-of-type {
+  border-bottom: 0;
+}
+.gaugeTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.gaugeL {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.gaugeV {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.gaugeV b {
+  color: var(--gold);
+  font-weight: 700;
+}
+.gaugeBar {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  overflow: hidden;
+}
+.gaugeFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--grad);
+  transition: width 1.1s var(--ease);
+}
+.gaugeFill.over {
+  background: linear-gradient(120deg, #ff9c9c, #ff7a4d);
+}
+.gauge.pass .gaugeL {
+  color: var(--muted);
+}
+
+.stamp {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px dashed var(--line-strong);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.stampOk {
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    opacity 0.45s var(--ease),
+    transform 0.45s var(--ease);
+}
+.stampOk.on {
+  opacity: 1;
+  transform: none;
+}
+.stamp .left {
+  color: var(--faint);
+}
+.stamp .right {
+  margin-left: auto;
+}
+
+/* ---------------- LOOT: badges + titles ---------------- */
+.loot {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+  border-top: 1px solid var(--line);
+  padding-top: clamp(2rem, 4vw, 3rem);
+}
+.lootHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  align-items: baseline;
+  margin-bottom: 2rem;
+}
+.lootCap {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.lootNote {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.lootRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 1.5rem;
+  align-items: flex-start;
+}
+.medal {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  width: 6.5rem;
+  text-align: center;
+}
+.medalFace {
+  position: relative;
+  width: 3.9rem;
+  aspect-ratio: 1;
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  background: var(--line-strong);
+}
+.medalFace::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: 1;
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: var(--surface);
+}
+.medalFace svg {
+  position: relative;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--ink);
+}
+
+/* earned badges get the signature gradient, and it turns */
+.medal.won .medalFace::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    var(--coral),
+    var(--gold),
+    var(--berry),
+    var(--coral)
+  );
+  animation: turn 7s linear infinite;
+}
+.medal.won .medalFace {
+  box-shadow: 0 0 26px -6px rgb(255 200 121 / 55%);
+}
+.medal.won .medalFace svg {
+  color: var(--gold);
+}
+.medal.won .medalName {
+  color: var(--ink);
+}
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.medalName {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--muted);
+  letter-spacing: -0.01em;
+}
+.medalSub {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.titleCard {
+  flex: 1;
+  min-width: 15rem;
+  align-self: stretch;
+  border: 1px solid rgb(255 200 121 / 30%);
+  border-radius: 0.8rem;
+  background: linear-gradient(
+    150deg,
+    rgb(255 200 121 / 10%),
+    rgb(231 122 166 / 6%) 60%,
+    transparent
+  );
+  padding: 0.9rem 1.1rem;
+  display: grid;
+  gap: 0.15rem;
+  align-content: center;
+}
+.titleCap {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.titleLine .handle {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.titleName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.titleFoot {
+  font-size: 0.72rem;
+  color: var(--faint);
+  margin-top: 0.2rem;
+}
+
+/* ---------------- LIBRARY: credit accumulates ---------------- */
+.flow {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 62rem) {
+  .flow {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+}
+.fl {
+  position: relative;
+}
+@media (min-width: 62rem) {
+  .fl {
+    padding-right: 1.75rem;
+  }
+  .fl:last-child {
+    padding-right: 0;
+  }
+}
+.fl::after {
+  content: "";
+  display: none;
+  position: absolute;
+  top: 3.4rem;
+  right: 0.5rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-right: 1.5px solid var(--gold);
+  border-top: 1.5px solid var(--gold);
+  transform: rotate(45deg);
+  opacity: 0.7;
+}
+@media (min-width: 62rem) {
+  .fl:not(:last-child)::after {
+    display: block;
+  }
+}
+
+.flCard {
+  border: 1px solid var(--line-strong);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--surface), var(--soft));
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.flBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  background: rgb(255 255 255 / 2.5%);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+}
+.flBar b {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.78rem;
+}
+.flBar .step {
+  margin-left: auto;
+  color: var(--gold);
+}
+.flRoll {
+  position: relative;
+  height: 4.75rem;
+  margin: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background:
+    repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 25%),
+    var(--soft);
+  overflow: hidden;
+}
+/* a single note inside .flRoll */
+.mn {
+  position: absolute;
+  height: 9%;
+  border-radius: 2px;
+}
+.flBody {
+  padding: 0 0.8rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  flex: 1;
+}
+.flWhat {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+/* the point of the whole section: the credit stack grows */
+.credits {
+  margin-top: auto;
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+.creditsL {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.cred {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.cred b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.cred .role {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cred .chip {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.licWrap {
+  position: relative;
+  display: inline-block;
+  margin-top: 1.5rem;
+}
+.licStrip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  width: fit-content;
+  cursor: help;
+  transition:
+    border-color 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+.licStrip b {
+  color: var(--gold);
+  font-weight: 600;
+}
+.licStrip .licQ {
+  opacity: 0.6;
+  flex: none;
+}
+.licWrap:hover .licStrip,
+.licStrip:focus-visible {
+  border-color: var(--gold);
+  color: var(--muted);
+  border-style: solid;
+}
+
+.tip {
+  position: absolute;
+  bottom: calc(100% + 0.65rem);
+  left: 0;
+  z-index: 30;
+  width: min(28rem, calc(100vw - 3rem));
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 26px 50px -22px #000;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition:
+    opacity 0.22s var(--ease),
+    transform 0.22s var(--ease),
+    visibility 0.22s;
+  pointer-events: none;
+}
+.tip b {
+  display: block;
+  color: var(--ink);
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+}
+.tipGo {
+  display: block;
+  margin-top: 0.6rem;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 2rem;
+  border: 6px solid transparent;
+  border-top-color: var(--line-strong);
+}
+.licWrap:hover .tip,
+.licStrip:focus-visible + .tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.kickerSub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+.kickerSub span {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+.kickerSub .attr {
+  color: var(--gold);
+  border-color: rgb(255 200 121 / 35%);
+  background: rgb(255 200 121 / 7%);
+}
+
+/* ---------------- close ---------------- */
+.close {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(4rem, 8vw, 7rem) 0;
+  scroll-snap-align: start;
+}
+.closeField {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+/* The type lives in the hole at the centre of the loop, so the scrim is a
+   tight disc rather than a wash — it must not dim the rings themselves. */
+.closeScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgb(20 13 25 / 92%) 0%,
+      rgb(20 13 25 / 80%) 34%,
+      rgb(20 13 25 / 0%) 52%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--canvas) 0%,
+      rgb(20 13 25 / 0%) 22%,
+      rgb(20 13 25 / 0%) 78%,
+      var(--canvas) 100%
+    );
+}
+.closeIn {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+.close h2 {
+  max-width: 13ch;
+  margin-inline: auto;
+}
+.close .lede {
+  margin: 1.2rem auto 0;
+  text-align: center;
+  max-width: 34ch;
+}
+.close .ctaRow {
+  justify-content: center;
+}
+
+/* ---------------- scroll cue ---------------- */
+.scrollCue {
+  position: absolute;
+  left: 50%;
+  bottom: 1.6rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: color 0.2s var(--ease);
+}
+.scrollCue:hover {
+  color: var(--coral);
+}
+.scrollCue svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  animation: bob 1.8s var(--ease) infinite;
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding: 2.25rem 0 3rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.75rem;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--faint);
+}
+.footLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-left: auto;
+}
+.footLinks a {
+  color: var(--muted);
+}
+.footLinks a:hover {
+  color: var(--coral);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    scroll-behavior: auto;
+  }
+  .pulse {
+    animation: none;
+  }
+  .medal.won .medalFace::before {
+    animation: none;
+  }
+  .gaugeFill {
+    transition: none;
+  }
+  .scrollCue svg {
+    animation: none;
+  }
+}

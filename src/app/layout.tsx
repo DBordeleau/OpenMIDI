@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Aurora } from "@/components/layout/aurora.client";
 import { ConditionalFooter } from "@/components/layout/conditional-footer.client";
-import { SiteHeader } from "@/components/layout/site-header";
+import { ConditionalHeader } from "@/components/layout/conditional-header.client";
 import { SkipLink } from "@/components/layout/skip-link";
 
 import "./globals.css";
@@ -25,7 +25,7 @@ export default function RootLayout({
         <Aurora />
         <div className="relative z-10 flex min-h-screen flex-col">
           <SkipLink />
-          <SiteHeader />
+          <ConditionalHeader />
           <div className="flex-1">{children}</div>
           <ConditionalFooter />
         </div>
