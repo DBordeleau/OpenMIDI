@@ -4,6 +4,7 @@ import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
 import {
   V3_DIFF_AFTER,
   V3_DIFF_BEFORE,
+  V3_IDS,
 } from "@/features/studio/manifest/v3.fixtures";
 import { MidiDiffComparisonNavigator } from "./comparison-navigator.client";
 import { createMidiDiffViewModel } from "./view-model";
@@ -43,6 +44,7 @@ describe("MidiDiffComparisonNavigator", () => {
     expect(screen.getAllByText("Added").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Changed").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Removed").length).toBeGreaterThan(0);
+    expect(screen.queryByText(V3_IDS.patternVersion1)).not.toBeInTheDocument();
 
     const addedFilter = screen
       .getAllByRole("button")

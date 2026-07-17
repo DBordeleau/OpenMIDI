@@ -168,6 +168,50 @@ describe("MIDI diff view model", () => {
     });
   });
 
+  it("formats accidental musical keys with the shared musician-facing label", () => {
+    const after = {
+      ...V3_DIFF_BEFORE,
+      manifest: parseArrangementManifestV3({
+        ...V3_MANIFEST_BEFORE,
+        musicalKey: "f-sharp-minor",
+      }),
+    };
+    const model = mapFixture(V3_DIFF_BEFORE, after);
+
+    expect(model.status).toBe("ready");
+    if (model.status !== "ready") return;
+    expect(model.arrangementDetails).toContainEqual(
+      expect.objectContaining({
+        label: "Musical key",
+        before: "C major",
+        after: "F♯ minor",
+      }),
+    );
+  });
+
+  it("keeps technical pattern IDs out of selected clip and lineage details", () => {
+    const model = mapFixture();
+
+    expect(model.status).toBe("ready");
+    if (model.status !== "ready") return;
+    const changedClip = model.tracks
+      .flatMap((track) => track.clips)
+      .find((clip) => clip.clipId === V3_IDS.clipA);
+    expect(changedClip?.details).toContainEqual(
+      expect.objectContaining({
+        field: "midiPatternVersionId",
+        before: "Version 1 by Loop Maker",
+        after: "Version 2 by Loop Maker",
+      }),
+    );
+    expect(JSON.stringify(changedClip?.details)).not.toContain(
+      V3_IDS.patternVersion1,
+    );
+    expect(JSON.stringify(changedClip?.lineageDetails)).not.toContain(
+      V3_IDS.patternVersion1,
+    );
+  });
+
   it("exports the landing-consistent non-color visual contract", () => {
     expect(MIDI_DIFF_VISUAL_STATES).toMatchObject({
       added: { label: "Added", marker: "+", color: "gold" },

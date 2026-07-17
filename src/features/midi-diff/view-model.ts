@@ -6,6 +6,7 @@ import {
   diffMidiArrangementsV1,
   type MidiSemanticDiffV1,
 } from "@/features/midi/semantic-diff-v1";
+import { formatMusicalKey } from "@/features/projects/musical-key";
 import {
   parseArrangementManifestV3,
   parseMidiPatternVersionV3,
@@ -260,7 +261,7 @@ function formatMetadataValue(
       .parse(value);
     return `${signature.numerator}/${signature.denominator}`;
   }
-  if (field === "musicalKey") return titleCase(String(value));
+  if (field === "musicalKey") return formatMusicalKey(String(value));
   if (field === "durationTicks")
     return formatDuration(z.number().parse(value), manifest.ppq);
   return String(value);
@@ -368,10 +369,29 @@ function displayValue(
   value: unknown,
   manifest: ArrangementManifestV3,
   tracks: Map<string, ArrangementManifestV3["tracks"][number]>,
+  patterns: Map<string, MidiPatternVersionV3>,
 ) {
   if (value === null || value === undefined) return "Not present";
   if (field === "trackId")
     return tracks.get(String(value))?.name ?? String(value);
+  if (
+    field === "midiPatternVersionId" ||
+    field === "parentMidiPatternVersionId" ||
+    field === "sourceMidiPatternVersionId"
+  ) {
+    const pattern = patterns.get(String(value));
+    return pattern
+      ? `Version ${pattern.version} by ${pattern.creatorCreditName}`
+      : "Linked pattern version";
+  }
+  if (field === "midiPatternId") {
+    const pattern = [...patterns.values()].find(
+      (candidate) => candidate.midiPatternId === String(value),
+    );
+    return pattern
+      ? `Pattern by ${pattern.creatorCreditName}`
+      : "Linked pattern";
+  }
   if (field === "startTick" || field === "sourceStartTick")
     return formatPosition(z.number().parse(value), manifest);
   if (field === "durationTicks")
@@ -396,6 +416,7 @@ function mapDetails(
 ) {
   const beforeTracks = trackMap(before.manifest);
   const afterTracks = trackMap(after.manifest);
+  const patterns = new Map([...before.patterns, ...after.patterns]);
   return changes.map((change): MidiDiffFieldDetail => ({
     field: change.field,
     label: fieldLabels[change.field] ?? titleCase(change.field),
@@ -404,12 +425,14 @@ function mapDetails(
       change.before,
       before.manifest,
       beforeTracks,
+      patterns,
     ),
     after: displayValue(
       change.field,
       change.after,
       after.manifest,
       afterTracks,
+      patterns,
     ),
   }));
 }

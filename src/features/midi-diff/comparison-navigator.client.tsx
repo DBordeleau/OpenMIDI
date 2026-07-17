@@ -105,16 +105,6 @@ function PatternCredit({ credit }: { credit: MidiDiffPatternCredit }) {
       <p className="font-semibold">
         Pattern v{credit.version} by {credit.creatorCreditName}
       </p>
-      {credit.parentMidiPatternVersionId && (
-        <p className="text-muted">
-          Parent: {credit.parentMidiPatternVersionId}
-        </p>
-      )}
-      {credit.sourceMidiPatternVersionId && (
-        <p className="text-muted">
-          Source: {credit.sourceMidiPatternVersionId}
-        </p>
-      )}
       {credit.reuseLicenseCode && (
         <a
           className="text-accent underline"

@@ -191,19 +191,8 @@ function AvailableReviewComparison({
               >
                 <strong>{pattern.creatorCreditName}</strong>
                 <span className="text-muted block text-sm">
-                  Pattern version {pattern.version} ·{" "}
-                  {pattern.midiPatternVersionId}
+                  Pattern version {pattern.version}
                 </span>
-                {pattern.parentMidiPatternVersionId && (
-                  <span className="text-muted block text-sm">
-                    Parent version {pattern.parentMidiPatternVersionId}
-                  </span>
-                )}
-                {pattern.sourceMidiPatternVersionId && (
-                  <span className="text-muted block text-sm">
-                    Source version {pattern.sourceMidiPatternVersionId}
-                  </span>
-                )}
                 {pattern.reuseLicenseCode && (
                   <a
                     className="text-accent text-sm underline"
@@ -235,6 +224,41 @@ function AvailableReviewComparison({
             <dt className="font-semibold">Submitted arrangement version</dt>
             <dd>{comparison.submittedArrangementVersionId}</dd>
           </div>
+          {model.credits.length > 0 && (
+            <div>
+              <dt className="font-semibold">Pattern identifiers</dt>
+              <dd>
+                <ul className="mt-1 space-y-3">
+                  {model.credits.map((pattern) => (
+                    <li key={pattern.midiPatternVersionId}>
+                      <span className="text-ink block">
+                        {pattern.creatorCreditName} · pattern version{" "}
+                        {pattern.version}
+                      </span>
+                      <span className="block">
+                        Pattern version ID: {pattern.midiPatternVersionId}
+                      </span>
+                      <span className="block">
+                        Pattern ID: {pattern.midiPatternId}
+                      </span>
+                      {pattern.parentMidiPatternVersionId && (
+                        <span className="block">
+                          Parent version ID:{" "}
+                          {pattern.parentMidiPatternVersionId}
+                        </span>
+                      )}
+                      {pattern.sourceMidiPatternVersionId && (
+                        <span className="block">
+                          Source version ID:{" "}
+                          {pattern.sourceMidiPatternVersionId}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          )}
         </dl>
       </details>
     </section>
