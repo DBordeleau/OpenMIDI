@@ -1,6 +1,6 @@
 # Delivery plan and verification
 
-Status: MIDI-only foundation, semantic visual diff, feedback, and LIB-01 complete in repository; hosted LIB migration and Vercel deployment deferred
+Status: MIDI-only foundation, semantic visual diff, feedback, LIB-01, and LIB-02 complete in repository; hosted LIB migrations and Vercel deployment deferred
 
 ## Implemented foundation
 
@@ -21,7 +21,7 @@ The two-attempt ceiling applies to an unchanged environment blocker. A concrete 
 
 ## Post-pivot MVP sequence
 
-DIFF-01 through DIFF-03, FEEDBACK-01, and LIB-01 are complete in the repository. LIB-02 detail/history/moderation is the next implementation slice.
+DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01, and LIB-02 are complete in the repository. LIB-03 saved clips and authorized Studio reuse is the next implementation slice.
 
 1. **Wave A — DIFF and FEEDBACK:** complete with landing-matched static semantic comparisons for authorized revision pairs plus authenticated beta feedback and a private administrator queue.
 2. **Wave B — LIB:** add rights-gated public pattern listing with commercially reusable and reference-only modes, All/mode Explore filtering, external credits, copyright reporting/moderation, bounded musical search/filtering, browser-local preview, any-two-version history diffs, private saved clips, and attributed reusable-only save/import/fork/editor actions.

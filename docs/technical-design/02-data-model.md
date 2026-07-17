@@ -48,6 +48,8 @@ Acceptance verifies the expected contribution version and current project revisi
 - `midi_pattern_external_credits` stores immutable bounded external-credit snapshots separately from verified platform lineage. `midi_library_listing_tags` normalizes the controlled library tag set.
 - `search_public_midi_library` is the only anonymous listing/note projection. It rejects malformed filters, returns at most 25 active non-hidden rows with keyset ordering, and never exposes private attestation evidence or base listing tables.
 - Direct pattern-version RLS remains owner/member/public-project scoped. A library listing does not make unlisted/private base rows enumerable; reference-only notes are readable only inside the safe catalog projection.
+- `get_public_midi_library_listing` returns one active non-hidden exact listing with notes, rights, separate external credits, platform lineage, bounded same-pattern authorized history, and exact-version public-project usage. `get_public_midi_library_pattern_comparison` independently proves both selected versions occur in that authorized history.
+- `private.midi_library_reports` stores bounded claimant/source evidence against an exact listing and pattern version. `private.midi_library_moderation_actions` stores idempotent optimistic administrator audit records. Report submission has no visibility side effect; hide/restore updates only listing moderation visibility/version and safe public functions exclude hidden rows immediately.
 
 ## Moderation, deletion, and avatar operations
 
@@ -70,12 +72,11 @@ All application-facing tables have RLS enabled. Anonymous access is limited to s
 
 ## Planned post-pivot extensions
 
-These are accepted data-boundary requirements not yet implemented after LIB-01. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
+These are accepted data-boundary requirements not yet implemented after LIB-02. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
 
 - **Saved clips:** private user-owned bookmarks point only to exact immutable commercially reusable pattern versions. Saving never copies notes, changes ownership, or grants public visibility. Studio import creates a normal attributed copy-on-write workspace reference. Save/import/fork/editor-copy/export commands recheck reuse mode authoritatively and reject reference-only versions.
 - **Beta feedback:** private bug/suggestion records hold bounded user-provided text and disclosed context for administrator triage. They do not store attachments, complete manifests, secrets, signed URLs, or automatic logs.
 - **Challenges:** normalized lifecycle, ownership, featured-placement, entry, vote, and finalized-result relationships accompany a validated versioned constraint snapshot. Entries pin exact immutable project revisions; client preflight never replaces authoritative submission validation. Completed challenge/result rows remain addressable and immutable except for audited corrections or moderation visibility.
 - **Achievements:** versioned badge definitions and immutable idempotent awards reference the recipient and authoritative finalized challenge result/revision that earned them. Public profiles use a narrow award projection containing the canonical completed-challenge/result link.
-- **Library rights reports:** private report/claimant/source context targets the public listing and exact immutable pattern version. Moderator actions may hide/unhide discovery and preserve review evidence without mutating the pattern notes or published project history.
 
 Every new application-facing table enables RLS in its creation migration and receives explicit least-privilege grants. Public library, completed-challenge, leaderboard, and award projections must not reveal private-project relationships, reports, claimant context, hidden listings/entries, or pre-close votes; feedback, saved clips, challenge administration, and moderation evidence are never broadly selectable. Do not rely on provider defaults to decide Data API exposure.

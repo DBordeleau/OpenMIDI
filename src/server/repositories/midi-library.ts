@@ -6,12 +6,20 @@ import {
   encodeMidiLibraryCursor,
   midiLibraryFilterFingerprint,
 } from "@/features/midi-library/schema";
+import {
+  mapAdminMidiLibraryReport,
+  mapMidiLibraryDetail,
+  mapMidiLibraryPatternComparison,
+} from "@/features/midi-library/detail";
 import type {
   MidiLibraryFilters,
   MidiLibraryListing,
   MidiLibraryOptions,
   MidiLibraryPage,
   OwnedMidiLibraryVersion,
+  AdminMidiLibraryReport,
+  MidiLibraryDetail,
+  MidiLibraryPatternComparison,
 } from "@/features/midi-library/types";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
@@ -260,4 +268,141 @@ export async function unlistMidiLibraryListing(input: {
   if (error || !data?.[0])
     throw new Error(error?.message ?? "midi_library_unlist_failed");
   return data[0];
+}
+
+export async function getPublicMidiLibraryListing(
+  listingId: string,
+): Promise<MidiLibraryDetail | null> {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc(
+    "get_public_midi_library_listing" as never,
+    { p_listing_id: listingId } as never,
+  );
+  if (error) throw new Error("midi_library_detail_unavailable");
+  return data ? mapMidiLibraryDetail(data) : null;
+}
+
+export async function getPublicMidiLibraryPatternComparison(input: {
+  listingId: string;
+  fromPatternVersionId: string;
+  toPatternVersionId: string;
+}): Promise<MidiLibraryPatternComparison | null> {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc(
+    "get_public_midi_library_pattern_comparison" as never,
+    {
+      p_listing_id: input.listingId,
+      p_from_pattern_version_id: input.fromPatternVersionId,
+      p_to_pattern_version_id: input.toPatternVersionId,
+    } as never,
+  );
+  if (error)
+    throw new Error(error.message || "midi_library_comparison_unavailable");
+  return data ? mapMidiLibraryPatternComparison(data) : null;
+}
+
+export async function submitMidiLibraryReport(input: {
+  listingId: string;
+  requestId: string;
+  claimantRole: string;
+  originalWorkTitle: string | null;
+  sourceUrl: string | null;
+  evidence: string;
+}) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc(
+    "submit_midi_library_report" as never,
+    {
+      p_listing_id: input.listingId,
+      p_request_id: input.requestId,
+      p_claimant_role: input.claimantRole,
+      p_original_work_title: input.originalWorkTitle,
+      p_source_url: input.sourceUrl,
+      p_evidence: input.evidence,
+    } as never,
+  );
+  const row = (
+    data as Array<{ report_id: string; status: string }> | null
+  )?.[0];
+  if (error || !row)
+    throw new Error(error?.message ?? "midi_library_report_failed");
+  return row;
+}
+
+export async function listAdminMidiLibraryReports(): Promise<
+  Array<
+    Pick<
+      AdminMidiLibraryReport,
+      | "id"
+      | "listingId"
+      | "title"
+      | "reason"
+      | "claimantRole"
+      | "status"
+      | "createdAt"
+      | "updatedAt"
+    >
+  >
+> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc(
+    "list_admin_midi_library_reports" as never,
+  );
+  if (error) throw new Error("midi_library_admin_queue_unavailable");
+  return z
+    .array(
+      z.object({
+        id: z.uuid(),
+        listingId: z.uuid(),
+        title: z.string(),
+        reason: z.literal("unoriginal_or_unauthorized"),
+        claimantRole: z.enum([
+          "rightsholder",
+          "authorized_representative",
+          "observer",
+          "other",
+        ]),
+        status: z.enum(["submitted", "reviewing", "resolved", "dismissed"]),
+        createdAt: z.iso.datetime({ offset: true }),
+        updatedAt: z.iso.datetime({ offset: true }),
+      }),
+    )
+    .parse(data);
+}
+
+export async function getAdminMidiLibraryReport(
+  reportId: string,
+): Promise<AdminMidiLibraryReport | null> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc(
+    "get_admin_midi_library_report" as never,
+    { p_report_id: reportId } as never,
+  );
+  if (error) throw new Error("midi_library_admin_report_unavailable");
+  return data ? mapAdminMidiLibraryReport(data) : null;
+}
+
+export async function applyMidiLibraryModerationAction(input: {
+  reportId: string;
+  requestId: string;
+  action: string;
+  reason: string;
+  expectedReportStatus: string;
+  expectedTargetVersion: number;
+}) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc(
+    "apply_midi_library_moderation_action" as never,
+    {
+      p_report_id: input.reportId,
+      p_request_id: input.requestId,
+      p_action: input.action,
+      p_reason: input.reason,
+      p_expected_report_status: input.expectedReportStatus,
+      p_expected_target_version: input.expectedTargetVersion,
+    } as never,
+  );
+  if (error || !data)
+    throw new Error(error?.message ?? "midi_library_moderation_failed");
+  return data;
 }

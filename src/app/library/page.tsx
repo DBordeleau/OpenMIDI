@@ -258,7 +258,12 @@ export default async function MidiLibraryPage({
                     </span>
                   </div>
                   <h3 className="mt-4 text-2xl font-bold text-balance">
-                    {listing.title}
+                    <Link
+                      className="hover:text-accent underline decoration-transparent hover:decoration-current"
+                      href={`/library/${listing.listingId}`}
+                    >
+                      {listing.title}
+                    </Link>
                   </h3>
                   <p className="text-muted mt-2 text-sm">
                     by{" "}

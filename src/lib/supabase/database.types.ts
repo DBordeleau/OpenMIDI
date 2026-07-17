@@ -2422,6 +2422,17 @@ export type Database = {
         }[]
       }
       activate_signup_invitation: { Args: { p_email: string }; Returns: Json }
+      apply_midi_library_moderation_action: {
+        Args: {
+          p_action: string
+          p_expected_report_status: string
+          p_expected_target_version: number
+          p_reason: string
+          p_report_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       apply_moderation_action: {
         Args: {
           p_action: string
@@ -2582,6 +2593,10 @@ export type Database = {
         Args: { p_feedback_id: string }
         Returns: Json
       }
+      get_admin_midi_library_report: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
       get_admin_moderation_target: {
         Args: { p_report_id: string }
         Returns: Json
@@ -2594,6 +2609,18 @@ export type Database = {
       get_own_account_recovery: { Args: never; Returns: Json }
       get_project_revision_history_v3: {
         Args: { p_project_id: string }
+        Returns: Json
+      }
+      get_public_midi_library_listing: {
+        Args: { p_listing_id: string }
+        Returns: Json
+      }
+      get_public_midi_library_pattern_comparison: {
+        Args: {
+          p_from_pattern_version_id: string
+          p_listing_id: string
+          p_to_pattern_version_id: string
+        }
         Returns: Json
       }
       get_public_profile_history: {
@@ -2630,6 +2657,7 @@ export type Database = {
         }
         Returns: Json
       }
+      list_admin_midi_library_reports: { Args: never; Returns: Json }
       list_admin_moderation_queue: {
         Args: { p_after_created_at?: string; p_after_id?: string }
         Returns: Json
@@ -3095,6 +3123,21 @@ export type Database = {
           status: Database["public"]["Enums"]["contribution_status"]
           submitted_at: string
           version_number: number
+        }[]
+      }
+      submit_midi_library_report: {
+        Args: {
+          p_claimant_role: string
+          p_evidence: string
+          p_listing_id: string
+          p_original_work_title: string
+          p_request_id: string
+          p_source_url: string
+        }
+        Returns: {
+          created_at: string
+          report_id: string
+          status: string
         }[]
       }
       submit_moderation_report: {

@@ -24,6 +24,12 @@ export default async function AdminModerationPage({
               Administrator
             </p>
             <h1 className="mt-3 text-4xl font-bold">Moderation queue</h1>
+            <Link
+              href="/admin/library-moderation"
+              className="border-strong mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+            >
+              Open library rights reports
+            </Link>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link

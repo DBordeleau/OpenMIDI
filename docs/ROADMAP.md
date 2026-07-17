@@ -84,11 +84,13 @@ Status: Complete in the repository. `/library` and `/library/manage` use the exa
 
 Add library browse/detail pages with deterministic preview, read-only notes, immutable version/lineage history, selection between any two versions in the same pattern history, prominent reuse-mode labels, visible external credits/rights terms, and public-project usage. Add **Report unoriginal or unauthorized work** with administrator hide/review/restore actions. Private project usage and reports must never leak through counts or links.
 
+Status: Complete in the repository. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, bounded authorized history, URL-selected shared DIFF comparison and paired audition, separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions. The LIB-02 migration is not applied to hosted Supabase without separate authority. LIB-03 is next.
+
 ### LIB-03 — Saved clips and Studio import
 
 Add a private saved-pattern collection referencing exact immutable commercially reusable versions. Saving does not duplicate notes or transfer ownership. Users can import a commercially reusable saved/discovered version into a chosen private workspace, fork it explicitly, or open it in the MIDI editor through an owned private copy-on-write draft. Reference-only listings remain preview/history surfaces and all reuse commands reject them authoritatively. All permitted reuse paths preserve platform lineage, license, and external credits.
 
-Status: LIB-01 is complete in the repository. LIB-02 and LIB-03 remain sequential because each consumes the prior slice’s authority.
+Status: LIB-01 and LIB-02 are complete in the repository. LIB-03 is next and consumes the exact-version detail, rights, history, and moderation authority.
 
 ## Wave C — Curated constraint challenges
 

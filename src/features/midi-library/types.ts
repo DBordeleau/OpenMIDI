@@ -94,3 +94,81 @@ export type OwnedMidiLibraryVersion = {
   activeReuseMode: MidiLibraryReuseMode | null;
   activeCreatorVersion: number | null;
 };
+
+export type MidiLibraryHistoryVersion = {
+  midiPatternVersionId: string;
+  midiPatternId: string;
+  versionNumber: number;
+  creatorId: string;
+  creatorCreditName: string;
+  parentMidiPatternVersionId: string | null;
+  sourceMidiPatternVersionId: string | null;
+  ppq: 480;
+  durationTicks: number;
+  noteCount: number;
+  contentSha256: string;
+  reuseLicenseCode: string | null;
+  reuseLicenseVersion: string | null;
+  reuseLicenseUrl: string | null;
+  createdAt: string;
+  notes: MidiLibraryNote[];
+};
+
+export type MidiLibraryDetail = {
+  listing: MidiLibraryListing & {
+    attestationVersion: string;
+    attestedAt: string;
+    supportingSourceUrl: string | null;
+    supportingSourceTerms: string | null;
+    publicDomainRationale: string | null;
+  };
+  platformLineage: {
+    patternId: string;
+    sourcePatternId?: string;
+    sourcePatternVersionId?: string;
+    sourceCreatorCreditName?: string;
+    listedVersionParentId?: string;
+    listedVersionSourceId?: string;
+  };
+  history: MidiLibraryHistoryVersion[];
+  usage: {
+    publicProjectCount: number;
+    projects: Array<{
+      projectId: string;
+      title: string;
+      revisionId: string;
+      revisionNumber: number;
+      publishedAt: string;
+    }>;
+  };
+};
+
+export type MidiLibraryPatternComparison = {
+  listingId: string;
+  from: MidiLibraryHistoryVersion;
+  to: MidiLibraryHistoryVersion;
+};
+
+export type MidiLibraryReportClaimantRole =
+  "rightsholder" | "authorized_representative" | "observer" | "other";
+
+export type AdminMidiLibraryReport = {
+  id: string;
+  listingId: string;
+  midiPatternId: string;
+  midiPatternVersionId: string;
+  title: string;
+  reason: "unoriginal_or_unauthorized";
+  claimantRole: MidiLibraryReportClaimantRole;
+  originalWorkTitle?: string;
+  sourceUrl?: string;
+  evidence: string;
+  status: "submitted" | "reviewing" | "resolved" | "dismissed";
+  reporterId: string;
+  assignedAdminId?: string;
+  createdAt: string;
+  updatedAt: string;
+  targetState: "visible" | "hidden";
+  targetVersion: number;
+  unlistedAt?: string;
+};
