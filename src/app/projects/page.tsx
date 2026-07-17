@@ -150,19 +150,12 @@ export default async function ProjectsPage({
                       >
                         Open project
                       </Link>
-                      {project.currentRevisionId ? (
+                      {project.currentRevisionId || project.role === "owner" ? (
                         <Link
                           className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
                           href={`/studio/${project.id}`}
                         >
                           Open in studio
-                        </Link>
-                      ) : project.role === "owner" ? (
-                        <Link
-                          className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
-                          href={`/projects/${project.id}/publish`}
-                        >
-                          Publish stems
                         </Link>
                       ) : null}
                     </div>
@@ -187,11 +180,11 @@ export default async function ProjectsPage({
               Your first project
             </p>
             <h2 className="mt-3 text-2xl font-semibold">
-              Start with a musical idea and a few stems.
+              Start with a musical idea and a few MIDI patterns.
             </h2>
             <p className="text-muted mx-auto mt-3 max-w-xl leading-7">
-              Projects keep your source audio, private workspace, and published
-              revision history together.
+              Projects keep your private arrangement workspace, published
+              revision history, and pattern lineage together.
             </p>
             <div className="mt-6">
               <ButtonLink href="/projects/new">

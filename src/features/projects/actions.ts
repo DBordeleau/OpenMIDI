@@ -2,15 +2,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { projectInputSchema } from "./schema";
-import {
-  createProject,
-  updateProjectMetadata,
-} from "@/server/repositories/projects";
+import { updateProjectMetadata } from "@/server/repositories/projects";
+import { createMidiProjectWorkspaceV3 } from "@/server/repositories/midi-v3";
 
 export type ProjectFormState = {
   message?: string;
   fields?: Record<string, string[]>;
 };
+
 function parse(formData: FormData) {
   return projectInputSchema.safeParse({
     title: formData.get("title"),
@@ -25,6 +24,7 @@ function parse(formData: FormData) {
     tagIds: formData.getAll("tagIds"),
   });
 }
+
 export async function createProjectAction(
   requestId: string,
   _state: ProjectFormState,
@@ -36,17 +36,36 @@ export async function createProjectAction(
       message: "Check the highlighted fields.",
       fields: parsed.error.flatten().fieldErrors,
     };
-  const { data, error } = await createProject(parsed.data, requestId);
-  if (error || !data[0])
+  if (parsed.data.bpm === null || parsed.data.bpm > 300)
     return {
-      message:
-        error?.code === "PT409"
-          ? "This creation request was already used with different details."
-          : "We couldn’t create the project. Please try again.",
+      message: "Set a project tempo between 20 and 300 BPM.",
+      fields: { bpm: ["MIDI projects require a tempo from 20 to 300 BPM."] },
     };
-  revalidatePath("/studio", "layout");
-  redirect(`/studio/${data[0].project_id}`);
+  try {
+    const created = await createMidiProjectWorkspaceV3({
+      requestId,
+      title: parsed.data.title,
+      description: parsed.data.description ?? "",
+      tempoBpm: parsed.data.bpm,
+      musicalKey: parsed.data.musicalKey,
+      timeSignatureNumerator: parsed.data.timeSignatureNumerator,
+      timeSignatureDenominator: parsed.data.timeSignatureDenominator,
+      licenseCode: parsed.data.licenseCode,
+      genreIds: parsed.data.genreIds,
+      primaryGenreId: parsed.data.primaryGenreId,
+      tagIds: parsed.data.tagIds,
+    });
+    revalidatePath("/studio", "layout");
+    redirect(`/studio/${created.project_id}`);
+  } catch (error) {
+    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
+      throw error;
+    return {
+      message: "We couldn’t create the MIDI project. Please try again.",
+    };
+  }
 }
+
 export async function updateProjectAction(
   projectId: string,
   lockVersion: number,

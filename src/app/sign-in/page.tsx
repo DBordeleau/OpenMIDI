@@ -65,8 +65,8 @@ export default async function SignInPage({
           </button>
         </form>
         <p className="text-muted mt-6 text-xs leading-relaxed">
-          By continuing you agree to keep the community rules — only upload work
-          you have the rights to share.
+          By continuing you agree to keep the community rules — only publish
+          work you have the rights to share.
         </p>
       </SignInModal>
     </main>

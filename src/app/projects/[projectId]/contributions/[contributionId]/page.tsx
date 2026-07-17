@@ -3,20 +3,19 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { requireViewer } from "@/features/auth/guards";
 import { contributionIdSchema } from "@/features/contributions/schema";
-import { ReviewComparison } from "@/features/contributions/review-comparison.client";
+import { ReviewComparison } from "@/features/contributions/review-comparison";
 import { ReviewContributionForm } from "@/features/contributions/review-contribution-form.client";
 import { SubmissionPanel } from "@/features/contributions/submission-panel.client";
 import { WithdrawContributionForm } from "@/features/contributions/withdraw-contribution-form";
 import { ContributionDeletionForm } from "@/features/moderation/contribution-deletion-form";
 import { projectIdSchema } from "@/features/projects/schema";
-import type { VersionedWorkspaceManifest } from "@/features/studio/manifest/schema";
+import type { StudioLauncherProps } from "@/features/studio/components/studio-launcher.client";
+import type { ContributionReviewStudio } from "@/features/contributions/types";
 import {
+  getContributionArrangementComparison,
   getContributionForViewer,
-  getContributionVersionPlayback,
 } from "@/server/repositories/contributions";
-import { getRevisionPlayback } from "@/server/repositories/revisions";
-import { getMidiStemVersionsByIds } from "@/server/repositories/midi-stems";
-import { getActiveWorkspace } from "@/server/repositories/workspaces";
+import { getStudioWorkspaceV3 } from "@/server/repositories/studio-v3";
 
 const labels = {
   draft: "Draft",
@@ -67,45 +66,23 @@ export default async function ContributionDetailPage({
   const editable =
     contribution.status === "draft" ||
     contribution.status === "changes_requested";
-  const workspace = isAuthor ? await getActiveWorkspace(projectId) : null;
+  const workspace = isAuthor ? await getStudioWorkspaceV3(projectId) : null;
   const linkedWorkspace =
     workspace?.contributionId === contribution.id ? workspace : null;
   const durationMs = linkedWorkspace
-    ? linkedWorkspace.manifest.manifestVersion === 1
-      ? Math.max(
-          ...linkedWorkspace.manifest.tracks.map(
-            (track) => track.positionMs + track.durationMs,
-          ),
-        )
-      : Math.ceil(
-          (linkedWorkspace.manifest.durationTicks * 60_000) /
-            (linkedWorkspace.manifest.tempoBpm * 480),
-        )
+    ? arrangementDurationMs(linkedWorkspace.manifest)
     : 0;
   const currentVersion = contribution.versions.find(
     (version) => version.id === contribution.currentVersionId,
   );
-  const [submittedPlayback, currentPlayback] =
-    isOwner && currentVersion && contribution.currentProjectRevisionId
-      ? await Promise.all([
-          getContributionVersionPlayback({
-            projectId,
-            contributionId,
-            versionId: currentVersion.id,
-          }),
-          getRevisionPlayback({
-            projectId,
-            revisionId: contribution.currentProjectRevisionId,
-          }),
-        ])
-      : [null, null];
-  const midiVersions =
-    submittedPlayback && currentPlayback
-      ? await getMidiStemVersionsByIds([
-          ...collectMidiStemVersionIds(submittedPlayback.manifest),
-          ...collectMidiStemVersionIds(currentPlayback.manifest),
-        ])
-      : [];
+  const comparison =
+    isOwner && currentVersion
+      ? await getContributionArrangementComparison({
+          projectId,
+          contributionId,
+          versionId: currentVersion.id,
+        })
+      : null;
   const stale =
     contribution.currentProjectRevisionId !== contribution.baseRevisionId;
   return (
@@ -151,48 +128,34 @@ export default async function ContributionDetailPage({
               </dd>
             </div>
           </dl>
-          {isOwner &&
-            submittedPlayback &&
-            currentPlayback &&
-            currentVersion && (
-              <ReviewComparison
-                submitted={{
+          {isOwner && comparison && currentVersion && (
+            <ReviewComparison
+              comparison={comparison}
+              base={reviewStudioProps({
+                studio: comparison.base,
+                viewerId: viewer.id,
+                projectId,
+                projectTitle: contribution.projectTitle,
+                mode: {
+                  mode: "revision",
+                  revisionId: contribution.baseRevisionId,
+                  revisionNumber: contribution.baseRevisionNumber,
+                },
+              })}
+              submitted={reviewStudioProps({
+                studio: comparison.submitted,
+                viewerId: viewer.id,
+                projectId,
+                projectTitle: contribution.projectTitle,
+                mode: {
                   mode: "contributionVersion",
-                  viewerId: viewer.id,
-                  projectId,
-                  projectTitle: contribution.projectTitle,
                   contributionId,
                   versionId: currentVersion.id,
                   versionNumber: currentVersion.versionNumber,
-                  manifest: submittedPlayback.manifest,
-                  durationMs: submittedPlayback.durationMs,
-                  tracks: submittedPlayback.tracks.map((track) => ({
-                    trackId: track.trackId,
-                    kind: track.kind,
-                    instrumentName: track.instrumentName,
-                    creditName: track.creditName,
-                  })),
-                  midiVersions,
-                }}
-                current={{
-                  mode: "revision",
-                  viewerId: viewer.id,
-                  projectId,
-                  projectTitle: contribution.projectTitle,
-                  revisionId: currentPlayback.revisionId,
-                  revisionNumber: currentPlayback.revisionNumber,
-                  manifest: currentPlayback.manifest,
-                  durationMs: currentPlayback.durationMs,
-                  tracks: currentPlayback.tracks.map((track) => ({
-                    trackId: track.trackId,
-                    kind: track.kind,
-                    instrumentName: track.instrumentName,
-                    creditName: track.creditName,
-                  })),
-                  midiVersions,
-                }}
-              />
-            )}
+                },
+              })}
+            />
+          )}
           {isAuthor && linkedWorkspace && editable && (
             <Link
               className="bg-accent rounded-control mt-6 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
@@ -289,10 +252,7 @@ export default async function ContributionDetailPage({
                 updatedAt: linkedWorkspace.updatedAt,
                 trackCount: linkedWorkspace.manifest.tracks.length,
                 durationMs,
-                hasAcknowledgedSave:
-                  (linkedWorkspace.manifest.manifestVersion === 2 ||
-                    linkedWorkspace.snapshotAssetId !== null) &&
-                  linkedWorkspace.updatedAt !== linkedWorkspace.createdAt,
+                hasAcknowledgedSave: linkedWorkspace.lockVersion > 1,
               }}
               license={contribution.license}
             />
@@ -326,12 +286,47 @@ export default async function ContributionDetailPage({
   );
 }
 
-function collectMidiStemVersionIds(manifest: VersionedWorkspaceManifest) {
-  return manifest.manifestVersion === 2
-    ? manifest.tracks.flatMap((track) =>
-        track.kind === "midi"
-          ? track.clips.map((clip) => clip.midiStemVersionId)
-          : [],
-      )
-    : [];
+function arrangementDurationMs(studio: ContributionReviewStudio["manifest"]) {
+  return Math.ceil(
+    (studio.durationTicks * 60_000) / (studio.tempoBpm * studio.ppq),
+  );
+}
+
+function reviewStudioProps(input: {
+  studio: ContributionReviewStudio;
+  viewerId: string;
+  projectId: string;
+  projectTitle: string;
+  mode:
+    | { mode: "revision"; revisionId: string; revisionNumber: number }
+    | {
+        mode: "contributionVersion";
+        contributionId: string;
+        versionId: string;
+        versionNumber: number;
+      };
+}): StudioLauncherProps {
+  const patterns = new Map(
+    input.studio.patternVersions.map((pattern) => [
+      pattern.midiPatternVersionId,
+      pattern,
+    ]),
+  );
+  return {
+    ...input.mode,
+    viewerId: input.viewerId,
+    projectId: input.projectId,
+    projectTitle: input.projectTitle,
+    manifest: input.studio.manifest,
+    durationMs: arrangementDurationMs(input.studio.manifest),
+    patternVersions: input.studio.patternVersions,
+    tracks: input.studio.manifest.tracks.map((track) => ({
+      trackId: track.trackId,
+      kind: "midi" as const,
+      instrumentName: track.presetId,
+      creditName:
+        patterns.get(track.clips[0]?.midiPatternVersionId ?? "")
+          ?.creatorCreditName ?? "Unknown creator",
+    })),
+  };
 }

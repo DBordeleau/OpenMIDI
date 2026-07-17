@@ -65,7 +65,7 @@ export function AdminInviteForm({
         </button>
       </div>
       <p id="beta-invite-help" className="text-muted mt-2 text-sm">
-        This adds access immediately and silently. It doesn't send an email.
+        This adds access immediately and silently. It doesn’t send an email.
       </p>
       <AnimatePresence mode="wait" initial={false}>
         {state.status !== "idle" && (

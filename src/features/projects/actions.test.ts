@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createProjectAction } from "./actions";
-import { createProject } from "@/server/repositories/projects";
+import { createMidiProjectWorkspaceV3 } from "@/server/repositories/midi-v3";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/repositories/projects", () => ({
-  createProject: vi.fn(),
   updateProjectMetadata: vi.fn(),
+}));
+vi.mock("@/server/repositories/midi-v3", () => ({
+  createMidiProjectWorkspaceV3: vi.fn(),
 }));
 
 const requestId = "10000000-0000-4000-8000-000000000001";
@@ -31,31 +33,32 @@ describe("shared project creation action", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("uses the atomic MIDI creator and opens the canonical Studio route", async () => {
-    vi.mocked(createProject).mockResolvedValue({
-      data: [{ project_id: projectId }],
-      error: null,
+    vi.mocked(createMidiProjectWorkspaceV3).mockResolvedValue({
+      project_id: projectId,
     } as never);
 
     await createProjectAction(requestId, {}, validFormData());
 
-    expect(createProject).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Night Signals", bpm: 120 }),
-      requestId,
+    expect(createMidiProjectWorkspaceV3).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId,
+        title: "Night Signals",
+        tempoBpm: 120,
+      }),
     );
     expect(revalidatePath).toHaveBeenCalledWith("/studio", "layout");
     expect(redirect).toHaveBeenCalledWith(`/studio/${projectId}`);
   });
 
   it("keeps conflicting request-id reuse explicit", async () => {
-    vi.mocked(createProject).mockResolvedValue({
-      data: null,
-      error: { code: "PT409" },
-    } as never);
+    vi.mocked(createMidiProjectWorkspaceV3).mockRejectedValue(
+      new Error("project_request_conflict"),
+    );
 
     await expect(
       createProjectAction(requestId, {}, validFormData()),
     ).resolves.toEqual({
-      message: "This creation request was already used with different details.",
+      message: "We couldn’t create the MIDI project. Please try again.",
     });
     expect(redirect).not.toHaveBeenCalled();
   });

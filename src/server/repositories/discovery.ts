@@ -17,6 +17,7 @@ import { musicalKeys } from "@/features/projects/schema";
 import type { Database } from "@/lib/supabase/database.types";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
 import { PUBLIC_PROJECTS_CACHE_TAG } from "@/lib/cache/public-projects";
+import { getPublicArrangementCards } from "@/server/repositories/public-midi";
 
 const taxonomySchema = z.object({
   id: z.string().uuid(),
@@ -24,29 +25,6 @@ const taxonomySchema = z.object({
   name: z.string(),
 });
 const genresSchema = z.array(taxonomySchema.extend({ isPrimary: z.boolean() }));
-const tracksSchema = z.array(
-  z.object({
-    id: z.string().uuid(),
-    kind: z.enum(["audio", "midi"]).default("audio"),
-    name: z.string(),
-    durationMs: z.number().int().positive(),
-    positionMs: z.number().int().nonnegative(),
-    sortOrder: z.number().int().nonnegative(),
-    instrument: taxonomySchema.nullable(),
-    preset: z
-      .object({ id: z.string(), version: z.number().int().positive() })
-      .nullable()
-      .default(null),
-    credits: z.array(
-      z.object({
-        position: z.number().int().nonnegative(),
-        creditName: z.string(),
-        role: z.string(),
-        profileId: z.string().uuid().nullable(),
-      }),
-    ),
-  }),
-);
 const attributionsSchema = z.array(
   z.object({
     kind: z.enum(["publisher", "accepted_contributor"]),
@@ -96,61 +74,65 @@ async function mapSearchRows(rows: SearchRow[]): Promise<PublicProject[]> {
     row,
     genres: genresSchema.parse(row.genres),
     tags: z.array(taxonomySchema).parse(row.tags),
-    tracks: tracksSchema.parse(row.tracks),
     attributions: attributionsSchema.parse(row.attributions),
   }));
-  const profileIds = parsed.flatMap(({ row, tracks, attributions }) => [
+  const profileIds = parsed.flatMap(({ row, attributions }) => [
     row.owner_id,
-    ...tracks.flatMap((track) =>
-      track.credits.flatMap((credit) => credit.profileId ?? []),
-    ),
     ...attributions.map(({ profileId }) => profileId),
   ]);
-  const profiles = await getPublicProfiles(profileIds);
-  return parsed.map(({ row, genres, tags, tracks, attributions }) => {
+  const [profiles, arrangements] = await Promise.all([
+    getPublicProfiles(profileIds),
+    getPublicArrangementCards(
+      parsed.map(({ row }) => ({
+        projectId: row.project_id,
+        revisionId: row.current_revision_id,
+      })),
+    ),
+  ]);
+  return parsed.flatMap(({ row, genres, tags, attributions }) => {
     const owner = profiles.get(row.owner_id);
     if (!owner) throw new Error("discovery_owner_unavailable");
-    return {
-      projectId: row.project_id,
-      ownerId: row.owner_id,
-      ownerUsername: owner.username,
-      ownerDisplayName: owner.displayName,
-      title: row.title,
-      description: row.description,
-      bpm: row.bpm === null ? null : Number(row.bpm),
-      musicalKey: z.enum(musicalKeys).nullable().parse(row.musical_key),
-      timeSignature: null,
-      license: {
-        code: row.license_code,
-        name: row.license_name,
-        url: null,
-        summary: row.license_summary,
-        allowsDerivatives: row.license_allows_derivatives,
-      },
-      openToContributions: row.open_to_contributions,
-      currentRevisionId: row.current_revision_id,
-      revisionNumber: row.revision_number,
-      durationMs: row.duration_ms,
-      publishedAt: row.published_at,
-      updatedAt: row.updated_at,
-      genres,
-      tags,
-      tracks: tracks.map((track) => ({
-        ...track,
-        credits: track.credits.map((credit) => ({
-          ...credit,
-          profileUsername: credit.profileId
-            ? (profiles.get(credit.profileId)?.username ?? null)
-            : null,
+    const arrangement = arrangements.get(row.current_revision_id);
+    if (!arrangement) return [];
+    return [
+      {
+        projectId: row.project_id,
+        ownerId: row.owner_id,
+        ownerUsername: owner.username,
+        ownerDisplayName: owner.displayName,
+        title: row.title,
+        description: row.description,
+        bpm: arrangement.manifest.tempoBpm,
+        musicalKey: z
+          .enum(musicalKeys)
+          .nullable()
+          .parse(arrangement.manifest.musicalKey),
+        timeSignature: arrangement.manifest.timeSignature,
+        license: {
+          code: row.license_code,
+          name: row.license_name,
+          url: null,
+          summary: row.license_summary,
+          allowsDerivatives: row.license_allows_derivatives,
+        },
+        openToContributions: row.open_to_contributions,
+        currentRevisionId: row.current_revision_id,
+        revisionNumber: row.revision_number,
+        durationMs: arrangement.durationMs,
+        publishedAt: row.published_at,
+        updatedAt: row.updated_at,
+        genres,
+        tags,
+        tracks: arrangement.tracks,
+        attributions: attributions.map((attribution) => ({
+          ...attribution,
+          profileUsername:
+            profiles.get(attribution.profileId)?.username ?? null,
         })),
-      })),
-      attributions: attributions.map((attribution) => ({
-        ...attribution,
-        profileUsername: profiles.get(attribution.profileId)?.username ?? null,
-      })),
-      trendingScore: Number(row.trending_score),
-      discoveryVersion: Number(row.discovery_version),
-    };
+        trendingScore: Number(row.trending_score),
+        discoveryVersion: Number(row.discovery_version),
+      },
+    ];
   });
 }
 

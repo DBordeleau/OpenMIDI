@@ -79,7 +79,9 @@ export default async function PublicProfilePage({
           />
           <h1 className="mt-6 text-4xl font-bold">{profile.displayName}</h1>
           <p className="text-accent mt-2 text-lg">@{profile.username}</p>
-          <p className="text-muted mt-1">Music credits: {profile.creditName}</p>
+          <p className="text-muted mt-1">
+            MIDI pattern attribution: {profile.creditName}
+          </p>
           {profile.bio && (
             <p className="mt-8 max-w-prose text-lg leading-8 whitespace-pre-wrap">
               {profile.bio}
@@ -101,7 +103,7 @@ export default async function PublicProfilePage({
             </p>
           )}
           <section className="border-subtle mt-10 border-t pt-8">
-            <h2 className="text-2xl font-bold">Public projects</h2>
+            <h2 className="text-2xl font-bold">Public MIDI projects</h2>
             {projects.items.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {projects.items.map((project) => (
@@ -116,7 +118,7 @@ export default async function PublicProfilePage({
                 ))}
               </ul>
             ) : (
-              <p className="text-muted mt-3">No public projects yet.</p>
+              <p className="text-muted mt-3">No public MIDI projects yet.</p>
             )}
             {projects.nextCursor && (
               <Link
@@ -128,7 +130,9 @@ export default async function PublicProfilePage({
             )}
           </section>
           <section className="border-subtle mt-10 border-t pt-8">
-            <h2 className="text-2xl font-bold">Accepted contributions</h2>
+            <h2 className="text-2xl font-bold">
+              Accepted arrangement contributions
+            </h2>
             {contributions.items.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {contributions.items.map((item) => (

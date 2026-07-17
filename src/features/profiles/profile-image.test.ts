@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
+  edgeCorsHeaders,
+  edgeCorsPreflightResponse,
+} from "../../../supabase/functions/_shared/cors";
+import {
   detectProfileImageSignature,
   PermanentProfileImageError,
   validateProfileImageMetadata,
 } from "../../../supabase/functions/_shared/profile-image";
 
 describe("profile image validation", () => {
+  it("permits browser preflight before avatar processing", async () => {
+    const response = edgeCorsPreflightResponse();
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("ok");
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toBe(
+      "POST, OPTIONS",
+    );
+    expect(edgeCorsHeaders["Access-Control-Allow-Headers"]).toContain(
+      "authorization",
+    );
+  });
+
   it("detects the supported signatures", () => {
     expect(
       detectProfileImageSignature(Uint8Array.from([0xff, 0xd8, 0xff])),

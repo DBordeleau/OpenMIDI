@@ -36,23 +36,12 @@ const links = [
     active: (pathname: string) => pathname === "/projects/new",
   },
   {
-    href: "/stems",
-    label: "My stems",
-    active: (pathname: string) =>
-      pathname === "/stems" || pathname.startsWith("/stems/"),
-  },
-  {
     href: "/contributions",
     label: "Contributions",
     active: (pathname: string) =>
       pathname === "/contributions" ||
       (pathname.startsWith("/projects/") &&
         pathname.includes("/contributions")),
-  },
-  {
-    href: "/uploads",
-    label: "Uploads",
-    active: (pathname: string) => pathname === "/uploads",
   },
 ] as const;
 

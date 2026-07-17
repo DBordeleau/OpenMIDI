@@ -68,115 +68,186 @@ export type Database = {
           },
         ]
       }
-      asset_credits: {
+      arrangement_clips: {
         Row: {
-          asset_id: string
-          created_at: string
-          credit_name: string
-          position: number
-          role: Database["public"]["Enums"]["asset_credit_role"]
-          user_id: string | null
+          arrangement_version_id: string
+          clip_id: string
+          duration_ticks: number
+          loop: boolean
+          midi_pattern_version_id: string
+          project_id: string
+          source_start_tick: number
+          start_tick: number
+          track_id: string
         }
         Insert: {
-          asset_id: string
-          created_at?: string
-          credit_name: string
-          position: number
-          role: Database["public"]["Enums"]["asset_credit_role"]
-          user_id?: string | null
+          arrangement_version_id: string
+          clip_id: string
+          duration_ticks: number
+          loop: boolean
+          midi_pattern_version_id: string
+          project_id: string
+          source_start_tick: number
+          start_tick: number
+          track_id: string
         }
         Update: {
-          asset_id?: string
-          created_at?: string
-          credit_name?: string
-          position?: number
-          role?: Database["public"]["Enums"]["asset_credit_role"]
-          user_id?: string | null
+          arrangement_version_id?: string
+          clip_id?: string
+          duration_ticks?: number
+          loop?: boolean
+          midi_pattern_version_id?: string
+          project_id?: string
+          source_start_tick?: number
+          start_tick?: number
+          track_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "asset_credits_asset_id_fkey"
-            columns: ["asset_id"]
+            foreignKeyName: "arrangement_clips_midi_pattern_version_id_fkey"
+            columns: ["midi_pattern_version_id"]
             isOneToOne: false
-            referencedRelation: "assets"
+            referencedRelation: "midi_pattern_versions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "asset_credits_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "arrangement_clips_project_id_arrangement_version_id_track__fkey"
+            columns: ["project_id", "arrangement_version_id", "track_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asset_credits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "arrangement_tracks"
+            referencedColumns: [
+              "project_id",
+              "arrangement_version_id",
+              "track_id",
+            ]
           },
         ]
       }
-      asset_uploads: {
+      arrangement_tracks: {
         Row: {
-          asset_id: string
-          client_duration_ms: number | null
-          client_filename: string
-          client_media_type: string | null
-          created_at: string
-          expected_byte_size: number
-          expected_sha256: string | null
-          expires_at: string
-          owner_id: string
-          request_id: string
-          updated_at: string
+          arrangement_version_id: string
+          gain_db: number
+          muted: boolean
+          name: string
+          pan: number
+          preset_id: string
+          preset_version: number
+          project_id: string
+          soloed: boolean
+          sort_order: number
+          track_id: string
         }
         Insert: {
-          asset_id: string
-          client_duration_ms?: number | null
-          client_filename: string
-          client_media_type?: string | null
-          created_at?: string
-          expected_byte_size: number
-          expected_sha256?: string | null
-          expires_at: string
-          owner_id: string
-          request_id: string
-          updated_at?: string
+          arrangement_version_id: string
+          gain_db: number
+          muted: boolean
+          name: string
+          pan: number
+          preset_id: string
+          preset_version: number
+          project_id: string
+          soloed: boolean
+          sort_order: number
+          track_id: string
         }
         Update: {
-          asset_id?: string
-          client_duration_ms?: number | null
-          client_filename?: string
-          client_media_type?: string | null
-          created_at?: string
-          expected_byte_size?: number
-          expected_sha256?: string | null
-          expires_at?: string
-          owner_id?: string
-          request_id?: string
-          updated_at?: string
+          arrangement_version_id?: string
+          gain_db?: number
+          muted?: boolean
+          name?: string
+          pan?: number
+          preset_id?: string
+          preset_version?: number
+          project_id?: string
+          soloed?: boolean
+          sort_order?: number
+          track_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "asset_uploads_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: true
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
+            foreignKeyName: "arrangement_tracks_project_id_arrangement_version_id_fkey"
+            columns: ["project_id", "arrangement_version_id"]
+            isOneToOne: false
+            referencedRelation: "arrangement_versions"
+            referencedColumns: ["project_id", "id"]
           },
+        ]
+      }
+      arrangement_versions: {
+        Row: {
+          create_request_id: string
+          created_at: string
+          created_by: string
+          duration_ticks: number
+          engine: string
+          engine_version: string
+          id: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          musical_key: string | null
+          ppq: number
+          project_id: string
+          tempo_bpm: number
+          time_signature_denominator: number
+          time_signature_numerator: number
+        }
+        Insert: {
+          create_request_id: string
+          created_at?: string
+          created_by: string
+          duration_ticks: number
+          engine: string
+          engine_version: string
+          id?: string
+          manifest: Json
+          manifest_sha256: string
+          manifest_version: number
+          musical_key?: string | null
+          ppq: number
+          project_id: string
+          tempo_bpm: number
+          time_signature_denominator: number
+          time_signature_numerator: number
+        }
+        Update: {
+          create_request_id?: string
+          created_at?: string
+          created_by?: string
+          duration_ticks?: number
+          engine?: string
+          engine_version?: string
+          id?: string
+          manifest?: Json
+          manifest_sha256?: string
+          manifest_version?: number
+          musical_key?: string | null
+          ppq?: number
+          project_id?: string
+          tempo_bpm?: number
+          time_signature_denominator?: number
+          time_signature_numerator?: number
+        }
+        Relationships: [
           {
-            foreignKeyName: "asset_uploads_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "arrangement_versions_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "asset_uploads_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "arrangement_versions_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arrangement_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -185,28 +256,21 @@ export type Database = {
         Row: {
           bucket: string
           byte_size: number | null
-          channels: number | null
           created_at: string
-          credits_confirmation_request_id: string | null
-          credits_confirmation_sha256: string | null
-          credits_confirmed_at: string | null
           declared_media_type: string | null
           deleted_at: string | null
-          duration_ms: number | null
           failed_at: string | null
           failure_code: string | null
           frame_count: number | null
           id: string
           image_height: number | null
           image_width: number | null
-          kind: Database["public"]["Enums"]["asset_kind"]
           media_type: string | null
           object_path: string
           original_filename: string
           owner_id: string
           ready_at: string | null
           reserved_byte_size: number
-          sample_rate_hz: number | null
           sha256: string | null
           status: Database["public"]["Enums"]["asset_status"]
           upload_completed_at: string | null
@@ -215,28 +279,21 @@ export type Database = {
         Insert: {
           bucket?: string
           byte_size?: number | null
-          channels?: number | null
           created_at?: string
-          credits_confirmation_request_id?: string | null
-          credits_confirmation_sha256?: string | null
-          credits_confirmed_at?: string | null
           declared_media_type?: string | null
           deleted_at?: string | null
-          duration_ms?: number | null
           failed_at?: string | null
           failure_code?: string | null
           frame_count?: number | null
           id?: string
           image_height?: number | null
           image_width?: number | null
-          kind?: Database["public"]["Enums"]["asset_kind"]
           media_type?: string | null
           object_path: string
           original_filename: string
           owner_id: string
           ready_at?: string | null
           reserved_byte_size: number
-          sample_rate_hz?: number | null
           sha256?: string | null
           status?: Database["public"]["Enums"]["asset_status"]
           upload_completed_at?: string | null
@@ -245,28 +302,21 @@ export type Database = {
         Update: {
           bucket?: string
           byte_size?: number | null
-          channels?: number | null
           created_at?: string
-          credits_confirmation_request_id?: string | null
-          credits_confirmation_sha256?: string | null
-          credits_confirmed_at?: string | null
           declared_media_type?: string | null
           deleted_at?: string | null
-          duration_ms?: number | null
           failed_at?: string | null
           failure_code?: string | null
           frame_count?: number | null
           id?: string
           image_height?: number | null
           image_width?: number | null
-          kind?: Database["public"]["Enums"]["asset_kind"]
           media_type?: string | null
           object_path?: string
           original_filename?: string
           owner_id?: string
           ready_at?: string | null
           reserved_byte_size?: number
-          sample_rate_hz?: number | null
           sha256?: string | null
           status?: Database["public"]["Enums"]["asset_status"]
           upload_completed_at?: string | null
@@ -383,237 +433,9 @@ export type Database = {
           },
         ]
       }
-      contribution_version_clips: {
-        Row: {
-          clip_id: string
-          contribution_version_id: string
-          duration_ms: number | null
-          duration_ticks: number | null
-          kind: string
-          loop: boolean | null
-          midi_stem_version_id: string | null
-          position_ms: number | null
-          source_start_tick: number | null
-          start_tick: number | null
-          track_id: string
-          trim_start_ms: number | null
-        }
-        Insert: {
-          clip_id: string
-          contribution_version_id: string
-          duration_ms?: number | null
-          duration_ticks?: number | null
-          kind: string
-          loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
-          source_start_tick?: number | null
-          start_tick?: number | null
-          track_id: string
-          trim_start_ms?: number | null
-        }
-        Update: {
-          clip_id?: string
-          contribution_version_id?: string
-          duration_ms?: number | null
-          duration_ticks?: number | null
-          kind?: string
-          loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
-          source_start_tick?: number | null
-          start_tick?: number | null
-          track_id?: string
-          trim_start_ms?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contribution_version_clips_contribution_version_id_fkey"
-            columns: ["contribution_version_id"]
-            isOneToOne: false
-            referencedRelation: "contribution_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_clips_contribution_version_id_track_i_fkey"
-            columns: ["contribution_version_id", "track_id"]
-            isOneToOne: false
-            referencedRelation: "contribution_version_tracks"
-            referencedColumns: ["contribution_version_id", "track_id"]
-          },
-          {
-            foreignKeyName: "contribution_version_clips_midi_stem_version_id_fkey"
-            columns: ["midi_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contribution_version_midi_track_credits: {
-        Row: {
-          contribution_version_id: string
-          creator_credit_name: string
-          creator_id: string
-          credit_role: string
-          credited_stem_version_id: string
-          midi_stem_version_id: string
-          track_id: string
-        }
-        Insert: {
-          contribution_version_id: string
-          creator_credit_name: string
-          creator_id: string
-          credit_role: string
-          credited_stem_version_id: string
-          midi_stem_version_id: string
-          track_id: string
-        }
-        Update: {
-          contribution_version_id?: string
-          creator_credit_name?: string
-          creator_id?: string
-          credit_role?: string
-          credited_stem_version_id?: string
-          midi_stem_version_id?: string
-          track_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contribution_version_midi_tra_contribution_version_id_trac_fkey"
-            columns: ["contribution_version_id", "track_id"]
-            isOneToOne: false
-            referencedRelation: "contribution_version_tracks"
-            referencedColumns: ["contribution_version_id", "track_id"]
-          },
-          {
-            foreignKeyName: "contribution_version_midi_track_c_credited_stem_version_id_fkey"
-            columns: ["credited_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_midi_track_credi_midi_stem_version_id_fkey"
-            columns: ["midi_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_midi_track_credits_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_midi_track_credits_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contribution_version_tracks: {
-        Row: {
-          added_by: string
-          asset_id: string | null
-          contribution_version_id: string
-          duration_ms: number | null
-          gain_db: number
-          instrument_id: string | null
-          kind: string
-          muted: boolean
-          name: string
-          pan: number
-          position_ms: number | null
-          preset_id: string | null
-          preset_version: number | null
-          soloed: boolean
-          sort_order: number
-          track_id: string
-          trim_start_ms: number | null
-        }
-        Insert: {
-          added_by: string
-          asset_id?: string | null
-          contribution_version_id: string
-          duration_ms?: number | null
-          gain_db: number
-          instrument_id?: string | null
-          kind?: string
-          muted: boolean
-          name: string
-          pan: number
-          position_ms?: number | null
-          preset_id?: string | null
-          preset_version?: number | null
-          soloed: boolean
-          sort_order: number
-          track_id: string
-          trim_start_ms?: number | null
-        }
-        Update: {
-          added_by?: string
-          asset_id?: string | null
-          contribution_version_id?: string
-          duration_ms?: number | null
-          gain_db?: number
-          instrument_id?: string | null
-          kind?: string
-          muted?: boolean
-          name?: string
-          pan?: number
-          position_ms?: number | null
-          preset_id?: string | null
-          preset_version?: number | null
-          soloed?: boolean
-          sort_order?: number
-          track_id?: string
-          trim_start_ms?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contribution_version_tracks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_tracks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_tracks_asset_fk"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_tracks_contribution_version_id_fkey"
-            columns: ["contribution_version_id"]
-            isOneToOne: false
-            referencedRelation: "contribution_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_version_tracks_instrument_id_fkey"
-            columns: ["instrument_id"]
-            isOneToOne: false
-            referencedRelation: "instruments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contribution_versions: {
         Row: {
+          arrangement_version_id: string | null
           attestation_version: string
           base_revision_id: string
           contribution_id: string
@@ -626,12 +448,13 @@ export type Database = {
           manifest: Json
           manifest_sha256: string
           manifest_version: number
-          snapshot_asset_id: string | null
+          project_id: string
           submission_request_id: string
           version_number: number
           workspace_lock_version: number
         }
         Insert: {
+          arrangement_version_id?: string | null
           attestation_version: string
           base_revision_id: string
           contribution_id: string
@@ -644,12 +467,13 @@ export type Database = {
           manifest: Json
           manifest_sha256: string
           manifest_version: number
-          snapshot_asset_id?: string | null
+          project_id: string
           submission_request_id: string
           version_number: number
           workspace_lock_version: number
         }
         Update: {
+          arrangement_version_id?: string | null
           attestation_version?: string
           base_revision_id?: string
           contribution_id?: string
@@ -662,12 +486,19 @@ export type Database = {
           manifest?: Json
           manifest_sha256?: string
           manifest_version?: number
-          snapshot_asset_id?: string | null
+          project_id?: string
           submission_request_id?: string
           version_number?: number
           workspace_lock_version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "contribution_versions_arrangement_fk"
+            columns: ["project_id", "arrangement_version_id"]
+            isOneToOne: false
+            referencedRelation: "arrangement_versions"
+            referencedColumns: ["project_id", "id"]
+          },
           {
             foreignKeyName: "contribution_versions_base_revision_id_fkey"
             columns: ["base_revision_id"]
@@ -683,6 +514,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contribution_versions_contribution_project_fk"
+            columns: ["project_id", "contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["project_id", "id"]
+          },
+          {
             foreignKeyName: "contribution_versions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -694,13 +532,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contribution_versions_snapshot_asset_id_fkey"
-            columns: ["snapshot_asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
             referencedColumns: ["id"]
           },
         ]
@@ -872,33 +703,6 @@ export type Database = {
         }
         Relationships: []
       }
-      global_storage_usage: {
-        Row: {
-          derived_bytes: number
-          reserved_derived_bytes: number
-          reserved_source_bytes: number
-          singleton: boolean
-          source_bytes: number
-          updated_at: string
-        }
-        Insert: {
-          derived_bytes?: number
-          reserved_derived_bytes?: number
-          reserved_source_bytes?: number
-          singleton?: boolean
-          source_bytes?: number
-          updated_at?: string
-        }
-        Update: {
-          derived_bytes?: number
-          reserved_derived_bytes?: number
-          reserved_source_bytes?: number
-          singleton?: boolean
-          source_bytes?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       instruments: {
         Row: {
           created_at: string
@@ -976,229 +780,205 @@ export type Database = {
         }
         Relationships: []
       }
-      midi_stem_drafts: {
+      midi_pattern_notes: {
         Row: {
-          content_sha256: string
-          created_at: string
-          default_preset_id: string
-          default_preset_version: number
           duration_ticks: number
-          entry_mode: string
-          id: string
-          last_save_expected_lock_version: number | null
-          last_save_request_id: string | null
-          lock_version: number
-          name: string
-          note_count: number
-          notes: Json
-          owner_id: string
-          parent_stem_version_id: string | null
-          ppq: number
-          stem_id: string
-          updated_at: string
+          midi_pattern_version_id: string
+          note_id: string
+          pitch: number
+          start_tick: number
+          velocity: number
         }
         Insert: {
-          content_sha256: string
-          created_at?: string
-          default_preset_id: string
-          default_preset_version: number
           duration_ticks: number
-          entry_mode: string
-          id?: string
-          last_save_expected_lock_version?: number | null
-          last_save_request_id?: string | null
-          lock_version?: number
-          name: string
-          note_count?: number
-          notes?: Json
-          owner_id: string
-          parent_stem_version_id?: string | null
-          ppq: number
-          stem_id: string
-          updated_at?: string
+          midi_pattern_version_id: string
+          note_id: string
+          pitch: number
+          start_tick: number
+          velocity: number
         }
         Update: {
-          content_sha256?: string
-          created_at?: string
-          default_preset_id?: string
-          default_preset_version?: number
           duration_ticks?: number
-          entry_mode?: string
-          id?: string
-          last_save_expected_lock_version?: number | null
-          last_save_request_id?: string | null
-          lock_version?: number
-          name?: string
-          note_count?: number
-          notes?: Json
-          owner_id?: string
-          parent_stem_version_id?: string | null
-          ppq?: number
-          stem_id?: string
-          updated_at?: string
+          midi_pattern_version_id?: string
+          note_id?: string
+          pitch?: number
+          start_tick?: number
+          velocity?: number
         }
         Relationships: [
           {
-            foreignKeyName: "midi_stem_drafts_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "midi_pattern_notes_midi_pattern_version_id_fkey"
+            columns: ["midi_pattern_version_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "midi_pattern_versions"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "midi_stem_drafts_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "midi_stem_drafts_parent_stem_version_id_fkey"
-            columns: ["parent_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "midi_stem_drafts_stem_id_owner_id_fkey"
-            columns: ["stem_id", "owner_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stems"
-            referencedColumns: ["id", "owner_id"]
           },
         ]
       }
-      midi_stem_versions: {
+      midi_pattern_versions: {
         Row: {
           content_sha256: string
+          create_request_id: string
           created_at: string
           creator_credit_name: string
-          default_preset_id: string
-          default_preset_version: number
+          creator_id: string
           duration_ticks: number
           id: string
-          name: string
+          midi_pattern_id: string
           note_count: number
-          notes: Json
-          owner_id: string
-          parent_stem_version_id: string | null
+          parent_pattern_version_id: string | null
           ppq: number
-          publication_request_id: string | null
-          source_draft_id: string | null
-          source_lock_version: number | null
-          stem_id: string
-          version: number
+          reuse_license_code: string | null
+          reuse_license_url: string | null
+          reuse_license_version: string | null
+          source_pattern_version_id: string | null
+          version_number: number
         }
         Insert: {
           content_sha256: string
+          create_request_id: string
           created_at?: string
           creator_credit_name: string
-          default_preset_id: string
-          default_preset_version: number
+          creator_id: string
           duration_ticks: number
           id?: string
-          name: string
+          midi_pattern_id: string
           note_count: number
-          notes: Json
-          owner_id: string
-          parent_stem_version_id?: string | null
+          parent_pattern_version_id?: string | null
           ppq: number
-          publication_request_id?: string | null
-          source_draft_id?: string | null
-          source_lock_version?: number | null
-          stem_id: string
-          version: number
+          reuse_license_code?: string | null
+          reuse_license_url?: string | null
+          reuse_license_version?: string | null
+          source_pattern_version_id?: string | null
+          version_number: number
         }
         Update: {
           content_sha256?: string
+          create_request_id?: string
           created_at?: string
           creator_credit_name?: string
-          default_preset_id?: string
-          default_preset_version?: number
+          creator_id?: string
           duration_ticks?: number
           id?: string
-          name?: string
+          midi_pattern_id?: string
           note_count?: number
-          notes?: Json
-          owner_id?: string
-          parent_stem_version_id?: string | null
+          parent_pattern_version_id?: string | null
           ppq?: number
-          publication_request_id?: string | null
-          source_draft_id?: string | null
-          source_lock_version?: number | null
-          stem_id?: string
-          version?: number
+          reuse_license_code?: string | null
+          reuse_license_url?: string | null
+          reuse_license_version?: string | null
+          source_pattern_version_id?: string | null
+          version_number?: number
         }
         Relationships: [
           {
-            foreignKeyName: "midi_stem_versions_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "midi_pattern_versions_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "midi_stem_versions_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "midi_pattern_versions_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "midi_stem_versions_parent_stem_version_id_fkey"
-            columns: ["parent_stem_version_id"]
+            foreignKeyName: "midi_pattern_versions_midi_pattern_id_fkey"
+            columns: ["midi_pattern_id"]
             isOneToOne: false
-            referencedRelation: "midi_stem_versions"
+            referencedRelation: "midi_patterns"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "midi_stem_versions_stem_id_owner_id_fkey"
-            columns: ["stem_id", "owner_id"]
+            foreignKeyName: "midi_pattern_versions_midi_pattern_id_parent_pattern_versi_fkey"
+            columns: ["midi_pattern_id", "parent_pattern_version_id"]
             isOneToOne: false
-            referencedRelation: "midi_stems"
-            referencedColumns: ["id", "owner_id"]
+            referencedRelation: "midi_pattern_versions"
+            referencedColumns: ["midi_pattern_id", "id"]
+          },
+          {
+            foreignKeyName: "midi_pattern_versions_source_pattern_version_id_fkey"
+            columns: ["source_pattern_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_pattern_versions"
+            referencedColumns: ["id"]
           },
         ]
       }
-      midi_stems: {
+      midi_patterns: {
         Row: {
           create_request_id: string
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
           owner_id: string
+          published_at: string | null
+          rights_attestation_version: string | null
+          source_pattern_id: string | null
+          source_pattern_version_id: string | null
           updated_at: string
+          visibility: string
         }
         Insert: {
           create_request_id: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
           owner_id: string
+          published_at?: string | null
+          rights_attestation_version?: string | null
+          source_pattern_id?: string | null
+          source_pattern_version_id?: string | null
           updated_at?: string
+          visibility?: string
         }
         Update: {
           create_request_id?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           owner_id?: string
+          published_at?: string | null
+          rights_attestation_version?: string | null
+          source_pattern_id?: string | null
+          source_pattern_version_id?: string | null
           updated_at?: string
+          visibility?: string
         }
         Relationships: [
           {
-            foreignKeyName: "midi_stems_owner_id_fkey"
+            foreignKeyName: "midi_patterns_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "midi_stems_owner_id_fkey"
+            foreignKeyName: "midi_patterns_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_patterns_source_pattern_id_fkey"
+            columns: ["source_pattern_id"]
+            isOneToOne: false
+            referencedRelation: "midi_patterns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "midi_patterns_source_version_fk"
+            columns: ["source_pattern_id", "source_pattern_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_pattern_versions"
+            referencedColumns: ["midi_pattern_id", "id"]
           },
         ]
       }
@@ -1352,66 +1132,6 @@ export type Database = {
           },
         ]
       }
-      project_asset_references: {
-        Row: {
-          added_by: string
-          asset_id: string
-          created_at: string
-          first_revision_id: string
-          project_id: string
-        }
-        Insert: {
-          added_by: string
-          asset_id: string
-          created_at?: string
-          first_revision_id: string
-          project_id: string
-        }
-        Update: {
-          added_by?: string
-          asset_id?: string
-          created_at?: string
-          first_revision_id?: string
-          project_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_asset_references_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_asset_references_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_asset_references_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_asset_references_project_id_first_revision_id_fkey"
-            columns: ["project_id", "first_revision_id"]
-            isOneToOne: false
-            referencedRelation: "project_revisions"
-            referencedColumns: ["project_id", "id"]
-          },
-          {
-            foreignKeyName: "project_asset_references_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_genres: {
         Row: {
           created_at: string
@@ -1512,6 +1232,7 @@ export type Database = {
         Row: {
           accepted_contribution_id: string | null
           accepted_contribution_version_id: string | null
+          arrangement_version_id: string | null
           created_at: string
           created_by: string
           duration_ms: number
@@ -1527,11 +1248,11 @@ export type Database = {
           project_id: string
           publish_request_id: string
           revision_number: number
-          snapshot_asset_id: string | null
         }
         Insert: {
           accepted_contribution_id?: string | null
           accepted_contribution_version_id?: string | null
+          arrangement_version_id?: string | null
           created_at?: string
           created_by: string
           duration_ms: number
@@ -1547,11 +1268,11 @@ export type Database = {
           project_id: string
           publish_request_id: string
           revision_number: number
-          snapshot_asset_id?: string | null
         }
         Update: {
           accepted_contribution_id?: string | null
           accepted_contribution_version_id?: string | null
+          arrangement_version_id?: string | null
           created_at?: string
           created_by?: string
           duration_ms?: number
@@ -1567,7 +1288,6 @@ export type Database = {
           project_id?: string
           publish_request_id?: string
           revision_number?: number
-          snapshot_asset_id?: string | null
         }
         Relationships: [
           {
@@ -1586,6 +1306,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contribution_versions"
             referencedColumns: ["contribution_id", "id"]
+          },
+          {
+            foreignKeyName: "project_revisions_arrangement_fk"
+            columns: ["project_id", "arrangement_version_id"]
+            isOneToOne: false
+            referencedRelation: "arrangement_versions"
+            referencedColumns: ["project_id", "id"]
           },
           {
             foreignKeyName: "project_revisions_created_by_fkey"
@@ -1662,35 +1389,6 @@ export type Database = {
           },
         ]
       }
-      project_storage_usage: {
-        Row: {
-          project_id: string
-          source_bytes: number
-          unique_source_count: number
-          updated_at: string
-        }
-        Insert: {
-          project_id: string
-          source_bytes?: number
-          unique_source_count?: number
-          updated_at?: string
-        }
-        Update: {
-          project_id?: string
-          source_bytes?: number
-          unique_source_count?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_storage_usage_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: true
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_tags: {
         Row: {
           created_at: string
@@ -1744,6 +1442,7 @@ export type Database = {
           owner_id: string
           published_at: string | null
           purged_at: string | null
+          rights_attestation_version: string | null
           source_project_id: string | null
           source_revision_id: string | null
           status: Database["public"]["Enums"]["project_status"]
@@ -1772,6 +1471,7 @@ export type Database = {
           owner_id: string
           published_at?: string | null
           purged_at?: string | null
+          rights_attestation_version?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -1800,6 +1500,7 @@ export type Database = {
           owner_id?: string
           published_at?: string | null
           purged_at?: string | null
+          rights_attestation_version?: string | null
           source_project_id?: string | null
           source_revision_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -2052,296 +1753,6 @@ export type Database = {
           },
         ]
       }
-      revision_clips: {
-        Row: {
-          clip_id: string
-          duration_ms: number | null
-          duration_ticks: number | null
-          kind: string
-          loop: boolean | null
-          midi_stem_version_id: string | null
-          position_ms: number | null
-          revision_id: string
-          source_start_tick: number | null
-          start_tick: number | null
-          track_id: string
-          trim_start_ms: number | null
-        }
-        Insert: {
-          clip_id: string
-          duration_ms?: number | null
-          duration_ticks?: number | null
-          kind: string
-          loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
-          revision_id: string
-          source_start_tick?: number | null
-          start_tick?: number | null
-          track_id: string
-          trim_start_ms?: number | null
-        }
-        Update: {
-          clip_id?: string
-          duration_ms?: number | null
-          duration_ticks?: number | null
-          kind?: string
-          loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
-          revision_id?: string
-          source_start_tick?: number | null
-          start_tick?: number | null
-          track_id?: string
-          trim_start_ms?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "revision_clips_midi_stem_version_id_fkey"
-            columns: ["midi_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_clips_revision_id_track_id_fkey"
-            columns: ["revision_id", "track_id"]
-            isOneToOne: false
-            referencedRelation: "revision_tracks"
-            referencedColumns: ["revision_id", "id"]
-          },
-        ]
-      }
-      revision_midi_track_credits: {
-        Row: {
-          created_at: string
-          creator_credit_name: string
-          creator_id: string
-          credit_role: string
-          credited_stem_version_id: string
-          midi_stem_version_id: string
-          revision_id: string
-          track_id: string
-        }
-        Insert: {
-          created_at?: string
-          creator_credit_name: string
-          creator_id: string
-          credit_role: string
-          credited_stem_version_id: string
-          midi_stem_version_id: string
-          revision_id: string
-          track_id: string
-        }
-        Update: {
-          created_at?: string
-          creator_credit_name?: string
-          creator_id?: string
-          credit_role?: string
-          credited_stem_version_id?: string
-          midi_stem_version_id?: string
-          revision_id?: string
-          track_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "revision_midi_track_credits_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_midi_track_credits_creator_id_fkey"
-            columns: ["creator_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_midi_track_credits_credited_stem_version_id_fkey"
-            columns: ["credited_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_midi_track_credits_midi_stem_version_id_fkey"
-            columns: ["midi_stem_version_id"]
-            isOneToOne: false
-            referencedRelation: "midi_stem_versions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_midi_track_credits_revision_id_track_id_fkey"
-            columns: ["revision_id", "track_id"]
-            isOneToOne: false
-            referencedRelation: "revision_tracks"
-            referencedColumns: ["revision_id", "id"]
-          },
-        ]
-      }
-      revision_track_credits: {
-        Row: {
-          asset_id: string
-          created_at: string
-          credit_name: string
-          position: number
-          revision_id: string
-          role: Database["public"]["Enums"]["asset_credit_role"]
-          source_credit_position: number
-          track_id: string
-          user_id: string | null
-        }
-        Insert: {
-          asset_id: string
-          created_at?: string
-          credit_name: string
-          position: number
-          revision_id: string
-          role: Database["public"]["Enums"]["asset_credit_role"]
-          source_credit_position: number
-          track_id: string
-          user_id?: string | null
-        }
-        Update: {
-          asset_id?: string
-          created_at?: string
-          credit_name?: string
-          position?: number
-          revision_id?: string
-          role?: Database["public"]["Enums"]["asset_credit_role"]
-          source_credit_position?: number
-          track_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "revision_track_credits_asset_id_source_credit_position_fkey"
-            columns: ["asset_id", "source_credit_position"]
-            isOneToOne: false
-            referencedRelation: "asset_credits"
-            referencedColumns: ["asset_id", "position"]
-          },
-          {
-            foreignKeyName: "revision_track_credits_revision_id_track_id_asset_id_fkey"
-            columns: ["revision_id", "track_id", "asset_id"]
-            isOneToOne: false
-            referencedRelation: "revision_tracks"
-            referencedColumns: ["revision_id", "id", "asset_id"]
-          },
-          {
-            foreignKeyName: "revision_track_credits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_track_credits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      revision_tracks: {
-        Row: {
-          added_by: string
-          asset_id: string | null
-          duration_ms: number
-          gain_db: number
-          id: string
-          instrument_id: string | null
-          kind: string
-          muted: boolean
-          name: string
-          pan: number
-          position_ms: number
-          preset_id: string | null
-          preset_version: number | null
-          revision_id: string
-          soloed: boolean
-          sort_order: number
-          trim_start_ms: number
-        }
-        Insert: {
-          added_by: string
-          asset_id?: string | null
-          duration_ms: number
-          gain_db: number
-          id: string
-          instrument_id?: string | null
-          kind?: string
-          muted: boolean
-          name: string
-          pan: number
-          position_ms: number
-          preset_id?: string | null
-          preset_version?: number | null
-          revision_id: string
-          soloed: boolean
-          sort_order: number
-          trim_start_ms: number
-        }
-        Update: {
-          added_by?: string
-          asset_id?: string | null
-          duration_ms?: number
-          gain_db?: number
-          id?: string
-          instrument_id?: string | null
-          kind?: string
-          muted?: boolean
-          name?: string
-          pan?: number
-          position_ms?: number
-          preset_id?: string | null
-          preset_version?: number | null
-          revision_id?: string
-          soloed?: boolean
-          sort_order?: number
-          trim_start_ms?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "revision_tracks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_tracks_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_tracks_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_tracks_instrument_id_fkey"
-            columns: ["instrument_id"]
-            isOneToOne: false
-            referencedRelation: "instruments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "revision_tracks_revision_id_fkey"
-            columns: ["revision_id"]
-            isOneToOne: false
-            referencedRelation: "project_revisions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tags: {
         Row: {
           created_at: string
@@ -2387,185 +1798,43 @@ export type Database = {
           },
         ]
       }
-      user_storage_usage: {
-        Row: {
-          reserved_source_bytes: number
-          source_bytes: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          reserved_source_bytes?: number
-          source_bytes?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          reserved_source_bytes?: number
-          source_bytes?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_storage_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_storage_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      waveform_peak_derivatives: {
-        Row: {
-          algorithm_version: string | null
-          bin_count: number | null
-          bucket: string
-          byte_size: number | null
-          channels: number | null
-          content_type: string
-          created_at: string
-          duration_ms: number | null
-          expected_byte_size: number
-          expires_at: string
-          failed_at: string | null
-          format_version: number | null
-          id: string
-          object_path: string
-          owner_id: string
-          ready_at: string | null
-          request_id: string
-          sample_rate_hz: number | null
-          sha256: string | null
-          source_asset_id: string
-          status: string
-        }
-        Insert: {
-          algorithm_version?: string | null
-          bin_count?: number | null
-          bucket?: string
-          byte_size?: number | null
-          channels?: number | null
-          content_type?: string
-          created_at?: string
-          duration_ms?: number | null
-          expected_byte_size: number
-          expires_at: string
-          failed_at?: string | null
-          format_version?: number | null
-          id: string
-          object_path: string
-          owner_id: string
-          ready_at?: string | null
-          request_id: string
-          sample_rate_hz?: number | null
-          sha256?: string | null
-          source_asset_id: string
-          status?: string
-        }
-        Update: {
-          algorithm_version?: string | null
-          bin_count?: number | null
-          bucket?: string
-          byte_size?: number | null
-          channels?: number | null
-          content_type?: string
-          created_at?: string
-          duration_ms?: number | null
-          expected_byte_size?: number
-          expires_at?: string
-          failed_at?: string | null
-          format_version?: number | null
-          id?: string
-          object_path?: string
-          owner_id?: string
-          ready_at?: string | null
-          request_id?: string
-          sample_rate_hz?: number | null
-          sha256?: string | null
-          source_asset_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "waveform_peak_derivatives_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "waveform_peak_derivatives_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "waveform_peak_derivatives_source_owner_fk"
-            columns: ["source_asset_id", "owner_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id", "owner_id"]
-          },
-        ]
-      }
       workspace_clips: {
         Row: {
           clip_id: string
-          duration_ms: number | null
           duration_ticks: number | null
-          kind: string
           loop: boolean | null
-          midi_stem_version_id: string | null
-          position_ms: number | null
+          midi_pattern_version_id: string | null
           source_start_tick: number | null
           start_tick: number | null
           track_id: string
-          trim_start_ms: number | null
           workspace_id: string
         }
         Insert: {
           clip_id: string
-          duration_ms?: number | null
           duration_ticks?: number | null
-          kind: string
           loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
+          midi_pattern_version_id?: string | null
           source_start_tick?: number | null
           start_tick?: number | null
           track_id: string
-          trim_start_ms?: number | null
           workspace_id: string
         }
         Update: {
           clip_id?: string
-          duration_ms?: number | null
           duration_ticks?: number | null
-          kind?: string
           loop?: boolean | null
-          midi_stem_version_id?: string | null
-          position_ms?: number | null
+          midi_pattern_version_id?: string | null
           source_start_tick?: number | null
           start_tick?: number | null
           track_id?: string
-          trim_start_ms?: number | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "workspace_clips_midi_stem_version_id_fkey"
-            columns: ["midi_stem_version_id"]
+            foreignKeyName: "workspace_clips_midi_pattern_version_id_fkey"
+            columns: ["midi_pattern_version_id"]
             isOneToOne: false
-            referencedRelation: "midi_stem_versions"
+            referencedRelation: "midi_pattern_versions"
             referencedColumns: ["id"]
           },
           {
@@ -2579,74 +1848,42 @@ export type Database = {
       }
       workspace_tracks: {
         Row: {
-          asset_id: string | null
-          duration_ms: number
           gain_db: number
-          instrument_id: string | null
-          kind: string
           muted: boolean
           name: string
           pan: number
-          position_ms: number
           preset_id: string | null
           preset_version: number | null
           soloed: boolean
           sort_order: number
           track_id: string
-          trim_start_ms: number
           workspace_id: string
         }
         Insert: {
-          asset_id?: string | null
-          duration_ms: number
           gain_db: number
-          instrument_id?: string | null
-          kind?: string
           muted: boolean
           name: string
           pan: number
-          position_ms: number
           preset_id?: string | null
           preset_version?: number | null
           soloed: boolean
           sort_order: number
           track_id: string
-          trim_start_ms: number
           workspace_id: string
         }
         Update: {
-          asset_id?: string | null
-          duration_ms?: number
           gain_db?: number
-          instrument_id?: string | null
-          kind?: string
           muted?: boolean
           name?: string
           pan?: number
-          position_ms?: number
           preset_id?: string | null
           preset_version?: number | null
           soloed?: boolean
           sort_order?: number
           track_id?: string
-          trim_start_ms?: number
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "workspace_tracks_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workspace_tracks_instrument_id_fkey"
-            columns: ["instrument_id"]
-            isOneToOne: false
-            referencedRelation: "instruments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "workspace_tracks_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2673,7 +1910,6 @@ export type Database = {
           manifest_version: number
           owner_id: string
           project_id: string
-          snapshot_asset_id: string | null
           status: string
           updated_at: string
         }
@@ -2693,7 +1929,6 @@ export type Database = {
           manifest_version: number
           owner_id: string
           project_id: string
-          snapshot_asset_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -2713,7 +1948,6 @@ export type Database = {
           manifest_version?: number
           owner_id?: string
           project_id?: string
-          snapshot_asset_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -2761,13 +1995,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "workspaces_snapshot_asset_id_fkey"
-            columns: ["snapshot_asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
             referencedColumns: ["id"]
           },
         ]
@@ -2823,6 +2050,21 @@ export type Database = {
       }
     }
     Functions: {
+      accept_contribution_v3: {
+        Args: {
+          p_contribution_id: string
+          p_expected_contribution_version_id: string
+          p_expected_project_revision_id: string
+          p_message?: string
+          p_request_id: string
+        }
+        Returns: {
+          arrangement_version_id: string
+          created_at: string
+          revision_id: string
+          revision_number: number
+        }[]
+      }
       activate_signup_invitation: { Args: { p_email: string }; Returns: Json }
       apply_moderation_action: {
         Args: {
@@ -2836,14 +2078,6 @@ export type Database = {
         Returns: Json
       }
       assert_viewer_admin: { Args: never; Returns: boolean }
-      cancel_source_upload: {
-        Args: { p_asset_id: string }
-        Returns: Database["public"]["Enums"]["asset_status"]
-      }
-      cancel_waveform_peaks: {
-        Args: { p_derivative_id: string }
-        Returns: string
-      }
       claim_username: {
         Args: { p_username: string }
         Returns: {
@@ -2855,18 +2089,7 @@ export type Database = {
         Args: { p_asset_id: string }
         Returns: string
       }
-      complete_source_upload: {
-        Args: { p_asset_id: string }
-        Returns: Database["public"]["Enums"]["asset_status"]
-      }
-      confirm_source_asset_credits: {
-        Args: { p_asset_id: string; p_credits: Json; p_request_id: string }
-        Returns: {
-          asset_id: string
-          credits_confirmed_at: string
-        }[]
-      }
-      create_contribution_workspace: {
+      create_contribution_workspace_v3: {
         Args: {
           p_description: string
           p_expected_current_revision_id: string
@@ -2882,22 +2105,36 @@ export type Database = {
           workspace_id: string
         }[]
       }
-      create_imported_midi_stem_draft: {
+      create_midi_pattern_v3: {
         Args: {
-          p_content: Json
+          p_name: string
           p_request_id: string
-          p_save_request_id: string
+          p_source_pattern_version_id?: string
+        }
+        Returns: {
+          created_at: string
+          pattern_id: string
+        }[]
+      }
+      create_midi_pattern_version_v3: {
+        Args: {
+          p_duration_ticks: number
+          p_expected_version_number: number
+          p_notes: Json
+          p_pattern_id: string
+          p_ppq: number
+          p_publish_for_reuse?: boolean
+          p_request_id: string
+          p_rights_attestation_version?: string
         }
         Returns: {
           content_sha256: string
           created_at: string
-          draft_id: string
-          lock_version: number
-          stem_id: string
-          updated_at: string
+          pattern_version_id: string
+          version_number: number
         }[]
       }
-      create_midi_project_workspace: {
+      create_midi_project_workspace_v3: {
         Args: {
           p_bpm: number
           p_description: string
@@ -2916,38 +2153,6 @@ export type Database = {
           project_id: string
           title: string
           workspace_id: string
-        }[]
-      }
-      create_midi_stem_draft: {
-        Args: {
-          p_default_preset_id?: string
-          p_default_preset_version?: number
-          p_entry_mode?: string
-          p_name: string
-          p_parent_stem_version_id?: string
-          p_request_id: string
-        }
-        Returns: {
-          created_at: string
-          draft_id: string
-          lock_version: number
-          stem_id: string
-        }[]
-      }
-      create_midi_stem_draft_owner_v1: {
-        Args: {
-          p_default_preset_id?: string
-          p_default_preset_version?: number
-          p_entry_mode?: string
-          p_name: string
-          p_parent_stem_version_id?: string
-          p_request_id: string
-        }
-        Returns: {
-          created_at: string
-          draft_id: string
-          lock_version: number
-          stem_id: string
         }[]
       }
       create_project: {
@@ -2970,7 +2175,7 @@ export type Database = {
           title: string
         }[]
       }
-      create_project_workspace: {
+      create_project_workspace_v3: {
         Args: {
           p_expected_current_revision_id: string
           p_project_id: string
@@ -2999,75 +2204,22 @@ export type Database = {
           project_id: string
         }[]
       }
-      finalize_studio_midi_draft: {
-        Args: {
-          p_clip_id: string
-          p_draft_id: string
-          p_expected_content_sha256: string
-          p_expected_draft_lock_version: number
-          p_expected_workspace_lock_version: number
-          p_operation: string
-          p_request_id: string
-          p_start_tick?: number
-          p_track_id: string
-          p_workspace_id: string
-        }
-        Returns: {
-          creator_credit_name: string
-          stem_id: string
-          stem_version_id: string
-          version: number
-          version_created_at: string
-          workspace_lock_version: number
-          workspace_manifest: Json
-          workspace_manifest_sha256: string
-          workspace_updated_at: string
-        }[]
-      }
-      finalize_waveform_peaks: {
-        Args: {
-          p_algorithm_version: string
-          p_bin_count: number
-          p_byte_size: number
-          p_channels: number
-          p_derivative_id: string
-          p_duration_ms: number
-          p_format_version: number
-          p_sample_rate_hz: number
-          p_sha256: string
-        }
-        Returns: string
-      }
-      fork_project: {
+      fork_project_v3: {
         Args: {
           p_description: string
           p_expected_license_code: string
           p_request_id: string
+          p_rights_attestation_version: string
           p_source_project_id: string
           p_source_revision_id: string
           p_title: string
         }
         Returns: {
+          arrangement_version_id: string
           created_at: string
           project_id: string
           revision_id: string
-          revision_number: number
-        }[]
-      }
-      fork_project_v1: {
-        Args: {
-          p_description: string
-          p_expected_license_code: string
-          p_request_id: string
-          p_source_project_id: string
-          p_source_revision_id: string
-          p_title: string
-        }
-        Returns: {
-          created_at: string
-          project_id: string
-          revision_id: string
-          revision_number: number
+          workspace_id: string
         }[]
       }
       get_admin_moderation_target: {
@@ -3080,8 +2232,8 @@ export type Database = {
         Returns: Json
       }
       get_own_account_recovery: { Args: never; Returns: Json }
-      get_project_revision_preview: {
-        Args: { p_project_id: string; p_revision_id: string }
+      get_project_revision_history_v3: {
+        Args: { p_project_id: string }
         Returns: Json
       }
       get_public_profile_history: {
@@ -3091,27 +2243,6 @@ export type Database = {
       get_public_project_lineage: {
         Args: { p_project_id: string }
         Returns: Json
-      }
-      get_source_admission_capability: {
-        Args: never
-        Returns: {
-          source_audio_admission_enabled: boolean
-        }[]
-      }
-      get_source_verification_status: {
-        Args: { p_asset_id: string }
-        Returns: {
-          asset_status: Database["public"]["Enums"]["asset_status"]
-          attempt_count: number
-          byte_size: number
-          channels: number
-          duration_ms: number
-          failure_code: string
-          media_type: string
-          next_attempt_at: string
-          sample_rate_hz: number
-          verification_state: string
-        }[]
       }
       get_viewer_dashboard: { Args: never; Returns: Json }
       get_viewer_profile: {
@@ -3134,7 +2265,6 @@ export type Database = {
         Args: { p_after_created_at?: string; p_after_id?: string }
         Returns: Json
       }
-      list_admin_rejectable_uploads: { Args: never; Returns: Json }
       list_public_profile_contributions: {
         Args: {
           p_after_accepted_at?: string
@@ -3205,19 +2335,6 @@ export type Database = {
         Args: { p_run_id: string }
         Returns: Json
       }
-      operator_claim_source_verification: {
-        Args: { p_asset_id?: string; p_owner_id?: string }
-        Returns: {
-          asset_id: string
-          attempt_count: number
-          bucket: string
-          lease_token: string
-          object_path: string
-          original_filename: string
-          owner_id: string
-          reserved_byte_size: number
-        }[]
-      }
       operator_complete_profile_avatar_cleanup: {
         Args: { p_avatar_version_id: string; p_lease_token: string }
         Returns: undefined
@@ -3241,35 +2358,9 @@ export type Database = {
         Args: { p_run_id: string }
         Returns: Json
       }
-      operator_complete_source_verification: {
-        Args: {
-          p_asset_id: string
-          p_byte_size: number
-          p_channels: number
-          p_duration_ms: number
-          p_lease_token: string
-          p_media_type: string
-          p_sample_rate_hz: number
-          p_sha256: string
-          p_verification_version: string
-        }
-        Returns: undefined
-      }
       operator_count_due_profile_avatar_cleanup: {
         Args: never
         Returns: number
-      }
-      operator_fail_source_asset: {
-        Args: { p_asset_id: string; p_failure_code: string }
-        Returns: undefined
-      }
-      operator_fail_source_verification: {
-        Args: {
-          p_asset_id: string
-          p_failure_code: string
-          p_lease_token: string
-        }
-        Returns: undefined
       }
       operator_finalize_retention_job: {
         Args: {
@@ -3279,19 +2370,6 @@ export type Database = {
           p_missing_object_ids: string[]
         }
         Returns: string
-      }
-      operator_promote_source_asset: {
-        Args: {
-          p_asset_id: string
-          p_byte_size: number
-          p_channels: number
-          p_duration_ms: number
-          p_media_type: string
-          p_sample_rate_hz: number
-          p_sha256: string
-          p_verification_version: string
-        }
-        Returns: undefined
       }
       operator_retention_preview: { Args: { p_limit?: number }; Returns: Json }
       operator_retry_profile_avatar_cleanup: {
@@ -3314,18 +2392,6 @@ export type Database = {
         Args: { p_error_code: string; p_job_id: string; p_lease_token: string }
         Returns: string
       }
-      operator_retry_source_verification: {
-        Args: {
-          p_asset_id: string
-          p_error_code: string
-          p_lease_token: string
-        }
-        Returns: string
-      }
-      operator_set_source_admission_enabled: {
-        Args: { p_enabled: boolean }
-        Returns: boolean
-      }
       operator_start_retention_run: {
         Args: { p_limit?: number }
         Returns: string
@@ -3341,74 +2407,20 @@ export type Database = {
         }
         Returns: string
       }
-      publish_midi_stem_version: {
-        Args: {
-          p_draft_id: string
-          p_expected_content_sha256: string
-          p_expected_lock_version: number
-          p_request_id: string
-        }
-        Returns: {
-          content_sha256: string
-          created_at: string
-          creator_credit_name: string
-          stem_id: string
-          stem_version_id: string
-          version: number
-        }[]
-      }
-      publish_midi_workspace_revision: {
+      publish_midi_workspace_revision_v3: {
         Args: {
           p_expected_base_revision_id: string
-          p_expected_lock_version: number
+          p_expected_workspace_lock_version: number
           p_message: string
           p_request_id: string
           p_workspace_id: string
         }
         Returns: {
-          created_at: string
-          revision_id: string
-          revision_number: number
-          workspace_lock_version: number
-        }[]
-      }
-      publish_project_revision: {
-        Args: {
-          p_expected_current_revision_id: string
-          p_manifest: Json
-          p_message: string
-          p_project_id: string
-          p_request_id: string
-        }
-        Returns: {
+          arrangement_version_id: string
           created_at: string
           revision_id: string
           revision_number: number
         }[]
-      }
-      publish_workspace_revision: {
-        Args: {
-          p_expected_base_revision_id: string
-          p_expected_lock_version: number
-          p_message: string
-          p_request_id: string
-          p_workspace_id: string
-        }
-        Returns: {
-          created_at: string
-          revision_id: string
-          revision_number: number
-          workspace_lock_version: number
-        }[]
-      }
-      reject_admin_upload: {
-        Args: {
-          p_asset_id: string
-          p_expected_status: string
-          p_reason: string
-          p_request_id: string
-        }
-        Returns: Json
       }
       release_content_hold: {
         Args: { p_hold_id: string; p_reason: string; p_request_id: string }
@@ -3437,70 +2449,6 @@ export type Database = {
           object_path: string
         }[]
       }
-      reserve_source_asset: {
-        Args: {
-          p_client_duration_ms?: number
-          p_declared_media_type?: string
-          p_expected_byte_size: number
-          p_expected_sha256?: string
-          p_filename: string
-          p_request_id: string
-        }
-        Returns: {
-          asset_id: string
-          bucket: string
-          capacity_warning: boolean
-          expires_at: string
-          global_remaining_bytes: number
-          object_path: string
-          user_remaining_bytes: number
-        }[]
-      }
-      reserve_waveform_peaks: {
-        Args: {
-          p_expected_byte_size: number
-          p_request_id: string
-          p_source_asset_id: string
-        }
-        Returns: {
-          bucket: string
-          content_type: string
-          derivative_id: string
-          expires_at: string
-          object_path: string
-          source_asset_id: string
-        }[]
-      }
-      reserve_workspace_snapshot: {
-        Args: {
-          p_byte_size: number
-          p_expected_lock_version: number
-          p_manifest_sha256: string
-          p_request_id: string
-          p_workspace_id: string
-        }
-        Returns: {
-          asset_id: string
-          bucket: string
-          expires_at: string
-          object_path: string
-        }[]
-      }
-      restart_project_workspace: {
-        Args: {
-          p_expected_base_revision_id: string
-          p_expected_current_revision_id: string
-          p_expected_lock_version: number
-          p_request_id: string
-          p_workspace_id: string
-        }
-        Returns: {
-          base_revision_id: string
-          created_at: string
-          lock_version: number
-          workspace_id: string
-        }[]
-      }
       restore_own_account: { Args: never; Returns: Json }
       restore_own_contribution: {
         Args: { p_contribution_id: string }
@@ -3514,33 +2462,7 @@ export type Database = {
           status: string
         }[]
       }
-      retry_source_verification: {
-        Args: { p_asset_id: string }
-        Returns: string
-      }
       review_contribution: {
-        Args: {
-          p_contribution_id: string
-          p_decision: Database["public"]["Enums"]["contribution_review_decision"]
-          p_expected_current_version_id: string
-          p_expected_project_revision_id: string
-          p_expected_status: Database["public"]["Enums"]["contribution_status"]
-          p_note?: string
-          p_request_id: string
-        }
-        Returns: {
-          applied_decision: Database["public"]["Enums"]["contribution_review_decision"]
-          contribution_id: string
-          contribution_version_id: string
-          reason: Database["public"]["Enums"]["contribution_review_reason"]
-          requested_decision: Database["public"]["Enums"]["contribution_review_decision"]
-          reviewed_at: string
-          revision_id: string
-          revision_number: number
-          status: Database["public"]["Enums"]["contribution_status"]
-        }[]
-      }
-      review_contribution_v1: {
         Args: {
           p_contribution_id: string
           p_decision: Database["public"]["Enums"]["contribution_review_decision"]
@@ -3566,21 +2488,7 @@ export type Database = {
         Args: { p_project_id: string; p_revision_id: string }
         Returns: boolean
       }
-      save_midi_stem_draft: {
-        Args: {
-          p_content: Json
-          p_draft_id: string
-          p_expected_lock_version: number
-          p_request_id: string
-        }
-        Returns: {
-          content_sha256: string
-          draft_id: string
-          lock_version: number
-          updated_at: string
-        }[]
-      }
-      save_midi_workspace: {
+      save_midi_workspace_v3: {
         Args: {
           p_expected_lock_version: number
           p_manifest: Json
@@ -3611,21 +2519,6 @@ export type Database = {
           updated_at: string
           username: string
           username_normalized: string
-        }[]
-      }
-      save_workspace: {
-        Args: {
-          p_expected_lock_version: number
-          p_manifest: Json
-          p_request_id: string
-          p_snapshot_asset_id: string
-          p_workspace_id: string
-        }
-        Returns: {
-          lock_version: number
-          manifest_sha256: string
-          updated_at: string
-          workspace_id: string
         }[]
       }
       search_public_projects: {
@@ -3695,7 +2588,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["project_visibility"]
         }[]
       }
-      submit_contribution: {
+      submit_contribution_v3: {
         Args: {
           p_attestation_version: string
           p_contribution_id: string
@@ -3705,10 +2598,11 @@ export type Database = {
           p_request_id: string
         }
         Returns: {
+          arrangement_version_id: string
           contribution_id: string
-          created_at: string
+          contribution_version_id: string
           status: Database["public"]["Enums"]["contribution_status"]
-          version_id: string
+          submitted_at: string
           version_number: number
         }[]
       }
@@ -3770,18 +2664,6 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "suspended" | "deleted"
-      asset_credit_role:
-        | "creator"
-        | "performer"
-        | "producer"
-        | "engineer"
-        | "other"
-      asset_kind:
-        | "source_audio"
-        | "workspace_snapshot"
-        | "mix_preview"
-        | "waveform_peaks"
-        | "image"
       asset_status:
         | "reserved"
         | "uploading"
@@ -3937,20 +2819,6 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended", "deleted"],
-      asset_credit_role: [
-        "creator",
-        "performer",
-        "producer",
-        "engineer",
-        "other",
-      ],
-      asset_kind: [
-        "source_audio",
-        "workspace_snapshot",
-        "mix_preview",
-        "waveform_peaks",
-        "image",
-      ],
       asset_status: [
         "reserved",
         "uploading",

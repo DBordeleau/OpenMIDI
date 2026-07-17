@@ -6,11 +6,14 @@ import { getOptionalViewer } from "@/features/auth/guards";
 import { CollaborationSettingForm } from "@/features/contributions/collaboration-setting-form";
 import { CreditList } from "@/features/credits/credit-list";
 import { aggregateCredits } from "@/features/credits/types";
-import { PublicProjectPage } from "@/features/discovery/public-project-page";
+import {
+  PublicProjectPage,
+  SemanticHistory,
+} from "@/features/discovery/public-project-page";
 import { projectIdSchema } from "@/features/projects/schema";
 import { DeleteProjectForm } from "@/features/projects/delete-project-form";
 import { ProjectVisibilityForm } from "@/features/projects/project-visibility-form";
-import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
+import { PublicMidiQuickPreview as QuickPreviewPlayer } from "@/features/public-midi/quick-preview-player.client";
 import { listContributionsByAuthor } from "@/server/repositories/contributions";
 import { getProjectLineage } from "@/server/repositories/forks";
 import { getProjectForViewer } from "@/server/repositories/projects";
@@ -18,6 +21,10 @@ import {
   getPublicProject,
   getPublicProjectLineage,
 } from "@/server/repositories/public-projects";
+import {
+  getPublicArrangementCards,
+  getPublicRevisionHistory,
+} from "@/server/repositories/public-midi";
 import { getRevisionHistory } from "@/server/repositories/revisions";
 
 export async function generateMetadata({
@@ -56,11 +63,15 @@ export default async function ProjectPage({
   if (!project) {
     const publicProject = await getPublicProject(projectId);
     if (!publicProject) notFound();
-    const publicLineage = await getPublicProjectLineage(projectId);
+    const [publicLineage, history] = await Promise.all([
+      getPublicProjectLineage(projectId),
+      getPublicRevisionHistory(projectId),
+    ]);
     return (
       <PublicProjectPage
         project={publicProject}
         lineage={publicLineage}
+        history={history}
         canCollaborate={
           viewer?.status === "active" && viewer.profileCompletedAt !== null
         }
@@ -87,17 +98,67 @@ export default async function ProjectPage({
       </main>
     );
   }
-  const { MemberStemDownloads } =
-    await import("@/features/projects/member-stem-downloads");
-  const [revisions, contributions, lineage] = await Promise.all([
-    getRevisionHistory(projectId),
-    listContributionsByAuthor(viewer.id),
-    getProjectLineage({
-      projectId,
-      sourceProjectId: project.sourceProjectId,
-      sourceRevisionId: project.sourceRevisionId,
-    }),
-  ]);
+  if (project.visibility === "public") {
+    const publicProject = await getPublicProject(projectId);
+    if (!publicProject) notFound();
+    const [publicLineage, history] = await Promise.all([
+      getPublicProjectLineage(projectId),
+      getPublicRevisionHistory(projectId),
+    ]);
+    return (
+      <PublicProjectPage
+        project={publicProject}
+        lineage={publicLineage}
+        history={history}
+        canCollaborate
+        ownerControls={
+          project.ownerId === viewer.id ? (
+            <>
+              <ProjectVisibilityForm
+                projectId={project.id}
+                lockVersion={project.lockVersion}
+                visibility={project.visibility}
+              />
+              <CollaborationSettingForm
+                projectId={project.id}
+                lockVersion={project.lockVersion}
+                open={project.openToContributions}
+                eligible={project.license.code === "cc-by-4.0"}
+              />
+              <Link
+                className="mt-4 mr-5 inline-flex underline"
+                href={`/projects/${project.id}/edit`}
+              >
+                Edit project
+              </Link>
+              <Link
+                className="mt-4 inline-flex underline"
+                href={`/projects/${project.id}/contributions`}
+              >
+                View submitted contributions
+              </Link>
+            </>
+          ) : null
+        }
+      />
+    );
+  }
+  const [revisions, semanticHistory, contributions, lineage, arrangementCards] =
+    await Promise.all([
+      getRevisionHistory(projectId),
+      getPublicRevisionHistory(projectId),
+      listContributionsByAuthor(viewer.id),
+      getProjectLineage({
+        projectId,
+        sourceProjectId: project.sourceProjectId,
+        sourceRevisionId: project.sourceRevisionId,
+      }),
+      getPublicArrangementCards(
+        project.currentRevisionId
+          ? [{ projectId, revisionId: project.currentRevisionId }]
+          : [],
+      ),
+    ]);
   const liveContribution = contributions.contributions.find(
     (item) =>
       item.projectId === projectId &&
@@ -105,6 +166,9 @@ export default async function ProjectPage({
   );
   const current = revisions.find(({ id }) => id === project.currentRevisionId);
   const currentCredits = current ? aggregateCredits(current.tracks) : [];
+  const currentArrangement = project.currentRevisionId
+    ? arrangementCards.get(project.currentRevisionId)
+    : null;
   const acceptedContributors = Array.from(
     new Map(
       revisions.flatMap((revision) =>
@@ -155,8 +219,7 @@ export default async function ProjectPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-accent font-semibold">
-                {project.visibility === "public" ? "Public" : "Private"} ·{" "}
-                {project.status === "active" ? "Active" : "Draft"}
+                Private · {project.status === "active" ? "Active" : "Draft"}
               </p>
               <h1 className="mt-2 text-4xl font-bold">{project.title}</h1>
             </div>
@@ -238,6 +301,7 @@ export default async function ProjectPage({
                 projectId={project.id}
                 lockVersion={project.lockVersion}
                 open={project.openToContributions}
+                eligible={project.license.code === "cc-by-4.0"}
               />
               <Link
                 className="mt-4 inline-flex underline"
@@ -321,6 +385,18 @@ export default async function ProjectPage({
                 title={project.title}
                 durationMs={current.durationMs}
               />
+              {currentArrangement && (
+                <p className="text-muted mt-4 text-sm">
+                  {currentArrangement.tracks.length} MIDI{" "}
+                  {currentArrangement.tracks.length === 1 ? "track" : "tracks"}{" "}
+                  ·{" "}
+                  {currentArrangement.tracks.reduce(
+                    (total, track) => total + track.clipCount,
+                    0,
+                  )}{" "}
+                  arrangement clips
+                </p>
+              )}
               <ol className="mt-5 space-y-3">
                 {current.tracks.map((track) => (
                   <li
@@ -364,26 +440,33 @@ export default async function ProjectPage({
                   This project’s license does not permit derivative forks.
                 </p>
               )}
-              <div className="mt-6">
-                <MemberStemDownloads
-                  endpoint={`/api/projects/${project.id}/revisions/${current.id}/downloads/stems`}
-                  assetIds={current.tracks.flatMap((track) =>
-                    track.assetId ? [track.assetId] : [],
-                  )}
-                />
-              </div>
+              {project.license.code === "cc-by-4.0" ? (
+                <a
+                  className="border-strong hover:border-accent mt-6 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                  href={`/api/projects/${project.id}/revisions/${current.id}/downloads/midi`}
+                >
+                  Export MIDI + attribution
+                </a>
+              ) : (
+                <p className="text-muted mt-4 text-sm">
+                  Licensed MIDI export is available for CC BY 4.0 projects.
+                </p>
+              )}
             </section>
           ) : project.ownerId === viewer.id ? (
             <section className="rounded-card border-strong mt-8 border border-dashed p-8 text-center">
-              <h2 className="text-xl font-bold">Ready to assemble stems?</h2>
+              <h2 className="text-xl font-bold">
+                Ready to shape the first arrangement?
+              </h2>
               <p className="text-muted mt-2">
-                Create the first immutable revision from your verified uploads.
+                Open the Studio, add MIDI patterns, and publish an immutable
+                revision.
               </p>
               <Link
                 className="bg-accent rounded-control mt-5 inline-flex min-h-11 items-center px-5 font-semibold text-slate-950"
-                href={`/projects/${project.id}/publish`}
+                href={`/studio/${project.id}`}
               >
-                Publish first revision
+                Open Studio
               </Link>
             </section>
           ) : null}
@@ -404,6 +487,9 @@ export default async function ProjectPage({
                 ))}
               </ol>
             </section>
+          )}
+          {semanticHistory.length > 0 && (
+            <SemanticHistory history={semanticHistory} />
           )}
           {acceptedContributors.length > 0 && (
             <section className="mt-8">

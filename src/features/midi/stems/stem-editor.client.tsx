@@ -41,11 +41,12 @@ import {
   type MidiStemCommand,
 } from "../semantic-commands";
 import type { PresetVoice } from "../browser-engine/preset-voice.client";
-import { SYNTH_PRESETS_V1, resolveSynthPreset } from "../presets";
 import {
-  publishMidiStemVersionAction,
-  saveMidiStemDraftAction,
-} from "./actions";
+  INSTRUMENT_PRESETS_CATALOG_1,
+  resolveSynthPreset,
+  SYNTH_PRESETS_V1,
+} from "../presets";
+import { MIDI_V3_ENGINE_VERSION } from "../domain-v3";
 import {
   getMidiDraftAutosaveDelay,
   initialMidiDraftSaveState,
@@ -91,10 +92,30 @@ export type MidiStemEditorHost = {
   ) => void;
   onTransportStop: () => void;
   onDraftStatusChange: (status: MidiDraftSaveStatus) => void;
+  persistDraft?: (content: {
+    name: string;
+    defaultPresetId: string;
+    defaultPresetVersion: 1;
+    ppq: 480;
+    durationTicks: number;
+    notes: MidiNoteV1[];
+  }) => Promise<{
+    ok: boolean;
+    lockVersion: number;
+    contentSha256: string;
+  }>;
   finalize: (input: {
     draftId: string;
     expectedLockVersion: number;
     expectedContentSha256: string;
+    content: {
+      name: string;
+      presetId: string;
+      presetVersion: 1;
+      ppq: 480;
+      durationTicks: number;
+      notes: MidiNoteV1[];
+    };
   }) => Promise<{ ok: boolean; message: string }>;
   finalizeLabel: string;
   onClose: () => void;
@@ -275,7 +296,11 @@ export function MidiStemEditor({
   }>({ timeout: null, frame: null, repeated: false });
 
   const notes = previewNotes ?? history.notes;
-  const preset = resolveSynthPreset(presetId, 1);
+  const preset = resolveSynthPreset(
+    presetId,
+    1,
+    host ? MIDI_V3_ENGINE_VERSION : undefined,
+  );
   const selectedNotes = useMemo(
     () => history.notes.filter(({ noteId }) => selectedIds.has(noteId)),
     [history.notes, selectedIds],
@@ -512,15 +537,12 @@ export function MidiStemEditor({
       notes: [...history.notes],
     };
     try {
-      const result = await saveMidiStemDraftAction({
-        draftId: draft.draftId,
-        requestId: crypto.randomUUID(),
-        expectedLockVersion: lockVersionRef.current,
-        content,
-      });
+      const result = host?.persistDraft
+        ? await host.persistDraft(content)
+        : { ok: false, lockVersion: 0, contentSha256: "" };
       if (!result.ok) {
         dispatchSave({
-          type: result.code === "conflict" ? "conflict" : "error",
+          type: "error",
         });
         return;
       }
@@ -546,6 +568,7 @@ export function MidiStemEditor({
     history.notes,
     name,
     presetId,
+    host,
   ]);
 
   useEffect(() => {
@@ -1696,39 +1719,29 @@ export function MidiStemEditor({
       status: "publishing",
       message: "Freezing an immutable version…",
     });
-    if (host) {
-      const result = await host.finalize({
-        draftId: draft.draftId,
-        expectedLockVersion: lockVersionRef.current,
-        expectedContentSha256: contentSha256Ref.current,
-      });
-      setPublicationState({
-        status: result.ok ? "published" : "error",
-        message: result.message,
-      });
-      return;
-    }
-    const result = await publishMidiStemVersionAction({
-      draftId: draft.draftId,
-      requestId: crypto.randomUUID(),
-      expectedLockVersion: lockVersionRef.current,
-      expectedContentSha256: contentSha256Ref.current,
-    });
-    if (!result.ok) {
+    if (!host) {
       setPublicationState({
         status: "error",
-        message:
-          result.code === "conflict"
-            ? "The draft changed before publication. Reload its latest save and try again."
-            : result.code === "limit"
-              ? "Your prototype library has reached 500 immutable versions."
-              : "This version could not be frozen right now.",
+        message: "Open this pattern in Studio before freezing a version.",
       });
       return;
     }
+    const result = await host.finalize({
+      draftId: draft.draftId,
+      expectedLockVersion: lockVersionRef.current,
+      expectedContentSha256: contentSha256Ref.current,
+      content: {
+        name,
+        presetId,
+        presetVersion: 1,
+        ppq: MIDI_PPQ,
+        durationTicks: draft.durationTicks,
+        notes: [...history.notes],
+      },
+    });
     setPublicationState({
-      status: "published",
-      message: `Version ${result.version} is immutable and credited to ${result.creatorCreditName}.`,
+      status: result.ok ? "published" : "error",
+      message: result.message,
     });
   }
 
@@ -1851,7 +1864,11 @@ export function MidiStemEditor({
                 title={preset.description}
                 value={presetId}
                 onChange={(event) => {
-                  const nextPreset = resolveSynthPreset(event.target.value, 1);
+                  const nextPreset = resolveSynthPreset(
+                    event.target.value,
+                    1,
+                    host ? MIDI_V3_ENGINE_VERSION : undefined,
+                  );
                   if (
                     history.notes.some(
                       (note) =>
@@ -1872,11 +1889,13 @@ export function MidiStemEditor({
                   markEdited();
                 }}
               >
-                {SYNTH_PRESETS_V1.map((item) => (
-                  <option key={item.presetId} value={item.presetId}>
-                    {item.name}
-                  </option>
-                ))}
+                {(host ? INSTRUMENT_PRESETS_CATALOG_1 : SYNTH_PRESETS_V1).map(
+                  (item) => (
+                    <option key={item.presetId} value={item.presetId}>
+                      {item.name}
+                    </option>
+                  ),
+                )}
               </select>
             </span>
           </label>

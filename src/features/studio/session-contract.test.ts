@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIDI_SINGLE_TRACK_FIXTURE } from "@/features/midi/fixtures";
+import { V3_MANIFEST_BEFORE } from "./manifest/v3.fixtures";
 import { parseStudioSessionDescriptor } from "./session-contract";
 
 const capabilities = {
@@ -7,13 +7,12 @@ const capabilities = {
   canPublish: true,
   canSubmit: false,
   canStartContribution: false,
-  canDownloadSources: false,
   canFork: true,
 };
 
 describe("route-neutral Studio session descriptor", () => {
   it("parses an authorized owner workspace independently of route shape", () => {
-    const projectId = MIDI_SINGLE_TRACK_FIXTURE.manifest.projectId;
+    const projectId = V3_MANIFEST_BEFORE.projectId;
     const descriptor = parseStudioSessionDescriptor({
       mode: "ownerWorkspace",
       viewerId: "10000000-0000-4000-8000-000000000123",
@@ -23,7 +22,7 @@ describe("route-neutral Studio session descriptor", () => {
         compatibility: "midi",
         currentRevisionId: null,
       },
-      manifest: MIDI_SINGLE_TRACK_FIXTURE.manifest,
+      manifest: V3_MANIFEST_BEFORE,
       authority: {
         kind: "workspace",
         workspaceId: "10000000-0000-4000-8000-000000000124",

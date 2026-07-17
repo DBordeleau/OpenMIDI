@@ -57,6 +57,6 @@ export type ProjectDetail = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  compatibility: "midi" | "legacy_hybrid";
+  compatibility: "midi";
   moderationState: "visible" | "hidden";
 };

@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { workspaceManifestV1Schema } from "./manifest/schema";
-import { workspaceManifestV2Schema } from "./manifest/v2";
+import { manifestV3Schema } from "./manifest/v3";
 
 export const studioCapabilitiesSchema = z
   .object({
@@ -8,7 +7,6 @@ export const studioCapabilitiesSchema = z
     canPublish: z.boolean(),
     canSubmit: z.boolean(),
     canStartContribution: z.boolean(),
-    canDownloadSources: z.boolean(),
     canFork: z.boolean(),
   })
   .strict();
@@ -28,7 +26,7 @@ const projectSchema = z
   .object({
     projectId: z.uuid(),
     title: z.string().trim().min(1).max(120),
-    compatibility: z.enum(["midi", "legacy_hybrid"]),
+    compatibility: z.literal("midi"),
     currentRevisionId: z.uuid().nullable(),
   })
   .strict();
@@ -36,7 +34,7 @@ const projectSchema = z
 const commonSessionSchema = {
   viewerId: z.uuid().nullable(),
   project: projectSchema,
-  manifest: z.union([workspaceManifestV1Schema, workspaceManifestV2Schema]),
+  manifest: manifestV3Schema,
   capabilities: studioCapabilitiesSchema,
   canonicalLinks: canonicalLinksSchema,
 } as const;

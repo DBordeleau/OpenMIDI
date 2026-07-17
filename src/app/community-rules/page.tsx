@@ -18,7 +18,7 @@ export default function CommunityRulesPage() {
           </p>
           <div className="mt-10 space-y-8">
             <section>
-              <h2 className="text-2xl font-bold">Don’t upload or publish</h2>
+              <h2 className="text-2xl font-bold">Don’t publish</h2>
               <ul className="mt-3 list-disc space-y-2 pl-6">
                 <li>
                   illegal material or content that violates another person’s

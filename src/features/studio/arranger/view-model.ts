@@ -4,7 +4,7 @@ import {
   type MidiClipReferenceV1,
   type WorkspaceManifestV2,
 } from "../manifest/v2";
-import { millisecondsToTicks, ticksToMilliseconds } from "./timeline";
+import { ticksToMilliseconds } from "./timeline";
 
 export type ArrangerNoteSummary = {
   noteId: string;
@@ -17,15 +17,14 @@ export type ArrangerNoteSummary = {
 export type ArrangerClip = {
   clipId: string;
   trackId: string;
-  kind: "audio" | "midi";
+  kind: "midi";
   startTick: number;
   durationTicks: number;
   startMs: number;
   durationMs: number;
   sourceStartTick: number | null;
-  trimStartMs: number | null;
   loop: boolean;
-  versionId: string | null;
+  versionId: string;
   versionNumber: number | null;
   creditName: string;
   notes: ArrangerNoteSummary[];
@@ -33,8 +32,7 @@ export type ArrangerClip = {
 
 export type ArrangerTrack = {
   trackId: string;
-  kind: "audio" | "midi";
-  assetId: string | null;
+  kind: "midi";
   name: string;
   instrument: string;
   creditName: string;
@@ -64,32 +62,6 @@ export function buildArrangerViewModel(input: {
   const tracks: ArrangerTrack[] = input.manifest.tracks.map((track) => {
     const credit = credits.get(track.trackId);
     const clips: ArrangerClip[] = track.clips.map((clip) => {
-      if (track.kind === "audio" && "positionMs" in clip) {
-        return {
-          clipId: clip.clipId,
-          trackId: track.trackId,
-          kind: "audio",
-          startTick: millisecondsToTicks(
-            clip.positionMs,
-            input.manifest.tempoBpm,
-          ),
-          durationTicks: millisecondsToTicks(
-            clip.durationMs,
-            input.manifest.tempoBpm,
-          ),
-          startMs: clip.positionMs,
-          durationMs: clip.durationMs,
-          sourceStartTick: null,
-          trimStartMs: clip.trimStartMs,
-          loop: false,
-          versionId: null,
-          versionNumber: null,
-          creditName: credit?.creditName ?? "Unknown creator",
-          notes: [],
-        };
-      }
-      if (track.kind !== "midi" || !("startTick" in clip))
-        throw new Error("Track and clip kinds must match.");
       const version = versions.get(clip.midiStemVersionId);
       return {
         clipId: clip.clipId,
@@ -103,7 +75,6 @@ export function buildArrangerViewModel(input: {
           input.manifest.tempoBpm,
         ),
         sourceStartTick: clip.sourceStartTick,
-        trimStartMs: null,
         loop: clip.loop,
         versionId: clip.midiStemVersionId,
         versionNumber: version?.version ?? null,
@@ -115,12 +86,8 @@ export function buildArrangerViewModel(input: {
     return {
       trackId: track.trackId,
       kind: track.kind,
-      assetId: track.kind === "audio" ? track.assetId : null,
       name: track.name,
-      instrument:
-        track.kind === "midi"
-          ? `${track.presetId} v${track.presetVersion}`
-          : (credit?.instrumentName ?? "Legacy audio"),
+      instrument: `${track.presetId} v${track.presetVersion}`,
       creditName:
         credit?.creditName ?? clips[0]?.creditName ?? "Unknown creator",
       gainDb: track.gainDb,

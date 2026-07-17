@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { submitContributionAction } from "./actions";
 import {
   CONTRIBUTOR_ATTESTATION_TEXT,
@@ -27,6 +28,7 @@ export function SubmissionPanel({
   };
   license: { name: string; url: string; summary: string };
 }) {
+  const router = useRouter();
   const requestId = useRef<string | null>(null);
   const [attested, setAttested] = useState(false);
   const [state, setState] = useState<
@@ -42,6 +44,7 @@ export function SubmissionPanel({
       expectedWorkspaceLockVersion: workspace.lockVersion,
       expectedBaseRevisionId: baseRevisionId,
       expectedManifestSha256: workspace.manifestSha256,
+      expectedLicenseCode: "cc-by-4.0",
       attestationVersion: CONTRIBUTOR_ATTESTATION_VERSION,
       attested,
     });
@@ -59,7 +62,7 @@ export function SubmissionPanel({
       });
       return;
     }
-    location.reload();
+    router.refresh();
   };
 
   return (
@@ -67,7 +70,7 @@ export function SubmissionPanel({
       <h2 className="text-xl font-bold">Submit immutable version</h2>
       <p className="text-muted mt-2">
         Submitting freezes the last server-acknowledged arrangement and its
-        exact MIDI stem versions for owner review.
+        exact immutable MIDI pattern versions for owner review.
       </p>
       <dl className="mt-5 grid gap-3 sm:grid-cols-2">
         <div>

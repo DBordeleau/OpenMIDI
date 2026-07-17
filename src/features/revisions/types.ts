@@ -1,28 +1,6 @@
-export type PublishAssetOption = {
-  id: string;
-  filename: string;
-  mediaType: string;
-  byteSize: number;
-  durationMs: number;
-  sampleRateHz: number;
-  channels: number;
-  creditName: string;
-};
-export type InstrumentOption = { id: string; name: string };
-export type RevisionPlaybackTrack = {
-  trackId: string;
-  kind: "audio" | "midi";
-  assetId: string | null;
-  displayName: string;
-  verifiedDurationMs: number;
-  instrumentName: string | null;
-  creditName: string;
-  credits: CreditSnapshot[];
-};
 export type RevisionTrack = {
   id: string;
-  kind: "audio" | "midi";
-  assetId: string | null;
+  kind: "midi";
   instrumentName: string | null;
   name: string;
   durationMs: number;

@@ -37,40 +37,6 @@ describe("MIDI scheduler projection", () => {
     );
   });
 
-  it("honors a soloed legacy-audio track in a composite manifest", () => {
-    const { manifest, stemVersions } = MIDI_SINGLE_TRACK_FIXTURE;
-    const events = projectMidiSchedule({
-      manifest: {
-        ...manifest,
-        tracks: [
-          { ...manifest.tracks[0], sortOrder: 0 },
-          {
-            kind: "audio",
-            trackId: "71000000-0000-4000-8000-000000000001",
-            assetId: "72000000-0000-4000-8000-000000000001",
-            name: "Legacy audio",
-            instrumentId: null,
-            gainDb: 0,
-            pan: 0,
-            muted: false,
-            soloed: true,
-            sortOrder: 1,
-            clips: [
-              {
-                clipId: "73000000-0000-4000-8000-000000000001",
-                positionMs: 0,
-                trimStartMs: 0,
-                durationMs: 1_000,
-              },
-            ],
-          },
-        ],
-      },
-      stemVersions,
-    });
-    expect(events).toEqual([]);
-  });
-
   it("clips notes exactly at seek windows", () => {
     const events = projectMidiSchedule({
       ...MIDI_SINGLE_TRACK_FIXTURE,

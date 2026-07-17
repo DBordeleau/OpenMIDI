@@ -8,7 +8,7 @@ import {
 } from "@/features/discovery/schema";
 import { formatMusicalKey } from "@/features/projects/musical-key";
 import { musicalKeys } from "@/features/projects/schema";
-import { QuickPreviewPlayer } from "@/features/studio/waveform-playlist-adapter/quick-preview-player.client";
+import { PublicMidiQuickPreview } from "@/features/public-midi/quick-preview-player.client";
 import {
   listDiscoveryOptions,
   searchPublicProjects,
@@ -69,12 +69,13 @@ export default async function ExplorePage({
             Open sessions
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Find the track that needs{" "}
-            <em className="text-accent font-serif font-medium">your</em> sound.
+            Find a pattern. Take it{" "}
+            <em className="text-accent font-serif font-medium">somewhere</em>{" "}
+            new.
           </h1>
           <p className="text-muted mt-5 max-w-[52ch] text-lg">
-            Browse public works in progress by tempo, key, style, and the parts
-            already in the mix.
+            Browse playable MIDI arrangements by tempo, key, style, and built-in
+            instrument presets.
           </p>
         </Reveal>
 
@@ -264,7 +265,7 @@ export default async function ExplorePage({
                       value={String(project.tracks.length)}
                     />
                   </dl>
-                  <QuickPreviewPlayer
+                  <PublicMidiQuickPreview
                     compact
                     projectId={project.projectId}
                     revisionId={project.currentRevisionId}

@@ -3,13 +3,11 @@ import { z } from "zod";
 export type SupabasePublicEnv = {
   url: string;
   publishableKey: string;
-  storageTusUrl: string;
 };
 
 export type SupabasePublicEnvInput = {
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;
-  NEXT_PUBLIC_SUPABASE_STORAGE_TUS_URL?: string;
 };
 
 const publicEnvSchema = z.object({
@@ -32,7 +30,6 @@ const publicEnvSchema = z.object({
     .string({ error: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required." })
     .trim()
     .min(1, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must not be empty."),
-  NEXT_PUBLIC_SUPABASE_STORAGE_TUS_URL: z.string().url().optional(),
 });
 
 export function parseSupabasePublicEnv(
@@ -48,9 +45,6 @@ export function parseSupabasePublicEnv(
   return {
     url: result.data.NEXT_PUBLIC_SUPABASE_URL,
     publishableKey: result.data.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    storageTusUrl:
-      result.data.NEXT_PUBLIC_SUPABASE_STORAGE_TUS_URL ??
-      `${result.data.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "")}/storage/v1/upload/resumable`,
   };
 }
 
@@ -59,7 +53,5 @@ export function getSupabasePublicEnv(): SupabasePublicEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_SUPABASE_STORAGE_TUS_URL:
-      process.env.NEXT_PUBLIC_SUPABASE_STORAGE_TUS_URL,
   });
 }

@@ -43,9 +43,7 @@ describe("blank Studio start state", () => {
     for (const forbidden of [
       "StudioLauncher",
       "next/dynamic",
-      "audio-sources",
       "AudioContext",
-      "waveform-playlist",
       "tone",
     ]) {
       for (const source of sources) expect(source).not.toContain(forbidden);

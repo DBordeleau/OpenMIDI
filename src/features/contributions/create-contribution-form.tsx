@@ -9,9 +9,11 @@ import {
 export function CreateContributionForm({
   projectId,
   currentRevisionId,
+  expectedLicenseCode,
 }: {
   projectId: string;
   currentRevisionId: string;
+  expectedLicenseCode: "cc-by-4.0";
 }) {
   const [requestId] = useState(() => crypto.randomUUID());
   const action = useMemo(
@@ -29,6 +31,11 @@ export function CreateContributionForm({
         type="hidden"
         name="expectedCurrentRevisionId"
         value={currentRevisionId}
+      />
+      <input
+        type="hidden"
+        name="expectedLicenseCode"
+        value={expectedLicenseCode}
       />
       <label className="block">
         Contribution title

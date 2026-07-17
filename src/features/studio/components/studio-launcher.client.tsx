@@ -2,25 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import type { VersionedWorkspaceManifest } from "../manifest/schema";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
+import type { ManifestV3 } from "../manifest/v3";
+import type { StudioPatternVersion } from "../midi-adapter/manifest-v3-editor";
 import { StudioSkeleton } from "./studio-skeleton";
-import {
-  markStudioPerformance,
-  studioPerformanceMarks,
-} from "../waveform-playlist-adapter/performance-marks.client";
-import type {
-  WorkspaceAssetOption,
-  WorkspaceInstrumentOption,
-} from "@/features/workspaces/types";
 
-const StudioSurface = dynamic(
-  () =>
-    import("../waveform-playlist-adapter/studio-surface").then(
-      (module) => module.StudioSurface,
-    ),
-  { ssr: false, loading: () => <StudioSkeleton /> },
-);
 const MidiStudioSurface = dynamic(
   () =>
     import("../midi-adapter/midi-studio-surface.client").then(
@@ -33,13 +19,13 @@ type CommonProps = {
   viewerId: string;
   projectId: string;
   projectTitle: string;
-  manifest: VersionedWorkspaceManifest;
+  manifest: ManifestV3;
   projectTimeSignature?: { numerator: number; denominator: number };
   durationMs: number;
   midiVersions?: MidiStemVersion[];
+  patternVersions?: StudioPatternVersion[];
   tracks: Array<{
     trackId: string;
-    kind?: "audio" | "midi";
     instrumentName: string | null;
     creditName: string;
   }>;
@@ -63,8 +49,6 @@ export type StudioLauncherProps = CommonProps &
         lockVersion: number;
         manifestSha256: string;
         updatedAt: string;
-        assets: WorkspaceAssetOption[];
-        instruments: WorkspaceInstrumentOption[];
       }
     | {
         mode: "contribution";
@@ -85,8 +69,6 @@ export type StudioLauncherProps = CommonProps &
         lockVersion: number;
         manifestSha256: string;
         updatedAt: string;
-        assets: WorkspaceAssetOption[];
-        instruments: WorkspaceInstrumentOption[];
       }
   );
 
@@ -97,7 +79,7 @@ export function StudioLauncher(props: StudioLauncherProps) {
   );
   useEffect(() => {
     if (!routeMarked.current) {
-      markStudioPerformance(studioPerformanceMarks.routeStart);
+      performance.mark("jam-session:studio:route-start");
       routeMarked.current = true;
     }
     const timer = window.setTimeout(() => setSupport(getStudioSupport()), 0);
@@ -112,11 +94,7 @@ export function StudioLauncher(props: StudioLauncherProps) {
         </p>
       </div>
     );
-  return props.manifest.manifestVersion === 2 ? (
-    <MidiStudioSurface {...props} manifest={props.manifest} />
-  ) : (
-    <StudioSurface {...props} manifest={props.manifest} />
-  );
+  return <MidiStudioSurface {...props} manifest={props.manifest} />;
 }
 
 function getStudioSupport(): "ready" | string {
@@ -124,11 +102,7 @@ function getStudioSupport(): "ready" | string {
     return "The studio currently requires a desktop-sized screen and precise pointer.";
   if (!window.isSecureContext && location.hostname !== "localhost")
     return "Open the studio over a secure HTTPS connection.";
-  if (
-    !("AudioContext" in window) ||
-    !("OfflineAudioContext" in window) ||
-    !("AbortController" in window)
-  )
-    return "This browser does not support the audio features required by the studio.";
+  if (!("AudioContext" in window) || !("OfflineAudioContext" in window))
+    return "This browser does not support the MIDI synthesis features required by the studio.";
   return "ready";
 }

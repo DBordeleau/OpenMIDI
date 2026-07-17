@@ -4,11 +4,7 @@ import { buildArrangerViewModel } from "./view-model";
 
 const ids = {
   project: "00000000-0000-4000-8000-000000000001",
-  audioTrack: "00000000-0000-4000-8000-000000000002",
   midiTrack: "00000000-0000-4000-8000-000000000003",
-  asset: "00000000-0000-4000-8000-000000000004",
-  audioClipA: "00000000-0000-4000-8000-000000000005",
-  audioClipB: "00000000-0000-4000-8000-000000000006",
   midiClipA: "00000000-0000-4000-8000-000000000007",
   midiClipB: "00000000-0000-4000-8000-000000000008",
   version: "00000000-0000-4000-8000-000000000009",
@@ -29,32 +25,6 @@ describe("arranger view model", () => {
       durationTicks: 3_840,
       tracks: [
         {
-          kind: "audio",
-          trackId: ids.audioTrack,
-          assetId: ids.asset,
-          name: "Audio",
-          instrumentId: null,
-          gainDb: 0,
-          pan: 0,
-          muted: false,
-          soloed: false,
-          sortOrder: 0,
-          clips: [
-            {
-              clipId: ids.audioClipA,
-              positionMs: 0,
-              trimStartMs: 0,
-              durationMs: 500,
-            },
-            {
-              clipId: ids.audioClipB,
-              positionMs: 1_000,
-              trimStartMs: 250,
-              durationMs: 500,
-            },
-          ],
-        },
-        {
           kind: "midi",
           trackId: ids.midiTrack,
           name: "MIDI",
@@ -65,7 +35,7 @@ describe("arranger view model", () => {
           pan: 0.2,
           muted: false,
           soloed: false,
-          sortOrder: 1,
+          sortOrder: 0,
           clips: [
             {
               clipId: ids.midiClipA,
@@ -90,11 +60,6 @@ describe("arranger view model", () => {
     const view = buildArrangerViewModel({
       manifest,
       trackCredits: [
-        {
-          trackId: ids.audioTrack,
-          instrumentName: "Guitar",
-          creditName: "Audio artist",
-        },
         {
           trackId: ids.midiTrack,
           instrumentName: null,
@@ -132,15 +97,15 @@ describe("arranger view model", () => {
 
     expect(
       view.tracks.flatMap((track) => track.clips.map((clip) => clip.clipId)),
-    ).toEqual([ids.audioClipA, ids.audioClipB, ids.midiClipA, ids.midiClipB]);
+    ).toEqual([ids.midiClipA, ids.midiClipB]);
     expect(view.tracks[0]?.clips[1]).toMatchObject({
       startTick: 960,
-      durationTicks: 480,
+      durationTicks: 240,
     });
-    expect(view.tracks[1]?.clips[1]?.notes[0]).toMatchObject({
+    expect(view.tracks[0]?.clips[1]?.notes[0]).toMatchObject({
       startTick: 980,
       durationTicks: 220,
     });
-    expect(view.tracks[1]?.clips[0]?.creditName).toBe("MIDI artist");
+    expect(view.tracks[0]?.clips[0]?.creditName).toBe("MIDI artist");
   });
 });

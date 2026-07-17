@@ -1,3 +1,4 @@
+import { Midi } from "@tonejs/midi";
 import { describe, expect, it } from "vitest";
 import { MIDI_SINGLE_TRACK_FIXTURE } from "./fixtures";
 import { exportMidiStemVersion, importMidiBytes } from "./interchange.client";
@@ -82,6 +83,11 @@ describe("bounded Standard MIDI interchange", () => {
     );
     const imported = importMidiBytes(first);
     expect(imported.tempoBpm).toBe(120);
+    expect(imported.suggestedPreset).toMatchObject({
+      presetId: "warm-keys",
+      version: 1,
+      program: 0,
+    });
     expect(imported.warnings).toContain(
       "Ignored 1 unsupported text or attribution event.",
     );
@@ -92,6 +98,30 @@ describe("bounded Standard MIDI interchange", () => {
         startTick,
         durationTicks,
       })),
+    );
+  });
+
+  it("maps imported melodic and channel-10 programs without fetching timbres", () => {
+    const midi = new Midi();
+    midi.header.setTempo(120);
+    const bass = midi.addTrack();
+    bass.name = "Bass";
+    bass.instrument.number = 38;
+    bass.addNote({ midi: 40, ticks: 0, durationTicks: 120, velocity: 0.8 });
+    const drums = midi.addTrack();
+    drums.name = "Drums";
+    drums.channel = 9;
+    drums.instrument.number = 0;
+    drums.addNote({ midi: 36, ticks: 0, durationTicks: 60, velocity: 1 });
+
+    const imported = importMidiBytes(midi.toArray());
+
+    expect(imported.instrumentMappings).toEqual([
+      expect.objectContaining({ trackName: "Bass", presetId: "analog-bass" }),
+      expect.objectContaining({ trackName: "Drums", presetId: "drum-machine" }),
+    ]);
+    expect(imported.warnings).toContain(
+      "Mapped General MIDI programs to the closest Jam Session instrument families.",
     );
   });
 

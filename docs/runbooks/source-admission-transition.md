@@ -1,5 +1,7 @@
 # Source-audio admission transition
 
+> **Superseded — do not execute:** the MIDI-only pivot removed source-audio admission and PIVOT-10 destructively rebaselined the existing hosted Supabase project. This runbook is retained only as pre-pivot operational history. It does not authorize a hosted capability change, migration, cleanup, or deployment.
+
 MIDI-07 installs a reversible database-authoritative control for new `source_audio` reservations. The migration inserts the single trusted control row with admission **enabled**. This runbook does not authorize changing a hosted environment; STUDIO-06 must first accept the complete Studio-native parity evidence and obtain separate hosted-mutation approval.
 
 STUDIO-06 repository parity and the local disabled/rollback rehearsal are complete. A read-only hosted capability query on 2026-07-15 22:28:50 UTC returned **enabled**; no mutation was performed. The application will not be deployed until after PR 19, so deployment confirmation, hosted application parity, and any separately authorized capability mutation are PR 20 release steps rather than PR 18 prerequisites.
