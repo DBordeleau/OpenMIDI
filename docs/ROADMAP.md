@@ -29,6 +29,8 @@ PIVOT-10 retained the existing hosted project reference, URL, API keys, OAuth pr
 
 ## Post-foundation product sequence
 
+The next program is **Semantic visual diffs**. Its product direction is accepted, but it is not yet ready for a fresh implementation worker: create a detailed local plan that fixes the first vertical slice, query/authorization boundary, visual comparison scope, accessibility behavior, and focused verification gate before coding begins.
+
 ### 1. Semantic visual diffs
 
 Turn the existing deterministic semantic diff into the primary review surface: arrangement metadata, track and clip changes, selected pattern note changes, lineage, and accessible summaries. Preserve exact immutable versions and do not introduce automatic musical merging.

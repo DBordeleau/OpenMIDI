@@ -1,7 +1,7 @@
 # Jam Session technical design
 
 Status: MIDI-only foundation and hosted rehearsal implemented through PIVOT-10
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
 
@@ -37,7 +37,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. PIVOT-10 completed the destructive same-project hosted rebaseline and verification while retaining the existing project reference/API configuration. Local and hosted checks remain distinct even though both now implement the MIDI-only baseline; Vercel deployment is deferred.
+Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. Semantic visual diffs are the exact next program, but they require a detailed local implementation plan before a fresh worker starts. PIVOT-10 completed the destructive same-project hosted rebaseline and verification while retaining the existing project reference/API configuration. Local and hosted checks remain distinct even though both now implement the MIDI-only baseline; Vercel deployment is deferred.
 
 ## Global invariants
 

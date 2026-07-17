@@ -1,6 +1,6 @@
 # Source-audio admission transition
 
-> **Superseded — do not execute:** the MIDI-only pivot removes source-audio admission and rehearses a fresh Supabase project in PIVOT-10. This runbook is retained only as pre-pivot operational history. It does not authorize a hosted capability change, migration, cleanup, or deployment.
+> **Superseded — do not execute:** the MIDI-only pivot removed source-audio admission and PIVOT-10 destructively rebaselined the existing hosted Supabase project. This runbook is retained only as pre-pivot operational history. It does not authorize a hosted capability change, migration, cleanup, or deployment.
 
 MIDI-07 installs a reversible database-authoritative control for new `source_audio` reservations. The migration inserts the single trusted control row with admission **enabled**. This runbook does not authorize changing a hosted environment; STUDIO-06 must first accept the complete Studio-native parity evidence and obtain separate hosted-mutation approval.
 
