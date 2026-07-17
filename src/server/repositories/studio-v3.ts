@@ -42,7 +42,7 @@ export async function getStudioWorkspaceV3(
   const { data, error } = await db
     .from("workspaces")
     .select(
-      "id,project_id,owner_id,contribution_id,base_revision_id,lock_version,manifest,manifest_version,engine,engine_version,manifest_sha256,snapshot_asset_id,updated_at",
+      "id,project_id,owner_id,contribution_id,base_revision_id,lock_version,manifest,manifest_version,engine,engine_version,manifest_sha256,updated_at",
     )
     .eq("project_id", projectId)
     .eq("status", "active")
@@ -52,8 +52,7 @@ export async function getStudioWorkspaceV3(
   if (
     data.manifest_version !== 3 ||
     data.engine !== "jam-session-midi" ||
-    data.engine_version !== "jam-session-midi-3_tone-15.1.22_presets-1" ||
-    data.snapshot_asset_id !== null
+    data.engine_version !== "jam-session-midi-3_tone-15.1.22_presets-1"
   ) {
     throw new Error("studio_workspace_requires_manifest_v3");
   }
@@ -86,7 +85,7 @@ export async function getStudioRevisionV3(input: {
   const { data, error } = await db
     .from("project_revisions")
     .select(
-      "id,project_id,revision_number,arrangement_version_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,snapshot_asset_id",
+      "id,project_id,revision_number,arrangement_version_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms",
     )
     .eq("project_id", input.projectId)
     .eq("id", input.revisionId)
@@ -97,8 +96,7 @@ export async function getStudioRevisionV3(input: {
     data.manifest_version !== 3 ||
     data.engine !== "jam-session-midi" ||
     data.engine_version !== "jam-session-midi-3_tone-15.1.22_presets-1" ||
-    !data.arrangement_version_id ||
-    data.snapshot_asset_id !== null
+    !data.arrangement_version_id
   ) {
     throw new Error("studio_revision_requires_manifest_v3");
   }

@@ -2,6 +2,10 @@
 
 ADRs preserve decisions that coding agents must not silently revisit. A changed decision requires a superseding ADR, not an unannounced implementation deviation.
 
+## Decision status
+
+ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through PIVOT-09. PIVOT-10 hosted rehearsal remains unapproved.
+
 ## Accepted for initial implementation
 
 ### ADR-001: Next.js application with a client-only studio boundary
@@ -40,7 +44,7 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 
 ### ADR-006: Waveform Playlist for the MVP browser studio
 
-> Superseded for the MIDI-only target by ADR-010 and ADR-012. Waveform Playlist remains current implementation detail only until PIVOT-07 removes it.
+> Superseded by ADR-010 and ADR-012. Retained only as historical evidence; PIVOT-07 removed the dependency and adapter.
 
 - **Decision:** Use pinned Waveform Playlist packages behind `WaveformPlaylistStudioAdapter`; retain Tone.js only where required by the selected playback/export path.
 - **Why:** It supplies the MVP's multitrack timeline, synchronized playback, mixer and export capabilities through modular React/TypeScript packages under the MIT license.
@@ -78,7 +82,7 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 - **Status:** Accepted 2026-07-16.
 - **Decision:** Jam Session's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export and profile-avatar Storage.
 - **Why:** Repeated full-quality source retrieval exhausted an unsustainable share of the $0 prototype egress budget, while structured MIDI supports the newly accepted public creation/remix/challenge product more directly.
-- **Consequence:** Current audio behavior remains implemented only during the staged cutover. No existing hosted application data must be retained. Historical audio evidence stays in Git/docs but is not future product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
+- **Consequence:** The staged cutover is complete locally through PIVOT-09. No existing hosted application data must be retained. Historical audio evidence stays in Git/docs but is not current product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
 - **Validation:** The clean baseline/new hosted project has no source-audio route, bucket, function, cron, quota, schema, dependency, fixture, or product promise; MIDI creation/collaboration remains complete.
 
 ### ADR-011: Manifest v3 with patterns and shared immutable arrangement versions

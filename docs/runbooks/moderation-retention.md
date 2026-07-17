@@ -1,6 +1,6 @@
-# Moderation and retention operations
+# Moderation and avatar-retention operations
 
-PR 18 is manual-first. Launch correctness does not depend on Cron, Edge Runtime, or a hosted schedule.
+The current MIDI-only operator is manual-first and avatar-only. Launch correctness does not depend on Cron, Edge Runtime, or a hosted schedule.
 
 ## Authority boundaries
 
@@ -14,7 +14,7 @@ PR 18 is manual-first. Launch correctness does not depend on Cron, Edge Runtime,
 1. Open `/admin/moderation` and assign one report at a time.
 2. Review only the bounded target context. Do not copy report detail or hold reasons into logs.
 3. Use an explicit reason for dismiss, hide/restore, suspension/restoration, or a legal/abuse hold.
-4. Hidden content remains immutable history but loses public discovery, signed audio, and mutation authority.
+4. Hidden content remains immutable history but loses public discovery and mutation authority.
 5. Use `/admin/operations` for object totals, drift, due cleanup, and the latest run.
 
 ## Retention preview and execution
@@ -40,7 +40,7 @@ For a remote project, provide the URL and service-role credential only in the op
 
 ## Optional scheduling
 
-A future daily schedule may invoke the same bounded operator using Supabase Cron/`pg_net` and Vault-managed secrets after hosted plan, duration, monitoring, and ownership are approved. It must not introduce a second cleanup implementation. No production schedule, URL, token, or Vault secret is committed by PR 18.
+No production schedule, URL, token, or Vault secret is part of the current repository. Any future scheduling requires a separate operations decision and must not introduce a second cleanup implementation.
 
 ## Recovery and legal limitations
 

@@ -36,17 +36,6 @@ if (
   !local.SERVICE_ROLE_KEY
 )
   failPreflight("The local Supabase status is incomplete or unsafe.");
-try {
-  const storage = await fetch(`${local.API_URL}/storage/v1/bucket`, {
-    headers: {
-      apikey: local.SERVICE_ROLE_KEY,
-      authorization: `Bearer ${local.SERVICE_ROLE_KEY}`,
-    },
-  });
-  if (!storage.ok) throw new Error(String(storage.status));
-} catch {
-  failPreflight("The local Storage API is not reachable.");
-}
 if (await isReachable(baseUrl))
   failPreflight(
     "Port 3100 is already serving another process. Stop that process before local E2E.",
@@ -93,7 +82,17 @@ try {
   await waitForServer(server, baseUrl);
   process.exitCode = await run(
     process.execPath,
-    ["node_modules/@playwright/test/cli.js", "test", ...process.argv.slice(2)],
+    [
+      "node_modules/@playwright/test/cli.js",
+      "test",
+      ...(process.argv.length > 2
+        ? process.argv.slice(2)
+        : [
+            "tests/e2e/identity.spec.ts",
+            "tests/e2e/studio-startup.spec.ts",
+            "tests/e2e/collaboration-v3.spec.ts",
+          ]),
+    ],
     env,
   );
 } finally {
@@ -170,7 +169,7 @@ function stopProcessTree(child) {
 function failPreflight(reason) {
   console.error(`Local E2E preflight failed: ${reason}`);
   console.error("Run these commands, then retry:");
-  console.error("  npm run supabase:start:storage");
+  console.error("  npm run supabase:start:auth");
   console.error("  npm run db:reset");
   process.exit(1);
 }

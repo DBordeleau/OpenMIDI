@@ -2,7 +2,7 @@
 
 > **Historical implementation record:** STUDIO-01 through STUDIO-06 and UX-01 through UX-05 landed and established the current Studio. The MIDI-only replacement PRD, [pivot contract](technical-design/midi-only-pivot-contract.md), and [roadmap](ROADMAP.md) supersede this document wherever it retains audio, manifest-v2, stem, source-admission, PR 19, or PR 20 as a future target. Do not use those superseded sections to add compatibility; the pivot removes it in ordered slices.
 
-Status: Historical implementation record; superseded as future direction by PIVOT-00
+Status: Historical implementation record; superseded as current behavior and future direction by PIVOT-01 through PIVOT-09
 Prepared: 2026-07-14  
 Sequence: MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX-01–UX-05 are repository-complete; PIVOT-00 through PIVOT-10 now own future sequencing
 

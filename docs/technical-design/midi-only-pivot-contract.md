@@ -2,11 +2,11 @@
 
 Status: Accepted target contract for PIVOT-01–PIVOT-10
 Date: 2026-07-16
-Implementation state: Planned; current runtime/schema still contain legacy audio until the named pivot slices remove it
+Implementation state: Implemented locally through PIVOT-09; PIVOT-10 hosted rehearsal remains separately unapproved
 
 ## Purpose
 
-This document freezes the shared vocabulary and authority boundaries required for parallel MIDI-only pivot work. It does not claim that the current repository already implements this model.
+This document froze the shared vocabulary and authority boundaries used by the MIDI-only pivot. PIVOT-09 reconciled the repository to this model; historical transition notes below remain useful for ownership archaeology.
 
 The replacement [PRD](../PRD.md) is product authority. The [pivot roadmap](../ROADMAP.md) owns sequence. ADR-010 through ADR-014 in the [decision index](decisions/README.md) own stable architectural decisions.
 

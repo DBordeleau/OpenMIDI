@@ -1,453 +1,60 @@
-# Data Model and Supabase Design
-
-Status: Pre-pivot implemented schema reference; MIDI-only target is accepted in ADR-010–ADR-014 and [`midi-only-pivot-contract.md`](midi-only-pivot-contract.md)
-
-Database: Supabase Postgres
-
-> **Pivot notice (2026-07-16):** Tables and relationships below describe the schema currently implemented at PIVOT-00, including audio compatibility that will be removed. PIVOT-03 adds the transitional MIDI-only arrangement/pattern model; PIVOT-08 removes audio infrastructure; PIVOT-09 replaces the migration/data-model baseline. No existing application data must be migrated. New schema work must follow the MIDI-only contract rather than treating the audio/asset model below as future authority.
-
-## Modeling principles
-
-- Keep mutable collaboration metadata separate from immutable musical history.
-- Normalize relationships needed for authorization, discovery and attribution.
-- Use JSONB only for versioned Jam Session/engine manifests or bounded flexible event payloads, not primary relationships.
-- Store large binary objects in Storage and their identity/authorization metadata in Postgres.
-- Prefer restrictive constraints and explicit state transitions over application convention.
-
-## Relationship overview
-
-```mermaid
-erDiagram
-  AUTH_USERS ||--|| PROFILES : has
-  PROFILES ||--o{ PROJECT_MEMBERS : joins
-  PROJECTS ||--o{ PROJECT_MEMBERS : contains
-  PROJECTS ||--o{ PROJECT_REVISIONS : publishes
-  PROJECT_REVISIONS ||--o{ REVISION_TRACKS : contains
-  ASSETS ||--o{ REVISION_TRACKS : supplies
-  ASSETS ||--o{ ASSET_CREDITS : credits
-  REVISION_TRACKS ||--o{ REVISION_TRACK_CREDITS : snapshots
-  PROJECT_REVISIONS ||--o{ REVISION_ATTRIBUTIONS : attributes
-  PROJECTS ||--o{ WORKSPACES : edits
-  PROFILES ||--o{ WORKSPACES : owns
-  PROJECTS ||--o{ CONTRIBUTIONS : receives
-  CONTRIBUTIONS ||--o{ CONTRIBUTION_VERSIONS : revisions
-  CONTRIBUTIONS ||--o{ CONTRIBUTION_REVIEWS : reviews
-  PROJECTS o|--o{ PROJECTS : forked_from
-  PROJECTS ||--o{ PROJECT_TAGS : categorized
-  TAGS ||--o{ PROJECT_TAGS : categorizes
-```
-
-## Enumerations
-
-Use Postgres enums only for stable lifecycle sets. Additive enum migrations are acceptable; frequently changing taxonomies use tables.
-
-```sql
-create type account_status as enum ('active', 'suspended', 'deleted');
-create type project_visibility as enum ('private', 'unlisted', 'public');
-create type project_status as enum ('draft', 'active', 'archived', 'deleted');
-create type member_role as enum ('owner', 'editor', 'viewer');
-create type asset_status as enum ('reserved', 'uploading', 'processing', 'ready', 'failed', 'deleted');
-create type asset_kind as enum
-  ('source_audio', 'workspace_snapshot', 'mix_preview', 'waveform_peaks', 'image');
-create type asset_credit_role as enum
-  ('creator', 'performer', 'producer', 'engineer', 'other');
-create type contribution_status as enum
-  ('draft', 'submitted', 'changes_requested', 'accepted', 'rejected', 'withdrawn');
-create type revision_attribution_kind as enum
-  ('publisher', 'accepted_contributor');
-```
-
-Workspace status is constrained text (`active` or `archived`). PR 12 added the complete `contribution_status` enum: `draft`, `submitted`, `changes_requested`, `accepted`, `rejected`, and `withdrawn`. PR 12 commands produce draft, submitted, and withdrawn; PR 13 owner review produces changes requested, accepted, and rejected.
-
-## Identity
-
-### `profiles`
-
-| Column                 | Type               | Rules                                                         |
-| ---------------------- | ------------------ | ------------------------------------------------------------- |
-| `id`                   | `uuid`             | PK and FK `auth.users(id)` on delete restrict                 |
-| `username`             | `text null`        | display casing; 3–30 chars; no leading `@`; null before claim |
-| `username_normalized`  | `text null`        | lower-case canonical value; unique; paired with username      |
-| `display_name`         | `text null`        | 1–80 chars; null during onboarding                            |
-| `credit_name`          | `text null`        | 1–120 chars; snapshots copied to published credits            |
-| `bio`                  | `text null`        | max 500 chars                                                 |
-| `status`               | `account_status`   | default active                                                |
-| `profile_completed_at` | `timestamptz null` | requires username, display name and credit name               |
-| `created_at`           | `timestamptz`      | default `now()`                                               |
-| `updated_at`           | `timestamptz`      | trigger-maintained                                            |
-| `last_active_at`       | `timestamptz null` | throttled update, not every request                           |
-| `avatar_version_id`    | `uuid null`        | current trusted derivative version                            |
-| `avatar_path`          | `text null`        | safe versioned path in `public-avatars`                       |
-| `avatar_updated_at`    | `timestamptz null` | current pointer installation/removal time                     |
-
-Recommended checks:
-
-```sql
-check ((username is null) = (username_normalized is null)),
-check (username is null or (username = btrim(username) and username ~ '^[A-Za-z0-9_]{3,30}$')),
-check (username is null or username_normalized = lower(username)),
-check (display_name is null or (display_name = btrim(display_name) and char_length(display_name) between 1 and 80)),
-check (credit_name is null or (credit_name = btrim(credit_name) and char_length(credit_name) between 1 and 120)),
-check (bio is null or char_length(bio) <= 500)
-```
-
-The Auth trigger inserts only the user ID and ignores provider metadata, producing an incomplete row. Only completed active profiles are public. A security-invoker `public_profiles` view exposes safe identity columns; authenticated users may additionally read their own safe projection while incomplete, suspended or deleted. Application roles have no direct profile DML, and lifecycle/activity columns are not selectable through the public view. Profile completion is a separate onboarding command, not a direct update policy.
-
-Reserve names such as `admin`, `api`, `auth`, `explore`, `projects`, `settings`, `support` in a non-readable `reserved_usernames` table. Claim through one self-authorized security-definer function with a fixed empty `search_path`, row lock and unique index on `username_normalized`. Claims are idempotent for the same normalized name; renames and reassignment are deferred.
-
-Administrator membership lives in unexposed `private.app_admins`; the no-argument `private.is_admin()` helper checks only the current authenticated user and grants no automatic RLS bypass. `touch_viewer_activity()` writes only the verified caller and only when the prior value is at least 15 minutes old. Avatar reservations create `assets(kind='image')` private originals plus one `profile_avatar_versions` candidate; trusted finalization atomically swaps the safe profile pointer and queues superseded private/public objects for lease-bound cleanup.
-
-The `profiles.id` foreign key deliberately uses `on delete restrict`: deleting an Auth user must wait for the future account-deletion workflow to anonymize identity safely without erasing attribution.
-
-Do not duplicate email into `profiles`. Email comes from `auth.users` for the authenticated viewer only. This prevents accidental exposure through profile selects and avoids sync bugs.
-
-## Projects and membership
-
-PR 06 implemented the private metadata foundation as `projects`, `project_members`,
-`project_genres`, and `project_tags`, with explicit `lock_version` optimistic
-concurrency and `(owner_id, create_request_id)` idempotency. The initial controlled
-catalog is 4 licenses, 12 genres, 16 tags, and 16 instruments with fixed IDs.
-STUDIO-02 repairs the atomic MIDI project/workspace command so an exact retry
-compares every normalized metadata, taxonomy, and license input before returning
-the existing project; reuse of the request UUID with any different detail raises
-`project_request_conflict`.
-PR 08 added `current_revision_id` with a same-project composite foreign key when
-immutable revisions landed. PR 15 added the immutable `source_project_id` and
-`source_revision_id` pair plus a same-project source-revision foreign key for
-copy-on-write lineage.
-
-### `projects`
-
-| Column                                     | Type                 | Rules                                                 |
-| ------------------------------------------ | -------------------- | ----------------------------------------------------- |
-| `id`                                       | `uuid`               | PK                                                    |
-| `owner_id`                                 | `uuid`               | FK profiles                                           |
-| `title`                                    | `text`               | 1–120 chars                                           |
-| `description`                              | `text null`          | max 5,000 chars                                       |
-| `visibility`                               | `project_visibility` | default private                                       |
-| `status`                                   | `project_status`     | default draft                                         |
-| `open_to_contributions`                    | `boolean`            | default false                                         |
-| `bpm`                                      | `numeric(6,3) null`  | > 0 and <= 400                                        |
-| `musical_key`                              | `text null`          | canonical application enum value                      |
-| `time_signature_numerator`                 | `smallint`           | default 4, 1–32                                       |
-| `time_signature_denominator`               | `smallint`           | default 4, in 1,2,4,8,16,32                           |
-| `license_code`                             | `text`               | FK `licenses(code)`                                   |
-| `current_revision_id`                      | `uuid null`          | implemented same-project composite FK to revisions    |
-| `source_project_id`                        | `uuid null`          | immutable source project; paired with source revision |
-| `source_revision_id`                       | `uuid null`          | immutable exact source revision                       |
-| `created_at`, `updated_at`, `published_at` | `timestamptz`        | lifecycle timestamps                                  |
-| `deleted_at`                               | `timestamptz null`   | soft deletion                                         |
+# Data model
 
-Fork lineage columns are either both null or both non-null, cannot self-reference, and cannot be changed after insertion. The composite foreign key proves that the recorded revision belongs to the recorded source project. `fork_project(...)` only creates a new project that points to a pre-existing revision, so the creation direction cannot introduce a cycle.
+Status: Current clean baseline after PIVOT-09
 
-### `project_members`
+The baseline is intentionally split into four ordered migrations: foundation/identity, MIDI projects/arrangements, collaboration/discovery, and moderation/avatar operations. Pre-pivot create/alter/drop history remains available through Git history; it is not replayed by a clean database.
 
-Composite PK `(project_id, user_id)`, role, `created_at`, and `created_by`. Ensure exactly one owner using a partial unique index on `(project_id) where role = 'owner'`. For MVP this row must match `projects.owner_id`. Keeping membership separate prevents a future disruptive RLS rewrite.
+## Identity and catalogs
 
-### Taxonomies
+- `profiles` stores private lifecycle-bearing identity; `public_profiles` is the safe public projection.
+- `reserved_usernames`, `private.signup_invitations`, and `private.app_admins` protect identity and operations.
+- `licenses`, `genres`, `tags`, and `instruments` are deterministic read-only catalogs.
+- Email remains only in Supabase Auth.
 
-- `genres(id, slug, name, is_active)` and `project_genres(project_id, genre_id, is_primary)`.
-- `tags(id, slug, display_name, created_by, status)` and `project_tags(project_id, tag_id)`.
-- `instruments(id, slug, name, parent_id, is_active)` for controlled stem roles.
-- Unique composite keys prevent duplicates. Project write policy limits counts (for example 3 genres and 10 tags).
+## Projects and mutable workspaces
 
-Do not encode genres/instruments as enums; the vocabulary will evolve.
+- `projects` owns metadata, owner, visibility/status, contribution availability, current revision, and exact fork source.
+- `project_members`, `project_genres`, and `project_tags` normalize authorization and taxonomy.
+- `workspaces` stores the mutable canonical manifest-v3 draft and optimistic lock.
+- `workspace_tracks` and `workspace_clips` are the queryable MIDI projection. A clip references exactly one immutable `midi_pattern_version_id`.
+- `private.workspace_snapshots` stores at most 20 bounded Postgres recovery snapshots per workspace.
 
-## Immutable revisions and tracks
+Workspace saves are transactional and conflict-safe. No workspace table or projection contains a Storage object reference or a musical-media compatibility union.
 
-### `project_revisions`
+## Reusable patterns and arrangements
 
-| Column                             | Type          | Rules                                                                          |
-| ---------------------------------- | ------------- | ------------------------------------------------------------------------------ |
-| `id`                               | `uuid`        | PK                                                                             |
-| `project_id`                       | `uuid`        | FK projects                                                                    |
-| `revision_number`                  | `integer`     | positive; unique per project                                                   |
-| `parent_revision_id`               | `uuid null`   | same-project previous revision                                                 |
-| `created_by`                       | `uuid`        | FK profiles                                                                    |
-| `publish_request_id`               | `uuid`        | idempotency key; unique with project                                           |
-| `expected_base_revision_id`        | `uuid null`   | same-project optimistic-concurrency base                                       |
-| `message`                          | `text null`   | max 500 chars                                                                  |
-| `snapshot_asset_id`                | `uuid null`   | reserved for a future engine-native artifact; null for published MVP revisions |
-| `manifest`                         | `jsonb`       | validated canonical versioned subset                                           |
-| `manifest_version`                 | `smallint`    | implemented `1`; planned additive MIDI/audio union is `2`                      |
-| `engine`                           | `text`        | v1 `waveform-playlist`; v2 Jam Session composite studio identifier             |
-| `engine_version`                   | `text`        | exact adapter/package compatibility version                                    |
-| `manifest_sha256`                  | `text`        | canonical lowercase SHA-256 integrity checksum                                 |
-| `duration_ms`                      | `integer`     | non-negative derived duration                                                  |
-| `accepted_contribution_id`         | `uuid null`   | accepted contribution lineage; same project                                    |
-| `accepted_contribution_version_id` | `uuid null`   | exact immutable accepted version; belongs to contribution                      |
-| `created_at`                       | `timestamptz` | immutable                                                                      |
+- `midi_patterns` owns reusable identity, owner, visibility, source pattern, and rights attestation.
+- `midi_pattern_versions` stores immutable creator snapshots, exact parent/source version lineage, canonical hash, duration, and CC BY 4.0 reuse terms.
+- `midi_pattern_notes` stores canonical normalized notes with stable note IDs.
+- `arrangement_versions` stores one immutable complete manifest-v3 snapshot and hash.
+- `arrangement_tracks` and `arrangement_clips` normalize the same exact arrangement.
+- `project_revisions.arrangement_version_id` and `contribution_versions.arrangement_version_id` bind wrappers to immutable arrangements.
 
-Unique `(project_id, revision_number)` and `(project_id, publish_request_id)`. Composite foreign keys prove that `parent_revision_id`, `expected_base_revision_id`, `projects.current_revision_id`, and accepted-contribution lineage belong to the same project; another composite key binds an accepted version to its contribution. The first revision has no parent; later revisions point to the locked current revision. Update/delete is denied to application roles and rejected by immutability triggers. Corrections create a new revision. A future derived-preview slice may add `mix_preview_asset_id`; it does not exist yet.
+Published history is append-only. Pattern and arrangement projection rows reject updates and deletes. Forks reuse exact pattern-version references copy-on-write.
 
-### `revision_tracks`
+## Collaboration and discovery
 
-This is the queryable, engine-neutral track projection:
+- `contributions`, `contribution_versions`, and `contribution_reviews` model draft, immutable submission, and owner decision.
+- `revision_attributions` snapshots publisher and accepted-contributor credit names.
+- `activity_events`, `project_stats`, `public_project_catalog`, and `discovery_state` support bounded public reads and ordering.
 
-| Column          | Type           | Notes                                                 |
-| --------------- | -------------- | ----------------------------------------------------- |
-| `id`            | `uuid`         | stable track identity where carried between revisions |
-| `revision_id`   | `uuid`         | part of composite PK                                  |
-| `asset_id`      | `uuid`         | source audio asset                                    |
-| `name`          | `text`         | 1–120 chars                                           |
-| `instrument_id` | `uuid null`    | controlled taxonomy                                   |
-| `position_ms`   | `bigint`       | >= 0                                                  |
-| `trim_start_ms` | `bigint`       | >= 0                                                  |
-| `duration_ms`   | `bigint`       | > 0 and within asset duration                         |
-| `gain_db`       | `numeric(6,3)` | bounded application range                             |
-| `pan`           | `numeric(5,4)` | -1 through 1                                          |
-| `muted`         | `boolean`      | default false                                         |
-| `soloed`        | `boolean`      | saved workspace preference                            |
-| `sort_order`    | `integer`      | non-negative                                          |
-| `added_by`      | `uuid`         | attribution source                                    |
+Acceptance verifies the expected contribution version and current project revision, then creates one project revision in a transaction. Rejected contributions remain visible only to their author and project owner.
 
-Primary key `(revision_id, id)`. Index `asset_id` for retention/reference checks and `instrument_id` for discovery.
+## Moderation, deletion, and avatar operations
 
-`project_asset_references` is the append-only reference graph from a project to every unique immutable source asset retained by any surviving revision. `project_storage_usage` is a locked projection of that graph and counts each ready source asset once, regardless of revision reuse. First publish creates the revision, exact ordered track projection, missing asset references, usage projection, bounded activity event, lifecycle timestamp, and current pointer in one transaction.
+- Private moderation reports/actions and content holds are operational authority.
+- Private deletion requests and retention jobs preserve recovery and legal-hold semantics.
+- `assets` contains avatar originals only; ready rows are constrained to sanitized image metadata.
+- `profile_avatar_versions` links private originals to immutable public derivative paths.
+- Private upload/processing/cleanup jobs and the bounded operator commands own avatar lifecycle.
+- Storage contains exactly `profile-images` (private) and `public-avatars` (public derivatives), with one authenticated reservation policy for originals.
 
-Implemented manifest v1 supports one contiguous region per uploaded stem in this projection. Waveform Playlist may support richer clip or effect state, but publishing rejects manifests outside the promoted collaboration subset until corresponding normalized tables/validation exist.
+There are no musical upload, waveform, quota, processing, network-worker, or scheduled-job tables/functions/extensions in the baseline.
 
-## MIDI-first additive model
+## RLS and grants
 
-The MIDI expansion is expand-only. Do not rewrite manifest v1, published revisions, submitted contribution versions, credit snapshots, or source references.
+All application-facing tables have RLS enabled. Anonymous access is limited to safe catalogs and public projections. Authenticated direct writes are denied; mutations use explicitly granted commands. Suspended or incomplete profiles fail mutation eligibility. Security-definer functions set `search_path=''`, authorize the caller, and have minimum execute grants. Default Supabase table privileges are revoked after baseline creation.
 
-### Project compatibility and source admission
+## Seed and generated types
 
-Add a constrained project compatibility field equivalent to `midi` and `legacy_hybrid`. Backfill every existing project to `legacy_hybrid`; new projects default to `midi` only after the MIDI creation flow is deployed. Compatibility is a workflow invariant, not a subscription tier.
-
-MIDI-07 adds one trusted global prototype capability for new source admission. It ships enabled. `reserve_source_asset` checks it before new asset/quota mutation and raises a bounded `audio_uploads_unavailable` error when disabled; exact idempotent replay of a pre-lock reservation remains valid through its existing grace lifetime. Disabled-mode database/browser tests cover old-client bypass, quota non-mutation, completion/verification/cancellation, rollback, and mixed legacy-audio compatibility. STUDIO-06 proves repository parity but does not itself change hosted state. The hosted database capability was read-only confirmed enabled, and PR 20 may change it only after deployment parity and separate authorization. Do not model plans, payments, or per-user entitlements. Existing ready assets and documented in-flight reservations retain their lifecycle and authorization.
-
-### Manifest v2 and track projection
-
-Manifest v2 is a discriminated union:
-
-- `kind = 'audio'` preserves the exact v1 asset, mixer, taxonomy and ordering contract and owns stable bounded source-range clips;
-- `kind = 'midi'` has no asset ID and instead owns an immutable allowed synth `preset_id`/`preset_version` plus bounded tick-based clips that reference exact immutable MIDI stem versions.
-
-Add owner-scoped `midi_stems`, mutable `midi_stem_drafts`, and append-only `midi_stem_versions` (final names may vary only through the implementation plan's migration review). A draft stores bounded canonical notes under optimistic concurrency and may derive from one exact version. Publishing a stem appends a version with its exact canonical note payload, duration, checksum, creator/credit snapshot, version number, and optional parent-version lineage. A project never references a mutable draft or “latest version” pointer. MIDI stem rows are relational domain data, not assets or Storage objects.
-
-Generalize `revision_tracks`, `workspace_tracks`, and `contribution_version_tracks` with a required kind discriminator and kind-aware nullability/check constraints. Existing rows backfill to audio. Audio rows require one valid source asset and prohibit MIDI preset state; MIDI rows prohibit `asset_id` and require one supported preset version. Both kinds own normalized bounded clip projections with stable clip IDs. A v1 audio track maps to exactly one v2 audio clip with position, source trim, and duration preserved. The initial audio shape keeps every clip on a track tied to that track's single immutable source asset, so splitting does not duplicate bytes or blur credit/retention authority.
-
-Normalize workspace/revision/contribution-version/track/clip parent relationships. Audio clip rows store stable clip ID, position, source trim, and duration under a track whose single source asset remains the credit/retention boundary. MIDI project clip rows reference one exact immutable stem-version ID and store only project placement/source-offset/duration/loop fields; they do not duplicate notes. Stem drafts/versions store canonical bounded note-event data with note count, duration, and checksum. Notes are value events, not hidden authorization or cross-domain relationships. If implementation chooses row-per-note rather than bounded canonical JSONB for stem content, record measured database/query evidence before migration.
-
-Workspace clip rows change only through optimistic complete-manifest save commands. Revision and submitted-version clip rows plus published stem versions are immutable. Save, publish, submit, accept and fork must prove manifest/projection equivalence and exact stem-version references. Forks copy MIDI relational references and create no Storage object or source-byte quota usage.
-
-### Timing, presets, and credits
-
-The initial format uses integer ticks at 480 PPQ, one project BPM/time signature, bounded clips/notes, and the existing ten-minute project/export boundary. Persist stable synth preset ID/version only; arbitrary user synth JSON, URLs and samples are prohibited. Preset definitions are code-owned, immutable by version, and mirrored through a narrow database allowlist/validation contract as required by publish commands.
-
-MIDI track credits snapshot the confirmed track creator/composer directly and do not fabricate `asset_credits`. Existing audio credit derivation remains unchanged. Public catalog/profile projections combine safe MIDI/audio credit snapshots but never expose raw note payloads or private actor fields.
-
-### Retention and capacity
-
-MIDI stem drafts, immutable stem versions, derivation lineage, and project clip references are relational history. They are not user uploads and do not enter `source_bytes`. An abandoned mutable draft may become cleanup-eligible under PR 18 policy, but an immutable version cannot be removed while referenced by a workspace, revision, contribution version, fork, or required attribution/history. PR 18 must report MIDI database growth separately from actual Storage bytes and must continue reference-safe retention for dormant legacy audio, waveform peaks/previews, snapshots, avatars and jobs. Disabling source admission is never a deletion signal.
-
-## Assets and storage
-
-### `assets`
-
-| Column                                          | Type                   | Notes                                                        |
-| ----------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
-| `id`                                            | `uuid`                 | PK; generated during reservation                             |
-| `owner_id`                                      | `uuid`                 | uploader, not necessarily sole credited creator              |
-| `kind`                                          | `asset_kind`           | implemented source audio and workspace snapshot reservations |
-| `status`                                        | `asset_status`         | reserved/uploading/processing/ready/failed/deleted lifecycle |
-| `bucket`                                        | `text`                 | `source-audio` or private `workspace-snapshots`              |
-| `object_path`                                   | `text`                 | unique, server-generated                                     |
-| `original_filename`                             | `text`                 | canonical display name; optimized WAV ends in `.flac`        |
-| `declared_media_type`, `reserved_byte_size`     | nullable/text + bigint | untrusted declaration and quota reservation                  |
-| `media_type`, `byte_size`, `sha256`             | nullable               | trusted verification output; required when ready             |
-| `duration_ms`, `sample_rate_hz`, `channels`     | nullable numeric       | verified audio metadata; required when ready                 |
-| `verification_version`, `failure_code`          | `text null`            | trusted verifier provenance or bounded failure reason        |
-| `credits_confirmed_at`                          | `timestamptz null`     | owner-confirmed credit boundary                              |
-| `credits_confirmation_request_id`               | `uuid null`            | idempotency key for the accepted credit set                  |
-| `credits_confirmation_sha256`                   | `text null`            | normalized confirmed-input checksum                          |
-| `created_at`, `upload_completed_at`, `ready_at` | `timestamptz`          | lifecycle timestamps                                         |
-| `failed_at`, `deleted_at`                       | `timestamptz`          | failure/deletion lifecycle                                   |
-
-Storage paths must not embed mutable usernames:
-
-```text
-source-audio bucket: {owner_uuid}/{asset_uuid}/source
-workspace-snapshots bucket: {owner_uuid}/workspaces/{workspace_uuid}/snapshots/{asset_uuid}/manifest-v1.json
-derived-assets peak: {owner_uuid}/{source_asset_uuid}/{derivative_uuid}/peaks.v1.bin
-derived-assets audio mix preview (separate future decision): exact path/version not yet approved
-future avatar bucket: {user_uuid}/{asset_uuid}/avatar.webp
-```
-
-Do not globally deduplicate uploads in MVP: identical hashes can belong to different access domains and deletion expectations. Hashes provide integrity and later dedupe analysis.
-
-OPT-03 changes no source schema or user quota authority. Reservation occurs only after browser preprocessing chooses the final candidate, so `reserved_byte_size`, `original_filename`, declared media type, trusted hash/metadata, and the single private object all describe the canonical FLAC for an optimized WAV. The selected WAV is never an asset or Storage object. Existing assets, unoptimized WAVs, FLACs, and MP3s retain their prior byte and filename semantics.
-
-### `waveform_peak_derivatives`
-
-OPT-04 adds one optional presentation derivative per source with `id`, exact `source_asset_id`, `owner_id`, owner-scoped idempotency `request_id`, lifecycle status, exact private bucket/path/content type, expected/actual byte size, SHA-256, format/algorithm version, channels, duration, sample rate, fixed 2,048-bin resolution, and reservation/ready/failure timestamps. The source foreign key cascades only when the canonical source row is eventually removed; deleting or failing a derivative cannot delete or change the source. Application roles receive no direct writes. Owner coordination uses narrow security-definer commands, and reads require ownership or `can_read_source_asset(source_asset_id)`.
-
-`JSPK` v1 stores one resolution of signed 16-bit min/max pairs for each channel. This is the existing OPT-03 summary and is intentionally a fast initial rendering hint, not full zoom authority. The route returns it only when its source ID and metadata exactly match the trusted ready source. The adapter replaces it with locally decoded waveform detail when canonical audio arrives. Existing sources remain valid without a derivative and are not automatically backfilled.
-
-`global_storage_usage` now records `derived_bytes` and `reserved_derived_bytes`; both participate in the 850 MiB global soft stop and 750 MiB warning. Peak bytes do not enter `user_storage_usage.source_bytes` or project source-byte accounting. Abandoned reservations expire after 24 hours and release reserved capacity; Storage object removal continues through the Storage API rather than direct `storage.objects` deletion.
-
-This singleton is currently registered-domain accounting, not an actual-object inventory for snapshots, avatars, orphaned bytes or cleanup lag. Operators use the Supabase organization usage dashboard as the provider-level capacity/egress check until PR 18 adds a bounded `storage.objects` reconciliation. The deferred browser-produced legacy-audio mix preview has no approved table, revision foreign key, path or lifecycle; it must arrive as its own future decision and is not covered by MIDI-native preview playback.
-
-Implemented `asset_credits(asset_id, user_id nullable, credit_name, role, position)` stores ordered self/external display snapshots. Trusted verification creates only a provisional uploader suggestion; the active owner must atomically confirm 1–12 credits with at least one creator before the source can enter workspace, contribution-version, or revision tracks. Self names are derived from the verified profile in SQL, external names remain unlinked plain text, duplicate identity/role pairs are denied, and confirmed/referenced credits are immutable. Confirmation request ID plus normalized SHA-256 makes exact retries idempotent and conflicting reuse fail. `owner_id` is operational ownership, not authorship.
-
-### `revision_track_credits` and `revision_attributions` (implemented — PR 14)
-
-Every inserted revision track atomically copies its confirmed asset credits into immutable `revision_track_credits`, retaining ordered role, snapshot name, nullable profile link, source asset, and source-credit position. Published reads use these rows rather than mutable profile or asset joins.
-
-Every revision also receives one immutable `publisher` attribution. A revision created by acceptance receives one `accepted_contributor` attribution linked to its normalized contribution/version and snapshotting the contribution author rather than the reviewer. These activity attributions are presented separately from musical roles and from `revision_tracks.added_by` provenance. Parent project/revision RLS controls reads; appearing in a credit never grants private-project access. Suspended/deleted/incomplete profiles lose safe public links while retained snapshot text remains.
-
-### `private.asset_verification_jobs`
-
-PR 11.5 adds one durable private job per processing source asset. `state` is `pending`, `leased`, `retry_wait`, `succeeded`, `permanent_failed`, or `dead`; `attempts` is bounded to two automatic full-download attempts. A lease has an unguessable token and two-minute expiry. Only service-role RPCs may claim or apply terminal mutations, and every completion/failure command must present the current lease token. User RPCs expose only the owner’s safe status and cooldown-bound retry command.
-
-`complete_source_upload()` changes the asset to `processing` and creates the job atomically. Successful verification calls the existing atomic promotion/quota/credit transition; permanent validation failure calls the existing quota-release transition. Terminal job evidence and Cron history are retained for seven days. The private table is outside the Data API and direct application access is revoked.
-
-The user-facing upload repository explicitly filters `assets.kind = 'source_audio'`. RLS ownership of a `workspace_snapshot` row is necessary for save/recovery workflows, but it does not make the server-generated `manifest-v1.json` object a user upload or eligible for upload-history presentation.
-
-## Workspaces and contributions
-
-### `workspaces`
-
-Implemented mutable private owner and contribution-author drafts:
-
-- `id`, `project_id`, `owner_id`
-- `create_request_id` for owner-scoped idempotent creation
-- exact `base_revision_id`
-- nullable `contribution_id`; null means owner project workspace, non-null is constrained to the same contribution project, author, and base
-- `snapshot_asset_id null`, `manifest jsonb`, `manifest_version`, `engine`, `engine_version`, `manifest_sha256`
-- `status` constrained to `active` or `archived`, `lock_version integer`, `created_at`, `updated_at`
-
-PR 10 allows one active viewer-owned workspace per project through a partial unique index. `create_project_workspace()` copies the exact current revision and its track projection. PR 12 links contributor workspaces through a composite contribution/project/author/base foreign key. `reserve_workspace_snapshot()` and `save_workspace()` preserve owner behavior while allowing only draft or changes-requested contribution authors to edit.
-
-PR 11 adds `publish_workspace_revision()`, which delegates immutable revision creation to `publish_project_revision()` and advances the same active workspace only after that canonical transaction succeeds. Its idempotent result is proven by the immutable revision publish-request record and the post-publish workspace base/lock. `restart_project_workspace()` archives a stale workspace and clones the exact current revision; it never rebases or merges draft fields.
-
-### `workspace_tracks`
-
-Queryable mutable projection of the workspace manifest. It mirrors the engine-neutral fields in `revision_tracks` and uses primary key `(workspace_id, track_id)`, with retention/discovery indexes on `asset_id` and `instrument_id`. Application roles may select their own rows but cannot mutate the projection directly; only workspace commands replace it after manifest validation.
-
-### `contributions` (implemented — PRs 12–13)
-
-- `id`, `project_id`, `author_id`, idempotent `create_request_id`, `base_revision_id`
-- `title`, `description`
-- `status`, `current_version_id`
-- `submitted_at`, `withdrawn_at`, `reviewed_at`, `reviewed_by`
-- `review_note`, `created_at`, `updated_at`
-
-State transitions occur only through database commands. Authors create, submit, resubmit after changes requested, and withdraw; the project owner may request changes, reject, or accept the exact current submitted version. Every submitted version and its track projection remain immutable.
-
-### `contribution_versions` (implemented — PR 12)
-
-Immutable submission attempts: `id`, `contribution_id`, positive `version_number`, idempotent `submission_request_id`, exact `base_revision_id`, `snapshot_asset_id`, acknowledged `workspace_lock_version`, canonical `manifest`, engine/version/checksum/duration fields, versioned contributor attestation, `created_by`, and `created_at`. Unique `(contribution_id, version_number)` and `(contribution_id, submission_request_id)`. A contribution’s `current_version_id` must belong to it.
-
-### `contribution_version_tracks` (implemented — PR 12)
-
-Immutable queryable projection of each submitted manifest, mirroring the engine-neutral arrangement fields in `revision_tracks` and retaining `added_by` provenance. Asset, instrument, ordering, and track relationships remain normalized for review, retention, and future acceptance instead of being hidden only in JSONB. The submitted manifest remains the portable authority, and the command must prove projection equivalence before commit.
-
-Rejected and withdrawn contributions remain selectable by their author and the project owner while the project exists. They are excluded from public project pages, discovery, activity feeds and public profile contribution lists. An author may request earlier deletion unless the contribution was accepted or is under a moderation/legal hold.
-
-### `contribution_reviews` (implemented — PR 13)
-
-Immutable idempotent review attempts contain the exact contribution/version, reviewer, request UUID, requested and applied decision, bounded machine reason, participant-private note, expected project revision, optional resulting revision, and timestamp. A stale requested accept is applied as request changes with reason `base_outdated`. Only the author and owning reviewer may select review history; application roles cannot mutate it directly.
-
-Accepted `project_revisions` store both `accepted_contribution_id` and `accepted_contribution_version_id`. Composite constraints prove same-project/version lineage, and the acceptance command copies normalized track `added_by` provenance while adding only newly referenced assets to project usage.
-
-## Quotas, reports and moderation
-
-Quota usage is calculated from active, uniquely stored source assets rather than revision references, so revisions and forks do not double-count bytes:
-
-- `user_storage_usage(user_id, source_bytes, updated_at)` is a transactionally maintained cache; authority remains the referenced `assets` rows.
-- `project_storage_usage(project_id, source_bytes, unique_source_count, updated_at)` accelerates admission checks.
-- Upload-finalization and publish functions recheck 45 MiB/file, 10 minutes/file, 12 stems/project, 250 MiB/project and 200 MiB/user under a transaction lock.
-- A server-side capacity check rejects new source uploads at the global 850 MiB soft stop. Clients cannot override it.
-
-PR 18 implements private `moderation_reports`, append-only `moderation_actions`, `content_holds`, generalized `deletion_requests`, and retention run/job/object tables. Exactly-one-target constraints keep profile/project/contribution/asset targets relational. Application roles have no direct table access: reporter, administrator, recovery, and operator behavior is exposed through narrow security-definer commands with explicit grants. Reporters receive only target kind/label, timestamps, and `submitted | reviewing | closed`; detail, assignment, administrator identity, actions, and holds remain private.
-
-Actual capacity is computed from read-only `storage.objects` size metadata plus unmaterialized reservations and registered ready objects missing from Storage. Unknown sizes fail conservatively. Source-only user/project caches remain the existing quota contract; total object metadata warns at 750 MiB and rejects new source reservations above 850 MiB.
-
-## Discovery and activity
-
-PR 16 implements a safe `public_project_catalog`, internal `project_stats`, and one-row `discovery_state`. Transactional refresh triggers keep public eligibility, safe metadata/credit summaries, deterministic trending inputs, and cache versions aligned with authoritative project state.
-
-- `project_stats(project_id PK, revision_events, accepted_contributions, public_direct_forks, last_public_activity_at, trending_score, updated_at)` is a derived internal cache, never authorization authority.
-- `activity_events(id bigint identity, actor_id, event_type, project_id, subject_id, payload jsonb, created_at)` is append-only and contains no secrets.
-- Search uses a generated/stored weighted `tsvector` for title, description and tags plus B-tree indexes for BPM, key, status, visibility and timestamps.
-- Trigram indexes may support username/project-title typo tolerance after measuring query plans.
-- Trending formula is versioned and recomputed from recent bounded events; exclude self-generated refresh/play spam.
-
-## Important indexes
-
-The following is the target minimum across implemented and planned phases. PR 16 owns measured GIN/B-tree/keyset indexes on the safe catalog; authoritative relationship indexes remain on normalized tables.
-
-```sql
-create unique index profiles_username_normalized_uq on profiles (username_normalized);
-create index projects_discovery_idx
-  on projects (published_at desc)
-  where visibility = 'public' and status = 'active' and deleted_at is null;
-create index projects_bpm_idx on projects (bpm)
-  where visibility = 'public' and status = 'active';
-create unique index project_revisions_number_uq
-  on project_revisions (project_id, revision_number);
-create index revision_tracks_asset_idx on revision_tracks (asset_id);
-create index contributions_review_queue_idx
-  on contributions (project_id, submitted_at)
-  where status = 'submitted';
-create unique index assets_object_path_uq on assets (bucket, object_path);
-```
-
-Every foreign-key column used for delete/reference checks needs a supporting index. Verify indexes with actual query plans before adding speculative composites.
-
-## RLS policy matrix
-
-RLS predicates should call small, stable helper functions such as `is_project_member(project_id, minimum_role)` where useful. Mark security-definer helpers carefully, set `search_path`, and revoke public execute unless intended.
-
-This is the implemented MVP matrix through PR 16. Public project reads use a safe projection rather than broad authoritative-table selects; `unlisted` remains application-unreachable. Source audio is never granted merely because a project is public: access requires ownership, current membership, an owned active workspace reference, or an authored immutable contribution-version reference.
-
-| Resource                          | Anonymous                       | Signed-in user                                                                                                                              | Owner/reviewer                                   |
-| --------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Public active profile             | select                          | select                                                                                                                                      | update own limited fields                        |
-| Public published project/revision | select                          | select                                                                                                                                      | mutate project through commands                  |
-| Unlisted project                  | select with unguessable ID/link | same                                                                                                                                        | full project access                              |
-| Private project                   | none                            | member select                                                                                                                               | owner mutation                                   |
-| Workspace                         | none                            | owner select; mutation only through authorized commands                                                                                     | no access unless same user                       |
-| Contribution                      | none                            | author select; submitted visible to project owner                                                                                           | owner review                                     |
-| Source asset                      | none                            | owner access; active completed project members may read ready source rows/objects only when referenced by that project's immutable revision | same, through short-lived exact-revision signing |
-
-Avoid permissive direct updates to lifecycle columns. Expose functions such as:
-
-- `claim_username(p_username text)`
-- `create_project(...)`
-- `publish_project_revision(...)`
-- `create_project_workspace(...)`
-- `reserve_workspace_snapshot(...)`
-- `save_workspace(...)`
-- `publish_workspace_revision(...)`
-- `restart_project_workspace(...)`
-- `confirm_source_asset_credits(...)`
-- `create_contribution_workspace(...)`
-- `submit_contribution(...)`
-- `withdraw_contribution(...)`
-- `review_contribution(...)`
-- `fork_project(...)`
-- `get_project_revision_preview(...)`
-- `delete_project(...)`
-
-Each function verifies `auth.uid()`, validates current state, uses row locks where needed and returns the created/updated IDs.
-
-`fork_project(...)` uses an actor-scoped request UUID for idempotency, verifies exact source membership and derivative-license permission under a row lock, creates the target project/revision/owner membership atomically, reuses asset references without inserting `assets`, preserves track authors and immutable credit/attribution snapshots, and creates no workspace until the studio is opened.
-
-`get_project_revision_preview(...)` exposes only the current immutable revision to active members or visitors when the project is present in the public catalog. It returns exact private Storage paths to the server route that creates short-lived signed URLs; it does not make the source bucket public. `delete_project(...)` is an owner-only, optimistic and idempotent soft-delete command that closes contributions, removes public visibility and timestamps the 30-day recovery window without mutating revision history.
-
-## Deletion and retention
-
-- Account deletion immediately changes status, attempts caller-scoped global sign-out, and denies application/database authority even while an issued access token remains unexpired.
-- Published credit snapshots remain as required for attribution, even if the account is deleted, subject to legal policy.
-- Project soft-delete hides it and blocks new signed URLs.
-- The manual-first collector deletes Storage objects only through the Storage API when the centralized blocker graph returns no live workspace, revision, contribution, fork, avatar/processing job, owner-library, or hold reference and the retention window has elapsed.
-- Never use cascading deletion from profiles to published revisions or credits.
-- Failed/incomplete uploads expire after 24 hours; inactive abandoned workspaces after 30 days; soft-deleted project/account objects after a 30-day recovery period.
-- Moderation and security audit metadata is retained for 180 days. A legal/abuse hold suppresses scheduled deletion.
-
-## Type generation
-
-Generate database types from the actual local/linked Supabase schema in CI. Domain types are separate and deliberately smaller than rows. Do not hand-maintain a duplicate `Database` interface. Validate JSON manifests with a versioned runtime schema before writes and after reads.
+`supabase/seed.sql` deterministically seeds reserved names, MIDI-oriented catalogs, the 24 exact preset rows, discovery state, and the local/CI invitation. Tests create isolated Auth/profile/project/pattern/arrangement fixtures transactionally. `npm run db:types` atomically regenerates `src/lib/supabase/database.types.ts` from the clean local schema; generated output is never hand-edited.

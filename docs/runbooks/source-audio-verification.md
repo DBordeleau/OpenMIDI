@@ -1,5 +1,7 @@
 # Source-audio verification
 
+> **Superseded — do not execute:** PIVOT-08 removed this worker, its jobs, network/cron extensions, buckets, secrets, and commands. This file is retained only as pre-pivot operational evidence and is not current setup or deployment guidance.
+
 PR 11.5 automatically verifies every completed source upload. Browser audio bytes still travel directly to the private `source-audio` bucket; Next.js sends only the asset ID to the region-pinned `verify-source-audio` Edge Function.
 
 ## Runtime flow

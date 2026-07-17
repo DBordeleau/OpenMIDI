@@ -1,6 +1,6 @@
 # Jam Session — Product Requirements Document
 
-Status: Product pivot approved in principle; this PRD defines the new MIDI-only MVP
+Status: Approved MIDI-only MVP; foundation implemented locally through PIVOT-09
 
 Last updated: 2026-07-16
 
@@ -543,21 +543,10 @@ Require explicit supported reuse terms for library publishing and challenge star
 
 Use challenge, diff, and reuse outcomes to prioritize editor work. Do not chase professional DAW parity, audio support, advanced synthesis, notation, or plugin hosting before the core loop is proven.
 
-### Existing audio architecture
+### Historical architecture transition
 
-The current repository contains legacy audio code, schema, migrations, tests, and documentation. This PRD intentionally makes that behavior out of scope. Whether to remove it through a staged refactor or begin from a clean repository is a separate technical/product-delivery decision and must be made before producing the replacement roadmap.
+PIVOT-00 through PIVOT-09 resolved the repository strategy, reset posture, manifest-v3 domain, preset runtime, retained product foundations, and complete local removal inventory. The clean migration baseline and Git history preserve the appropriate evidence without replaying the pre-pivot create/alter/drop chain.
 
-## Decisions required before the replacement roadmap
+## Remaining product decisions
 
-The next planning stage must resolve:
-
-1. Refactor the current repository versus start a clean MIDI-only repository.
-2. Whether any existing hosted data/schema is retained or the prototype is reset completely.
-3. The canonical MIDI project, revision, clip, and semantic-diff contracts after audio removal.
-4. Challenge constraint representation, authoritative validation, voting, and result semantics.
-5. Public library reuse terms and immutable credit/lineage behavior.
-6. Which existing moderation, identity, Studio, project, contribution, and fork implementations are retained.
-7. Supported browser and built-in instrument strategy.
-8. Migration/decommissioning treatment for every audio route, bucket, worker, cron job, quota, table, and test.
-
-Do not update the implementation roadmap or begin destructive repository/database work until these decisions are documented.
+The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs, the public pattern library, and challenges. Each future slice must still specify its UI and validation detail, but it must not revisit the accepted MIDI-only persistence, licensing, immutable-history, or avatar-only Storage boundaries without a superseding product decision and ADR. Hosted rehearsal/cutover remains PIVOT-10 and requires explicit approval.

@@ -162,9 +162,8 @@ Motion should feel like a smooth fade-up into place, never busy or bouncy.
   `cubic-bezier(0.2, 0.8, 0.2, 1)` over 0.6s. Stagger sibling groups by ~0.06s via
   the `delay` prop.
 - **Ambient** — the aurora drifts slowly (multi-second periods) behind everything.
-- **Hero waveform** — an animated multi-track waveform with a sweeping playhead is
-  the hero's thesis; it shows the product _being_ collaborative rather than
-  describing it.
+- **Hero MIDI grid** — the compact multi-track step arrangement is the hero's
+  thesis; it shows the product _being_ collaborative rather than describing it.
 - **Micro-interactions** — primary/secondary buttons lift `-translate-y-px` on
   hover with a softening shadow.
 - **Page transitions** — every route fades in via
@@ -175,10 +174,10 @@ Motion should feel like a smooth fade-up into place, never busy or bouncy.
   `Reveal` (see the landing).
 
 **Reduced motion is mandatory.** Every animated component checks
-`prefers-reduced-motion`: `Reveal` renders content immediately, and the canvas
-components (`Aurora`, `HeroWaveform`) draw a single static frame instead of
-looping. `globals.css` also neutralizes transitions/animations under the media
-query. Never ship motion without this fallback.
+`prefers-reduced-motion`: `Reveal` renders content immediately and `Aurora` draws a
+single static frame instead of looping. The hero MIDI grid is already static.
+`globals.css` also neutralizes transitions/animations under the media query. Never
+ship motion without this fallback.
 
 ---
 
@@ -216,9 +215,9 @@ Collapses to a full-width bottom bar under 600px. Slides in ~700ms after load.
 160° gradient toward `surface-soft`), deep soft shadow
 (`shadow-[0_...px_-...px_#000]`).
 
-**Console deck** — a mixer-style panel: track rows (`name · contributor`, mini
-waveform, M/S chips). Chips light up coral (`M`) / gold (`S`) when active with a
-dark foreground.
+**Console deck** — a mixer-style panel: track rows (`name · contributor`, compact
+note-timing summary, M/S chips). Chips light up coral (`M`) / gold (`S`) when active
+with a dark foreground.
 
 **Credits sleeve** — an album back-cover motif: inner hairline frame, serif title,
 mono `role → name` rows on hairline dividers, a dashed "always attributed" stamp.
@@ -243,11 +242,12 @@ presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
 entrance and a fade-out on close (Escape, backdrop, or the icon button) that routes
 home. The Google button is a white pill with the 4-colour Google mark.
 
-**Studio surface** — the current transitional manifest-v2 sessions use the shared
+**Studio surface** — manifest-v3 sessions use the browser-only
+[`MidiStudioSurface`](../../src/features/studio/midi-adapter/midi-studio-surface.client.tsx)
+with the shared
 [`ArrangerWorkspace`](../../src/features/studio/arranger/arranger-workspace.tsx):
-gold MIDI notes sit in dark plum lanes with fixed compact channel strips,
-exact-value inspection, and react-icon transport/zoom/follow actions. Coral audio
-summaries may remain only until the MIDI-only pivot removes that compatibility path.
+gold MIDI note summaries sit in dark plum lanes with fixed compact channel strips,
+exact-value inspection, and react-icon transport/zoom/follow actions.
 The studio is a deliberate **full-bleed exception** to the 76rem `Container` in §6:
 `/studio` routes render edge-to-edge with tight gutters, drop the marketing footer
 (via [`ConditionalFooter`](../../src/components/layout/conditional-footer.client.tsx)),
@@ -271,10 +271,9 @@ press feedback, and a held pointer may glide across them as one continuous gestu
 Its pill-shaped Pencil/Select tool group uses visible pressed state;
 Select renders a translucent semantic-gold marquee while the synchronized note list
 and inspector retain exact, keyboard-accessible selection controls.
-Legacy manifest-v1 waveforms remain canvas-rendered, so their colours still come from
-the `studioTheme` engine configuration in
-[`studio-surface.tsx`](../../src/features/studio/waveform-playlist-adapter/studio-surface.tsx).
-Keep lanes short so more tracks fit without scrolling.
+Keep MIDI lanes short so more tracks fit without scrolling, and use note timing,
+pitch range, density, clip length, loop state, and preset colour rather than a fake
+audio waveform.
 
 **Cursors & hover feedback** — interactive controls must feel interactive.
 `globals.css` gives `button`/`summary`/`select`/checkbox/radio/range/`[role=button]`
@@ -334,11 +333,11 @@ pages, the create/edit form.
 | Landing page              | `src/app/(public)/page.tsx`                                               |
 | Reveal (entrance anim)    | `src/components/ui/reveal.client.tsx`                                     |
 | Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout)        |
-| Hero waveform             | `src/app/(public)/_components/hero-waveform.client.tsx`                   |
+| Hero MIDI grid            | `src/app/(public)/_components/hero-midi-grid.tsx`                         |
 | Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`                    |
 | Header / nav              | `src/components/layout/header-nav.client.tsx`                             |
 | Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`                    |
-| Studio surface + theme    | `src/features/studio/waveform-playlist-adapter/studio-surface.tsx`        |
+| MIDI Studio surface       | `src/features/studio/midi-adapter/midi-studio-surface.client.tsx`         |
 | Unified arranger          | `src/features/studio/arranger/arranger-workspace.tsx`                     |
 | Integrated MIDI composer  | `src/features/studio/integrated-midi/integrated-midi-composer.client.tsx` |
 | Shared MIDI piano         | `src/features/midi/stems/stem-editor.client.tsx` and `piano-roll.ts`      |

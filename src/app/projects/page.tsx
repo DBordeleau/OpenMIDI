@@ -180,11 +180,11 @@ export default async function ProjectsPage({
               Your first project
             </p>
             <h2 className="mt-3 text-2xl font-semibold">
-              Start with a musical idea and a few stems.
+              Start with a musical idea and a few MIDI patterns.
             </h2>
             <p className="text-muted mx-auto mt-3 max-w-xl leading-7">
-              Projects keep your source audio, private workspace, and published
-              revision history together.
+              Projects keep your private arrangement workspace, published
+              revision history, and pattern lineage together.
             </p>
             <div className="mt-6">
               <ButtonLink href="/projects/new">

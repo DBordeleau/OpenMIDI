@@ -57,11 +57,11 @@ npm run db:reset
 npm run test:e2e:studio
 ```
 
-Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for studio startup/save behavior, `npm run test:e2e:identity` for onboarding and publication behavior, and `npm run test:e2e:local` for cross-feature or final browser validation. `npm run test:e2e:upload` remains a transitional legacy-audio check until its owning removal slice deletes it; do not expand it during the pivot. The runner configures local Supabase and the gated actor automatically, uses an isolated `.next-e2e` development build, and cleans up its server process tree; do not manually copy local keys into the shell. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
+Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for Studio save/publish/preview behavior, `npm run test:e2e:identity` for onboarding and first-project behavior, and `npm run test:e2e:local` for the required cross-feature MIDI suite including contribution acceptance and fork lineage. The default runner uses the reduced Auth stack, configures the gated actor automatically, uses an isolated `.next-e2e` development build, and cleans up its server process tree; do not manually copy local keys into the shell. Start the Storage stack only for avatar-specific tests. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
 
 Report any check you could not run and why. Never claim a check passed without running it.
 
-Environment-dependent checks have a two-attempt troubleshooting ceiling by default. If the same Docker, Auth/Storage setup, Chromium installation, test-actor, or fixture condition remains unavailable after two focused attempts, stop and report the observed cause instead of consuming unbounded time or resources. Fixing a concrete selector, fixture, test-query, or harness defect permits one validation run of that corrected path; it is not another attempt at the unchanged environmental blocker. Manual multi-browser, audible-audio, Preview, performance, and extended interruption matrices should be agreed explicitly when they materially increase cost.
+Environment-dependent checks have a two-attempt troubleshooting ceiling by default. If the same Docker, Auth/Storage setup, Chromium installation, test-actor, or fixture condition remains unavailable after two focused attempts, stop and report the observed cause instead of consuming unbounded time or resources. Fixing a concrete selector, fixture, test-query, or harness defect permits one validation run of that corrected path; it is not another attempt at the unchanged environmental blocker. Manual multi-browser, synthesized-playback perception, Preview, performance, and extended interruption matrices should be agreed explicitly when they materially increase cost.
 
 For visible UI changes, also inspect the affected pages at 320, 768, 1280, and 1536 CSS pixels. Verify keyboard order, visible focus, reduced-motion behavior, readable zoom, and the absence of horizontal overflow. Keep public pages server-first; add a Client Component only around behavior that requires browser APIs or interaction.
 
@@ -71,7 +71,7 @@ For visible UI changes, also inspect the affected pages at 320, 768, 1280, and 1
 - Put complete browser journeys in `tests/e2e`.
 - Test public behavior and accessibility rather than animation timing or private implementation details.
 - Future database authorization behavior must be tested against local Supabase, not mocked RLS.
-- Tone.js version, preset-version, or manifest changes require persisted round-trip fixtures. Waveform Playlist fixtures remain transitional until its scheduled removal.
+- Tone.js version, preset-version, or manifest changes require persisted round-trip fixtures.
 
 ## Secrets and local files
 
@@ -79,7 +79,7 @@ Never commit:
 
 - `.env` or `.env.local`
 - API keys, OAuth secrets, cookies, or signed URLs
-- Uploaded audio or private user data
+- Uploaded musical files or private user data
 - `node_modules`, builds, coverage, or test reports
 - Anything under `local/`
 

@@ -6,7 +6,7 @@ This file is the operating contract for coding agents working in this repository
 
 Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Users create versioned MIDI arrangements, edit them in browser workspaces, submit contributions, fork projects, and preserve pattern/revision lineage and attribution.
 
-The target MVP is a Next.js application backed by Supabase Auth/Postgres and avatar-only Storage, with a client-only Tone.js MIDI runtime. The current repository still contains pre-pivot audio compatibility until PIVOT-04–PIVOT-09 remove it. It will eventually deploy to Vercel against a fresh Supabase project.
+The target MVP is a Next.js application backed by Supabase Auth/Postgres and avatar-only Storage, with a client-only Tone.js MIDI runtime. PIVOT-09 established the reviewed MIDI-only migration baseline and removed active legacy-audio infrastructure. It will eventually deploy to Vercel against a fresh Supabase project.
 
 ## Read before changing code
 
@@ -29,7 +29,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PRs 01–18, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, UX-01–UX-05, and the Studio-design refinement are implemented. Their identity, Studio, project, collaboration, discovery, moderation, deletion, brand, and testing foundations are retained. The replacement PRD and ADR-010–ADR-014 supersede the legacy-audio target. PIVOT-00 is the current documentation/contract lock; PIVOT-01 (domain v3/diff), PIVOT-02 (instrument catalog/runtime), and PIVOT-03 (database foundation) are the next parallel wave after PIVOT-00 merges. PR 19, PR 20, and the egress follow-up are paused/superseded as next work. The current code/schema still contain audio compatibility until later pivot slices remove it. No existing hosted application data must be retained, no pivot worker may mutate hosted Supabase, and PIVOT-10 owns a separately approved fresh-project rehearsal. npm is the sole package manager and Node.js 24 LTS is required.
+PIVOT-01 through PIVOT-09 are implemented on the MIDI-only integration line. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The next product work is semantic visual diffs, then the public pattern library, then challenges. No existing hosted application data must be retained, no worker may mutate hosted Supabase without explicit authorization, and PIVOT-10 owns a separately approved fresh-project rehearsal. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -59,6 +59,7 @@ Keep this section exact and runnable from the repository root.
 | Install dependencies      | `npm ci`                         |
 | Development server        | `npm run dev`                    |
 | Full non-E2E check        | `npm run check`                  |
+| MIDI-only static contract | `npm run check:midi-only`        |
 | Lint                      | `npm run lint`                   |
 | Type check                | `npm run typecheck`              |
 | Unit tests                | `npm test`                       |
@@ -73,12 +74,9 @@ Keep this section exact and runnable from the repository root.
 | Generate database types   | `npm run db:types`               |
 | Check database type drift | `npm run db:types:check`         |
 | Prepare test Auth actor   | `npm run auth:e2e:setup`         |
-| Local E2E suite           | `npm run test:e2e:local`         |
+| Required MIDI E2E suite   | `npm run test:e2e:local`         |
 | Identity E2E              | `npm run test:e2e:identity`      |
 | Studio smoke E2E          | `npm run test:e2e:studio`        |
-| Upload optimization E2E   | `npm run test:e2e:upload`        |
-| Verify source asset       | `npm run assets:verify`          |
-| Preview asset cleanup     | `npm run assets:cleanup`         |
 | Process profile image     | `npm run avatars:process`        |
 | Preview avatar cleanup    | `npm run avatars:cleanup`        |
 | Raw/CI end-to-end tests   | `npm run test:e2e`               |
@@ -86,20 +84,20 @@ Keep this section exact and runnable from the repository root.
 
 Never invent a command in a handoff. Read `package.json` and tool configuration, run the narrowest relevant checks during iteration, then run `npm run check` before completion. When routes or browser-visible flows change, run the narrowest applicable local E2E command; use `npm run test:e2e:local` for cross-feature changes. Chromium must be installed once with `npx playwright install chromium`. The raw `npm run test:e2e` command is for an already-configured environment such as CI.
 
-Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth or Storage stack commands for their corresponding browser flows. Reset the database before validating migrations, and stop it when finished. Local E2E uses the Storage stack, reads its process-scoped keys automatically, prepares the gated actor, runs one worker to prevent shared-fixture races, and owns an isolated `.next-e2e` development server that it cleans up on completion or interruption. Its upload journey completes the real verification lease and credit-confirmation state deterministically because the reduced stack intentionally omits Edge Runtime. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. Source verification is normally automatic; `npm run assets:verify` is a trusted lease-aware operator fallback, never browser authority. `npm run check` intentionally remains independent of Docker.
+Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth stack for the default MIDI browser suite and the reduced Storage stack only for avatar flows. Reset the database before validating migrations, and stop it when finished. Local E2E reads process-scoped local keys automatically, prepares the gated actor, runs one worker to prevent shared-fixture races, and owns an isolated `.next-e2e` development server that it cleans up on completion or interruption. It requires neither Storage nor Edge Runtime for musical journeys. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. `npm run check` includes the enforceable MIDI-only static contract and remains independent of Docker.
 
 The two-attempt ceiling applies when the same unresolved environment-dependent blocker repeats. A concrete correction to a selector, fixture, test query, or harness defect permits one validation run of the corrected path; do not count that as another attempt at the unchanged blocker, and do not continue looping if the corrected run exposes the same environmental condition.
 
 ### Supabase environment contract
 
-The normal interactive development app intentionally uses the actual hosted Supabase project configured in the uncommitted `.env.local`. `npm run dev` follows `NEXT_PUBLIC_SUPABASE_URL`; it does not switch to local Supabase merely because local containers are running. The local Supabase stack exists primarily for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and explicitly requested local Auth/Storage browser flows.
+`npm run dev` follows the uncommitted `NEXT_PUBLIC_SUPABASE_URL`; it does not switch to local Supabase merely because local containers are running. Until PIVOT-10 is explicitly approved and completes a fresh hosted rehearsal, the clean local stack is the only environment known to match the MIDI-only baseline. An existing `.env.local` may still name the old hosted project and is not evidence of schema parity.
 
-Before diagnosing Auth, RPC, RLS, Storage, or missing-data behavior, identify the host in `NEXT_PUBLIC_SUPABASE_URL` without printing keys or credentials. Inspect logs/schema/data in that active environment. A green local database check does not prove that the hosted schema is current, and an empty local table does not prove that a hosted request failed before persistence. Conversely, do not apply migrations, seed data, repairs, or destructive commands to the hosted project unless the task explicitly authorizes that external mutation. Never replace the hosted `.env.local` with local values as an incidental debugging step.
+Before diagnosing Auth, RPC, RLS, Storage, or missing-data behavior, identify the host in `NEXT_PUBLIC_SUPABASE_URL` without printing keys or credentials. Inspect logs/schema/data in that active environment. A green local database check does not prove hosted parity. Do not apply migrations, seed data, repairs, or destructive commands to any hosted project unless the task explicitly authorizes that external mutation. Never replace hosted values incidentally; use process-scoped local configuration for the documented local flows.
 
 ## Non-negotiable architecture rules
 
-- Keep Tone.js and browser audio APIs inside the documented browser-only MIDI runtime boundary. The existing Waveform Playlist adapter is transitional and must not gain new consumers before PIVOT-07 removes it.
-- The studio is client-only and lazy-loaded. Editor/audio packages must not be imported by Server Components, server actions, route handlers, proxy, or shared server modules.
+- Keep Tone.js and browser audio APIs inside the documented browser-only MIDI runtime boundary.
+- The Studio is client-only and lazy-loaded. Tone.js must not be imported by Server Components, server actions, route handlers, proxy, or shared server modules.
 - Persist validated manifest-v3 snapshots alongside normalized authoritative arrangement/pattern rows; do not persist live editor objects or rendered audio.
 - Published project revisions and submitted contribution versions are immutable.
 - Autosave updates a private workspace draft using optimistic concurrency; it does not mutate published history.
@@ -125,7 +123,7 @@ src/
   app/                         # routes, layouts, server actions, route handlers
   components/                  # reusable UI primitives
   features/                    # feature-owned UI, domain logic, and tests
-    studio/waveform-playlist-adapter/ # sole browser editor/audio dependency boundary
+    studio/midi-adapter/              # browser-only manifest-v3 editor boundary
   lib/                         # focused cross-feature infrastructure
   server/
     repositories/              # typed persistence access
@@ -189,7 +187,7 @@ For every RLS-sensitive feature, test at least: anonymous user, resource author,
 - MIDI import is parsed and validated as structured data; MIDI export and synthesized audio render remain browser-local downloads.
 - Presets are bundled, deterministic, versioned Tone.js synthesis definitions. Published arrangements pin exact preset versions.
 - Profile-avatar originals remain private and derivatives sanitized; signed URLs and object paths must never be logged.
-- Existing audio/source/peak/verification/quota code is transitional. Preserve it only until its assigned PIVOT-07/PIVOT-08 removal, and do not expand it.
+- Active musical routes, schema, workers, environment instructions, and current-behavior documentation must remain free of legacy audio infrastructure; `npm run check:midi-only` enforces this boundary.
 - Changes to Tone.js versions, preset definitions, or manifest schemas require deterministic round-trip/runtime fixtures for every supported persisted version.
 
 ## Security, privacy, and moderation
@@ -216,7 +214,7 @@ Mock external boundaries only when the real local dependency is impractical. Do 
 ## Dependency and licensing discipline
 
 - Add a dependency only when the platform or existing stack cannot reasonably provide the capability.
-- Pin direct Tone.js packages exactly; upgrades are deliberate tasks with preset and persisted-fixture validation. Waveform Playlist remains pinned only until PIVOT-07 removes it.
+- Pin direct Tone.js packages exactly; upgrades are deliberate tasks with preset and persisted-fixture validation.
 - Preserve third-party notices and attribution. Do not copy upstream demo media or assets without verified redistribution terms.
 - OpenDAW is post-MVP and must not be introduced without a superseding ADR, integration plan, persisted-format compatibility plan, and licensing review.
 - Do not replace lockfiles, package managers, linting, formatting, or test frameworks incidentally.
