@@ -1,6 +1,6 @@
 # Delivery plan and verification
 
-Status: MIDI-only foundation complete on `master`; hosted schema reconciled; Vercel deployment deferred
+Status: MIDI-only foundation and semantic visual-diff program complete; hosted schema reconciled; Vercel deployment deferred
 
 ## Implemented foundation
 
@@ -21,7 +21,9 @@ The two-attempt ceiling applies to an unchanged environment blocker. A concrete 
 
 ## Post-pivot MVP sequence
 
-1. **Wave A — DIFF and FEEDBACK:** deliver landing-matched static semantic comparisons for authorized revision pairs and, in parallel where ownership permits, authenticated beta feedback with a private administrator queue.
+DIFF-01 through DIFF-03 and FEEDBACK-01 are complete. Wave A is closed, and the public MIDI library is the next implementation program.
+
+1. **Wave A — DIFF and FEEDBACK:** complete with landing-matched static semantic comparisons for authorized revision pairs plus authenticated beta feedback and a private administrator queue.
 2. **Wave B — LIB:** add rights-gated public pattern listing with commercially reusable and reference-only modes, All/mode Explore filtering, external credits, copyright reporting/moderation, bounded musical search/filtering, browser-local preview, any-two-version history diffs, private saved clips, and attributed reusable-only save/import/fork/editor actions.
 3. **Wave C — CHALLENGE:** add administrator-curated versioned challenges, featured landing/dashboard discovery, deterministic eligibility feedback, immutable entries, voting, and permanently addressable finalized results.
 4. **Wave D — BADGE:** derive extensible immutable profile awards from finalized challenge results and link every award to its canonical completed challenge/result.

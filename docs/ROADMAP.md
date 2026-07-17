@@ -12,15 +12,16 @@ The product was previously named Jam Session. Current product documentation uses
 
 ## Completed foundation
 
-| Capability                                                        | Status   |
-| ----------------------------------------------------------------- | -------- |
-| MIDI Studio creation, recording, arranging, playback, and export  | Complete |
-| Conflict-safe workspaces and immutable project publication        | Complete |
-| Contribution submission, owner review, and atomic acceptance      | Complete |
-| Copy-on-write project forking, lineage, and attribution           | Complete |
-| Public project discovery, preview, revision history, and profiles | Complete |
-| Invite-only Auth, moderation, deletion, and avatar operations     | Complete |
-| MIDI-only manifest v3, normalized schema, tests, and hosted reset | Complete |
+| Capability                                                         | Status   |
+| ------------------------------------------------------------------ | -------- |
+| MIDI Studio creation, recording, arranging, playback, and export   | Complete |
+| Conflict-safe workspaces and immutable project publication         | Complete |
+| Contribution submission, owner review, and atomic acceptance       | Complete |
+| Copy-on-write project forking, lineage, and attribution            | Complete |
+| Public project discovery, preview, revision history, and profiles  | Complete |
+| Authorized semantic visual diffs and browser-local paired audition | Complete |
+| Invite-only Auth, moderation, deletion, and avatar operations      | Complete |
+| MIDI-only manifest v3, normalized schema, tests, and hosted reset  | Complete |
 
 These foundations remain active product behavior. Historical PR/OPT/MIDI/STUDIO/PIVOT plans explain how they were delivered but are not current sequencing authority.
 
@@ -49,27 +50,29 @@ Semantic diffs and beta feedback may proceed in parallel because they have separ
 
 Replace category counts with musician-facing arrangement, track, clip, note, and lineage details for exact contribution-base comparisons.
 
-Status: Ready from `local/implementation-plans/028-semantic-visual-diffs.md`, which is intentionally untracked and must be supplied to the worker locally.
+Status: Complete. The shared display model and accessible navigator ship in the contribution review flow.
 
 ### DIFF-02 — Static read-only note overlay and paired audition
 
 Add the accessible static piano-roll overlay using the landing's gold `+` Added, coral `~` Changed, and muted dashed `−` Removed language, plus mutually exclusive browser-local before/after playback. Animated transformation remains deferred.
 
-Status: Planned; sequential after DIFF-01.
+Status: Complete. The shared static note overlay and mutually exclusive browser-local paired audition ship without editing or server audio.
 
 ### DIFF-03 — Authorized project revision-pair comparison
 
 Let viewers select, swap, link, and compare any two revisions they are authorized to read within one project. Public visitors select only public revisions; private projects retain membership authorization. The library later reuses the surface for any two authorized versions in one pattern history.
 
-Status: Planned; sequential after DIFF-02.
+Status: Complete. The canonical `/projects/[projectId]/revisions/compare?from=<revision-id>&to=<revision-id>` route reuses the shared DIFF surface for any bounded, same-project revision pair the current RLS-scoped viewer can read. The DIFF program is closed; the public MIDI library is the next sequential implementation program.
 
 ### FEEDBACK-01 — Beta feedback intake and administrator triage
 
 Add one authenticated, rate-limited Postgres-backed flow for bug reports and suggestions plus a private administrator queue. Administrators can classify, mark handled, and delete irrelevant submissions. No attachments, automatic diagnostic collection, or GitHub API integration.
 
-Status: Ready from `local/implementation-plans/030-beta-feedback-intake-admin-triage.md`, which is intentionally untracked. May run in parallel with DIFF-01 from the same green base under the declared ownership boundary.
+Status: Complete. Authenticated beta intake, serialized administrator triage commands, private reporting data, and focused authorization coverage are merged. Wave A is closed; LIB is next.
 
 ## Wave B — Public MIDI library and saved clips
+
+This is the next sequential implementation program after DIFF. Begin with a dedicated reviewed LIB plan before implementing LIB-01.
 
 ### LIB-01 — Explicit listing and searchable catalog
 

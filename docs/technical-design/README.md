@@ -25,8 +25,9 @@ PIVOT-01 through PIVOT-10 and the administrator-invitation reconciliation are im
 - Studio create/edit/save/reload/publish/preview and local downloads;
 - exact contribution review/acceptance, attribution snapshots, and fork lineage;
 - public project discovery/history/preview and safe profile/dashboard navigation;
+- bounded semantic comparison for contribution versions and any two authorized same-project revisions, with a static accessible note overlay and mutually exclusive browser-local audition;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations plus the administrator-invitation forward migration, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- four reviewed clean baseline migrations plus administrator-invitation and two beta-feedback forward migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
@@ -37,7 +38,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Post-foundation product work sequences landing-matched static semantic visual diffs alongside beta feedback, followed by the rights-gated public MIDI library and saved clips, curated challenges with durable results, linked challenge awards, and release hardening. DIFF-01 and FEEDBACK-01 are both ready from their local parallel-safe plans and may start from the same green base. PIVOT-10 completed the destructive same-project hosted rebaseline while retaining the existing project reference/API configuration, and migration `20260717142701` subsequently reconciled administrator invitations. Local and hosted checks remain distinct even though both now implement the same five-migration schema; Vercel deployment is deferred to RELEASE-03.
+Wave A is complete. The three-slice semantic visual-diff program gives contribution owners and authorized project viewers the same bounded display model, static note overlay, text equivalents, attribution, and browser-local paired audition; FEEDBACK-01 provides authenticated intake and private administrator triage. The rights-gated public MIDI library and saved clips are the next implementation program. Curated challenges, linked challenge awards, and release hardening follow the library. PIVOT-10 completed the destructive same-project hosted rebaseline while retaining the existing project reference/API configuration, and migration `20260717142701` subsequently reconciled administrator invitations. The repository now carries two additional beta-feedback migrations; applying them to the retained hosted project still requires explicit operational authority. DIFF-03 adds no migration, and Vercel deployment remains deferred to RELEASE-03.
 
 ## Global invariants
 
