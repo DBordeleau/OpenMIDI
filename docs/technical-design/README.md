@@ -1,6 +1,6 @@
 # Jam Session technical design
 
-Status: MIDI-only foundation and hosted rehearsal implemented through PIVOT-10
+Status: MIDI-only foundation complete on `master`; hosted schema reconciled
 Last updated: 2026-07-17
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
@@ -16,7 +16,7 @@ This document set turns the [product requirements](../PRD.md) into implementatio
 
 ## Current implementation pulse
 
-PIVOT-01 through PIVOT-10 are implemented on the MIDI-only integration line:
+PIVOT-01 through PIVOT-10 and the administrator-invitation reconciliation are implemented on `master`:
 
 - canonical manifest v3, hashing, normalized round trips, and deterministic semantic diff;
 - 24 versioned sample-free Tone.js presets and browser-local playback/import/export/render;
@@ -26,7 +26,7 @@ PIVOT-01 through PIVOT-10 are implemented on the MIDI-only integration line:
 - exact contribution review/acceptance, attribution snapshots, and fork lineage;
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations plus forward-only reconciliation migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- four reviewed clean baseline migrations plus the administrator-invitation forward migration, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
@@ -37,7 +37,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. Semantic visual diffs are the exact next program, but they require a detailed local implementation plan before a fresh worker starts. PIVOT-10 completed the destructive same-project hosted rebaseline and verification while retaining the existing project reference/API configuration. Local and hosted checks remain distinct even though both now implement the MIDI-only baseline; Vercel deployment is deferred.
+Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. Semantic visual diffs are the exact next program, but they require a detailed local implementation plan before a fresh worker starts. PIVOT-10 completed the destructive same-project hosted rebaseline while retaining the existing project reference/API configuration, and migration `20260717142701` subsequently reconciled administrator invitations. Local and hosted checks remain distinct even though both now implement the same five-migration schema; Vercel deployment is deferred.
 
 ## Global invariants
 

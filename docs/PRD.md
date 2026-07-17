@@ -1,8 +1,8 @@
 # Jam Session — Product Requirements Document
 
-Status: Approved MIDI-only MVP; foundation implemented locally through PIVOT-09
+Status: Approved MIDI-only MVP; foundation implemented and hosted through PIVOT-10
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 Supersedes: The collaboration-first, MIDI-plus-legacy-audio MVP definition
 
@@ -545,8 +545,8 @@ Use challenge, diff, and reuse outcomes to prioritize editor work. Do not chase 
 
 ### Historical architecture transition
 
-PIVOT-00 through PIVOT-09 resolved the repository strategy, reset posture, manifest-v3 domain, preset runtime, retained product foundations, and complete local removal inventory. The clean migration baseline and Git history preserve the appropriate evidence without replaying the pre-pivot create/alter/drop chain.
+PIVOT-00 through PIVOT-10 resolved the repository strategy, reset posture, manifest-v3 domain, preset runtime, retained product foundations, complete audio removal, clean migration baseline, and hosted rehearsal. The final `master` reconciliation retained administrator-managed invitations through a forward migration. Git history preserves the transition evidence without replaying the pre-pivot create/alter/drop chain.
 
 ## Remaining product decisions
 
-The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs, the public pattern library, and challenges. Each future slice must still specify its UI and validation detail, but it must not revisit the accepted MIDI-only persistence, licensing, immutable-history, or avatar-only Storage boundaries without a superseding product decision and ADR. Hosted rehearsal/cutover remains PIVOT-10 and requires explicit approval.
+The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs, the public pattern library, and challenges. Each future slice must still specify its UI and validation detail, but it must not revisit the accepted MIDI-only persistence, licensing, immutable-history, or avatar-only Storage boundaries without a superseding product decision and ADR. The hosted rebaseline is complete; any later hosted mutation or deployment still requires explicit operational authority.

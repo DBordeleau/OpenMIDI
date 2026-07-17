@@ -22,14 +22,14 @@ Load only the documents relevant to the task, but always use them as the source 
 8. Brand, product voice, and visual design for user-facing work: [`docs/design/brand.md`](docs/design/brand.md)
 9. Contributor setup and repository map: [`README.md`](README.md)
 10. Contribution workflow: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-11. MIDI-only pivot contract and parallel ownership: [`docs/technical-design/midi-only-pivot-contract.md`](docs/technical-design/midi-only-pivot-contract.md)
+11. MIDI-only vocabulary, persistence, and historical pivot contract: [`docs/technical-design/midi-only-pivot-contract.md`](docs/technical-design/midi-only-pivot-contract.md)
 12. Historical Studio-forward sequencing and accepted current-workspace contracts: [`docs/studio-forward-refactor-plan.md`](docs/studio-forward-refactor-plan.md)
 
 If code, task instructions, and these documents disagree, stop and surface the conflict. A user instruction in the active task takes precedence, but update the relevant documentation when it intentionally changes an established decision.
 
 ## Current project state
 
-PIVOT-01 through PIVOT-10 are implemented on the MIDI-only integration line. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The next product work is semantic visual diffs, then the public pattern library, then challenges. The hosted project is now authoritative for the MIDI-only baseline; ordinary workers still may not mutate hosted Supabase without explicit task authority. npm is the sole package manager and Node.js 24 LTS is required.
+PIVOT-01 through PIVOT-10 and the final administrator-invitation reconciliation are merged to `master`. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The next product work is semantic visual diffs, then the public pattern library, then challenges. The retained hosted project records the four-file MIDI-only baseline plus the administrator-invitation forward migration; ordinary workers still may not mutate hosted Supabase without explicit task authority. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -37,18 +37,15 @@ Before implementing a task:
 - Use `npm` and preserve `package-lock.json`; do not introduce another package manager or lockfile.
 - Use Node.js 24. The engine check intentionally rejects other major versions.
 - Do not claim tests, lint, type checking, migrations, or builds passed without running the corresponding command.
-- During a parallel pivot wave, branch from the exact green integration commit, target `midi-only-pivot`, and edit only the area assigned to that slice in the local pivot plan. Report a shared-contract need instead of changing another active worker's owned files.
+- Start new work from an up-to-date `master` unless an active handoff names another exact green integration commit.
 
-### MIDI-only pivot authority
+### MIDI-only foundation authority
 
-- PIVOT-01 exclusively owns manifest-v3, shared pattern/arrangement domain types, canonicalization, hashing, and semantic-diff TypeScript during Wave 1.
-- PIVOT-02 exclusively owns preset definitions, Tone.js voices/scheduling/local render, and dependency changes during Wave 1.
-- PIVOT-03 exclusively owns migrations, SQL/RLS/commands, pgTAP, repositories required to expose the new model, and generated database types during Wave 1.
 - Use the target nouns `MIDI pattern`, `pattern version`, `arrangement version`, `track`, and `clip`. “Stem” is historical/temporary compatibility vocabulary.
-- Do not add new audio compatibility or preserve audio merely because the old schema/runtime still exists.
-- Do not delete old audio consumers in Wave 1; PIVOT-04–PIVOT-06 switch consumers before PIVOT-07/PIVOT-08 remove compatibility.
+- Do not reintroduce uploaded musical media or legacy-audio compatibility; the active application and schema are MIDI-only.
 - Public reusable MIDI uses CC BY 4.0 and immutable creator/source lineage; challenge/library product implementation remains deferred beyond the pivot foundation.
 - Presets are bundled/versioned synthesis only. Do not add samples, soundfonts, remote audio, or user-supplied synth graphs.
+- Historical wave ownership and transition rules remain in the pivot contract and local implementation plan for archaeology; they are not instructions for new work.
 
 ## Authoritative commands
 
@@ -170,7 +167,7 @@ Prefer a working vertical slice over speculative abstraction. Do not silently re
 ## Database and migration rules
 
 - Schema changes require a forward-only SQL migration and affected RLS/integration tests in the same change.
-- Never change an already-applied migration to alter current behavior; PIVOT-03 must use forward transitional migrations. PIVOT-09 is the sole slice authorized to replace the historical chain with a clean baseline because no hosted application data or migration history must be retained.
+- Never change an already-applied migration to alter current behavior. The four clean baseline migrations and every later migration are immutable; use a new forward migration for all current schema changes. PIVOT-09's historical baseline replacement was a one-time completed exception.
 - Use expand/migrate/contract for destructive or incompatible changes unless the accepted clean-baseline pivot contract explicitly removes that need.
 - Index foreign keys used for relationship checks and indexes required by measured query patterns. Avoid speculative indexing.
 - Use constraints for durable invariants and transactions/database functions for multi-row state transitions.

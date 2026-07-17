@@ -2,7 +2,7 @@
 
 Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** PIVOT-01 through PIVOT-10 are implemented on the `midi-only-pivot` integration branch. The application, clean schema baseline, hosted Supabase project, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. Vercel deployment is intentionally deferred. PR 19/20 and the OPT/MIDI/STUDIO sequencing are historical delivery evidence, not current work.
+> **Current status:** The MIDI-only pivot, hosted rehearsal, and administrator-invitation reconciliation are merged to `master`. The application, five-migration hosted schema, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. Vercel deployment is intentionally deferred. PR 19/20 and the OPT/MIDI/STUDIO/PIVOT sequencing are historical delivery evidence, not current work.
 
 ## Target MVP scope
 
@@ -13,7 +13,7 @@ Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge pl
 - Fork and reuse public MIDI while preserving creator lineage and CC BY 4.0 attribution.
 - Discover public projects and prepare the domain foundation for constraint challenges and a reusable MIDI library.
 
-The [product requirements](docs/PRD.md) describe the intended experience, the tracked [MVP roadmap](docs/ROADMAP.md) shows what is complete and what comes next, the [MIDI-only pivot contract](docs/technical-design/midi-only-pivot-contract.md) freezes the target vocabulary and parallel ownership, the [technical-design index](docs/technical-design/README.md) explains how it is built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces. The [studio-forward plan](docs/studio-forward-refactor-plan.md) remains a historical record of the refactor that produced the current Studio.
+The [product requirements](docs/PRD.md) describe the intended experience, the tracked [MVP roadmap](docs/ROADMAP.md) shows what is complete and what comes next, the [MIDI-only pivot contract](docs/technical-design/midi-only-pivot-contract.md) freezes the target vocabulary and persistence invariants, the [technical-design index](docs/technical-design/README.md) explains how it is built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces. The [studio-forward plan](docs/studio-forward-refactor-plan.md) remains a historical record of the refactor that produced the current Studio.
 
 ## Technology
 
@@ -99,7 +99,7 @@ Open [http://localhost:3000](http://localhost:3000), and stop the server with `C
 
 Before debugging missing rows, RLS, Auth, RPCs, or Storage, check the host configured by `NEXT_PUBLIC_SUPABASE_URL` without exposing any keys. Use the logs and schema for that environment. Local containers and hosted Supabase are independent databases, so local logs cannot explain a request sent to the hosted URL, and locally applied migrations do not automatically update hosted Supabase.
 
-Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. See the [PIVOT-10 hosted evidence](docs/technical-design/evidence/pivot-10-hosted-rebaseline.md) for the completed four-migration hosted baseline. Later repository migrations, including administrator invitation reconciliation, require a separate target check and explicit hosted application; merging code never applies them automatically.
+Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. See the [PIVOT-10 hosted evidence](docs/technical-design/evidence/pivot-10-hosted-rebaseline.md) for the four-migration destructive rebaseline. The administrator-invitation reconciliation was subsequently applied as migration `20260717142701`, so hosted history now contains five migrations. Every future hosted migration still requires a target check and explicit authority; merging code never applies it automatically.
 
 ### Local Supabase validation stack
 

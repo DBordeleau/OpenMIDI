@@ -1,7 +1,7 @@
 # System architecture
 
-Status: Current after PIVOT-09
-Deployment state: repository-local authority; same-project hosted rebaseline is approved but not executed
+Status: Current after PIVOT-10 and final `master` reconciliation
+Deployment state: retained Supabase project rebaselined and reconciled; Vercel not configured
 
 ## Runtime boundaries
 

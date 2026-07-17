@@ -2,7 +2,7 @@
 
 Status: Current MIDI-only baseline plus forward reconciliation migrations
 
-The clean baseline is intentionally split into four ordered migrations: foundation/identity, MIDI projects/arrangements, collaboration/discovery, and moderation/avatar operations. Forward migrations after that baseline preserve later merged behavior without rewriting already-applied history; the first reconciles administrator-managed beta invitations. Pre-pivot create/alter/drop history remains available through Git history and is never replayed by a clean database.
+The clean baseline is intentionally split into four ordered migrations: foundation/identity, MIDI projects/arrangements, collaboration/discovery, and moderation/avatar operations. Forward migrations after that baseline preserve later merged behavior without rewriting already-applied history; the first, `20260717142701`, reconciles administrator-managed beta invitations and is applied to the retained hosted project. Pre-pivot create/alter/drop history remains available through Git history and is never replayed by a clean database.
 
 ## Identity and catalogs
 

@@ -18,8 +18,7 @@ Discuss changes that alter product scope, the data model, authorization, persist
 
 ## Making a change
 
-- Start from an up-to-date branch. Names such as `feature/short-description` and `fix/short-description` are recommended until the repository adopts enforced conventions.
-- Pivot workers must start from the exact green integration commit named in their handoff, target `midi-only-pivot`, and stay inside their slice's declared ownership. PIVOT-01, PIVOT-02, and PIVOT-03 may run in parallel only from the same PIVOT-00 baseline.
+- Start from an up-to-date `master` unless an active handoff names another exact green integration commit. Names such as `feature/short-description` and `fix/short-description` are recommended until the repository adopts enforced conventions.
 - Keep commits and pull requests focused on one outcome.
 - Explain why the change is needed, not only what files changed.
 - Include screenshots or a short recording for visible UI changes, demonstrating consistency with the brand guide as well as the intended interaction.
@@ -52,7 +51,7 @@ If routes or browser-visible flows changed, also install Chromium once and run E
 
 ```powershell
 npx playwright install chromium
-npm run supabase:start:storage
+npm run supabase:start:auth
 npm run db:reset
 npm run test:e2e:studio
 ```

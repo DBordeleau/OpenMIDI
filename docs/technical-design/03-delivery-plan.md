@@ -1,10 +1,10 @@
 # Delivery plan and verification
 
-Status: PIVOT-10 same-project hosted rebaseline complete; Vercel deployment deferred
+Status: MIDI-only foundation complete on `master`; hosted schema reconciled; Vercel deployment deferred
 
 ## Implemented foundation
 
-PIVOT-01 through PIVOT-10 delivered the manifest-v3 domain, deterministic semantic diff, bundled preset runtime, normalized Postgres model, Studio and collaboration cutovers, public reads, application/Supabase cleanup, clean migration baseline, hosted rehearsal, deterministic testing, and documentation reconciliation.
+PIVOT-01 through PIVOT-10 and the final administrator-invitation reconciliation delivered the manifest-v3 domain, deterministic semantic diff, bundled preset runtime, normalized Postgres model, Studio and collaboration cutovers, public reads, application/Supabase cleanup, clean migration baseline, hosted rehearsal, deterministic testing, and documentation reconciliation.
 
 The historical PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–STUDIO-06 plans explain how the repository reached the pivot. They are superseded sequencing and must not be used as current environment, migration, or deployment instructions.
 
@@ -31,4 +31,4 @@ See the tracked [roadmap](../ROADMAP.md) for outcomes and ordering.
 
 PIVOT-10 completed the only authorized destructive mutation of the hosted Supabase project. It retained the existing project reference and local environment binding, replayed exactly four clean migrations through one linked reset, recreated required administrator/invitation/avatar state, and verified hosted MIDI-only behavior. Vercel deployment and its production smoke path are explicitly deferred until the user chooses to deploy; they are not a PIVOT-10 failure.
 
-The later `master` reconciliation adds administrator-managed beta invitations as a normal forward migration. Repository merge does not apply it to hosted Supabase: verify the exact target and obtain explicit hosted-mutation authority before pushing that or any subsequent migration. Do not rerun the destructive PIVOT-10 reset.
+The final `master` reconciliation added administrator-managed beta invitations as forward migration `20260717142701`; it is recorded in the retained hosted project after the four baseline migrations. Future repository merges still do not apply migrations automatically: verify the exact target and obtain explicit hosted-mutation authority before pushing any subsequent migration. Do not rerun the destructive PIVOT-10 reset.

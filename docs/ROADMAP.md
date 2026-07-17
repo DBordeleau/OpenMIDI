@@ -1,7 +1,7 @@
 # Jam Session roadmap
 
-Status: MIDI-only foundation and hosted rehearsal implemented through PIVOT-10
-Hosted state: existing project rebaselined and verified; Vercel deployment deferred
+Status: MIDI-only foundation complete on `master`
+Hosted state: existing project rebaselined, reconciled through five migrations, and verified; Vercel deployment deferred
 
 ## Current checkpoint
 
@@ -27,7 +27,7 @@ The pre-pivot PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–ST
 
 PIVOT-10 retained the existing hosted project reference, URL, API keys, OAuth provider configuration, and local environment binding while replacing legacy application/Auth/Storage state with the four clean migrations and avatar-only infrastructure. Hosted MIDI creation, publication, contribution acceptance, fork lineage, Auth gating, administration, and avatar processing were rehearsed successfully. Vercel was not configured or deployed and remains a future deployment prerequisite.
 
-The final `master` reconciliation preserves the previously merged administrator beta-invitation UI through one forward migration after the four-file baseline. It does not restore the pre-pivot migration chain or alter the historical PIVOT-10 reset evidence. Applying that forward migration to hosted Supabase remains a separately authorized operation.
+The final `master` reconciliation preserved administrator-managed beta invitations through forward migration `20260717142701` after the four-file baseline. That migration is recorded in the retained hosted project. It did not restore the pre-pivot migration chain or alter the historical PIVOT-10 reset evidence.
 
 ## Post-foundation product sequence
 

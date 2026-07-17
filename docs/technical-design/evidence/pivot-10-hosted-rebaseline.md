@@ -32,7 +32,11 @@ The security advisor reports expected informational no-policy findings for delib
 
 ## Rehearsal corrections
 
-The hosted rehearsal exposed and corrected missing public revision/attribution read policies, public contribution/fork preflights that incorrectly depended on project membership, Studio contribution-session authorization, immutable comparison remounting, post-submit full-page reload behavior, integrated pattern audition teardown, and avatar CORS/dimension feedback. The corrected baseline files and hosted policies agree while migration history remains exactly four versions.
+The hosted rehearsal exposed and corrected missing public revision/attribution read policies, public contribution/fork preflights that incorrectly depended on project membership, Studio contribution-session authorization, immutable comparison remounting, post-submit full-page reload behavior, integrated pattern audition teardown, and avatar CORS/dimension feedback. The corrected baseline files and hosted policies agreed while migration history remained exactly four versions at the PIVOT-10 checkpoint.
+
+## Post-rehearsal reconciliation
+
+After the four-migration PIVOT-10 rehearsal, PR #51 preserved administrator-managed beta invitations through forward migration `20260717142701_reconcile_admin_beta_invite_management.sql`. On 2026-07-17 that migration was applied to and recorded by the same hosted project, producing a five-migration history. References above to “exactly four” describe the PIVOT-10 reset checkpoint; the destructive reset was not rerun.
 
 ## Deployment boundary
 
