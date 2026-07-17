@@ -4,6 +4,8 @@ Status: Accepted target contract for PIVOT-01–PIVOT-10
 Date: 2026-07-16
 Implementation state: Implemented and hosted-rehearsed through PIVOT-10; Vercel deployment deferred
 
+Product naming: The product is now OpenMIDI. Historical Jam Session wording and persisted `jam-session-midi` engine/version values in this completed contract remain intentional compatibility evidence.
+
 ## Purpose
 
 This document froze the shared vocabulary and authority boundaries used by the MIDI-only pivot. PIVOT-09 reconciled the repository to this model; historical transition notes below remain useful for ownership archaeology.
@@ -12,7 +14,7 @@ The replacement [PRD](../PRD.md) is product authority. The [pivot roadmap](../RO
 
 ## Product boundary
 
-Jam Session accepts, stores, versions, previews, and collaborates on structured MIDI only.
+OpenMIDI accepts, stores, versions, previews, and collaborates on structured MIDI only.
 
 The target product has no source-audio upload, stem/sample/vocal recording, waveform editing, signed audio delivery, or server-stored audio preview. MIDI synthesis may produce an ephemeral browser playback signal and a local downloadable audio render. That render is never uploaded, versioned, shared, or authoritative.
 

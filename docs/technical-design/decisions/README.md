@@ -4,7 +4,7 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 
 ## Decision status
 
-ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through the completed PIVOT-10 hosted rebaseline.
+ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through the completed PIVOT-10 hosted rebaseline. ADR-015 governs the staged OpenMIDI product rename. Historical references to Jam Session retain the name in use when those decisions were made.
 
 ## Accepted for initial implementation
 
@@ -116,6 +116,14 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 - **Why:** Identity, Studio, collaboration, moderation, design, testing, and existing deployment configuration are worth retaining. Clearing managed data and obsolete project resources before a linked reset removes the legacy audio system without consuming another Free-plan project or rotating every integration credential.
 - **Consequence:** PIVOT-10 completed the one authorized destructive hosted mutation through supported Storage/Auth/management APIs and one linked four-migration reset. Future hosted mutation again requires explicit operational authority. There is no second-project rollback boundary; Git preserves schema history but deleted hosted data is intentionally unrecoverable except through any provider-managed backup.
 - **Validation:** A clean local reset and the same-project hosted reset reproduce the same migration history, types, RLS, and MIDI behavior; only Auth/Postgres plus approved avatar Storage/processing remain, and project URLs/API keys do not change.
+
+### ADR-015: OpenMIDI product name with stable persisted identifiers
+
+- **Status:** Accepted 2026-07-17.
+- **Decision:** Rename the public product from Jam Session to OpenMIDI. Current product and planning documentation adopts OpenMIDI immediately; RELEASE-01 coordinates frontend copy, repository/package metadata, OAuth branding, and deployment naming after the GitHub repository name is final. Persisted manifest engine/version values such as `jam-session-midi`, applied migrations, database identifiers, historical evidence, and compatibility fixtures are not renamed incidentally.
+- **Why:** One public identity is required before beta, while renaming serialized or already-applied technical identifiers offers no user value and could break immutable manifests, fixtures, migrations, integrations, or historical traceability.
+- **Consequence:** Transitional code and infrastructure may display the old name until RELEASE-01. New current-facing documentation and product copy use OpenMIDI; historical records may retain Jam Session. Any persisted-identifier rename requires a separate compatibility and migration decision.
+- **Validation:** RELEASE-01 audits current user-facing surfaces and repository links for OpenMIDI while manifest-v3 round trips, historical migrations, and stored engine identifiers remain byte-compatible.
 
 ## ADR template
 

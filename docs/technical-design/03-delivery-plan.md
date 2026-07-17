@@ -19,13 +19,17 @@ The historical PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, and STUDIO-01–S
 
 The two-attempt ceiling applies to an unchanged environment blocker. A concrete fixture, selector, query, or harness correction permits one validation run of the corrected path.
 
-## Next product slices
+## Post-pivot MVP sequence
 
-1. Semantic visual diffs become the musician-facing review surface.
-2. The public MIDI pattern library adds explicit listing, search, preview, reuse, and lineage.
-3. Challenges add versioned rules and validation snapshots over exact immutable revisions.
+1. **Wave A — DIFF and FEEDBACK:** deliver musician-facing semantic comparisons and, in parallel where ownership permits, authenticated beta feedback with a private administrator queue.
+2. **Wave B — LIB:** add explicit public pattern listing, bounded search/filtering, browser-local preview, history/usage/diffs, private saved clips, and attributed Studio import.
+3. **Wave C — CHALLENGE:** add administrator-curated versioned challenges, deterministic eligibility feedback, immutable entries, voting, and finalized results.
+4. **Wave D — BADGE:** derive extensible immutable profile awards from finalized challenge results.
+5. **Wave E — RELEASE:** coordinate the OpenMIDI frontend/repository rename, seed useful beta content, harden critical paths, configure Vercel, and run production smoke checks.
 
-See the tracked [roadmap](../ROADMAP.md) for outcomes and ordering.
+DIFF and FEEDBACK are the only parallel-safe product programs by default. Library, challenge, badge, and release slices are dependency-ordered. Detailed worker plans must declare any narrower parallel ownership before branches start.
+
+See the tracked [roadmap](../ROADMAP.md) for slice outcomes, ordering, and release gates.
 
 ## Hosted cutover boundary
 

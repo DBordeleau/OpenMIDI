@@ -4,9 +4,9 @@ This file is the operating contract for coding agents working in this repository
 
 ## Project mission
 
-Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Users create versioned MIDI arrangements, edit them in browser workspaces, submit contributions, fork projects, and preserve pattern/revision lineage and attribution.
+OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Users create versioned MIDI arrangements, edit them in browser workspaces, submit contributions, fork projects, and preserve pattern/revision lineage and attribution.
 
-The target MVP is a Next.js application backed by Supabase Auth/Postgres and avatar-only Storage, with a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined and verified the existing hosted Supabase project against the reviewed MIDI-only migrations while retaining its project reference and API configuration. Vercel deployment remains intentionally deferred.
+The target MVP is a Next.js application backed by Supabase Auth/Postgres and avatar-only Storage, with a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined and verified the existing hosted Supabase project against the reviewed MIDI-only migrations while retaining its project reference and API configuration. The product name is OpenMIDI, but frontend/repository/package/OAuth/deployment renaming is deferred to RELEASE-01 and must not rename persisted `jam-session-*` engine identifiers or historical migrations incidentally. Vercel deployment remains intentionally deferred.
 
 ## Read before changing code
 
@@ -29,7 +29,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PIVOT-01 through PIVOT-10 and the final administrator-invitation reconciliation are merged to `master`. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The next product work is semantic visual diffs, then the public pattern library, then challenges. The retained hosted project records the four-file MIDI-only baseline plus the administrator-invitation forward migration; ordinary workers still may not mutate hosted Supabase without explicit task authority. npm is the sole package manager and Node.js 24 LTS is required.
+PIVOT-01 through PIVOT-10 and the final administrator-invitation reconciliation are merged to `master`. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The accepted release sequence is DIFF and FEEDBACK, then LIB, CHALLENGE, BADGE, and RELEASE. Only DIFF currently has a worker-ready local plan; later programs require dedicated plans before implementation. The retained hosted project records the four-file MIDI-only baseline plus the administrator-invitation forward migration; ordinary workers still may not mutate hosted Supabase without explicit task authority. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -43,7 +43,7 @@ Before implementing a task:
 
 - Use the target nouns `MIDI pattern`, `pattern version`, `arrangement version`, `track`, and `clip`. “Stem” is historical/temporary compatibility vocabulary.
 - Do not reintroduce uploaded musical media or legacy-audio compatibility; the active application and schema are MIDI-only.
-- Public reusable MIDI uses CC BY 4.0 and immutable creator/source lineage; challenge/library product implementation remains deferred beyond the pivot foundation.
+- Public reusable MIDI uses CC BY 4.0 and immutable creator/source lineage. Implement library, challenge, and award behavior only in the roadmap order and from a dedicated local plan.
 - Presets are bundled/versioned synthesis only. Do not add samples, soundfonts, remote audio, or user-supplied synth graphs.
 - Historical wave ownership and transition rules remain in the pivot contract and local implementation plan for archaeology; they are not instructions for new work.
 

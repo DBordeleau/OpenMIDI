@@ -1,4 +1,4 @@
-# Jam Session technical design
+# OpenMIDI technical design
 
 Status: MIDI-only foundation complete on `master`; hosted schema reconciled
 Last updated: 2026-07-17
@@ -37,7 +37,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. Semantic visual diffs are the exact next program, but they require a detailed local implementation plan before a fresh worker starts. PIVOT-10 completed the destructive same-project hosted rebaseline while retaining the existing project reference/API configuration, and migration `20260717142701` subsequently reconciled administrator invitations. Local and hosted checks remain distinct even though both now implement the same five-migration schema; Vercel deployment is deferred.
+Post-foundation product work sequences semantic visual diffs alongside beta feedback, followed by the public MIDI library and saved clips, curated challenges, challenge awards, and release hardening. DIFF-01 is the exact next ready slice; FEEDBACK-01 may run in parallel after its own detailed local plan exists. PIVOT-10 completed the destructive same-project hosted rebaseline while retaining the existing project reference/API configuration, and migration `20260717142701` subsequently reconciled administrator invitations. Local and hosted checks remain distinct even though both now implement the same five-migration schema; Vercel deployment is deferred to RELEASE-03.
 
 ## Global invariants
 

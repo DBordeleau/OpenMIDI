@@ -59,3 +59,15 @@ All application-facing tables have RLS enabled. Anonymous access is limited to s
 ## Seed and generated types
 
 `supabase/seed.sql` deterministically seeds reserved names, MIDI-oriented catalogs, the 24 exact preset rows, discovery state, and the local/CI invitation. Tests create isolated Auth/profile/project/pattern/arrangement fixtures transactionally. `npm run db:types` atomically regenerates `src/lib/supabase/database.types.ts` from the clean local schema; generated output is never hand-edited.
+
+## Planned post-pivot extensions
+
+These are accepted data-boundary requirements, not implemented tables. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
+
+- **Public MIDI library:** explicit listing records point to exact immutable pattern versions and carry discoverability metadata without making every public-project pattern reusable automatically. Safe projections may expose listing, creator/source/license metadata, deterministic musical facets, and public-project usage only.
+- **Saved clips:** private user-owned bookmarks point to exact immutable pattern versions. Saving never copies notes, changes ownership, or grants public visibility. Studio import creates a normal attributed copy-on-write workspace reference.
+- **Beta feedback:** private bug/suggestion records hold bounded user-provided text and disclosed context for administrator triage. They do not store attachments, complete manifests, secrets, signed URLs, or automatic logs.
+- **Challenges:** normalized lifecycle, ownership, entry, vote, and finalized-result relationships accompany a validated versioned constraint snapshot. Entries pin exact immutable project revisions; client preflight never replaces authoritative submission validation.
+- **Achievements:** versioned badge definitions and immutable idempotent awards reference the recipient and authoritative finalized challenge result/revision that earned them. Public profiles use a narrow award projection.
+
+Every new application-facing table enables RLS in its creation migration and receives explicit least-privilege grants. Public library and award projections must not reveal private-project relationships; feedback, saved clips, challenge administration, and pre-close vote totals are never broadly selectable. Do not rely on provider defaults to decide Data API exposure.

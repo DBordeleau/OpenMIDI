@@ -1,4 +1,6 @@
-# Jam Session — Brand & Visual Design
+# OpenMIDI — Brand & Visual Design
+
+> OpenMIDI is the current product name. Existing frontend copy and repository metadata may still say Jam Session until the coordinated RELEASE-01 rename; do not create a second visual system during that transition.
 
 Status: Adopted 2026-07-13 with the landing redesign; extended across the app
 (header, sign-in, dashboard, projects, profile, studio) 2026-07-14; product
@@ -17,7 +19,7 @@ context.
 
 ## 1. Positioning & voice
 
-Jam Session is a playful public MIDI workshop. Our identity is built for
+OpenMIDI is a playful public MIDI workshop. Our identity is built for
 **bedroom producers, casual musicians, and learners** — not for engineers.
 
 We are inspired by Git and open-source, and the underlying product genuinely is

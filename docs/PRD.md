@@ -1,24 +1,43 @@
-# Jam Session — Product Requirements Document
+# OpenMIDI — Product Requirements Document
 
-Status: Approved MIDI-only MVP; foundation implemented and hosted through PIVOT-10
+Status: Approved post-pivot MIDI-only MVP; foundation complete and release program defined
 
 Last updated: 2026-07-17
 
 Supersedes: The collaboration-first, MIDI-plus-legacy-audio MVP definition
 
+Product rename: OpenMIDI was previously called Jam Session. User-facing, repository, and package-metadata rename work is scheduled before deployment. Existing manifest engine IDs, migration history, database identifiers, and historical evidence remain stable unless a later compatibility plan explicitly changes them.
+
 ## Product summary
 
-Jam Session is a public playground for making, remixing, and competing with MIDI music.
+OpenMIDI is a public playground for making, remixing, and competing with MIDI music.
 
-Bedroom producers and casual musicians create complete arrangements in a browser Studio, publish meaningful musical revisions, fork each other's work, reuse credited MIDI clips, and enter playful composition challenges with machine-checkable constraints. Jam Session borrows the best ideas from open-source development—version history, diffs, forks, contributions, and durable attribution—without requiring users to understand Git or own a professional DAW.
+Bedroom producers and casual musicians create complete arrangements in a browser Studio, publish meaningful musical revisions, fork each other's work, reuse credited MIDI clips, and enter playful composition challenges with machine-checkable constraints. OpenMIDI borrows the best ideas from open-source development—version history, diffs, forks, contributions, and durable attribution—without requiring users to understand Git or own a professional DAW.
 
 The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute uploaded source-audio files.
+
+## Implementation checkpoint
+
+| Capability                                                       | State before the post-pivot program |
+| ---------------------------------------------------------------- | ----------------------------------- |
+| MIDI Studio, recording, arranging, save, publication, and export | Complete                            |
+| Contributions, owner review, acceptance, and attribution         | Complete                            |
+| Copy-on-write project forks and lineage                          | Complete                            |
+| Public project discovery, preview, history, profiles, moderation | Complete                            |
+| Visual project/contribution/pattern comparison                   | Planned                             |
+| Public MIDI library and saved clip collection                    | Planned                             |
+| Curated challenges, validation, voting, and results              | Planned                             |
+| Challenge achievements and profile badges                        | Planned                             |
+| Beta bug/suggestion intake and administrator triage              | Planned                             |
+| OpenMIDI frontend/repository rename and production deployment    | Planned                             |
+
+“Complete” describes merged repository behavior, not a production deployment. OpenMIDI is not yet deployed to Vercel.
 
 ## Product thesis
 
 Most beginner and hobbyist music tools optimize for solitary creation or professional production. They give users a blank canvas, then leave them to find inspiration, material, feedback, and an audience elsewhere.
 
-Jam Session should optimize for a different moment:
+OpenMIDI should optimize for a different moment:
 
 > “I want to make something fun, see how other people would change it, and have a reason to come back tomorrow.”
 
@@ -64,7 +83,7 @@ People learning rhythm, harmony, arrangement, and MIDI sequencing who benefit fr
 
 ## User needs
 
-Jam Session must help users:
+OpenMIDI must help users:
 
 1. Start creating without facing an empty professional DAW.
 2. Finish small musical ideas by giving them prompts, boundaries, and deadlines.
@@ -86,7 +105,7 @@ Challenges should provide useful creative boundaries, not imitate a generic popu
 
 ### Musical changes should be legible
 
-“Revision 4” is not enough. Jam Session should explain which tracks, clips, notes, instruments, tempo, meter, key, and mixer values changed.
+“Revision 4” is not enough. OpenMIDI should explain which tracks, clips, notes, instruments, tempo, meter, key, and mixer values changed.
 
 ### Reuse should preserve provenance
 
@@ -110,9 +129,12 @@ Do not preserve a hidden product promise that source-audio uploads will return s
 - Give users repeatable reasons to create through curated constraint challenges.
 - Make forks, contributions, and revisions understandable through semantic musical diffs.
 - Turn public MIDI material into a useful, searchable, automatically credited creative library.
+- Let users save exact public pattern versions and move them into a Studio project with minimal friction.
 - Establish a healthy creation-remix-vote-return loop before investing in broad social mechanics.
+- Give beta users a safe feedback channel and administrators a bounded triage queue.
 - Keep the prototype viable on a $0 infrastructure budget by avoiding uploaded source audio.
 - Preserve deterministic playback, immutable published history, attribution, and moderation boundaries.
+- Reach a seeded, invite-only Vercel deployment with verified hosted configuration and rollback instructions.
 
 ## Non-goals
 
@@ -134,6 +156,7 @@ The MVP will not include:
 - Music distribution to streaming platforms
 - Rights-dispute resolution or a commercial MIDI marketplace
 - Native desktop or mobile applications
+- Feedback file attachments, automatic diagnostic-log collection, or automatic GitHub issue creation
 
 Standard MIDI File import and export remain supported. The browser Studio should be capable and enjoyable, but it is not intended to replace Ableton Live, FL Studio, Logic, REAPER, or another professional DAW.
 
@@ -148,7 +171,7 @@ The primary loop is:
 3. They create from a blank project, fork a project, import a clip, or open a challenge starter.
 4. They compose and arrange in the Studio.
 5. They publish a revision or submit an immutable challenge entry.
-6. Jam Session shows what changed and preserves every source relationship and credit.
+6. OpenMIDI shows what changed and preserves every source relationship and credit.
 7. Other users listen, vote during the appropriate phase, fork, contribute, or reuse published material.
 8. Results, badges, feedback, and new challenges give the creator a reason to return.
 
@@ -175,7 +198,7 @@ Users can:
 - Save private drafts with conflict-safe autosave.
 - Publish an immutable revision.
 - Import and export the supported Standard MIDI File subset.
-- Render a local synthesized audio download without uploading it to Jam Session.
+- Render a local synthesized audio download without uploading it to OpenMIDI.
 
 The Studio must open quickly without network-bound media hydration. Playback uses deterministic versioned instrument definitions so a published revision remains reproducible.
 
@@ -185,7 +208,7 @@ The Studio must open quickly without network-bound media hydration. Playback use
 - Empty-track and add-track actions are visible and understandable.
 - Playback, playhead, note events, mixer changes, and visualization remain synchronized.
 - Keyboard-only creation and editing paths remain usable.
-- A published project can be reconstructed from structured Jam Session data without live editor objects.
+- A published project can be reconstructed from structured OpenMIDI data without live editor objects.
 
 ### 2. Projects, revisions, contributions, and forks
 
@@ -217,17 +240,24 @@ Summaries must be computed from canonical structured data, not supplied by a lan
 
 #### Visual diff
 
-The MVP includes a bounded visual comparison for one selected MIDI track or clip:
+The MVP includes bounded comparisons for:
+
+- a project revision and its exact parent revision;
+- a submitted contribution and its exact base revision; and
+- a public MIDI pattern version and its exact parent/source version where one exists.
+
+Each comparison provides:
 
 - before/after note overlays in the piano roll;
 - clear added, removed, and changed states that do not rely on color alone;
 - a track/clip navigator linked to the structured summary;
+- readable metadata, instrument, placement, lineage, and note-change details;
 - playback of either immutable side;
 - no attempt to automatically merge the two versions.
 
-A full project-wide animated diff, notation diff, or three-way merge is deferred.
+The note overlay remains bounded to one selected track/clip/pattern context at a time. Arbitrary three-way comparisons, a full-project animated overlay, notation diff, or automatic merge are deferred.
 
-### 3. Jam Session Challenges
+### 3. OpenMIDI Challenges
 
 Challenges are the MVP's primary recurring community event and home-page focus.
 
@@ -248,20 +278,18 @@ Each challenge includes:
 
 #### Initial constraint vocabulary
 
-The MVP supports deterministic constraints that can be evaluated from canonical MIDI/project data:
+The first release supports deterministic constraints that can be evaluated from canonical MIDI/project data:
 
-- maximum or exact track count;
-- allowed or required instrument presets/families;
-- tempo range or exact tempo;
-- meter;
-- maximum duration;
-- allowed pitch classes, key, or scale;
-- maximum note count;
-- maximum simultaneous notes/polyphony;
-- required use of a starter clip or project lineage;
-- clip-count or loop-use bounds.
+- minimum, maximum, or exact track count;
+- minimum, maximum, or exact distinct instrument count;
+- allowed and required instrument presets or instrument families;
+- minimum, maximum, or exact tempo in BPM;
+- exact time signature;
+- exact declared musical key.
 
-Rules such as “use only three-note chords” should launch only when their musical definition is unambiguous in the constraint contract. Natural-language prompts such as “compose something happy” remain creative guidance and are not machine judged.
+The constraint schema is versioned and may later add duration, note-count, polyphony, scale/pitch-class, starter-lineage, clip-count, and loop-use rules without rewriting existing challenges. Those later rules must not be exposed until their definitions and feedback are deterministic.
+
+Natural-language prompts such as “compose something happy” remain creative guidance and are not machine judged.
 
 The server validates constraints when an entry is submitted and again when submissions close. The checker decides eligibility, never artistic quality.
 
@@ -270,7 +298,8 @@ The server validates constraints when an entry is submitted and again when submi
 - Start from blank, an allowed starter revision, or an allowed library clip.
 - Compose in the normal Studio.
 - Submit one exact immutable revision before the deadline.
-- Show failed constraints with actionable musical explanations.
+- Let users preflight the current revision before submission.
+- Reject an ineligible submission authoritatively and show each failed rule with its observed value and the exact change needed.
 - Permit explicit replacement before the deadline; never mutate a submitted revision silently.
 - Freeze the accepted entry reference when submissions close.
 
@@ -294,16 +323,18 @@ Profiles may display durable, non-transferable badges for:
 
 - official challenge winner;
 - Community Favorite;
-- finalist or honorable mention;
+- top placement, finalist, or honorable mention;
 - participation in selected milestone/seasonal events.
+
+Badge definitions live in an extensible catalog rather than hard-coded profile columns. Challenge completion grants immutable award records tied to the exact challenge, placement/result, recipient, and submitted revision. The initial catalog may be generic; later challenges can introduce their own artwork and award definitions without changing the award model.
 
 No XP or level system is included in MVP. Add it only if later evidence shows it improves creation and retention without rewarding spam.
 
 ### 4. Public MIDI clip library
 
-The library turns Jam Session's structured source material into a reusable commons. It should feel closer to browsing useful open-source components than downloading anonymous files, but it is not a package manager or commercial asset marketplace.
+The library turns OpenMIDI's structured source material into a reusable commons. It should feel closer to browsing useful open-source components than downloading anonymous files, but it is not a package manager or commercial asset marketplace.
 
-Users can explicitly publish an immutable MIDI clip/stem version from an eligible public project to the library with:
+Users can explicitly list an immutable MIDI pattern version from an eligible public project with:
 
 - title and description;
 - creator and source project/revision lineage;
@@ -315,18 +346,23 @@ Users can explicitly publish an immutable MIDI clip/stem version from an eligibl
 
 Other users can:
 
-- search and filter library material;
+- search by pattern title, creator, and tags;
+- filter by instrument family/preset, tempo range, meter, declared key, duration/bar count, note range, polyphony, and note count where useful;
 - audition it without opening the full Studio;
 - inspect its notes in a read-only piano roll;
-- import a compatible copy into a private workspace;
+- open a detail page with immutable version history, visual parent/source diffs, attribution/license, and the visible public projects that use the exact version or its descendants;
+- save an exact version to a private **Saved clips** collection without duplicating its note data;
+- import a saved or discovered exact version directly into a chosen private Studio workspace;
 - fork/edit it into a new immutable version;
 - export the supported Standard MIDI File subset.
 
-Importing or forking must retain machine-readable lineage and creator attribution. Published project/revision credits snapshot the reused material so later profile or library changes do not rewrite history.
+Saving is a bookmark/reference action, not publication or ownership transfer. Importing or editing is copy-on-write and must retain machine-readable lineage, license, and creator attribution. Published project/revision credits snapshot the reused material so later profile, listing, or collection changes do not rewrite history.
 
 #### MVP boundaries
 
 - Publishing to the library is explicit; public project clips are not automatically listed.
+- Removing a saved item changes only that user's collection. Unlisting a pattern removes it from library discovery but cannot break existing project references, exports, or attribution.
+- Only public, rights-attested CC BY 4.0 pattern versions may be listed or imported through the public library.
 - No dependency graph, semantic-version resolver, install command, or executable content.
 - No audio samples, soundfonts, plugin presets, or external binary assets.
 - No paid licenses or revenue splits.
@@ -355,6 +391,8 @@ Profiles include:
 - challenge entries, placements, and badges;
 - durable attribution and lineage links.
 
+Challenge result finalization awards catalog-backed badges automatically. Profiles show the badge name, artwork, challenge/result source, and award date; removing a challenge from discovery does not silently erase already issued awards.
+
 The MVP may support voting and existing contribution review actions. Generic likes, follower counts, comments, direct messages, and a personalized algorithmic feed are deferred.
 
 ### 6. Authentication, moderation, and administration
@@ -370,6 +408,22 @@ The prototype retains:
 - rate limits on challenge submissions, votes, reports, project creation, and library publishing.
 
 New moderation targets must include challenges, challenge entries, votes where abuse review requires them, and library listings. Hiding a listing or entry affects discovery and eligibility without mutating immutable project history.
+
+### 7. Beta feedback and administrator triage
+
+Invited users need a low-friction way to tell the team when the prototype is confusing or broken.
+
+Authenticated users can submit either a **bug report** or **suggestion** with:
+
+- a short summary;
+- plain-text details;
+- the current application route and application version captured automatically;
+- optional bounded browser/platform metadata shown to the user before submission; and
+- a clear success confirmation and reference ID.
+
+Feedback is stored as Postgres data, not uploaded to Storage. The MVP does not accept screenshots, recordings, file attachments, console logs, cookies, tokens, complete manifests, or signed URLs. Submission is rate-limited and suspended users cannot submit.
+
+Administrators receive a private queue separate from abuse/content reports. They can review, classify, mark handled, and delete irrelevant feedback. Deletion removes the submitted content; a minimal private audit action may retain who deleted which feedback ID/category and when, without retaining the discarded body. Relevant items are manually converted into GitHub issues by an administrator; OpenMIDI does not receive GitHub credentials or create issues automatically in the MVP.
 
 ## Features deliberately deferred
 
@@ -414,6 +468,7 @@ Defer numerical progression. XP systems reward whatever is easiest to count and 
 - I can inspect the notes and arrangement behind something I hear.
 - I can compare two versions visually and learn how the music changed.
 - I can begin with a prompt, starter project, or reusable clip instead of a blank canvas.
+- I can search by musical properties, preview a pattern, save its exact version, and place it into a Studio project later.
 - I can import a clip, transform it, and know that its creator remains credited.
 - I can export MIDI to continue experimenting elsewhere.
 
@@ -438,12 +493,18 @@ Defer numerical progression. XP systems reward whatever is easiest to count and 
 - I can discover how a project evolved and follow its remix lineage.
 - I can vote without creating or downloading audio files.
 
+### As a beta participant
+
+- I can report a bug or suggestion without leaving OpenMIDI.
+- I can understand what diagnostic context will be submitted and receive confirmation that it was recorded.
+
 ### As an administrator
 
 - I can create and schedule a challenge from a bounded rule vocabulary.
 - I can preview how its rules will be presented and validated.
 - I can moderate projects, entries, library listings, accounts, and suspicious votes.
 - I can record official results without changing submitted revisions.
+- I can review, classify, handle, or delete beta feedback without exposing it publicly.
 
 ## MVP release requirements
 
@@ -460,16 +521,24 @@ The MIDI-only MVP is ready for invited public testing when all of the following 
 
 - Revisions, contributions, and forks preserve immutable lineage and attribution.
 - Structured summaries are deterministic and correct for supported changes.
-- A selected clip/track can be compared with a useful visual diff.
-- A published library clip can be discovered, previewed, imported, transformed, and credited.
+- Project revisions, contribution versions, and eligible pattern versions can be compared with a useful accessible visual diff.
+- A published library clip can be searched, previewed, inspected, saved, imported, transformed, and credited.
+- Library detail exposes immutable history and visible public-project usage without leaking private projects.
 
 ### Challenges
 
-- An administrator can schedule a curated challenge with supported constraints.
+- An administrator can schedule a curated challenge with supported track-count, instrument-count/family/preset, BPM, meter, and key constraints.
 - Users can compose, preflight, submit, and explicitly replace an eligible entry.
 - Submission closure, voting, official results, and Community Favorite are deterministic and auditable.
 - Invalid or late entries cannot bypass authoritative validation.
 - Challenge pages remain useful with a small invited community.
+
+### Recognition and feedback
+
+- Completed challenge results issue durable catalog-backed badges for winners, Community Favorites, and configured top placements.
+- Profiles display awards with their exact challenge/result source.
+- Authenticated beta users can submit rate-limited bugs and suggestions without attachments or sensitive diagnostics.
+- Administrators can review, classify, handle, and delete feedback in a private queue.
 
 ### Safety and operations
 
@@ -477,8 +546,18 @@ The MIDI-only MVP is ready for invited public testing when all of the following 
 - Suspended or hidden actors cannot publish, submit, vote, or bypass moderation.
 - Rate limits and uniqueness constraints prevent obvious vote and submission abuse.
 - User content and challenge terms have reporting and moderation paths.
+- Feedback, saved clips, badges, challenge entries, and votes have explicit RLS and command authorization.
 - The application runs within the prototype's $0 database, compute, and bandwidth budget under the intended invited-user load.
 - The production schema can be reset/seeded deliberately before launch without preserving experimental audio data.
+
+### Seed content and deployment
+
+- The frontend, metadata, documentation, repository links, OAuth branding, and deployment configuration consistently use OpenMIDI while stable persisted engine/schema identifiers remain compatible.
+- The beta launches with several useful public projects, a curated set of listed MIDI patterns, and one scheduled/open challenge so discovery is not empty.
+- Vercel is configured with reviewed environment-variable scopes and the existing hosted Supabase project.
+- Google OAuth callback/site URLs, the invitation hook, avatar processing, migrations, and application origins are verified against the production URL.
+- One production smoke path covers invited sign-in, onboarding, Studio creation/publication, library save/import, challenge preflight/submission, feedback intake, and administrator queues.
+- A documented rollback/disable path exists for deployment, challenge intake, and invitations without rewriting immutable musical history.
 
 ### Accessibility and experience
 
@@ -507,6 +586,8 @@ Initial measurements should establish a baseline rather than optimize vanity met
 ### Remix and reuse
 
 - Public projects that receive a fork or contribution
+- Library searches that lead to a preview, save, or Studio import
+- Saved clips later imported into a workspace
 - Library clips imported into another user's project
 - Imported clips that lead to a published revision
 - Fork and contribution histories that continue beyond one derivative
@@ -518,6 +599,13 @@ Initial measurements should establish a baseline rather than optimize vanity met
 - Vote participation without suspicious concentration
 - Repeat participation and first-time entrant representation
 - Moderator interventions and disqualifications
+- Challenge placements and badges that lead recipients back to the source challenge/project
+
+### Beta learning
+
+- Bugs and suggestions submitted per active beta cohort without spam concentration
+- Percentage of feedback reviewed, discarded, or manually converted into a tracked issue
+- Repeated reports that identify the same broken or confusing workflow
 
 Follower count, total raw votes, total notes, total projects, and time spent in the app are not sufficient success measures by themselves.
 
@@ -530,6 +618,10 @@ Too many simultaneous formats will make every surface feel abandoned. Launch wit
 ### Popularity bias and vote abuse
 
 Hide totals during voting, separate Community Favorite from judged winner, randomize/rotate exposure, prevent self-votes, enforce uniqueness and rate limits, and retain auditable moderation state.
+
+### Feedback privacy and triage debt
+
+Collect only bounded plain text and disclosed route/version/browser context. Reject attachments and sensitive diagnostics, keep the queue administrator-only, rate-limit intake, and let administrators discard low-value submissions. Do not promise that every suggestion becomes roadmap work.
 
 ### Weak instrument quality
 
@@ -549,4 +641,4 @@ PIVOT-00 through PIVOT-10 resolved the repository strategy, reset posture, manif
 
 ## Remaining product decisions
 
-The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs, the public pattern library, and challenges. Each future slice must still specify its UI and validation detail, but it must not revisit the accepted MIDI-only persistence, licensing, immutable-history, or avatar-only Storage boundaries without a superseding product decision and ADR. The hosted rebaseline is complete; any later hosted mutation or deployment still requires explicit operational authority.
+The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs and beta feedback first, then the public MIDI library, curated challenges, challenge awards, and release/deployment. The semantic visual-diff program already has a detailed local plan; each later program needs its own detailed slice plan before implementation. Those plans must not revisit the accepted MIDI-only persistence, licensing, immutable-history, avatar-only Storage, or stable persisted-identifier boundaries without a superseding product decision and ADR. The hosted rebaseline is complete; every future hosted migration and the eventual Vercel deployment require explicit operational authority.

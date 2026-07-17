@@ -1,8 +1,8 @@
-# Jam Session
+# OpenMIDI
 
-Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
+OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** The MIDI-only pivot, hosted rehearsal, and administrator-invitation reconciliation are merged to `master`. The application, five-migration hosted schema, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. Vercel deployment is intentionally deferred. PR 19/20 and the OPT/MIDI/STUDIO/PIVOT sequencing are historical delivery evidence, not current work.
+> **Current status:** The MIDI-only pivot, hosted rehearsal, and administrator-invitation reconciliation are merged to `master`. The application, five-migration hosted schema, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. The post-pivot MVP path now adds visual diffs, beta feedback, the public MIDI library and saved clips, curated challenges, profile awards, and release hardening before Vercel deployment. The frontend and repository still carry transitional Jam Session naming until RELEASE-01.
 
 ## Target MVP scope
 
@@ -11,7 +11,10 @@ Jam Session is a public MIDI creation, remix, reuse, and constraint-challenge pl
 - Submit a contribution for the project owner to review.
 - Accept or reject contributions without rewriting project history.
 - Fork and reuse public MIDI while preserving creator lineage and CC BY 4.0 attribution.
-- Discover public projects and prepare the domain foundation for constraint challenges and a reusable MIDI library.
+- Discover public projects and reusable MIDI patterns, preview and save exact versions, and import them into Studio with attribution.
+- Compare project, contribution, and pattern versions through musician-facing visual diffs.
+- Enter eligible immutable revisions in curated constraint challenges, vote, and earn extensible profile awards.
+- Send a bug report or suggestion to a private administrator queue during the beta.
 
 The [product requirements](docs/PRD.md) describe the intended experience, the tracked [MVP roadmap](docs/ROADMAP.md) shows what is complete and what comes next, the [MIDI-only pivot contract](docs/technical-design/midi-only-pivot-contract.md) freezes the target vocabulary and persistence invariants, the [technical-design index](docs/technical-design/README.md) explains how it is built, and the [brand and visual-design guide](docs/design/brand.md) defines the product voice and presentation for user-facing surfaces. The [studio-forward plan](docs/studio-forward-refactor-plan.md) remains a historical record of the refactor that produced the current Studio.
 
@@ -240,7 +243,7 @@ Make sure you did not manually edit `package.json`. Restore unintended changes a
 
 ### Port 3000 is already in use
 
-Another development server may still be running. Stop it with `Ctrl+C`, or start Jam Session on another port:
+Another development server may still be running. Stop it with `Ctrl+C`, or start OpenMIDI on another port:
 
 ```powershell
 npm run dev -- --port 3001
@@ -310,4 +313,4 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents must also follow [A
 
 ## License
 
-No license has yet been selected for Jam Session's own source code; all rights are reserved unless explicitly stated otherwise. Third-party dependencies retain their own licenses and notices. Do not copy third-party demo audio or other assets without confirming redistribution rights.
+No license has yet been selected for OpenMIDI's own source code; all rights are reserved unless explicitly stated otherwise. Third-party dependencies retain their own licenses and notices. Do not copy third-party demo audio or other assets without confirming redistribution rights.

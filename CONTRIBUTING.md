@@ -1,6 +1,6 @@
-# Contributing to Jam Session
+# Contributing to OpenMIDI
 
-Thanks for helping build Jam Session. The project is early, so focused changes and explicit reasoning are especially valuable.
+Thanks for helping build OpenMIDI. The project is early, so focused changes and explicit reasoning are especially valuable.
 
 ## Before you begin
 
