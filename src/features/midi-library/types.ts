@@ -8,6 +8,7 @@ export type MidiLibraryFilters = {
   query: string | null;
   rights: MidiLibraryRights;
   category: string | null;
+  family: string | null;
   preset: string | null;
   tags: string[];
   duration: NumericRange;

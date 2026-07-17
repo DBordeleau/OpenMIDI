@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(40);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','fa000000-0000-4000-8000-000000000001','authenticated','authenticated','library-owner@example.test','','{}','{}',now(),now()),
@@ -24,7 +24,7 @@ select ok(not exists(select 1 from information_schema.role_table_grants where ta
 select function_privs_are('public','list_midi_library_pattern_version',
   array['uuid','uuid','text','text','text','text','text','text','text','text','text','integer','text[]','jsonb','uuid'],
   'anon',array[]::text[],'anonymous cannot list versions');
-select ok(has_function_privilege('anon','public.search_public_midi_library(text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer)','execute'),
+select ok(has_function_privilege('anon','public.search_public_midi_library(text,text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer)','execute'),
   'anonymous may call only the bounded search projection');
 select is((select count(*) from public.midi_library_presets),24::bigint,'public preset projection matches bundled catalog');
 
@@ -100,8 +100,9 @@ select is((select count(*) from public.search_public_midi_library(
   p_query=>'golden chords',p_rights=>'commercial_reuse',p_tags=>array['harmonic'],p_polyphony=>'polyphonic',p_limit=>25)),1::bigint,
   'text, rights, tag, and derived facet filters combine');
 select is((select count(*) from public.search_public_midi_library(
-  p_rights=>'reference_only',p_preset=>'sub-bass',p_duration_max=>2,p_notes_max=>2,p_pitch_min=>48::smallint,p_pitch_max=>50::smallint,p_limit=>25)),1::bigint,
-  'reference-only preset, duration, note, and pitch filters combine');
+  p_rights=>'reference_only',p_preset=>'sub-bass',p_instrument_family=>'basses',p_duration_max=>2,
+  p_notes_max=>2,p_pitch_min=>48::smallint,p_pitch_max=>50::smallint,p_limit=>25)),1::bigint,
+  'reference-only family, preset, duration, note, and pitch filters combine');
 select is(jsonb_array_length((select notes from public.search_public_midi_library(p_query=>'Study Pulse',p_limit=>25))),2,
   'safe projection exposes only exact listed notes for preview');
 select is((select external_credits->0->>'creditedName' from public.search_public_midi_library(p_query=>'Study Pulse',p_limit=>25)),'Example Composer',
@@ -146,6 +147,14 @@ select lives_ok($$select public.unlist_midi_library_listing(
 select lives_ok($$select public.unlist_midi_library_listing(
   (select id from commercial_listing_fixture),
   'fa500000-0000-4000-8000-000000000001',1)$$,'identical unlist request replays idempotently');
+select throws_ok($$select public.list_midi_library_pattern_version(
+  (select id from public.midi_pattern_versions where create_request_id='fa200000-0000-4000-8000-000000000001'),
+  gen_random_uuid(),'commercial_reuse','authorized_adaptation','midi-library-commercial-attestation-v1',
+  'Attempted changed rights snapshot','https://example.test/changed-source','Changed permission',null,
+  'harmony','warm-keys',1,array['harmonic'],
+  '[{"creditedName":"Different Composer","role":"Composer","sourceUrl":"https://example.test/changed-source"}]'::jsonb,null)$$,
+  'PT409','midi_library_exact_version_rights_conflict',
+  'an exact version cannot be relisted with altered rights or external credits');
 reset role;
 set local role anon;
 select is((select count(*) from public.search_public_midi_library(p_rights=>'all',p_limit=>25)),0::bigint,

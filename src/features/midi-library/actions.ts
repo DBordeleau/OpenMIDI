@@ -42,6 +42,13 @@ export async function listMidiLibraryAction(
         code: "cc_downgrade_denied",
         message: "A CC BY version cannot be changed to reference-only.",
       };
+    if (message.includes("exact_version_rights_conflict"))
+      return {
+        ok: false,
+        code: "exact_version_rights_conflict",
+        message:
+          "This exact version already has a permanent rights and credit record. Create a new version to change it.",
+      };
     if (message.includes("commercial_license"))
       return {
         ok: false,

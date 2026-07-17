@@ -84,6 +84,7 @@ create table public.midi_library_listings (
   owner_id uuid not null references public.profiles(id) on delete restrict,
   request_id uuid not null,
   request_payload_sha256 text not null,
+  rights_payload_sha256 text not null,
   title text not null,
   description text not null default '',
   creator_username text not null,
@@ -123,6 +124,7 @@ create table public.midi_library_listings (
     references public.midi_library_presets(preset_id, version) on delete restrict,
   constraint midi_library_listings_request_unique unique(owner_id, request_id),
   constraint midi_library_listings_request_hash_check check (request_payload_sha256 ~ '^[0-9a-f]{64}$'),
+  constraint midi_library_listings_rights_hash_check check (rights_payload_sha256 ~ '^[0-9a-f]{64}$'),
   constraint midi_library_listings_title_check check (
     title = btrim(title) and char_length(title) between 1 and 120
   ),
@@ -254,6 +256,8 @@ create index midi_library_active_category_recent_idx on public.midi_library_list
   where unlisted_at is null and moderation_hidden_at is null;
 create index midi_library_active_preset_recent_idx on public.midi_library_listings(suggested_preset_id, listed_at desc, id desc)
   where unlisted_at is null and moderation_hidden_at is null;
+create index midi_library_active_family_recent_idx on public.midi_library_listings(instrument_family_code, listed_at desc, id desc)
+  where unlisted_at is null and moderation_hidden_at is null;
 create index midi_library_active_facets_idx on public.midi_library_listings(polyphony_kind,note_count,duration_beats,min_pitch,max_pitch)
   where unlisted_at is null and moderation_hidden_at is null;
 create index midi_library_search_idx on public.midi_library_listings using gin(search_vector)
@@ -337,11 +341,13 @@ declare
   v_preset public.midi_library_presets%rowtype;
   v_existing public.midi_library_listings%rowtype;
   v_active public.midi_library_listings%rowtype;
+  v_prior_version_listing public.midi_library_listings%rowtype;
   v_listing public.midi_library_listings%rowtype;
   v_tags text[];
   v_credits jsonb;
   v_credit jsonb;
   v_payload_hash text;
+  v_rights_hash text;
   v_min_pitch smallint;
   v_max_pitch smallint;
   v_polyphony text;
@@ -453,6 +459,25 @@ begin
     end if;
   end loop;
 
+  select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+    'creditedName',value->>'creditedName','role',value->>'role','workTitle',nullif(value->>'workTitle',''),
+    'sourceUrl',nullif(value->>'sourceUrl',''),'sourceTerms',nullif(value->>'sourceTerms',''),
+    'attributionNote',nullif(value->>'attributionNote','')
+  )) order by ordinality),'[]'::jsonb) into v_credits
+  from jsonb_array_elements(v_credits) with ordinality;
+
+  v_rights_hash := encode(extensions.digest(convert_to(jsonb_build_object(
+    'patternVersionId',p_pattern_version_id,'reuseMode',p_reuse_mode,'rightsBasis',p_rights_basis,
+    'attestationVersion',p_attestation_version,'supportingSourceUrl',p_supporting_source_url,
+    'supportingSourceTerms',p_supporting_source_terms,'publicDomainRationale',p_public_domain_rationale,
+    'externalCredits',v_credits
+  )::text,'UTF8'),'sha256'),'hex');
+  select * into v_prior_version_listing from public.midi_library_listings
+    where midi_pattern_version_id=v_version.id order by listed_at,id limit 1;
+  if found and v_prior_version_listing.rights_payload_sha256<>v_rights_hash then
+    raise sqlstate 'PT409' using message='midi_library_exact_version_rights_conflict';
+  end if;
+
   v_payload_hash := encode(extensions.digest(convert_to(jsonb_build_object(
     'patternVersionId',p_pattern_version_id,'reuseMode',p_reuse_mode,'rightsBasis',p_rights_basis,
     'attestationVersion',p_attestation_version,'description',p_description,
@@ -492,13 +517,13 @@ begin
   ) then 'polyphonic' else 'monophonic' end into v_polyphony;
 
   insert into public.midi_library_listings(
-    midi_pattern_id,midi_pattern_version_id,owner_id,request_id,request_payload_sha256,title,description,
+    midi_pattern_id,midi_pattern_version_id,owner_id,request_id,request_payload_sha256,rights_payload_sha256,title,description,
     creator_username,creator_display_name,creator_credit_name,reuse_mode,rights_basis,attestation_version,
     attested_by,supporting_source_url,supporting_source_terms,public_domain_rationale,category_code,
     suggested_preset_id,suggested_preset_version,instrument_family_code,duration_ticks,duration_beats,
     note_count,min_pitch,max_pitch,polyphony_kind
   ) values(
-    v_pattern.id,v_version.id,v_actor,p_request_id,v_payload_hash,v_pattern.name,p_description,
+    v_pattern.id,v_version.id,v_actor,p_request_id,v_payload_hash,v_rights_hash,v_pattern.name,p_description,
     v_profile.username,v_profile.display_name,v_version.creator_credit_name,p_reuse_mode,p_rights_basis,
     p_attestation_version,v_actor,p_supporting_source_url,p_supporting_source_terms,p_public_domain_rationale,
     p_category_code,v_preset.preset_id,v_preset.version,v_preset.family_code,v_version.duration_ticks,
@@ -569,7 +594,7 @@ $$;
 
 create or replace function public.search_public_midi_library(
   p_query text default null,p_rights text default 'all',p_category text default null,
-  p_preset text default null,p_tags text[] default '{}'::text[],
+  p_preset text default null,p_instrument_family text default null,p_tags text[] default '{}'::text[],
   p_duration_min numeric default null,p_duration_max numeric default null,
   p_notes_min integer default null,p_notes_max integer default null,
   p_pitch_min smallint default null,p_pitch_max smallint default null,
@@ -593,6 +618,9 @@ begin
     or p_rights<>all(array['all','commercial_reuse','reference_only'])
     or p_sort<>all(array['recent','name'])
     or (p_polyphony is not null and p_polyphony<>all(array['monophonic','polyphonic']))
+    or (p_instrument_family is not null and not exists(
+      select 1 from public.midi_library_presets where family_code=p_instrument_family and active
+    ))
     or (p_query is not null and (p_query<>btrim(p_query) or char_length(p_query)>80))
     or cardinality(coalesce(p_tags,'{}'::text[]))>8
     or (p_after_listing_id is null)<>(p_after_listed_at is null and p_after_title is null)
@@ -628,6 +656,7 @@ begin
     and (p_rights='all' or l.reuse_mode=p_rights)
     and (p_category is null or l.category_code=p_category)
     and (p_preset is null or l.suggested_preset_id=p_preset)
+    and (p_instrument_family is null or l.instrument_family_code=p_instrument_family)
     and (p_polyphony is null or l.polyphony_kind=p_polyphony)
     and (p_duration_min is null or l.duration_beats>=p_duration_min)
     and (p_duration_max is null or l.duration_beats<=p_duration_max)
@@ -678,8 +707,8 @@ revoke all on function public.unlist_midi_library_listing(uuid,uuid,integer) fro
 grant execute on function public.unlist_midi_library_listing(uuid,uuid,integer) to authenticated;
 revoke all on function public.list_owned_midi_library_versions(integer) from public,anon;
 grant execute on function public.list_owned_midi_library_versions(integer) to authenticated;
-revoke all on function public.search_public_midi_library(text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer) from public;
-grant execute on function public.search_public_midi_library(text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer) to anon,authenticated;
+revoke all on function public.search_public_midi_library(text,text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer) from public;
+grant execute on function public.search_public_midi_library(text,text,text,text,text,text[],numeric,numeric,integer,integer,smallint,smallint,text,text,timestamptz,text,uuid,integer) to anon,authenticated;
 
 -- The owner-only source-copy command remains commercial-only. The new library
 -- projection does not broaden private.can_read_pattern_version or authorize copies.

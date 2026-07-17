@@ -864,6 +864,7 @@ export type Database = {
           request_payload_sha256: string
           reuse_mode: string
           rights_basis: string
+          rights_payload_sha256: string
           search_vector: unknown
           suggested_preset_id: string
           suggested_preset_version: number
@@ -903,6 +904,7 @@ export type Database = {
           request_payload_sha256: string
           reuse_mode: string
           rights_basis: string
+          rights_payload_sha256: string
           search_vector?: unknown
           suggested_preset_id: string
           suggested_preset_version: number
@@ -942,6 +944,7 @@ export type Database = {
           request_payload_sha256?: string
           reuse_mode?: string
           rights_basis?: string
+          rights_payload_sha256?: string
           search_vector?: unknown
           suggested_preset_id?: string
           suggested_preset_version?: number
@@ -2948,6 +2951,7 @@ export type Database = {
           p_category?: string
           p_duration_max?: number
           p_duration_min?: number
+          p_instrument_family?: string
           p_limit?: number
           p_notes_max?: number
           p_notes_min?: number

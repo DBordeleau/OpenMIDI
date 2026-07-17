@@ -75,6 +75,7 @@ export function parseMidiLibraryFilters(
     "q",
     "rights",
     "category",
+    "family",
     "preset",
     "tags",
     "duration",
@@ -93,6 +94,7 @@ export function parseMidiLibraryFilters(
   const query = (scalar(params.q) ?? "").trim();
   const rights = scalar(params.rights) ?? "all";
   const category = scalar(params.category) || null;
+  const family = scalar(params.family) || null;
   const preset = scalar(params.preset) || null;
   const rawTags = scalar(params.tags) ?? "";
   const tags = [...new Set(rawTags.split(",").filter(Boolean))].sort();
@@ -106,6 +108,7 @@ export function parseMidiLibraryFilters(
     query.length > 80 ||
     !["all", "commercial_reuse", "reference_only"].includes(rights) ||
     (category !== null && !slugSchema.safeParse(category).success) ||
+    (family !== null && !slugSchema.safeParse(family).success) ||
     (preset !== null && !slugSchema.safeParse(preset).success) ||
     tags.length > 8 ||
     !tags.every((tag) => slugSchema.safeParse(tag).success) ||
@@ -126,6 +129,7 @@ export function parseMidiLibraryFilters(
       query: query || null,
       rights: rights as MidiLibraryFilters["rights"],
       category,
+      family,
       preset,
       tags,
       duration,
@@ -159,6 +163,7 @@ export function midiLibrarySearchParams(filters: MidiLibraryFilters) {
   if (filters.query) params.set("q", filters.query);
   if (filters.rights !== "all") params.set("rights", filters.rights);
   if (filters.category) params.set("category", filters.category);
+  if (filters.family) params.set("family", filters.family);
   if (filters.preset) params.set("preset", filters.preset);
   if (filters.tags.length) params.set("tags", filters.tags.join(","));
   const duration = rangeValue(filters.duration);

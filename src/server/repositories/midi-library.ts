@@ -158,6 +158,7 @@ export async function searchPublicMidiLibrary(
     p_rights: filters.rights,
     p_category: filters.category,
     p_preset: filters.preset,
+    p_instrument_family: filters.family,
     p_tags: filters.tags,
     p_duration_min: filters.duration.min,
     p_duration_max: filters.duration.max,

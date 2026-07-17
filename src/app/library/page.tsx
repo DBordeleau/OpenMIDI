@@ -47,6 +47,9 @@ export default async function MidiLibraryPage({
           : "The library is taking a moment to tune up. Try again.";
     }
   const filters = parsed.success ? parsed.data : null;
+  const families = [
+    ...new Set(options.presets.map((preset) => preset.family)),
+  ].map((family) => ({ value: family, label: formatInstrumentFamily(family) }));
   const nextHref =
     filters && result?.nextCursor
       ? `/library?${midiLibrarySearchParams({ ...filters, after: result.nextCursor })}`
@@ -126,6 +129,12 @@ export default async function MidiLibraryPage({
                   value: item.code,
                   label: item.name,
                 }))}
+              />
+              <FilterSelect
+                label="Instrument family"
+                name="family"
+                value={filters.family ?? ""}
+                options={families}
               />
               <FilterSelect
                 label="Preset"

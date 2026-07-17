@@ -12,6 +12,7 @@ describe("MIDI library contracts", () => {
     const parsed = parseMidiLibraryFilters({
       q: "  pulse  ",
       rights: "reference_only",
+      family: "keys",
       tags: "rhythmic,dark,rhythmic",
       duration: "4-16",
       notes: "8-",
@@ -24,6 +25,7 @@ describe("MIDI library contracts", () => {
       data: {
         query: "pulse",
         rights: "reference_only",
+        family: "keys",
         tags: ["dark", "rhythmic"],
         duration: { min: 4, max: 16 },
         notes: { min: 8, max: null },
@@ -34,6 +36,10 @@ describe("MIDI library contracts", () => {
     if (parsed.success)
       expect(midiLibrarySearchParams(parsed.data).toString()).toContain(
         "rights=reference_only",
+      );
+    if (parsed.success)
+      expect(midiLibrarySearchParams(parsed.data).toString()).toContain(
+        "family=keys",
       );
   });
   it("rejects malformed filters and cursors before RPC input", () => {

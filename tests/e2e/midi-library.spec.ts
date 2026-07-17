@@ -123,9 +123,10 @@ test.describe("public MIDI library", () => {
         forbidden.push(request.url());
     });
     await anonymous.goto(
-      `/library?rights=reference_only&q=${encodeURIComponent(fixture.title)}`,
+      `/library?rights=reference_only&family=keys&q=${encodeURIComponent(fixture.title)}`,
     );
     await expect(anonymous).toHaveURL(/rights=reference_only/);
+    await expect(anonymous.getByLabel("Instrument family")).toHaveValue("keys");
     await expect(
       anonymous.getByRole("heading", { name: fixture.title }),
     ).toBeVisible();
