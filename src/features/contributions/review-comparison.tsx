@@ -43,7 +43,10 @@ export function ReviewComparison({
           Submitted version
         </button>
       </div>
-      <StudioLauncher {...(selected === "base" ? base : submitted)} />
+      <StudioLauncher
+        key={selected}
+        {...(selected === "base" ? base : submitted)}
+      />
       <h2 className="mt-10 text-2xl font-bold">Semantic change summary</h2>
       <p className="text-muted mt-2">
         Compared against the exact immutable base arrangement using{" "}

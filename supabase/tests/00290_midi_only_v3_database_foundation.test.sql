@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(65);
+select plan(71);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000001','authenticated','authenticated','pivot-owner@example.test','','{}','{}',now(),now()),
@@ -206,16 +206,22 @@ select ok(not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pron
 update public.projects set visibility='public' where owner_id='f3000000-0000-4000-8000-000000000001';
 set local role anon;
 select is((select count(*) from public.arrangement_versions),1::bigint,'anonymous reads a visible public arrangement');
+select is((select count(*) from public.project_revisions),1::bigint,'anonymous resolves a visible public revision wrapper');
+select is((select count(*) from public.revision_attributions),1::bigint,'anonymous reads immutable credit for a visible public revision');
 reset role;
 update public.projects set moderation_state='hidden' where owner_id='f3000000-0000-4000-8000-000000000001';
 set local role anon;
 select is((select count(*) from public.arrangement_versions),0::bigint,'anonymous cannot read a hidden public arrangement');
+select is((select count(*) from public.project_revisions),0::bigint,'anonymous cannot read a hidden public revision wrapper');
+select is((select count(*) from public.revision_attributions),0::bigint,'anonymous cannot read credit for a hidden public revision');
 reset role;
 update public.projects set moderation_state='visible',visibility='private',status='deleted',
   open_to_contributions=false,deleted_at=statement_timestamp()
 where owner_id='f3000000-0000-4000-8000-000000000001';
 set local role anon;
 select is((select count(*) from public.arrangement_versions),0::bigint,'anonymous cannot read a deleted public arrangement');
+select is((select count(*) from public.project_revisions),0::bigint,'anonymous cannot read a deleted public revision wrapper');
+select is((select count(*) from public.revision_attributions),0::bigint,'anonymous cannot read credit for a deleted public revision');
 reset role;
 
 set local role anon;

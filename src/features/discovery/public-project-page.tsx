@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Container } from "@/components/layout/container";
 import type {
   PublicProject,
@@ -14,11 +15,13 @@ export function PublicProjectPage({
   lineage,
   history,
   canCollaborate,
+  ownerControls,
 }: {
   project: PublicProject;
   lineage: PublicProjectLineage;
   history: PublicRevisionHistoryItem[];
   canCollaborate: boolean;
+  ownerControls?: ReactNode;
 }) {
   return (
     <main id="main-content">
@@ -125,14 +128,15 @@ export function PublicProjectPage({
                   Fork this revision
                 </Link>
               )}
-              {project.openToContributions && (
-                <Link
-                  className="cta-gradient text-accent-contrast rounded-full px-5 py-3 font-semibold"
-                  href={`/projects/${project.projectId}/contributions/new`}
-                >
-                  Start contribution
-                </Link>
-              )}
+              {project.openToContributions &&
+                project.license.code === "cc-by-4.0" && (
+                  <Link
+                    className="cta-gradient text-accent-contrast rounded-full px-5 py-3 font-semibold"
+                    href={`/projects/${project.projectId}/contributions/new`}
+                  >
+                    Start contribution
+                  </Link>
+                )}
               {project.license.code === "cc-by-4.0" && (
                 <a
                   className="border-strong hover:border-accent inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
@@ -144,7 +148,8 @@ export function PublicProjectPage({
             </div>
             {project.license.code !== "cc-by-4.0" && (
               <p className="text-muted mt-4 text-sm">
-                Licensed MIDI export is available for CC BY 4.0 projects.
+                Licensed MIDI export and contributions are available for CC BY
+                4.0 projects.
               </p>
             )}
             {!canCollaborate && (
@@ -154,6 +159,8 @@ export function PublicProjectPage({
               </p>
             )}
           </section>
+
+          {ownerControls}
 
           {history.length > 0 && <SemanticHistory history={history} />}
 

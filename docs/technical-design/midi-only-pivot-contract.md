@@ -2,7 +2,7 @@
 
 Status: Accepted target contract for PIVOT-01–PIVOT-10
 Date: 2026-07-16
-Implementation state: Implemented locally through PIVOT-09; PIVOT-10 hosted rehearsal remains separately unapproved
+Implementation state: Implemented and hosted-rehearsed through PIVOT-10; Vercel deployment deferred
 
 ## Purpose
 

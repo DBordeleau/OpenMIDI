@@ -6,6 +6,7 @@ import {
 } from "@imagemagick/magick-wasm";
 import { createClient } from "@supabase/supabase-js";
 
+import { edgeCorsHeaders, edgeCorsPreflightResponse } from "../_shared/cors.ts";
 import {
   detectProfileImageSignature,
   MAX_PROFILE_AVATAR_BYTES,
@@ -39,7 +40,7 @@ const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(body: Record<string, unknown>, status: number) {
-  return Response.json(body, { status });
+  return Response.json(body, { headers: edgeCorsHeaders, status });
 }
 
 function bearerToken(request: Request) {
@@ -167,6 +168,7 @@ async function processClaim(
 }
 
 Deno.serve(async (request) => {
+  if (request.method === "OPTIONS") return edgeCorsPreflightResponse();
   if (request.method !== "POST")
     return json({ error: "method_not_allowed" }, 405);
   const supabaseUrl = Deno.env.get("SUPABASE_URL");

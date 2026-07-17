@@ -10,10 +10,12 @@ export function CollaborationSettingForm({
   projectId,
   lockVersion,
   open,
+  eligible,
 }: {
   projectId: string;
   lockVersion: number;
   open: boolean;
+  eligible: boolean;
 }) {
   const action = useMemo(
     () =>
@@ -42,6 +44,12 @@ export function CollaborationSettingForm({
       <p className="mt-3 font-semibold">
         Submissions are currently {open ? "open" : "closed"}.
       </p>
+      {!eligible && (
+        <p className="text-muted mt-3">
+          Choose the CC BY 4.0 project license before opening submissions so
+          contributors receive explicit reuse terms.
+        </p>
+      )}
       {state.message && (
         <p role="alert" className="mt-3 text-red-700">
           {state.message}
@@ -49,7 +57,7 @@ export function CollaborationSettingForm({
       )}
       <button
         className="border-strong mt-5 min-h-11 rounded-full border px-5 font-semibold disabled:opacity-50"
-        disabled={pending}
+        disabled={pending || (!open && !eligible)}
       >
         {pending
           ? "Updatingâ€¦"

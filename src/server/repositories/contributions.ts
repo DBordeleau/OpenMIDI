@@ -579,14 +579,28 @@ export async function createContributionWorkspace(input: {
   expectedLicenseCode: typeof MIDI_PUBLIC_LICENSE_CODE;
 }) {
   const db = await createSupabaseServerClient();
-  const { data: project, error: projectError } = await db
+  const { data: memberProject, error: memberProjectError } = await db
     .from("projects")
     .select("license_code")
     .eq("id", input.projectId)
     .maybeSingle();
+  if (memberProjectError)
+    return {
+      data: null,
+      error: collaborationContractError("contribution_license_unavailable"),
+    };
+  const publicProject = memberProject
+    ? null
+    : await db
+        .from("public_project_catalog")
+        .select("license_code")
+        .eq("project_id", input.projectId)
+        .maybeSingle();
+  const licenseCode =
+    memberProject?.license_code ?? publicProject?.data?.license_code;
   if (
-    projectError ||
-    project?.license_code !== MIDI_PUBLIC_LICENSE_CODE ||
+    publicProject?.error ||
+    licenseCode !== MIDI_PUBLIC_LICENSE_CODE ||
     input.expectedLicenseCode !== MIDI_PUBLIC_LICENSE_CODE
   )
     return {
@@ -612,20 +626,30 @@ export async function submitContribution(input: {
   attestationVersion: "contributor-attestation-v1";
 }) {
   const db = await createSupabaseServerClient();
-  const { data: contribution, error: contributionError } = await db
-    .from("contributions")
-    .select(
-      "base_revision_id,projects(license_code,current_revision_id,open_to_contributions)",
-    )
-    .eq("id", input.contributionId)
-    .maybeSingle();
-  if (contributionError || !contribution)
+  const [contributionResult, contextResult] = await Promise.all([
+    db
+      .from("contributions")
+      .select("base_revision_id")
+      .eq("id", input.contributionId)
+      .maybeSingle(),
+    db.rpc("get_contribution_project_context", {
+      p_contribution_id: input.contributionId,
+    }),
+  ]);
+  if (
+    contributionResult.error ||
+    !contributionResult.data ||
+    contextResult.error ||
+    !contextResult.data
+  )
     return {
       data: null,
       error: collaborationContractError("contribution_unavailable"),
     };
+  const contribution = contributionResult.data;
+  const context = contributionProjectContextSchema.parse(contextResult.data);
   if (
-    contribution.projects.license_code !== MIDI_PUBLIC_LICENSE_CODE ||
+    context.license.code !== MIDI_PUBLIC_LICENSE_CODE ||
     input.expectedLicenseCode !== MIDI_PUBLIC_LICENSE_CODE
   )
     return {
@@ -634,16 +658,11 @@ export async function submitContribution(input: {
     };
   if (
     contribution.base_revision_id !== input.expectedBaseRevisionId ||
-    contribution.projects.current_revision_id !== input.expectedBaseRevisionId
+    context.currentRevisionId !== input.expectedBaseRevisionId
   )
     return {
       data: null,
       error: collaborationContractError("contribution_base_changed"),
-    };
-  if (!contribution.projects.open_to_contributions)
-    return {
-      data: null,
-      error: collaborationContractError("contribution_submissions_closed"),
     };
   return db.rpc("submit_contribution_v3", {
     p_contribution_id: input.contributionId,

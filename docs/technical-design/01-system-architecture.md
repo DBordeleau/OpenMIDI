@@ -1,11 +1,11 @@
 # System architecture
 
 Status: Current after PIVOT-09
-Deployment state: repository-local only; fresh hosted rehearsal is PIVOT-10
+Deployment state: repository-local authority; same-project hosted rebaseline is approved but not executed
 
 ## Runtime boundaries
 
-Jam Session is a Next.js App Router application backed by Supabase Auth and Postgres. Supabase Storage is used only for private avatar originals and sanitized public avatar derivatives. Vercel is the intended host, but no PIVOT-09 work creates, links, migrates, or changes a hosted project.
+Jam Session is a Next.js App Router application backed by Supabase Auth and Postgres. Supabase Storage is used only for private avatar originals and sanitized public avatar derivatives. PIVOT-10 destructively rebaselined and verified the existing hosted project without changing its project reference or API keys. Vercel is the intended host, but no Vercel project or deployment exists yet.
 
 The Studio is a lazy client boundary. Tone.js, Web MIDI, browser playback, MIDI import/export, and synthesized local audio export stay inside `src/features/studio/midi-adapter` and the focused instrument runtime. Server Components, actions, route handlers, repositories, and database code operate on validated structured MIDI and never import Tone.js or browser media APIs.
 

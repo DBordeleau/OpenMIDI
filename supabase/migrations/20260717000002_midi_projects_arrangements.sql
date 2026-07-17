@@ -1679,6 +1679,8 @@ CREATE POLICY "member_projects_read" ON "public"."projects" FOR SELECT TO "authe
 
 CREATE POLICY "member_revisions_read" ON "public"."project_revisions" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_project_member"("project_revisions"."project_id") AS "is_project_member"));
 
+CREATE POLICY "public_revisions_read" ON "public"."project_revisions" FOR SELECT TO "authenticated", "anon" USING (("arrangement_version_id" IS NOT NULL) AND ( SELECT "private"."can_read_arrangement"("project_revisions"."arrangement_version_id") AS "can_read_arrangement"));
+
 CREATE POLICY "member_tags_read" ON "public"."project_tags" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_project_member"("project_tags"."project_id") AS "is_project_member"));
 
 ALTER TABLE "public"."midi_pattern_notes" ENABLE ROW LEVEL SECURITY;
@@ -1846,6 +1848,8 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."project_members" T
 GRANT SELECT ON TABLE "public"."project_members" TO "authenticated";
 
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."project_revisions" TO "service_role";
+
+GRANT SELECT ON TABLE "public"."project_revisions" TO "anon";
 
 GRANT SELECT ON TABLE "public"."project_revisions" TO "authenticated";
 

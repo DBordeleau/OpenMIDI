@@ -5,6 +5,7 @@ import {
   type StudioSessionDescriptor,
 } from "@/features/studio/session-contract";
 import { getProjectForViewer } from "@/server/repositories/projects";
+import { getPublicProject } from "@/server/repositories/public-projects";
 import {
   getStudioRevisionV3,
   getStudioWorkspaceV3,
@@ -14,20 +15,49 @@ export async function resolveStudioSession(
   projectId: string,
   viewerId: string,
 ) {
-  const project = await getProjectForViewer(projectId);
-  if (!project) return null;
-  const [workspace, revision] = await Promise.all([
+  const [memberProject, workspace] = await Promise.all([
+    getProjectForViewer(projectId),
     getStudioWorkspaceV3(projectId),
-    project.currentRevisionId
-      ? getStudioRevisionV3({
-          projectId,
-          revisionId: project.currentRevisionId,
-        })
-      : null,
   ]);
+  const publicProject =
+    !memberProject &&
+    workspace?.ownerId === viewerId &&
+    workspace.contributionId
+      ? await getPublicProject(projectId)
+      : null;
+  if (!memberProject && !publicProject) return null;
+  const project = memberProject
+    ? {
+        id: memberProject.id,
+        ownerId: memberProject.ownerId,
+        title: memberProject.title,
+        timeSignature: memberProject.timeSignature,
+        license: memberProject.license,
+        openToContributions: memberProject.openToContributions,
+        currentRevisionId: memberProject.currentRevisionId,
+        compatibility: memberProject.compatibility,
+      }
+    : {
+        id: publicProject!.projectId,
+        ownerId: publicProject!.ownerId,
+        title: publicProject!.title,
+        timeSignature:
+          publicProject!.timeSignature ?? workspace!.manifest.timeSignature,
+        license: publicProject!.license,
+        openToContributions: publicProject!.openToContributions,
+        currentRevisionId: publicProject!.currentRevisionId,
+        compatibility: "midi" as const,
+      };
+  const revision = project.currentRevisionId
+    ? await getStudioRevisionV3({
+        projectId,
+        revisionId: project.currentRevisionId,
+      })
+    : null;
   if (!workspace && !revision)
     return { project, workspace: null, revision: null, descriptor: null };
   const owner = project.ownerId === viewerId;
+  const workspaceOwner = workspace?.ownerId === viewerId;
   const common = {
     viewerId,
     project: {
@@ -37,7 +67,7 @@ export async function resolveStudioSession(
       currentRevisionId: project.currentRevisionId,
     },
     capabilities: {
-      canEdit: Boolean(workspace && owner),
+      canEdit: Boolean(workspace && workspaceOwner),
       canPublish: Boolean(workspace && owner && !workspace.contributionId),
       canSubmit: Boolean(workspace?.contributionId),
       canStartContribution: Boolean(

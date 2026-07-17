@@ -39,20 +39,39 @@ describe("MIDI v3 collaboration repository commands", () => {
   it("creates and freezes contributions through the v3 RPCs", async () => {
     mocks.maybeSingle
       .mockResolvedValueOnce({
+        data: null,
+        error: null,
+      })
+      .mockResolvedValueOnce({
         data: { license_code: "cc-by-4.0" },
         error: null,
       })
       .mockResolvedValueOnce({
         data: {
           base_revision_id: id,
-          projects: {
-            license_code: "cc-by-4.0",
-            current_revision_id: id,
-            open_to_contributions: true,
-          },
         },
         error: null,
       });
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "get_contribution_project_context"
+        ? {
+            data: {
+              title: "Project",
+              ownerId: id,
+              currentRevisionId: id,
+              currentRevisionNumber: 1,
+              baseRevisionNumber: 1,
+              license: {
+                code: "cc-by-4.0",
+                name: "CC BY 4.0",
+                url: "https://creativecommons.org/licenses/by/4.0/",
+                summary: "Attribution required.",
+              },
+            },
+            error: null,
+          }
+        : { data: [], error: null },
+    );
 
     await createContributionWorkspace({
       projectId: id,
@@ -74,6 +93,7 @@ describe("MIDI v3 collaboration repository commands", () => {
 
     expect(mocks.rpc.mock.calls.map(([name]) => name)).toEqual([
       "create_contribution_workspace_v3",
+      "get_contribution_project_context",
       "submit_contribution_v3",
     ]);
   });

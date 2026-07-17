@@ -4,7 +4,7 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 
 ## Decision status
 
-ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through PIVOT-09. PIVOT-10 hosted rehearsal remains unapproved.
+ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through the completed PIVOT-10 hosted rebaseline.
 
 ## Accepted for initial implementation
 
@@ -82,8 +82,8 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 - **Status:** Accepted 2026-07-16.
 - **Decision:** Jam Session's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export and profile-avatar Storage.
 - **Why:** Repeated full-quality source retrieval exhausted an unsustainable share of the $0 prototype egress budget, while structured MIDI supports the newly accepted public creation/remix/challenge product more directly.
-- **Consequence:** The staged cutover is complete locally through PIVOT-09. No existing hosted application data must be retained. Historical audio evidence stays in Git/docs but is not current product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
-- **Validation:** The clean baseline/new hosted project has no source-audio route, bucket, function, cron, quota, schema, dependency, fixture, or product promise; MIDI creation/collaboration remains complete.
+- **Consequence:** The staged cutover and hosted rebaseline are complete through PIVOT-10. Historical audio evidence stays in Git/docs but is not current product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
+- **Validation:** The clean baseline and rebaselined hosted project have no source-audio route, bucket, function, cron, quota, schema, dependency, fixture, or product promise; MIDI creation/collaboration remains complete.
 
 ### ADR-011: Manifest v3 with patterns and shared immutable arrangement versions
 
@@ -109,13 +109,13 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 - **Consequence:** Required creator/source/license/change attribution cannot be removed. MIDI downloads include attribution/license material outside the `.mid` payload. Other licenses, payments, and rights-dispute resolution are deferred; public terms still require legal review before unrestricted launch.
 - **Validation:** Copy-on-write reuse preserves exact source/creator/license snapshots through publish, contribution, fork, export, profile rename, and deletion.
 
-### ADR-014: Same Git repository, clean migration baseline, and fresh hosted Supabase project
+### ADR-014: Same Git repository, clean migration baseline, and same-project hosted rebaseline
 
-- **Status:** Accepted 2026-07-16.
-- **Decision:** Refactor this repository on `midi-only-pivot`, preserve pre-pivot history, replace the historical migration chain with a reviewed MIDI-only baseline after cutover, and rehearse against a new hosted Supabase project. Do not migrate existing application/Auth/Storage data.
-- **Why:** Identity, Studio, collaboration, moderation, design, and testing work are worth retaining, while a fresh backend avoids stale audio objects, cron, secrets, Edge Functions, Auth data, and migration history.
-- **Consequence:** Implementation uses local Supabase only until PIVOT-10 receives explicit approval. The old hosted project remains untouched during implementation and is deleted only after the new environment is accepted separately.
-- **Validation:** A clean local reset and fresh hosted project reproduce the same types/RLS/behavior; the new project contains only Auth/Postgres plus approved avatar Storage/processing; no audio infrastructure exists.
+- **Status:** Accepted 2026-07-16; hosted-project clause amended 2026-07-16 and executed by PIVOT-10 on 2026-07-17.
+- **Decision:** Refactor this repository on `midi-only-pivot`, preserve pre-pivot history, replace the historical migration chain with a reviewed MIDI-only baseline, and destructively reset the existing hosted Supabase project to that baseline. Retain its project reference, URL, API keys, OAuth provider configuration, and environment bindings; retain no existing application, Auth, or Storage data.
+- **Why:** Identity, Studio, collaboration, moderation, design, testing, and existing deployment configuration are worth retaining. Clearing managed data and obsolete project resources before a linked reset removes the legacy audio system without consuming another Free-plan project or rotating every integration credential.
+- **Consequence:** PIVOT-10 completed the one authorized destructive hosted mutation through supported Storage/Auth/management APIs and one linked four-migration reset. Future hosted mutation again requires explicit operational authority. There is no second-project rollback boundary; Git preserves schema history but deleted hosted data is intentionally unrecoverable except through any provider-managed backup.
+- **Validation:** A clean local reset and the same-project hosted reset reproduce the same migration history, types, RLS, and MIDI behavior; only Auth/Postgres plus approved avatar Storage/processing remain, and project URLs/API keys do not change.
 
 ## ADR template
 

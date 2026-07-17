@@ -1,6 +1,6 @@
 # Jam Session technical design
 
-Status: MIDI-only foundation implemented through PIVOT-09
+Status: MIDI-only foundation and hosted rehearsal implemented through PIVOT-10
 Last updated: 2026-07-16
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
@@ -16,7 +16,7 @@ This document set turns the [product requirements](../PRD.md) into implementatio
 
 ## Current implementation pulse
 
-PIVOT-01 through PIVOT-09 are implemented on the MIDI-only integration line:
+PIVOT-01 through PIVOT-10 are implemented on the MIDI-only integration line:
 
 - canonical manifest v3, hashing, normalized round trips, and deterministic semantic diff;
 - 24 versioned sample-free Tone.js presets and browser-local playback/import/export/render;
@@ -37,7 +37,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. PIVOT-10 is separately blocked pending explicit approval; it alone may create/link a fresh hosted Supabase project, rehearse the clean baseline there, or coordinate hosted/Vercel cutover. A green local repository does not imply hosted parity.
+Post-foundation product work sequences semantic visual diffs, the public MIDI pattern library, then challenges. PIVOT-10 completed the destructive same-project hosted rebaseline and verification while retaining the existing project reference/API configuration. Local and hosted checks remain distinct even though both now implement the MIDI-only baseline; Vercel deployment is deferred.
 
 ## Global invariants
 

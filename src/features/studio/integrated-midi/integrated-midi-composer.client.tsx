@@ -68,19 +68,49 @@ export function IntegratedMidiComposer({
   const [draft, setDraft] = useState<MidiStemDraft | null>(null);
   const [message, setMessage] = useState("");
   const lockVersion = useRef(1);
+  const callbacks = useRef({
+    onClose,
+    onTransportStart,
+    onTransportStop,
+    onFinalize,
+    onDraftStatusChange,
+    onDraftOpened,
+  });
+  useEffect(() => {
+    callbacks.current = {
+      onClose,
+      onTransportStart,
+      onTransportStop,
+      onFinalize,
+      onDraftStatusChange,
+      onDraftOpened,
+    };
+  }, [
+    onClose,
+    onDraftOpened,
+    onDraftStatusChange,
+    onFinalize,
+    onTransportStart,
+    onTransportStop,
+  ]);
 
   const host = useMemo(
     () => ({
       tempoBpm,
       timeSignature,
       onTransportStart: (countInSeconds: number) =>
-        onTransportStart(target.startTick, countInSeconds),
+        callbacks.current.onTransportStart(target.startTick, countInSeconds),
       onPlaybackTransportStart: (
         editorStartTick: number,
         countInSeconds: number,
-      ) => onTransportStart(target.startTick + editorStartTick, countInSeconds),
-      onTransportStop,
-      onDraftStatusChange,
+      ) =>
+        callbacks.current.onTransportStart(
+          target.startTick + editorStartTick,
+          countInSeconds,
+        ),
+      onTransportStop: () => callbacks.current.onTransportStop(),
+      onDraftStatusChange: (status: MidiDraftSaveStatus) =>
+        callbacks.current.onDraftStatusChange(status),
       persistDraft: async (content: {
         name: string;
         defaultPresetId: string;
@@ -97,23 +127,15 @@ export function IntegratedMidiComposer({
           notes: content.notes,
         }),
       }),
-      finalize: (input: FinalizePatternInput) => onFinalize(input, target),
+      finalize: (input: FinalizePatternInput) =>
+        callbacks.current.onFinalize(input, target),
       finalizeLabel:
         target.operation === "replace"
           ? "Freeze and replace clip"
           : "Freeze and add pattern",
-      onClose,
+      onClose: () => callbacks.current.onClose(),
     }),
-    [
-      onClose,
-      onDraftStatusChange,
-      onFinalize,
-      onTransportStart,
-      onTransportStop,
-      target,
-      tempoBpm,
-      timeSignature,
-    ],
+    [target, tempoBpm, timeSignature],
   );
 
   useEffect(() => {
@@ -178,7 +200,7 @@ export function IntegratedMidiComposer({
           createdAt: now,
           updatedAt: now,
         });
-        onDraftOpened();
+        callbacks.current.onDraftOpened();
       } catch (error) {
         if (!cancelled)
           setMessage(
@@ -189,7 +211,7 @@ export function IntegratedMidiComposer({
     return () => {
       cancelled = true;
     };
-  }, [onDraftOpened, ownerId, target]);
+  }, [ownerId, target]);
 
   return (
     <section

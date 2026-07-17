@@ -111,6 +111,35 @@ export default async function ProjectPage({
         lineage={publicLineage}
         history={history}
         canCollaborate
+        ownerControls={
+          project.ownerId === viewer.id ? (
+            <>
+              <ProjectVisibilityForm
+                projectId={project.id}
+                lockVersion={project.lockVersion}
+                visibility={project.visibility}
+              />
+              <CollaborationSettingForm
+                projectId={project.id}
+                lockVersion={project.lockVersion}
+                open={project.openToContributions}
+                eligible={project.license.code === "cc-by-4.0"}
+              />
+              <Link
+                className="mt-4 mr-5 inline-flex underline"
+                href={`/projects/${project.id}/edit`}
+              >
+                Edit project
+              </Link>
+              <Link
+                className="mt-4 inline-flex underline"
+                href={`/projects/${project.id}/contributions`}
+              >
+                View submitted contributions
+              </Link>
+            </>
+          ) : null
+        }
       />
     );
   }
@@ -272,6 +301,7 @@ export default async function ProjectPage({
                 projectId={project.id}
                 lockVersion={project.lockVersion}
                 open={project.openToContributions}
+                eligible={project.license.code === "cc-by-4.0"}
               />
               <Link
                 className="mt-4 inline-flex underline"

@@ -1175,6 +1175,10 @@ CREATE POLICY "member_revision_attributions_read" ON "public"."revision_attribut
    FROM "public"."project_revisions" "r"
   WHERE (("r"."id" = "revision_attributions"."revision_id") AND ( SELECT "private"."is_project_member"("r"."project_id") AS "is_project_member"))))));
 
+CREATE POLICY "public_revision_attributions_read" ON "public"."revision_attributions" FOR SELECT TO "authenticated", "anon" USING ((EXISTS ( SELECT 1
+   FROM "public"."project_revisions" "r"
+  WHERE (("r"."id" = "revision_attributions"."revision_id") AND ("r"."arrangement_version_id" IS NOT NULL) AND ( SELECT "private"."can_read_arrangement"("r"."arrangement_version_id") AS "can_read_arrangement")))));
+
 ALTER TABLE "public"."project_stats" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "public_catalog_read" ON "public"."public_project_catalog" FOR SELECT TO "authenticated", "anon" USING (true);
@@ -1284,5 +1288,7 @@ GRANT SELECT ON TABLE "public"."public_project_catalog" TO "anon";
 GRANT SELECT ON TABLE "public"."public_project_catalog" TO "authenticated";
 
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."revision_attributions" TO "service_role";
+
+GRANT SELECT ON TABLE "public"."revision_attributions" TO "anon";
 
 GRANT SELECT ON TABLE "public"."revision_attributions" TO "authenticated";

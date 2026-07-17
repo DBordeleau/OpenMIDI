@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { hasValidAvatarDimensions } from "./avatar-image";
 
 const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -30,6 +31,19 @@ export function AvatarUploader({
       file.size > 5 * 1024 * 1024
     ) {
       setMessage("Choose a JPEG, PNG, or WebP image no larger than 5 MiB.");
+      return;
+    }
+    const dimensions = await readImageDimensions(file);
+    if (!dimensions) {
+      setMessage(
+        "We couldn’t read that image. Choose another JPEG, PNG, or WebP file.",
+      );
+      return;
+    }
+    if (!hasValidAvatarDimensions(dimensions)) {
+      setMessage(
+        "Choose an image between 128 and 4,096 pixels on each side, with no more than 16.7 million total pixels.",
+      );
       return;
     }
     setPending(true);
@@ -77,6 +91,7 @@ export function AvatarUploader({
         : "Processing and sanitizing your avatar…",
     );
     if (!invokeError) {
+      let installed = false;
       for (let attempt = 0; attempt < 8; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 750));
         const { data } = await db
@@ -85,10 +100,16 @@ export function AvatarUploader({
           .eq("id", profileId)
           .maybeSingle();
         if (data?.avatar_version_id === row.avatar_version_id) {
+          installed = true;
           setMessage("Avatar updated.");
           router.refresh();
           break;
         }
+      }
+      if (!installed) {
+        setMessage(
+          "Processing did not finish. Try a still image between 128 and 4,096 pixels on each side.",
+        );
       }
     }
     setPending(false);
@@ -166,4 +187,15 @@ export function AvatarUploader({
       )}
     </section>
   );
+}
+
+async function readImageDimensions(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const dimensions = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return dimensions;
+  } catch {
+    return null;
+  }
 }

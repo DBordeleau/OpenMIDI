@@ -11,9 +11,9 @@ export async function getForkSourceForViewer(input: {
   const db = await createSupabaseServerClient();
   const [projectResult, revisionResult] = await Promise.all([
     db
-      .from("projects")
-      .select("id,title,description,status,visibility,deleted_at,license_code")
-      .eq("id", input.projectId)
+      .from("public_project_catalog")
+      .select("project_id,title,description,license_code")
+      .eq("project_id", input.projectId)
       .maybeSingle(),
     db
       .from("project_revisions")
@@ -29,12 +29,6 @@ export async function getForkSourceForViewer(input: {
   const project = projectResult.data;
   const revision = revisionResult.data;
   if (!project || !revision?.arrangement_version_id) return null;
-  if (
-    project.status !== "active" ||
-    project.visibility !== "public" ||
-    project.deleted_at !== null
-  )
-    return null;
 
   const { data: license, error: licenseError } = await db
     .from("licenses")
@@ -53,7 +47,7 @@ export async function getForkSourceForViewer(input: {
     throw new Error("fork_source_unavailable");
 
   return {
-    projectId: project.id,
+    projectId: project.project_id,
     projectTitle: project.title,
     projectDescription: project.description,
     revisionId: revision.id,

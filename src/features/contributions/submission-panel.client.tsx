@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { submitContributionAction } from "./actions";
 import {
   CONTRIBUTOR_ATTESTATION_TEXT,
@@ -27,6 +28,7 @@ export function SubmissionPanel({
   };
   license: { name: string; url: string; summary: string };
 }) {
+  const router = useRouter();
   const requestId = useRef<string | null>(null);
   const [attested, setAttested] = useState(false);
   const [state, setState] = useState<
@@ -60,7 +62,7 @@ export function SubmissionPanel({
       });
       return;
     }
-    location.reload();
+    router.refresh();
   };
 
   return (
