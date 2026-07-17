@@ -489,7 +489,7 @@ export default async function ProjectPage({
             </section>
           )}
           {semanticHistory.length > 0 && (
-            <SemanticHistory history={semanticHistory} />
+            <SemanticHistory projectId={projectId} history={semanticHistory} />
           )}
           {acceptedContributors.length > 0 && (
             <section className="mt-8">

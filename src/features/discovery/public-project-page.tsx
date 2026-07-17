@@ -8,6 +8,7 @@ import type {
 import { resolveSynthPreset } from "@/features/midi/presets";
 import { formatMusicalKey } from "@/features/projects/musical-key";
 import { PublicMidiQuickPreview } from "@/features/public-midi/quick-preview-player.client";
+import { projectRevisionComparisonUrl } from "@/features/midi-diff/project-revision-url";
 import type { PublicRevisionHistoryItem } from "@/server/repositories/public-midi";
 
 export function PublicProjectPage({
@@ -162,7 +163,9 @@ export function PublicProjectPage({
 
           {ownerControls}
 
-          {history.length > 0 && <SemanticHistory history={history} />}
+          {history.length > 0 && (
+            <SemanticHistory projectId={project.projectId} history={history} />
+          )}
 
           {project.attributions.length > 0 && (
             <section className="rounded-card border-subtle mt-8 border p-6">
@@ -243,16 +246,34 @@ export function PublicProjectPage({
 }
 
 export function SemanticHistory({
+  projectId,
   history,
 }: {
+  projectId: string;
   history: PublicRevisionHistoryItem[];
 }) {
+  const latest = history[0];
+  if (!latest) return null;
+  const latestFrom = latest.parentRevisionId ?? latest.id;
   return (
-    <section className="rounded-card border-subtle mt-8 border p-6">
+    <section
+      id="semantic-history"
+      className="rounded-card border-subtle mt-8 scroll-mt-6 border p-6"
+    >
       <p className="text-accent font-mono text-[11px] tracking-[0.18em] uppercase">
         Semantic history
       </p>
       <h2 className="mt-1 text-2xl font-bold">How this arrangement evolved</h2>
+      <Link
+        className="border-strong hover:border-accent mt-4 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+        href={projectRevisionComparisonUrl({
+          projectId,
+          from: latestFrom,
+          to: latest.id,
+        })}
+      >
+        Compare revisions
+      </Link>
       <ol className="mt-5 space-y-5">
         {history.map((revision) => (
           <li
@@ -280,6 +301,18 @@ export function SemanticHistory({
                 ? ` · accepted contribution by ${revision.acceptedContributor.creditName}`
                 : ""}
             </p>
+            <Link
+              className="mt-3 inline-flex underline"
+              href={projectRevisionComparisonUrl({
+                projectId,
+                from: revision.parentRevisionId ?? revision.id,
+                to: revision.id,
+              })}
+            >
+              {revision.parentRevisionId
+                ? `Compare revision ${revision.revisionNumber} with its parent`
+                : `Open revision ${revision.revisionNumber} comparison`}
+            </Link>
             <details className="border-subtle rounded-control mt-3 border p-3 text-sm">
               <summary className="font-semibold">Exact pattern lineage</summary>
               <ul className="text-muted mt-3 space-y-3">

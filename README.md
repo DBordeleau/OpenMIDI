@@ -2,7 +2,7 @@
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** The MIDI-only pivot, hosted rehearsal, and administrator-invitation reconciliation are merged to `master`. The application, five-migration hosted schema, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. The post-pivot MVP path now adds visual diffs, beta feedback, the public MIDI library and saved clips, curated challenges, profile awards, and release hardening before Vercel deployment. The frontend and repository still carry transitional Jam Session naming until RELEASE-01.
+> **Current status:** The MIDI-only pivot, hosted reconciliation, semantic visual-diff program, and beta-feedback flow are complete. The application, seven-migration hosted schema, deterministic seed, and default test path are MIDI-only; avatar originals and derivatives are the only Storage media. The remaining post-pivot MVP path adds the public MIDI library and saved clips, curated challenges, profile awards, and release hardening before Vercel deployment. The frontend and repository still carry transitional Jam Session naming until RELEASE-01.
 
 ## Target MVP scope
 
@@ -102,7 +102,7 @@ Open [http://localhost:3000](http://localhost:3000), and stop the server with `C
 
 Before debugging missing rows, RLS, Auth, RPCs, or Storage, check the host configured by `NEXT_PUBLIC_SUPABASE_URL` without exposing any keys. Use the logs and schema for that environment. Local containers and hosted Supabase are independent databases, so local logs cannot explain a request sent to the hosted URL, and locally applied migrations do not automatically update hosted Supabase.
 
-Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. See the [PIVOT-10 hosted evidence](docs/technical-design/evidence/pivot-10-hosted-rebaseline.md) for the four-migration destructive rebaseline. The administrator-invitation reconciliation was subsequently applied as migration `20260717142701`, so hosted history now contains five migrations. Every future hosted migration still requires a target check and explicit authority; merging code never applies it automatically.
+Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. See the [PIVOT-10 hosted evidence](docs/technical-design/evidence/pivot-10-hosted-rebaseline.md) for the four-migration destructive rebaseline. The administrator-invitation reconciliation and two FEEDBACK-01 migrations were subsequently applied to the retained project, so hosted history now contains seven migrations. Every future hosted migration still requires a target check and explicit authority; merging code never applies it automatically.
 
 ### Local Supabase validation stack
 

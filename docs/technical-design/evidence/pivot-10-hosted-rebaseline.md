@@ -38,6 +38,10 @@ The hosted rehearsal exposed and corrected missing public revision/attribution r
 
 After the four-migration PIVOT-10 rehearsal, PR #51 preserved administrator-managed beta invitations through forward migration `20260717142701_reconcile_admin_beta_invite_management.sql`. On 2026-07-17 that migration was applied to and recorded by the same hosted project, producing a five-migration history. References above to “exactly four” describe the PIVOT-10 reset checkpoint; the destructive reset was not rerun.
 
+FEEDBACK-01 subsequently added and applied `20260717195748_beta_feedback_intake_admin_triage.sql` and
+`20260717203056_serialize_beta_feedback_commands.sql` to the same retained project. Hosted migration history now
+contains seven recorded migrations. Future hosted mutation remains separately authorized work.
+
 ## Deployment boundary
 
 Jam Session is not deployed to Vercel. No Vercel project, environment variable, binding, deployment, or production smoke test was created or changed during PIVOT-10. A future deployment task must configure the existing Supabase values in server/browser-appropriate scopes and run the production smoke path before launch.
