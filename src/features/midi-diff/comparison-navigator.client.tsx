@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent } from "react";
+import { MidiDiffNoteOverlay } from "./note-overlay.client";
 import {
   MIDI_DIFF_VISUAL_STATES,
   type MidiDiffChangeState,
@@ -211,6 +212,7 @@ function SelectedClip({
         <ClipSideDetails label={model.sideLabels.after} side={clip.after} />
       </div>
       <DetailsList details={clip.details} />
+      <MidiDiffNoteOverlay clip={clip} sideLabels={model.sideLabels} />
       {clip.lineageDetails.length > 0 && (
         <section className="mt-6" aria-labelledby="selected-lineage-heading">
           <h4 id="selected-lineage-heading" className="text-lg font-bold">
@@ -219,56 +221,6 @@ function SelectedClip({
           <DetailsList details={clip.lineageDetails} />
         </section>
       )}
-      <section className="mt-6" aria-labelledby="selected-note-heading">
-        <h4 id="selected-note-heading" className="text-lg font-bold">
-          Note changes ({clip.noteChanges.length} unique)
-        </h4>
-        {clip.noteChanges.length === 0 ? (
-          <p className="text-muted mt-2">
-            No individual notes changed in this clip.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {clip.noteChanges.map((note) => (
-              <li
-                className={`rounded-control border p-4 ${stateClasses(note.state)}`}
-                key={note.noteId}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <StateLabel state={note.state} />
-                  <strong>
-                    {note.before?.pitchName ?? note.after?.pitchName} note
-                  </strong>
-                  {note.changedFacets.length > 0 && (
-                    <span className="text-muted">
-                      · {note.changedFacets.join(", ")}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                  <p>
-                    <span className="text-muted block">
-                      {model.sideLabels.before}
-                    </span>
-                    {note.before
-                      ? `${note.before.pitchName} · ${note.before.positionLabel} · ${note.before.durationLabel} · velocity ${note.before.velocity}`
-                      : "Not present"}
-                  </p>
-                  <p>
-                    <span className="text-muted block">
-                      {model.sideLabels.after}
-                    </span>
-                    {note.after
-                      ? `${note.after.pitchName} · ${note.after.positionLabel} · ${note.after.durationLabel} · velocity ${note.after.velocity}`
-                      : "Not present"}
-                  </p>
-                </div>
-                <DetailsList details={note.details} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </>
   );
 }
@@ -295,8 +247,10 @@ function selectionIds(tracks: MidiDiffTrack[]) {
 
 export function MidiDiffComparisonNavigator({
   model,
+  onSelectionChange,
 }: {
   model: MidiDiffReadyViewModel;
+  onSelectionChange?: (selectionId: string | null) => void;
 }) {
   const [filter, setFilter] = useState<MidiDiffChangeState | null>(null);
   const [selectedId, setSelectedId] = useState(model.defaultSelectionId);
@@ -314,9 +268,13 @@ export function MidiDiffComparisonNavigator({
     const nextFilter = filter === state ? null : state;
     const nextIds = selectionIds(filteredTracks(model.tracks, nextFilter));
     setFilter(nextFilter);
-    if (nextIds.length === 0) setSelectedId(null);
-    else if (!selectedId || !nextIds.includes(selectedId))
+    if (nextIds.length === 0) {
+      setSelectedId(null);
+      onSelectionChange?.(null);
+    } else if (!selectedId || !nextIds.includes(selectedId)) {
       setSelectedId(nextIds[0]);
+      onSelectionChange?.(nextIds[0]);
+    }
   }
 
   function moveSelection(
@@ -335,6 +293,7 @@ export function MidiDiffComparisonNavigator({
     event.preventDefault();
     const nextId = visibleIds[nextIndex];
     setSelectedId(nextId);
+    onSelectionChange?.(nextId);
     buttonRefs.current.get(nextId)?.focus();
   }
 
@@ -401,7 +360,10 @@ export function MidiDiffComparisonNavigator({
                   <button
                     aria-current={selectedId === track.selectionId}
                     className={`rounded-control border-subtle hover:border-accent focus:border-accent w-full border p-3 text-left ${selectedId === track.selectionId ? "bg-surface-raised border-accent" : ""}`}
-                    onClick={() => setSelectedId(track.selectionId)}
+                    onClick={() => {
+                      setSelectedId(track.selectionId);
+                      onSelectionChange?.(track.selectionId);
+                    }}
                     onKeyDown={(event) =>
                       moveSelection(event, track.selectionId)
                     }
@@ -427,7 +389,10 @@ export function MidiDiffComparisonNavigator({
                           <button
                             aria-current={selectedId === clip.selectionId}
                             className={`rounded-control border-subtle hover:border-accent focus:border-accent w-full border p-3 text-left ${selectedId === clip.selectionId ? "bg-surface-raised border-accent" : ""}`}
-                            onClick={() => setSelectedId(clip.selectionId)}
+                            onClick={() => {
+                              setSelectedId(clip.selectionId);
+                              onSelectionChange?.(clip.selectionId);
+                            }}
                             onKeyDown={(event) =>
                               moveSelection(event, clip.selectionId)
                             }

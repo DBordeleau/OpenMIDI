@@ -83,6 +83,12 @@ export type MidiDiffNote = {
   };
 };
 
+export type MidiDiffNoteContext = {
+  noteId: string;
+  before: MidiDiffNoteGeometry | null;
+  after: MidiDiffNoteGeometry | null;
+};
+
 export type MidiDiffTrackSide = {
   name: string;
   orderLabel: string;
@@ -117,6 +123,7 @@ export type MidiDiffClip = {
   after: MidiDiffClipSide | null;
   details: MidiDiffFieldDetail[];
   noteChanges: MidiDiffNote[];
+  noteContext: MidiDiffNoteContext[];
   lineageDetails: MidiDiffFieldDetail[];
 };
 

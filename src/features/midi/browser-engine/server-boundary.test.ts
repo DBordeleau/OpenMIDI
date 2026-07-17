@@ -12,6 +12,8 @@ describe("MIDI browser engine boundary", () => {
       /preset-voice\.client/,
       /project-export\.client/,
       /browser-midi-runtime\.client/,
+      /paired-audition\.client/,
+      /preview-runtime\.client/,
       /interchange\.client/,
       /local-export-v3\.client/,
     ];

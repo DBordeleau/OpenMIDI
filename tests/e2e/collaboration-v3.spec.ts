@@ -77,7 +77,7 @@ async function setupMidiCollaborationFixture() {
     select public.create_midi_pattern_version_v3(
       (select id from public.midi_patterns where create_request_id='fa100000-0000-4000-8000-000000000001'),
       'fa110000-0000-4000-8000-000000000001',1,480::smallint,1920,
-      '[{"noteId":"fa120000-0000-4000-8000-000000000001","startTick":0,"durationTicks":480,"pitch":64,"velocity":96}]'::jsonb,
+      '[{"noteId":"fa120000-0000-4000-8000-000000000001","startTick":0,"durationTicks":480,"pitch":64,"velocity":96},{"noteId":"fa120000-0000-4000-8000-000000000002","startTick":720,"durationTicks":240,"pitch":67,"velocity":84},{"noteId":"fa120000-0000-4000-8000-000000000003","startTick":1440,"durationTicks":240,"pitch":60,"velocity":72}]'::jsonb,
       true,'cc-by-4.0-attestation-v1');
     select public.create_midi_project_workspace_v3(
       'fa200000-0000-4000-8000-000000000001','V3 collaboration browser','',120::numeric,'c-major',4::smallint,4::smallint,
@@ -108,6 +108,14 @@ async function setupMidiCollaborationFixture() {
 
     set local role authenticated;
     set local request.jwt.claim.sub='${contributorId}';
+    select public.create_midi_pattern_v3(
+      'fa100000-0000-4000-8000-000000000002','Submitted comparison pattern',
+      (select id from public.midi_pattern_versions where create_request_id='fa110000-0000-4000-8000-000000000001'));
+    select public.create_midi_pattern_version_v3(
+      (select id from public.midi_patterns where create_request_id='fa100000-0000-4000-8000-000000000002'),
+      'fa110000-0000-4000-8000-000000000002',1,480::smallint,1920,
+      '[{"noteId":"fa120000-0000-4000-8000-000000000001","startTick":240,"durationTicks":720,"pitch":65,"velocity":110},{"noteId":"fa120000-0000-4000-8000-000000000004","startTick":1200,"durationTicks":240,"pitch":72,"velocity":100},{"noteId":"fa120000-0000-4000-8000-000000000003","startTick":1440,"durationTicks":240,"pitch":60,"velocity":72}]'::jsonb,
+      true,'cc-by-4.0-attestation-v1');
     select public.create_contribution_workspace_v3(
       (select id from public.projects where create_request_id='fa200000-0000-4000-8000-000000000001'),
       'fa300000-0000-4000-8000-000000000001',
@@ -116,9 +124,11 @@ async function setupMidiCollaborationFixture() {
     select public.save_midi_workspace_v3(
       (select id from public.workspaces where contribution_id is not null and owner_id='${contributorId}'),
       'fa310000-0000-4000-8000-000000000001',1,
-      jsonb_set(jsonb_set(
+      jsonb_set(jsonb_set(jsonb_set(
         (select manifest from public.workspaces where contribution_id is not null and owner_id='${contributorId}'),
-        '{tempoBpm}','132'::jsonb),'{tracks,0,name}','"Changed keys"'::jsonb));
+        '{tempoBpm}','132'::jsonb),'{tracks,0,name}','"Changed keys"'::jsonb),
+        '{tracks,0,clips,0,midiPatternVersionId}',
+        to_jsonb((select id::text from public.midi_pattern_versions where create_request_id='fa110000-0000-4000-8000-000000000002'))));
     select public.submit_contribution_v3(
       (select id from public.contributions where author_id='${contributorId}'),
       'fa320000-0000-4000-8000-000000000001',2,
@@ -180,12 +190,65 @@ test.describe("MIDI v3 collaboration", () => {
       `/projects/${fixture.projectId}/contributions/${fixture.contributionId}`,
     );
     await expect(
-      page.getByRole("heading", { name: "Semantic change summary" }),
+      page.getByRole("heading", { name: "Contribution comparison" }),
     ).toBeVisible();
     await expect(page.getByText("Arrangement metadata")).toBeVisible();
-    await expect(page.getByText("Tracks", { exact: true })).toBeVisible();
-    await expect(page.getByText("V3 Browser Owner")).toBeVisible();
-    await expect(page.getByText("CC-BY-4.0")).toBeVisible();
+    await expect(
+      page.getByText("Tracks and clips", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("V3 Browser Owner", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("CC-BY-4.0").first()).toBeVisible();
+
+    const noteComparison = page
+      .getByRole("heading", { name: /Note comparison/ })
+      .locator("..");
+    await expect(
+      noteComparison.getByRole("button", { name: "+ 1 Added" }),
+    ).toBeVisible();
+    await expect(
+      noteComparison.getByRole("button", { name: "~ 1 Changed" }),
+    ).toBeVisible();
+    await expect(
+      noteComparison.getByRole("button", { name: "− 1 Removed" }),
+    ).toBeVisible();
+    await expect(
+      noteComparison.getByRole("list", { name: "Note comparison legend" }),
+    ).toContainText("dashed outline");
+    await expect(noteComparison.getByText(/Base revision: E4/)).toBeVisible();
+    await expect(
+      noteComparison.getByText(/Submitted version: F4/),
+    ).toBeVisible();
+    const changedBefore = noteComparison.locator(
+      '[data-note-state="changed"][data-note-side="before"] rect',
+    );
+    const changedAfter = noteComparison.locator(
+      '[data-note-state="changed"][data-note-side="after"] rect',
+    );
+    await expect(changedBefore).toHaveCount(1);
+    await expect(changedAfter).toHaveCount(1);
+    expect(await changedBefore.getAttribute("x")).not.toBe(
+      await changedAfter.getAttribute("x"),
+    );
+    expect(await changedBefore.getAttribute("width")).not.toBe(
+      await changedAfter.getAttribute("width"),
+    );
+    expect(await changedBefore.getAttribute("y")).not.toBe(
+      await changedAfter.getAttribute("y"),
+    );
+
+    await page.getByRole("button", { name: "Play Base revision" }).click();
+    await expect(page.getByText(/Now playing Base revision/)).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.getByRole("button", { name: "Play Submitted version" }).click();
+    await expect(
+      page.getByText(/Now playing Submitted version.*other side is stopped/),
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("button", { name: "Play Base revision" }),
+    ).toHaveAttribute("aria-pressed", "false");
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Accept contribution" }).click();
@@ -241,7 +304,7 @@ test.describe("MIDI v3 collaboration", () => {
       sourceProjectId: fixture.projectId,
       sourceRevisionId: acceptedRevisionId,
       patternVersionId: fixture.patternVersionId,
-      patternVersionCount: 1,
+      patternVersionCount: 2,
     });
   });
 });

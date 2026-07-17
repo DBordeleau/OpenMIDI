@@ -1,25 +1,36 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { MidiDiffComparisonNavigator } from "@/features/midi-diff/comparison-navigator.client";
 import { createMidiDiffViewModel } from "@/features/midi-diff/view-model";
-import {
-  StudioLauncher,
-  type StudioLauncherProps,
-} from "@/features/studio/components/studio-launcher.client";
 import type { ContributionArrangementComparison } from "./types";
+
+const MidiDiffPairedAudition = dynamic(
+  () =>
+    import("@/features/midi-diff/paired-audition.client").then(
+      (module) => module.MidiDiffPairedAudition,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="border-subtle bg-surface rounded-card mt-5 border p-5"
+        role="status"
+      >
+        Loading read-only audition controls…
+      </div>
+    ),
+  },
+);
 
 type ReviewComparisonProps =
   | {
       comparison: ContributionArrangementComparison;
-      base: StudioLauncherProps;
-      submitted: StudioLauncherProps;
       unavailableReason?: never;
     }
   | {
       comparison: null;
-      base?: never;
-      submitted?: never;
       unavailableReason?: "unavailable" | "inconsistent";
     };
 
@@ -48,10 +59,7 @@ function ComparisonState({ kind }: { kind: "unavailable" | "inconsistent" }) {
 
 function AvailableReviewComparison({
   comparison,
-  base,
-  submitted,
 }: Extract<ReviewComparisonProps, { comparison: object }>) {
-  const [selected, setSelected] = useState<"base" | "submitted">("submitted");
   const model = useMemo(
     () =>
       createMidiDiffViewModel({
@@ -65,6 +73,7 @@ function AvailableReviewComparison({
       }),
     [comparison],
   );
+  const [selectedObject, setSelectedObject] = useState<string | null>(null);
 
   if (model.status === "unavailable" || model.status === "inconsistent") {
     return <ComparisonState kind={model.status} />;
@@ -80,35 +89,17 @@ function AvailableReviewComparison({
         musician-friendly detail.
       </p>
 
-      <section className="rounded-card border-subtle bg-surface mt-5 border p-5 sm:p-6">
-        <h3 className="text-xl font-bold">Audition exact sides</h3>
-        <p className="text-muted mt-2">
-          This keeps the existing exact-side Studio audition until the paired
-          read-only player arrives in the next diff slice.
-        </p>
-        <div className="my-4 flex flex-wrap gap-3">
-          <button
-            aria-pressed={selected === "base"}
-            className="border-strong hover:border-accent min-h-11 rounded-full border px-5 font-semibold"
-            onClick={() => setSelected("base")}
-            type="button"
-          >
-            Base revision
-          </button>
-          <button
-            aria-pressed={selected === "submitted"}
-            className="border-strong hover:border-accent min-h-11 rounded-full border px-5 font-semibold"
-            onClick={() => setSelected("submitted")}
-            type="button"
-          >
-            Submitted version
-          </button>
-        </div>
-        <StudioLauncher
-          key={selected}
-          {...(selected === "base" ? base : submitted)}
-        />
-      </section>
+      <MidiDiffPairedAudition
+        after={comparison.submitted}
+        before={comparison.base}
+        selectionKey={
+          selectedObject ??
+          (model.status === "ready"
+            ? (model.defaultSelectionId ?? "arrangement")
+            : "unchanged")
+        }
+        sideLabels={{ before: "Base revision", after: "Submitted version" }}
+      />
 
       {model.status === "unchanged" ? (
         <div
@@ -144,7 +135,10 @@ function AvailableReviewComparison({
               {model.summary.uniqueNotes} unique notes · {model.summary.lineage}{" "}
               lineage relationships
             </p>
-            <MidiDiffComparisonNavigator model={model} />
+            <MidiDiffComparisonNavigator
+              model={model}
+              onSelectionChange={setSelectedObject}
+            />
           </section>
 
           <section className="mt-8" aria-labelledby="arrangement-heading">

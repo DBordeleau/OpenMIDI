@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { MidiPatternVersionV3 } from "@/features/midi/domain-v3";
 import { resolveCatalogPreset } from "@/features/midi/presets";
+import { midiPitchName } from "@/features/midi/stems/piano-roll";
 import {
   MIDI_SEMANTIC_DIFF_VERSION,
   diffMidiArrangementsV1,
@@ -21,6 +22,7 @@ import {
   type MidiDiffCounts,
   type MidiDiffFieldDetail,
   type MidiDiffNote,
+  type MidiDiffNoteContext,
   type MidiDiffNoteGeometry,
   type MidiDiffPatternCredit,
   type MidiDiffReadyViewModel,
@@ -197,24 +199,6 @@ function titleCase(value: string) {
     .split(/[-_]/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function midiPitchName(pitch: number) {
-  const names = [
-    "C",
-    "C♯",
-    "D",
-    "D♯",
-    "E",
-    "F",
-    "F♯",
-    "G",
-    "G♯",
-    "A",
-    "A♯",
-    "B",
-  ];
-  return `${names[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
 }
 
 function formatPosition(
@@ -453,6 +437,40 @@ function noteGeometry(
   };
 }
 
+function noteContext(
+  previousClip:
+    | (ArrangementManifestV3["tracks"][number]["clips"][number] & {
+        trackId: string;
+      })
+    | undefined,
+  nextClip:
+    | (ArrangementManifestV3["tracks"][number]["clips"][number] & {
+        trackId: string;
+      })
+    | undefined,
+  before: ParsedArrangement,
+  after: ParsedArrangement,
+  changedNoteIds: ReadonlySet<string>,
+): MidiDiffNoteContext[] {
+  const previousNotes = previousClip
+    ? (before.patterns.get(previousClip.midiPatternVersionId)?.notes ?? [])
+    : [];
+  const nextNotes = nextClip
+    ? (after.patterns.get(nextClip.midiPatternVersionId)?.notes ?? [])
+    : [];
+  const previousById = new Map(
+    previousNotes.map((note) => [note.noteId, note]),
+  );
+  const nextById = new Map(nextNotes.map((note) => [note.noteId, note]));
+  return [...new Set([...previousById.keys(), ...nextById.keys()])]
+    .filter((noteId) => !changedNoteIds.has(noteId))
+    .map((noteId) => ({
+      noteId,
+      before: noteGeometry(previousById.get(noteId), before.manifest),
+      after: noteGeometry(nextById.get(noteId), after.manifest),
+    }));
+}
+
 function uniqueStates(states: MidiDiffChangeState[]) {
   return [...new Set(states)].sort(
     (left, right) =>
@@ -585,6 +603,13 @@ function buildReadyModel(
       after: nextSide,
       details: item ? mapDetails(item.changes, before, after) : [],
       noteChanges,
+      noteContext: noteContext(
+        previousClip,
+        nextClip,
+        before,
+        after,
+        new Set(noteChanges.map((note) => note.noteId)),
+      ),
       lineageDetails: lineage ? mapDetails(lineage.changes, before, after) : [],
     });
   }

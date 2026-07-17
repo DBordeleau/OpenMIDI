@@ -9,7 +9,6 @@ import { SubmissionPanel } from "@/features/contributions/submission-panel.clien
 import { WithdrawContributionForm } from "@/features/contributions/withdraw-contribution-form";
 import { ContributionDeletionForm } from "@/features/moderation/contribution-deletion-form";
 import { projectIdSchema } from "@/features/projects/schema";
-import type { StudioLauncherProps } from "@/features/studio/components/studio-launcher.client";
 import type {
   ContributionArrangementComparison,
   ContributionReviewStudio,
@@ -139,32 +138,7 @@ export default async function ContributionDetailPage({
           {isOwner &&
             currentVersion &&
             (comparison ? (
-              <ReviewComparison
-                comparison={comparison}
-                base={reviewStudioProps({
-                  studio: comparison.base,
-                  viewerId: viewer.id,
-                  projectId,
-                  projectTitle: contribution.projectTitle,
-                  mode: {
-                    mode: "revision",
-                    revisionId: contribution.baseRevisionId,
-                    revisionNumber: contribution.baseRevisionNumber,
-                  },
-                })}
-                submitted={reviewStudioProps({
-                  studio: comparison.submitted,
-                  viewerId: viewer.id,
-                  projectId,
-                  projectTitle: contribution.projectTitle,
-                  mode: {
-                    mode: "contributionVersion",
-                    contributionId,
-                    versionId: currentVersion.id,
-                    versionNumber: currentVersion.versionNumber,
-                  },
-                })}
-              />
+              <ReviewComparison comparison={comparison} />
             ) : (
               <ReviewComparison
                 comparison={null}
@@ -307,43 +281,4 @@ function arrangementDurationMs(studio: ContributionReviewStudio["manifest"]) {
   return Math.ceil(
     (studio.durationTicks * 60_000) / (studio.tempoBpm * studio.ppq),
   );
-}
-
-function reviewStudioProps(input: {
-  studio: ContributionReviewStudio;
-  viewerId: string;
-  projectId: string;
-  projectTitle: string;
-  mode:
-    | { mode: "revision"; revisionId: string; revisionNumber: number }
-    | {
-        mode: "contributionVersion";
-        contributionId: string;
-        versionId: string;
-        versionNumber: number;
-      };
-}): StudioLauncherProps {
-  const patterns = new Map(
-    input.studio.patternVersions.map((pattern) => [
-      pattern.midiPatternVersionId,
-      pattern,
-    ]),
-  );
-  return {
-    ...input.mode,
-    viewerId: input.viewerId,
-    projectId: input.projectId,
-    projectTitle: input.projectTitle,
-    manifest: input.studio.manifest,
-    durationMs: arrangementDurationMs(input.studio.manifest),
-    patternVersions: input.studio.patternVersions,
-    tracks: input.studio.manifest.tracks.map((track) => ({
-      trackId: track.trackId,
-      kind: "midi" as const,
-      instrumentName: track.presetId,
-      creditName:
-        patterns.get(track.clips[0]?.midiPatternVersionId ?? "")
-          ?.creatorCreditName ?? "Unknown creator",
-    })),
-  };
 }

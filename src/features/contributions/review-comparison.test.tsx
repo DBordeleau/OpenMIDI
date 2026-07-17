@@ -1,8 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { useState } from "react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { diffMidiArrangementsV1 } from "@/features/midi/semantic-diff-v1";
-import type { StudioLauncherProps } from "@/features/studio/components/studio-launcher.client";
 import type { ManifestV3 } from "@/features/studio/manifest/v3";
 import {
   V3_DIFF_AFTER,
@@ -11,11 +9,8 @@ import {
 } from "@/features/studio/manifest/v3.fixtures";
 import { ReviewComparison } from "./review-comparison";
 
-vi.mock("@/features/studio/components/studio-launcher.client", () => ({
-  StudioLauncher: (props: StudioLauncherProps) => {
-    const [mountedMode] = useState(props.mode);
-    return <div data-testid="studio-mode">{mountedMode}</div>;
-  },
+vi.mock("@/features/midi-diff/paired-audition.client", () => ({
+  MidiDiffPairedAudition: () => <div data-testid="paired-audition" />,
 }));
 
 const manifest: ManifestV3 = {
@@ -30,17 +25,8 @@ const manifest: ManifestV3 = {
   durationTicks: 1920,
   tracks: [],
 };
-const common = {
-  viewerId: "10000000-0000-4000-8000-000000000123",
-  projectId: "20000000-0000-4000-8000-000000000123",
-  projectTitle: "Comparison",
-  manifest,
-  durationMs: 2000,
-  tracks: [],
-};
-
 describe("ReviewComparison", () => {
-  it("preserves exact-side Studio audition and renders unchanged input", () => {
+  it("replaces the Studio launcher with paired read-only audition and renders unchanged input", async () => {
     render(
       <ReviewComparison
         comparison={{
@@ -59,30 +45,14 @@ describe("ReviewComparison", () => {
           },
           patternAttributions: [],
         }}
-        base={{
-          ...common,
-          mode: "revision",
-          revisionId: "30000000-0000-4000-8000-000000000123",
-          revisionNumber: 1,
-        }}
-        submitted={{
-          ...common,
-          mode: "contributionVersion",
-          contributionId: "40000000-0000-4000-8000-000000000123",
-          versionId: "50000000-0000-4000-8000-000000000123",
-          versionNumber: 1,
-        }}
       />,
     );
 
-    expect(screen.getByTestId("studio-mode")).toHaveTextContent(
-      "contributionVersion",
-    );
+    expect(await screen.findByTestId("paired-audition")).toBeVisible();
+    expect(screen.queryByTestId("studio-mode")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "No musical changes found" }),
     ).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Base revision" }));
-    expect(screen.getByTestId("studio-mode")).toHaveTextContent("revision");
   });
 
   it("renders an actionable unavailable state", () => {
@@ -116,19 +86,6 @@ describe("ReviewComparison", () => {
           },
           semanticDiff: diffMidiArrangementsV1(V3_DIFF_BEFORE, V3_DIFF_AFTER),
           patternAttributions: [],
-        }}
-        base={{
-          ...common,
-          mode: "revision",
-          revisionId: "30000000-0000-4000-8000-000000000123",
-          revisionNumber: 1,
-        }}
-        submitted={{
-          ...common,
-          mode: "contributionVersion",
-          contributionId: "40000000-0000-4000-8000-000000000123",
-          versionId: "50000000-0000-4000-8000-000000000123",
-          versionNumber: 1,
         }}
       />,
     );
