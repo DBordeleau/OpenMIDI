@@ -2065,6 +2065,7 @@ export type Database = {
           revision_number: number
         }[]
       }
+      activate_signup_invitation: { Args: { p_email: string }; Returns: Json }
       apply_moderation_action: {
         Args: {
           p_action: string

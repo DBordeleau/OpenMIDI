@@ -30,3 +30,5 @@ See the tracked [roadmap](../ROADMAP.md) for outcomes and ordering.
 ## Hosted cutover boundary
 
 PIVOT-10 completed the only authorized destructive mutation of the hosted Supabase project. It retained the existing project reference and local environment binding, replayed exactly four clean migrations through one linked reset, recreated required administrator/invitation/avatar state, and verified hosted MIDI-only behavior. Vercel deployment and its production smoke path are explicitly deferred until the user chooses to deploy; they are not a PIVOT-10 failure.
+
+The later `master` reconciliation adds administrator-managed beta invitations as a normal forward migration. Repository merge does not apply it to hosted Supabase: verify the exact target and obtain explicit hosted-mutation authority before pushing that or any subsequent migration. Do not rerun the destructive PIVOT-10 reset.

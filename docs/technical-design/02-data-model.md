@@ -1,13 +1,14 @@
 # Data model
 
-Status: Current clean baseline after PIVOT-09
+Status: Current MIDI-only baseline plus forward reconciliation migrations
 
-The baseline is intentionally split into four ordered migrations: foundation/identity, MIDI projects/arrangements, collaboration/discovery, and moderation/avatar operations. Pre-pivot create/alter/drop history remains available through Git history; it is not replayed by a clean database.
+The clean baseline is intentionally split into four ordered migrations: foundation/identity, MIDI projects/arrangements, collaboration/discovery, and moderation/avatar operations. Forward migrations after that baseline preserve later merged behavior without rewriting already-applied history; the first reconciles administrator-managed beta invitations. Pre-pivot create/alter/drop history remains available through Git history and is never replayed by a clean database.
 
 ## Identity and catalogs
 
 - `profiles` stores private lifecycle-bearing identity; `public_profiles` is the safe public projection.
 - `reserved_usernames`, `private.signup_invitations`, and `private.app_admins` protect identity and operations.
+- `activate_signup_invitation()` lets an active completed administrator activate one normalized address without granting direct table access; the Auth hook remains account-creation authority.
 - `licenses`, `genres`, `tags`, and `instruments` are deterministic read-only catalogs.
 - Email remains only in Supabase Auth.
 

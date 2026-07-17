@@ -26,7 +26,7 @@ PIVOT-01 through PIVOT-10 are implemented on the MIDI-only integration line:
 - exact contribution review/acceptance, attribution snapshots, and fork lineage;
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- four reviewed clean baseline migrations plus forward-only reconciliation migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
