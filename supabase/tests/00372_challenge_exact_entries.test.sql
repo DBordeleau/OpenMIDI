@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(55);
 
 select has_table('public','challenge_entries','exact challenge entries exist');
 select has_table('private','challenge_entry_commands','private entry command audit exists');
@@ -180,7 +180,7 @@ select is(public.submit_challenge_entry('fe500000-0000-4000-8000-000000000001','
 reset role;
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 select '00000000-0000-0000-0000-000000000000',('fe900000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'authenticated','authenticated',
-  'hidden-entry-'||i||'@example.test','','{}','{}',now(),now() from generate_series(1,25) i;
+  'page-entry-'||i||'@example.test','','{}','{}',now(),now() from generate_series(1,25) i;
 update public.profiles set username='HiddenEntry'||right(id::text,2),username_normalized=lower('HiddenEntry'||right(id::text,2)),
   display_name='Hidden Entry',credit_name='Hidden Entry',profile_completed_at=now()
 where id::text like 'fe900000-0000-4000-8000-%';
@@ -194,10 +194,18 @@ select ('fea00000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,e.challenge_id,e
   ('fe900000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,e.project_id,e.project_revision_id,e.project_title_snapshot,
   'HiddenEntry'||lpad(i::text,2,'0'),e.entrant_display_name_snapshot,e.entrant_credit_name_snapshot,e.revision_number_snapshot,
   e.revision_message_snapshot,e.attribution_snapshot,e.duration_ms_snapshot,e.display_attestation_version,e.display_attested_at,
-  e.evaluator_version,e.facts,e.evaluation,e.evaluation_sha256,'active',null,gen_random_uuid(),e.submitted_at-interval '2 days','hidden'
+  e.evaluator_version,e.facts,e.evaluation,e.evaluation_sha256,'active',null,gen_random_uuid(),e.submitted_at-interval '2 days','visible'
 from public.challenge_entries e cross join generate_series(1,25) i
 where e.id=(select (result->>'entryId')::uuid from replacement);
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),1,'visibility filtering precedes the 25-entry page cap');
+create temp table public_entry_page as select public.list_public_challenge_entries('exact-entry-test') page;
+select is(jsonb_array_length((select page->'entries' from public_entry_page)),25,'the first rotated entry page is capped at 25');
+select ok((select page->'nextCursor' from public_entry_page) is not null,'a stable continuation cursor is returned when more entries remain');
+select is(jsonb_array_length(public.list_public_challenge_entries(
+  'exact-entry-test',
+  ((select page from public_entry_page)->>'rotationBucket')::timestamptz,
+  (select page from public_entry_page)#>>'{nextCursor,rotationKey}',
+  ((select page from public_entry_page)#>>'{nextCursor,entryId}')::uuid
+)->'entries'),1,'the continuation cursor reaches the entry after the first 25');
 
 select * from finish();
 rollback;

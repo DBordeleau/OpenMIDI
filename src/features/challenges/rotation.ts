@@ -1,5 +1,19 @@
 const encoder = new TextEncoder();
 
+export function challengeEntryPageHref(input: {
+  slug: string;
+  rotationBucket: string;
+  rotationKey: string;
+  entryId: string;
+}) {
+  const query = new URLSearchParams({
+    rotationBucket: input.rotationBucket,
+    afterRotationKey: input.rotationKey,
+    afterEntryId: input.entryId,
+  });
+  return `/challenges/${input.slug}?${query.toString()}`;
+}
+
 export async function challengeRotationKey(input: {
   challengeId: string;
   challengeVersionId: string;

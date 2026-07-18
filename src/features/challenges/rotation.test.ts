@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { challengeRotationKey } from "./rotation";
+import { challengeEntryPageHref, challengeRotationKey } from "./rotation";
 
 const base = {
   challengeId: "10000000-0000-4000-8000-000000000001",
@@ -38,5 +38,18 @@ describe("challenge rotation", () => {
         rotationBucket: "2026-07-18T20:01:00.000Z",
       }),
     ).rejects.toThrow("challenge_rotation_bucket_invalid");
+  });
+
+  it("preserves the bucket and stable cursor in application pagination links", () => {
+    expect(
+      challengeEntryPageHref({
+        slug: "one-hour-groove",
+        rotationBucket: base.rotationBucket,
+        rotationKey: "a".repeat(64),
+        entryId: base.entryId,
+      }),
+    ).toContain(
+      "rotationBucket=2026-07-18T20%3A00%3A00.000Z&afterRotationKey=",
+    );
   });
 });

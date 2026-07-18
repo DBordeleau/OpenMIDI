@@ -9,6 +9,7 @@ import {
   myChallengeEntrySchema,
   publicChallengeEntryPageSchema,
   publicChallengeEntrySchema,
+  type PublicChallengeEntryCursor,
 } from "@/features/challenges/entry-contract";
 import {
   challengePhaseSchema,
@@ -346,10 +347,20 @@ export async function getMyChallengeEntry(challengeId: string) {
   return myChallengeEntrySchema.parse(data);
 }
 
-export async function listPublicChallengeEntries(slug: string) {
+export async function listPublicChallengeEntries(
+  slug: string,
+  cursor: PublicChallengeEntryCursor | null = null,
+) {
   const db = createSupabaseAnonymousClient();
   const { data, error } = await db.rpc("list_public_challenge_entries", {
     p_slug: slug,
+    ...(cursor
+      ? {
+          p_rotation_bucket: cursor.rotationBucket,
+          p_after_rotation_key: cursor.rotationKey,
+          p_after_entry_id: cursor.entryId,
+        }
+      : {}),
   });
   if (error) throw new Error("challenge_entries_unavailable");
   return publicChallengeEntryPageSchema.parse(data);
@@ -378,11 +389,14 @@ export async function getPublicChallengeEntryPreview(
   return midiArrangementPreviewSchema.parse(data);
 }
 
-const voteCommandSchema = z.object({
-  entryId: z.uuid(),
-  active: z.boolean(),
-  voteVersion: z.number().int().positive(),
-});
+const voteCommandSchema = z.union([
+  z.object({
+    entryId: z.uuid(),
+    active: z.boolean(),
+    voteVersion: z.number().int().positive(),
+  }),
+  z.object({ errorCode: z.string().regex(/^PT[0-9]{3}$/) }),
+]);
 
 export async function setChallengeVote(input: {
   entryId: string;
@@ -477,6 +491,23 @@ const adminResultsSchema = z.object({
       state: z.enum(["active", "removed", "excluded"]),
       voteVersion: z.number().int().positive(),
       updatedAt: z.string(),
+    }),
+  ),
+  reports: z.array(
+    z.object({
+      reportId: z.uuid(),
+      targetKind: z.enum(["challenge", "entry"]),
+      entryId: z.uuid().nullable(),
+      targetLabel: z.string(),
+      reason: z.enum([
+        "spam",
+        "harassment",
+        "rights_concern",
+        "vote_manipulation",
+        "other",
+      ]),
+      details: z.string().max(1000).nullable(),
+      createdAt: z.string(),
     }),
   ),
   reportCount: z.number().int().nonnegative(),

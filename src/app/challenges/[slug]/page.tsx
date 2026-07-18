@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
 import { ChallengeEntryPanel } from "@/features/challenges/challenge-entry-panel.client";
+import { publicChallengeEntryCursorSchema } from "@/features/challenges/entry-contract";
 import {
   ChallengeReportControl,
   ChallengeVoteControl,
 } from "@/features/challenges/challenge-community-controls.client";
 import { challengePhaseMessage } from "@/features/challenges/lifecycle";
+import { challengeEntryPageHref } from "@/features/challenges/rotation";
 import {
   getMyChallengeEntry,
   getPublicChallenge,
@@ -33,10 +35,19 @@ export async function generateMetadata({
 
 export default async function ChallengeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+  const parsedCursor = publicChallengeEntryCursorSchema.safeParse({
+    rotationBucket: query.rotationBucket,
+    rotationKey: query.afterRotationKey,
+    entryId: query.afterEntryId,
+  });
+  const cursor = parsedCursor.success ? parsedCursor.data : null;
   const challenge = await getPublicChallenge(slug);
   if (!challenge) notFound();
   const [revisionOptions, myEntry, publicEntryPage, activeVoteIds] =
@@ -45,7 +56,7 @@ export default async function ChallengeDetailPage({
         ? listMyChallengeRevisionOptions(challenge.id)
         : Promise.resolve([]),
       getMyChallengeEntry(challenge.id),
-      listPublicChallengeEntries(slug),
+      listPublicChallengeEntries(slug, cursor),
       listMyActiveChallengeVoteIds(challenge.id),
     ]);
   const publicEntries = publicEntryPage.entries;
@@ -233,6 +244,19 @@ export default async function ChallengeDetailPage({
                 <p className="text-muted mt-4">
                   No moderation-visible active entries are available.
                 </p>
+              )}
+              {publicEntryPage.nextCursor && (
+                <Link
+                  href={challengeEntryPageHref({
+                    slug: challenge.slug,
+                    rotationBucket: publicEntryPage.rotationBucket,
+                    rotationKey: publicEntryPage.nextCursor.rotationKey,
+                    entryId: publicEntryPage.nextCursor.entryId,
+                  })}
+                  className="border-strong mt-6 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                >
+                  Next entries →
+                </Link>
               )}
             </section>
           )}

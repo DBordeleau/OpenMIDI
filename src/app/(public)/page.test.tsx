@@ -1,10 +1,17 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
 vi.mock("@/server/repositories/challenges", () => ({
   getFeaturedChallenge: vi.fn().mockResolvedValue(null),
 }));
+
+beforeAll(() => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-publishable-key");
+});
+
+afterAll(() => vi.unstubAllEnvs());
 
 // The canvas-driven pieces do nothing meaningful in jsdom; stub them so the
 // test focuses on the marketing copy and the calls to action.

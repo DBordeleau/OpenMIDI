@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(49);
+select plan(57);
 
 select has_table('public','challenge_votes','logical challenge votes exist');
 select has_table('public','challenge_results','immutable result versions exist');
@@ -90,11 +90,29 @@ select isnt(
 
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000002';
-select throws_ok($$select public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,gen_random_uuid())$$,
-  'PT403','challenge_vote_self_forbidden','self-voting is rejected');
+select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,gen_random_uuid())->>'errorCode',
+  'PT403','self-voting is rejected');
+reset role;
+select is((select count(*) from private.challenge_vote_commands where actor_id='fc000000-0000-4000-8000-000000000002'),1::bigint,
+  'a rejected self-vote consumes one private attempt');
+set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000005';
-select throws_ok($$select public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,gen_random_uuid())$$,
-  'PT403','challenge_vote_actor_ineligible','suspended actor cannot vote');
+select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,gen_random_uuid())->>'errorCode',
+  'PT403','suspended actor cannot vote');
+reset role;
+select is((select count(*) from private.challenge_vote_commands where actor_id='fc000000-0000-4000-8000-000000000005'),1::bigint,
+  'an ineligible attempt consumes the shared actor budget');
+insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,requested_active,outcome,response)
+select 'fc000000-0000-4000-8000-000000000005',gen_random_uuid(),'fc600000-0000-4000-8000-000000000001',true,
+  'rejected','{"errorCode":"PT403"}'::jsonb from generate_series(1,59);
+set local role authenticated;
+set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000005';
+select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000002',true,gen_random_uuid())->>'errorCode',
+  'PT429','the shared actor budget rejects the next cross-entry attempt');
+reset role;
+select is((select count(*) from private.challenge_vote_commands where actor_id='fc000000-0000-4000-8000-000000000005'),61::bigint,
+  'the rate-limited attempt is retained in the private budget audit');
+set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000003';
 create temp table voter_add as select public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,'fc700000-0000-4000-8000-000000000001') response;
 select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,'fc700000-0000-4000-8000-000000000001'),
@@ -110,6 +128,8 @@ select is((select moderation_state from public.challenge_entries where id='fc600
 
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000001';
+select is(public.get_admin_challenge_results('fc400000-0000-4000-8000-000000000001')#>>'{reports,0,details}',
+  'Bounded private evidence','administrators receive report target, reason, bounded details, and timestamp evidence');
 select public.set_challenge_vote('fc600000-0000-4000-8000-000000000002',true,'fc700000-0000-4000-8000-000000000005');
 select is(public.moderate_challenge_target(gen_random_uuid(),'fc400000-0000-4000-8000-000000000001',
   'fc600000-0000-4000-8000-000000000001',null,'entry_hide',1,'Review report')->>'version','2','administrator hides an entry optimistically');
@@ -148,8 +168,8 @@ where id='fc500000-0000-4000-8000-000000000001';
 alter table public.challenge_versions enable trigger challenge_versions_immutable;
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000003';
-select throws_ok($$select public.set_challenge_vote('fc600000-0000-4000-8000-000000000002',true,gen_random_uuid())$$,
-  'PT409','challenge_vote_window_or_entry_unavailable','late votes are rejected at database authority');
+select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000002',true,gen_random_uuid())->>'errorCode',
+  'PT409','late votes are rejected at database authority');
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000001';
 select throws_ok($$select public.finalize_challenge_result('fc400000-0000-4000-8000-000000000001',gen_random_uuid(),2,
   'fc500000-0000-4000-8000-000000000001',null,'Duplicate result',
@@ -163,6 +183,26 @@ select is((select state from public.challenges where id='fc400000-0000-4000-8000
 select is((select count(*) from public.challenge_result_community_favorites where challenge_result_id=(select (response->>'resultId')::uuid from finalized)),2::bigint,'Postgres records every tied Community Favorite');
 select is((select count(*) from public.challenge_result_entries where challenge_result_id=(select (response->>'resultId')::uuid from finalized) and final_vote_total=1),2::bigint,'result freezes recomputed eligible vote totals');
 select throws_ok($$update public.challenge_results set public_note='rewrite'$$,'55000','immutable_revision_history','finalized results are immutable');
+update public.projects set status='deleted',deleted_at=now() where id='fc100000-0000-4000-8000-000000000001';
+set local role anon;
+select is(jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,entries}'),0,
+  'a deleted source project suppresses every frozen result identity and attribution');
+reset role;
+update public.projects set status='active',deleted_at=null,moderation_state='hidden' where id='fc100000-0000-4000-8000-000000000001';
+set local role anon;
+select is(jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,placements}'),0,
+  'a moderation-hidden source project suppresses frozen placements');
+reset role;
+update public.projects set moderation_state='visible' where id='fc100000-0000-4000-8000-000000000001';
+update public.profiles set moderation_state='hidden' where id='fc000000-0000-4000-8000-000000000002';
+set local role anon;
+select is(jsonb_build_array(
+    jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,entries}'),
+    jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,placements}'),
+    jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,communityFavorites}')
+  ),'[1,1,1]'::jsonb,'a hidden entrant profile suppresses its frozen identity across every result projection');
+reset role;
+update public.profiles set moderation_state='visible' where id='fc000000-0000-4000-8000-000000000002';
 set local role anon;
 select is(public.get_public_challenge('challenge-vote-result-test')#>>'{result,entries,0,voteTotal}','1','signed-out completed projection exposes frozen totals');
 select is(jsonb_array_length(public.get_public_challenge('challenge-vote-result-test')#>'{result,communityFavorites}'),2,'signed-out completed projection exposes all favorite ties');

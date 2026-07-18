@@ -42,17 +42,21 @@ create table private.challenge_vote_commands (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid not null references public.profiles(id) on delete restrict,
   request_id uuid not null,
-  challenge_id uuid not null references public.challenges(id) on delete restrict,
-  challenge_entry_id uuid not null references public.challenge_entries(id) on delete restrict,
+  requested_entry_id uuid not null,
+  challenge_id uuid references public.challenges(id) on delete restrict,
+  challenge_entry_id uuid references public.challenge_entries(id) on delete restrict,
   requested_active boolean not null,
   prior_vote_version integer,
-  new_vote_version integer not null,
+  new_vote_version integer,
+  outcome text not null,
   response jsonb not null,
   created_at timestamptz not null default statement_timestamp(),
   unique(actor_id,request_id),
+  constraint challenge_vote_command_outcome_check check (outcome in ('accepted','rejected')),
   constraint challenge_vote_command_versions_check check (
-    new_vote_version > 0 and
-    (prior_vote_version is null or new_vote_version in (prior_vote_version,prior_vote_version+1))
+    (outcome='accepted' and new_vote_version > 0 and
+      (prior_vote_version is null or new_vote_version in (prior_vote_version,prior_vote_version+1)))
+    or (outcome='rejected' and prior_vote_version is null and new_vote_version is null)
   )
 );
 
@@ -267,19 +271,36 @@ declare
   v_response jsonb;
 begin
   if v_actor is null then raise sqlstate 'PT401' using message='challenge_vote_unauthenticated'; end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('challenge-vote-actor:'||v_actor::text,0)
+  );
   select * into v_command from private.challenge_vote_commands
     where actor_id=v_actor and request_id=p_request_id;
   if found then return v_command.response; end if;
-  if not exists(select 1 from public.profiles p where p.id=v_actor and p.status='active'
-      and p.profile_completed_at is not null and p.moderation_state='visible' and p.purged_at is null)
-  then raise sqlstate 'PT403' using message='challenge_vote_actor_ineligible'; end if;
   if (select count(*) from private.challenge_vote_commands
       where actor_id=v_actor and created_at>statement_timestamp()-interval '1 hour') >= 60
-  then raise sqlstate 'PT429' using message='challenge_vote_rate_limited'; end if;
+  then
+    v_response := jsonb_build_object('errorCode','PT429');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,p_active,'rejected',v_response);
+    return v_response;
+  end if;
+  if not exists(select 1 from public.profiles p where p.id=v_actor and p.status='active'
+      and p.profile_completed_at is not null and p.moderation_state='visible' and p.purged_at is null)
+  then
+    v_response := jsonb_build_object('errorCode','PT403');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,p_active,'rejected',v_response);
+    return v_response;
+  end if;
 
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_entry_id::text||':'||v_actor::text,0));
   select * into v_entry from public.challenge_entries where id=p_entry_id;
-  if not found then raise sqlstate 'PT404' using message='challenge_vote_entry_unavailable'; end if;
+  if not found then
+    v_response := jsonb_build_object('errorCode','PT404');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,p_active,'rejected',v_response);
+    return v_response;
+  end if;
   select * into v_challenge from public.challenges where id=v_entry.challenge_id;
   select * into v_version from public.challenge_versions where id=v_challenge.current_version_id;
   if v_challenge.state<>'published' or v_challenge.moderation_state<>'visible'
@@ -287,13 +308,29 @@ begin
     or statement_timestamp()<v_version.voting_opens_at or statement_timestamp()>=v_version.voting_closes_at
     or v_entry.status<>'active' or v_entry.moderation_state<>'visible'
     or not private.challenge_entry_is_public(v_entry,statement_timestamp())
-  then raise sqlstate 'PT409' using message='challenge_vote_window_or_entry_unavailable'; end if;
-  if v_entry.entrant_id=v_actor then raise sqlstate 'PT403' using message='challenge_vote_self_forbidden'; end if;
+  then
+    v_response := jsonb_build_object('errorCode','PT409');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,challenge_id,challenge_entry_id,
+      requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,v_entry.challenge_id,v_entry.id,p_active,'rejected',v_response);
+    return v_response;
+  end if;
+  if v_entry.entrant_id=v_actor then
+    v_response := jsonb_build_object('errorCode','PT403');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,challenge_id,challenge_entry_id,
+      requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,v_entry.challenge_id,v_entry.id,p_active,'rejected',v_response);
+    return v_response;
+  end if;
 
   select * into v_vote from public.challenge_votes
     where challenge_entry_id=p_entry_id and voter_id=v_actor for update;
   if found and v_vote.state='excluded' then
-    raise sqlstate 'PT409' using message='challenge_vote_excluded';
+    v_response := jsonb_build_object('errorCode','PT409');
+    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,challenge_id,challenge_entry_id,
+      requested_active,outcome,response)
+      values(v_actor,p_request_id,p_entry_id,v_entry.challenge_id,v_entry.id,p_active,'rejected',v_response);
+    return v_response;
   end if;
   if not found then
     insert into public.challenge_votes(challenge_id,challenge_entry_id,voter_id,state,removed_at)
@@ -314,9 +351,10 @@ begin
       where id=v_vote.id returning * into v_vote;
   end if;
   v_response := jsonb_build_object('entryId',v_entry.id,'active',v_vote.state='active','voteVersion',v_vote.vote_version);
-  insert into private.challenge_vote_commands(actor_id,request_id,challenge_id,challenge_entry_id,
-    requested_active,prior_vote_version,new_vote_version,response)
-  values(v_actor,p_request_id,v_entry.challenge_id,v_entry.id,p_active,v_prior,v_vote.vote_version,v_response);
+  insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,challenge_id,challenge_entry_id,
+    requested_active,prior_vote_version,new_vote_version,outcome,response)
+  values(v_actor,p_request_id,p_entry_id,v_entry.challenge_id,v_entry.id,p_active,v_prior,v_vote.vote_version,
+    'accepted',v_response);
   return v_response;
 end;
 $$;
@@ -568,19 +606,22 @@ as $$
       'voteTotal',re.final_vote_total
     ) order by re.final_vote_total desc,e.id)
       from public.challenge_result_entries re join public.challenge_entries e on e.id=re.challenge_entry_id
-      where re.challenge_result_id=r.id and (not p_public or (e.status='active' and e.moderation_state='visible'))),'[]'::jsonb),
+      where re.challenge_result_id=r.id
+        and (not p_public or private.challenge_entry_is_public(e,statement_timestamp()))),'[]'::jsonb),
     'placements',coalesce((select jsonb_agg(jsonb_build_object(
       'place',rp.place,'label',rp.placement_label,'entryId',e.id,'projectTitle',e.project_title_snapshot,
       'entrantUsername',e.entrant_username_snapshot,'entrantCreditName',e.entrant_credit_name_snapshot
     ) order by rp.place)
       from public.challenge_result_placements rp join public.challenge_entries e on e.id=rp.challenge_entry_id
-      where rp.challenge_result_id=r.id and (not p_public or (e.status='active' and e.moderation_state='visible'))),'[]'::jsonb),
+      where rp.challenge_result_id=r.id
+        and (not p_public or private.challenge_entry_is_public(e,statement_timestamp()))),'[]'::jsonb),
     'communityFavorites',coalesce((select jsonb_agg(jsonb_build_object(
       'entryId',e.id,'projectTitle',e.project_title_snapshot,'entrantUsername',e.entrant_username_snapshot,
       'entrantCreditName',e.entrant_credit_name_snapshot,'voteTotal',rf.final_vote_total
     ) order by e.id)
       from public.challenge_result_community_favorites rf join public.challenge_entries e on e.id=rf.challenge_entry_id
-      where rf.challenge_result_id=r.id and (not p_public or (e.status='active' and e.moderation_state='visible'))),'[]'::jsonb),
+      where rf.challenge_result_id=r.id
+        and (not p_public or private.challenge_entry_is_public(e,statement_timestamp()))),'[]'::jsonb),
     'supersedesResultId',case when p_public then null else r.supersedes_result_id end,
     'correctionReason',case when p_public then null else r.correction_reason end
   ) from public.challenge_results r where r.id=p_result_id
@@ -606,6 +647,16 @@ begin
     'votes',coalesce((select jsonb_agg(jsonb_build_object('voteId',v.id,'entryId',v.challenge_entry_id,
       'voterId',v.voter_id,'state',v.state,'voteVersion',v.vote_version,'updatedAt',v.updated_at) order by v.updated_at desc,v.id)
       from public.challenge_votes v where v.challenge_id=p_challenge_id),'[]'::jsonb),
+    'reports',coalesce((select jsonb_agg(jsonb_build_object(
+      'reportId',r.id,'targetKind',r.target_kind,'entryId',r.challenge_entry_id,
+      'targetLabel',case when r.target_kind='challenge' then cv.title else e.project_title_snapshot end,
+      'reason',r.reason,'details',r.details,'createdAt',r.created_at
+    ) order by r.created_at desc,r.id)
+      from private.challenge_reports r
+      join public.challenges c on c.id=r.challenge_id
+      join public.challenge_versions cv on cv.id=c.current_version_id
+      left join public.challenge_entries e on e.id=r.challenge_entry_id
+      where r.challenge_id=p_challenge_id),'[]'::jsonb),
     'reportCount',(select count(*) from private.challenge_reports r where r.challenge_id=p_challenge_id),
     'featuredSelection',jsonb_build_object(
       'challengeId',(select challenge_id from private.challenge_featured_selection where singleton),
@@ -632,6 +683,9 @@ declare
   v_current integer;
 begin
   perform private.assert_admin_actor();
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('challenge-featured-selection',0)
+  );
   select * into v_existing from private.challenge_featured_actions where actor_id=v_actor and request_id=p_request_id;
   if found then return jsonb_build_object('challengeId',v_existing.challenge_id,'selectionVersion',v_existing.new_version); end if;
   select coalesce((select selection_version from private.challenge_featured_selection where singleton),
@@ -660,6 +714,9 @@ as $$
 declare v_actor uuid := (select auth.uid()); v_existing private.challenge_featured_actions%rowtype; v_current integer;
 begin
   perform private.assert_admin_actor();
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('challenge-featured-selection',0)
+  );
   select * into v_existing from private.challenge_featured_actions where actor_id=v_actor and request_id=p_request_id;
   if found then return jsonb_build_object('challengeId',null,'selectionVersion',v_existing.new_version); end if;
   select coalesce((select selection_version from private.challenge_featured_selection where singleton),
@@ -732,23 +789,38 @@ declare
   v_now timestamptz := statement_timestamp();
   v_current_bucket timestamptz := date_trunc('hour',statement_timestamp(),'UTC');
   v_bucket timestamptz := coalesce(p_rotation_bucket,date_trunc('hour',statement_timestamp(),'UTC'));
+  v_entries jsonb;
+  v_has_more boolean;
+  v_next_cursor jsonb;
 begin
   if (p_after_rotation_key is null)<>(p_after_entry_id is null)
   then raise sqlstate '22023' using message='challenge_entry_cursor_invalid'; end if;
   if v_bucket<>date_trunc('hour',v_bucket,'UTC') or v_bucket>v_current_bucket or v_bucket<v_current_bucket-interval '1 hour'
   then raise sqlstate '22023' using message='challenge_rotation_bucket_invalid'; end if;
   select * into v_challenge from public.challenges where slug=p_slug and state<>'draft' and moderation_state='visible';
-  if not found then return jsonb_build_object('rotationBucket',v_bucket,'entries','[]'::jsonb); end if;
-  return jsonb_build_object('rotationBucket',v_bucket,'entries',coalesce((
-    select jsonb_agg(private.challenge_entry_public_projection(page.id,v_now)||jsonb_build_object('rotationKey',page.rotation_key)
-      order by page.rotation_key,page.id)
-    from (select q.id,q.rotation_key from (
+  if not found then
+    return jsonb_build_object('rotationBucket',v_bucket,'entries','[]'::jsonb,'nextCursor',null);
+  end if;
+  with ranked as (
+    select q.id,q.rotation_key,row_number() over(order by q.rotation_key,q.id) as ordinal from (
       select e.id,encode(extensions.digest(pg_catalog.convert_to(v_challenge.id::text||':'||v_challenge.current_version_id::text||':'||
         v_bucket::text||':'||e.id::text,'UTF8'),'sha256'),'hex') rotation_key
       from public.challenge_entries e where e.challenge_id=v_challenge.id and private.challenge_entry_is_public(e,v_now)
     ) q where p_after_rotation_key is null or (q.rotation_key,q.id)>(p_after_rotation_key,p_after_entry_id)
-      order by q.rotation_key,q.id limit 25) page
-  ),'[]'::jsonb));
+      order by q.rotation_key,q.id limit 26
+  )
+  select coalesce(jsonb_agg(
+      private.challenge_entry_public_projection(ranked.id,v_now)||jsonb_build_object('rotationKey',ranked.rotation_key)
+      order by ranked.rotation_key,ranked.id
+    ) filter (where ranked.ordinal<=25),'[]'::jsonb),count(*)>25
+    into v_entries,v_has_more from ranked;
+  if v_has_more then
+    v_next_cursor := jsonb_build_object(
+      'rotationKey',(v_entries->-1)->>'rotationKey',
+      'entryId',(v_entries->-1)->>'entryId'
+    );
+  end if;
+  return jsonb_build_object('rotationBucket',v_bucket,'entries',v_entries,'nextCursor',v_next_cursor);
 end;
 $$;
 

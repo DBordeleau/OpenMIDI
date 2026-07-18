@@ -4,6 +4,7 @@ import { FiHeadphones, FiPlus } from "react-icons/fi";
 import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { describeChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
+import { hasSupabasePublicEnvConfiguration } from "@/lib/env/public";
 import { getFeaturedChallenge } from "@/server/repositories/challenges";
 import { ChallengeGauges } from "./_components/challenge-gauges.client";
 import { DiffMachine } from "./_components/diff-machine.client";
@@ -76,7 +77,9 @@ function RollNotes({
 }
 
 export default async function Home() {
-  const featured = await getFeaturedChallenge();
+  const featured = hasSupabasePublicEnvConfiguration()
+    ? await getFeaturedChallenge()
+    : null;
   const featuredChallenge = featured?.challenge ?? null;
   return (
     <div className={styles.root} data-landing-scroll>

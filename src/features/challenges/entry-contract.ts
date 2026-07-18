@@ -100,6 +100,21 @@ export const publicChallengeEntryPageSchema = z
   .object({
     rotationBucket: z.string(),
     entries: z.array(publicChallengeEntrySchema),
+    nextCursor: z
+      .object({
+        rotationKey: z.string().regex(/^[0-9a-f]{64}$/),
+        entryId: z.uuid(),
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+
+export const publicChallengeEntryCursorSchema = z
+  .object({
+    rotationBucket: z.iso.datetime(),
+    rotationKey: z.string().regex(/^[0-9a-f]{64}$/),
+    entryId: z.uuid(),
   })
   .strict();
 
@@ -109,3 +124,6 @@ export type ChallengeRevisionOption = z.infer<
 export type ChallengePreflight = z.infer<typeof challengePreflightSchema>;
 export type MyChallengeEntry = z.infer<typeof myChallengeEntrySchema>;
 export type PublicChallengeEntry = z.infer<typeof publicChallengeEntrySchema>;
+export type PublicChallengeEntryCursor = z.infer<
+  typeof publicChallengeEntryCursorSchema
+>;

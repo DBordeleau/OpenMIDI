@@ -47,6 +47,8 @@ export async function setChallengeVoteAction(
     const result = await setChallengeVote(parsed.data);
     if (result.error || !result.data)
       return { status: "error", message: voteError(result.error?.code) };
+    if ("errorCode" in result.data)
+      return { status: "error", message: voteError(result.data.errorCode) };
     revalidatePath(`/challenges/${parsed.data.slug}`);
     revalidatePath(
       `/challenges/${parsed.data.slug}/entries/${parsed.data.entryId}`,

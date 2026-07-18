@@ -55,3 +55,19 @@ export function getSupabasePublicEnv(): SupabasePublicEnv {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
 }
+
+export function hasSupabasePublicEnvConfiguration(): boolean {
+  const input = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  };
+  if (
+    process.env.CI === "true" &&
+    !input.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
+    !input.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
+  )
+    return false;
+  parseSupabasePublicEnv(input);
+  return true;
+}

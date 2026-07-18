@@ -66,6 +66,44 @@ export function AdminChallengeResultsPanel({
         />
       </section>
       <section className="border-subtle bg-surface rounded-card border p-6">
+        <h2 className="text-2xl font-bold">Submitted reports</h2>
+        <p className="text-muted mt-2">
+          Private evidence for moderation review. Reporting alone does not hide
+          a challenge or entry.
+        </p>
+        {data.reports.length ? (
+          <ul className="mt-4 space-y-4">
+            {data.reports.map((report) => (
+              <li
+                key={report.reportId}
+                className="border-subtle rounded-control border p-4"
+              >
+                <p className="font-semibold">
+                  {report.targetKind === "challenge" ? "Challenge" : "Entry"}:{" "}
+                  {report.targetLabel}
+                </p>
+                <p className="text-muted mt-1 text-sm">
+                  {report.reason.replaceAll("_", " ")} ·{" "}
+                  <time dateTime={report.createdAt}>
+                    {new Date(report.createdAt).toLocaleString()}
+                  </time>
+                </p>
+                {report.entryId && (
+                  <p className="text-muted mt-1 font-mono text-xs">
+                    Entry {report.entryId}
+                  </p>
+                )}
+                <p className="mt-3 whitespace-pre-wrap">
+                  {report.details ?? "No additional private details supplied."}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted mt-4">No reports have been submitted.</p>
+        )}
+      </section>
+      <section className="border-subtle bg-surface rounded-card border p-6">
         <h2 className="text-2xl font-bold">Entries and included votes</h2>
         <ul className="mt-4 space-y-4">
           {data.entries.map((entry) => (
