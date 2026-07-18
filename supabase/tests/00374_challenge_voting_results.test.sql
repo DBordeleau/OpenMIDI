@@ -110,8 +110,8 @@ set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000005';
 select is(public.set_challenge_vote('fc600000-0000-4000-8000-000000000002',true,gen_random_uuid())->>'errorCode',
   'PT429','the shared actor budget rejects the next cross-entry attempt');
 reset role;
-select is((select count(*) from private.challenge_vote_commands where actor_id='fc000000-0000-4000-8000-000000000005'),61::bigint,
-  'the rate-limited attempt is retained in the private budget audit');
+select is((select count(*) from private.challenge_vote_commands where actor_id='fc000000-0000-4000-8000-000000000005'),60::bigint,
+  'the bounded private budget audit stops at sixty attempts');
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000003';
 create temp table voter_add as select public.set_challenge_vote('fc600000-0000-4000-8000-000000000001',true,'fc700000-0000-4000-8000-000000000001') response;

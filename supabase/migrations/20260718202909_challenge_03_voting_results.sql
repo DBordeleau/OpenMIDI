@@ -276,14 +276,15 @@ begin
   );
   select * into v_command from private.challenge_vote_commands
     where actor_id=v_actor and request_id=p_request_id;
-  if found then return v_command.response; end if;
+  if found then
+    if v_command.requested_entry_id=p_entry_id and v_command.requested_active=p_active
+    then return v_command.response; end if;
+    return jsonb_build_object('errorCode','PT409');
+  end if;
   if (select count(*) from private.challenge_vote_commands
       where actor_id=v_actor and created_at>statement_timestamp()-interval '1 hour') >= 60
   then
-    v_response := jsonb_build_object('errorCode','PT429');
-    insert into private.challenge_vote_commands(actor_id,request_id,requested_entry_id,requested_active,outcome,response)
-      values(v_actor,p_request_id,p_entry_id,p_active,'rejected',v_response);
-    return v_response;
+    return jsonb_build_object('errorCode','PT429');
   end if;
   if not exists(select 1 from public.profiles p where p.id=v_actor and p.status='active'
       and p.profile_completed_at is not null and p.moderation_state='visible' and p.purged_at is null)

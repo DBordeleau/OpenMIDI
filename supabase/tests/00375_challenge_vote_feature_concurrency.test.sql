@@ -2,7 +2,7 @@ begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
 create extension if not exists dblink with schema extensions;
-select plan(11);
+select plan(16);
 
 select extensions.dblink_connect('vote_a','host=host.docker.internal port=54322 dbname='||current_database()||' user=postgres password=postgres');
 select extensions.dblink_connect('vote_b','host=host.docker.internal port=54322 dbname='||current_database()||' user=postgres password=postgres');
@@ -84,6 +84,13 @@ select extensions.dblink_exec('vote_b','commit');
 select is((select response from vote_results where test='replay' and attempt='waiter'),(select response from vote_results where test='replay' and attempt='first'),'concurrent identical vote requests replay one response');
 select is((select count(*) from private.challenge_vote_commands where actor_id='fb000000-0000-4000-8000-000000000004'),1::bigint,'concurrent identical voting records one command');
 select is((select count(*) from public.challenge_votes where voter_id='fb000000-0000-4000-8000-000000000004'),1::bigint,'concurrent identical voting creates one logical vote');
+set local role authenticated;
+set local request.jwt.claim.sub='fb000000-0000-4000-8000-000000000004';
+select is(public.set_challenge_vote('fb600000-0000-4000-8000-000000000002',true,'fb700000-0000-4000-8000-000000000001')->>'errorCode','PT409','reusing a request ID for another entry is rejected');
+select is(public.set_challenge_vote('fb600000-0000-4000-8000-000000000001',false,'fb700000-0000-4000-8000-000000000001')->>'errorCode','PT409','reusing a request ID for another desired state is rejected');
+reset role;
+select is((select count(*) from private.challenge_vote_commands where actor_id='fb000000-0000-4000-8000-000000000004'),1::bigint,'mismatched replays create no command rows');
+select is((select jsonb_build_object('state',state,'version',vote_version) from public.challenge_votes where voter_id='fb000000-0000-4000-8000-000000000004'),'{"state":"active","version":1}'::jsonb,'mismatched replays do not mutate the original vote');
 
 select extensions.dblink_exec('vote_a','begin');
 select extensions.dblink_exec('vote_a',$remote$do $$ begin perform pg_advisory_xact_lock(hashtextextended('challenge-vote-actor:fb000000-0000-4000-8000-000000000005',0)); end $$;$remote$);
@@ -101,7 +108,11 @@ select count(*) from extensions.dblink_get_result('vote_b') as result(response j
 select extensions.dblink_exec('vote_b','commit');
 select is((select response->>'active' from vote_results where test='budget' and attempt='first'),'true','the sixtieth actor attempt is admitted');
 select is((select response->>'errorCode' from vote_results where test='budget' and attempt='waiter'),'PT429','a concurrent vote for another entry cannot bypass the actor budget');
-select is((select count(*) from private.challenge_vote_commands where actor_id='fb000000-0000-4000-8000-000000000005'),61::bigint,'both admitted and rejected attempts remain in the shared budget audit');
+set local role authenticated;
+set local request.jwt.claim.sub='fb000000-0000-4000-8000-000000000005';
+select is(public.set_challenge_vote('fb600000-0000-4000-8000-000000000002',false,'fb700000-0000-4000-8000-000000000004')->>'errorCode','PT429','later over-limit attempts remain rate limited');
+reset role;
+select is((select count(*) from private.challenge_vote_commands where actor_id='fb000000-0000-4000-8000-000000000005'),60::bigint,'attempt sixty is recorded while attempts sixty-one and later cannot grow the audit');
 select is((select count(*) from public.challenge_votes where voter_id='fb000000-0000-4000-8000-000000000005'),1::bigint,'only the admitted cross-entry attempt creates a vote');
 
 select extensions.dblink_exec('vote_a',$remote$create or replace function pg_temp.try_feature(p_request uuid) returns text language plpgsql as $$ begin perform public.set_featured_challenge(p_request,'fb400000-0000-4000-8000-000000000001',0); return 'ok'; exception when others then return sqlstate; end $$;$remote$);
