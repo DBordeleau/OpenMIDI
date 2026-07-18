@@ -65,6 +65,12 @@ Acceptance verifies the expected contribution version and current project revisi
 
 There are no musical upload, waveform, quota, processing, network-worker, or scheduled-job tables/functions/extensions in the baseline.
 
+## Beta feedback
+
+- `private.beta_feedback` stores bounded authenticated bug reports and suggestions with disclosed route/application/browser context and no attachments, logs, manifests, tokens, or signed URLs.
+- Private administrator request/audit rows serialize classify, handle, reopen, and delete commands without retaining deleted report bodies.
+- Submit and administrator queue/detail/mutation functions authorize active actors, rate-limit intake, and expose no direct table grants.
+
 ## RLS and grants
 
 All application-facing tables have RLS enabled. Anonymous access is limited to safe catalogs and public projections. Authenticated direct writes are denied; mutations use explicitly granted commands. Suspended or incomplete profiles fail mutation eligibility. Security-definer functions set `search_path=''`, authorize the caller, and have minimum execute grants. Default Supabase table privileges are revoked after baseline creation.
@@ -77,8 +83,7 @@ All application-facing tables have RLS enabled. Anonymous access is limited to s
 
 These are accepted data-boundary requirements not yet implemented after LIB-03. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
 
-- **Beta feedback:** private bug/suggestion records hold bounded user-provided text and disclosed context for administrator triage. They do not store attachments, complete manifests, secrets, signed URLs, or automatic logs.
-- **Challenges:** normalized lifecycle, ownership, featured-placement, entry, vote, and finalized-result relationships accompany a validated versioned constraint snapshot. Entries pin exact immutable project revisions; client preflight never replaces authoritative submission validation. Completed challenge/result rows remain addressable and immutable except for audited corrections or moderation visibility.
+- **Challenges:** a stable challenge identity points to one append-only current challenge version containing frozen UTC boundaries, prompt/presentation, judging credits, optional exact starter revision, and validated constraint-v1 JSON plus hash. Time-derived public phases avoid scheduled infrastructure. Later sequential migrations add immutable-revision entries with one active entry per actor/challenge, private votes, challenge/entry/vote moderation, and append-only finalized-result versions. Entries pin the exact challenge version and expose a challenge-scoped public arrangement snapshot without making the source project broadly public; client preflight never replaces authoritative submission validation. Completed challenge/result rows remain addressable and immutable except for an explicit audited result-supersession command or moderation visibility.
 - **Achievements:** versioned badge definitions and immutable idempotent awards reference the recipient and authoritative finalized challenge result/revision that earned them. Public profiles use a narrow award projection containing the canonical completed-challenge/result link.
 
 Every new application-facing table enables RLS in its creation migration and receives explicit least-privilege grants. Public library, completed-challenge, leaderboard, and award projections must not reveal private-project relationships, reports, claimant context, hidden listings/entries, or pre-close votes; feedback, saved clips, challenge administration, and moderation evidence are never broadly selectable. Do not rely on provider defaults to decide Data API exposure.

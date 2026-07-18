@@ -351,9 +351,11 @@ pages, the create/edit form.
 
 ## 9. Open follow-ups
 
-- **Discovery surface**: hero/CTA copy points at collaboration and creating; a
-  public `/explore` page (planned) would let "See how it works" / browse flows
-  point at real songs instead of in-page anchors.
+- **Challenge discovery**: `/explore` and `/library` now provide real public
+  discovery. CHALLENGE-03 will replace the landing's marketing-only challenge
+  state with a canonical featured challenge card while preserving the approved
+  landing composition and clearly labeling scheduled, open, voting, and
+  completed states.
 - **Self-hosted display face**: the serif accent currently relies on
   Palatino/Georgia system fallbacks. A self-hosted display face (inlined, no CDN)
   would sharpen the identity further.

@@ -21,11 +21,11 @@ The two-attempt ceiling applies to an unchanged environment blocker. A concrete 
 
 ## Post-pivot MVP sequence
 
-DIFF-01 through DIFF-03, FEEDBACK-01, and LIB-01 through LIB-03 are complete in the repository. The next slice is a post-LIB milestone pulse check followed by a worker-ready CHALLENGE plan grounded in the merged library authority.
+DIFF-01 through DIFF-03, FEEDBACK-01, and LIB-01 through LIB-03 are complete in the repository. The post-LIB pulse check is complete, and the next slice is CHALLENGE-01 from the worker-ready local plan grounded in the merged library authority.
 
 1. **Wave A — DIFF and FEEDBACK:** complete with landing-matched static semantic comparisons for authorized revision pairs plus authenticated beta feedback and a private administrator queue.
 2. **Wave B — LIB:** complete with rights-gated public pattern listing, commercially reusable and reference-only modes, All/mode Explore filtering, external credits, copyright reporting/moderation, bounded musical search/filtering, browser-local preview/export, any-two-version history diffs, private saved clips, and attributed reusable-only save/import/fork/editor actions.
-3. **Wave C — CHALLENGE:** add administrator-curated versioned challenges, featured landing/dashboard discovery, deterministic eligibility feedback, immutable entries, voting, and permanently addressable finalized results.
+3. **Wave C — CHALLENGE:** implement sequentially from local plan 032: administrator-curated immutable challenge versions and time-derived phases first; deterministic preflight, authoritative immutable entries, and explicit replacement second; voting, moderation, featured discovery, and permanently addressable finalized results third.
 4. **Wave D — BADGE:** derive extensible immutable profile awards from finalized challenge results and link every award to its canonical completed challenge/result.
 5. **Wave E — RELEASE:** coordinate the OpenMIDI frontend/repository rename, seed useful beta content, harden critical paths, configure Vercel, and run production smoke checks.
 

@@ -78,25 +78,27 @@ This sequential program is complete in the repository. Its four ordered forward 
 
 Add explicit pattern-version listing/unlisting with two rights modes: **Commercial reuse permitted — CC BY 4.0** and **Reference only — reuse not granted**. Include derived musical metadata, safe public projections, bounded search/filter contracts, an All/commercially-reusable/reference-only Explore filter, external-credit snapshots, and a rights-classification/attestation gate. Expand the current CC-only public-pattern constraints and read policy through a reviewed forward migration: CC-licensed versions cannot be downgraded, while reference-only versions retain no reuse license and use a separate public-display attestation. Reference-only is not a cure for missing rights; uncertain-rights covers/recreations cannot enter either mode. Public project publication must not list every pattern automatically.
 
-Status: Complete in the repository. `/library` and `/library/manage` use the exact-version listing commands, safe 25-row keyset search projection, deterministic note facets, two rights filters, immutable external-credit snapshots, and exclusive browser-local preview. The forward migration is not applied to hosted Supabase without separate authority. LIB-02 is next.
+Status: Complete in the repository. `/library` and `/library/manage` use the exact-version listing commands, safe 25-row keyset search projection, deterministic note facets, two rights filters, immutable external-credit snapshots, and exclusive browser-local preview. The forward migration is not applied to hosted Supabase without separate authority.
 
 ### LIB-02 — Discovery, preview, history, usage, and pattern diff
 
 Add library browse/detail pages with deterministic preview, read-only notes, immutable version/lineage history, selection between any two versions in the same pattern history, prominent reuse-mode labels, visible external credits/rights terms, and public-project usage. Add **Report unoriginal or unauthorized work** with administrator hide/review/restore actions. Private project usage and reports must never leak through counts or links.
 
-Status: Complete in the repository. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, a deterministic 100-version authorized history window, URL-selected shared DIFF comparison and paired audition (including explicit authorized versions outside that first window), separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions with a fresh idempotency key per successful action. The LIB-02 migrations are not applied to hosted Supabase without separate authority. LIB-03 is next.
+Status: Complete in the repository. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, a deterministic 100-version authorized history window, URL-selected shared DIFF comparison and paired audition (including explicit authorized versions outside that first window), separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions with a fresh idempotency key per successful action. The LIB-02 migrations are not applied to hosted Supabase without separate authority.
 
 ### LIB-03 — Saved clips and Studio import
 
 Add a private saved-pattern collection referencing exact immutable commercially reusable versions. Saving does not duplicate notes or transfer ownership. Users can import a commercially reusable saved/discovered version into a chosen private workspace, fork it explicitly, or open it in the MIDI editor through an owned private copy-on-write draft. Reference-only listings remain preview/history surfaces and all reuse commands reject them authoritatively. All permitted reuse paths preserve platform lineage, license, and external credits.
 
-Status: Complete in the repository. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The post-LIB milestone pulse check and worker-ready CHALLENGE plan are next; the LIB migrations remain unapplied to hosted Supabase without separate authority.
+Status: Complete in the repository. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The post-LIB milestone pulse check is complete; the four LIB migrations remain unapplied to hosted Supabase without separate authority.
 
 ## Wave C — Curated constraint challenges
 
 ### CHALLENGE-01 — Versioned challenge lifecycle and admin creation
 
 Add administrator-created draft/scheduled/open/voting/completed/cancelled challenges, immutable starter references, timestamps, judging configuration, and a versioned constraint contract.
+
+Challenge content and constraints are immutable version records. Draft revision appends a version, entries later pin one exact version, and scheduled/open/voting phases derive from its frozen UTC boundaries without a lifecycle cron job. Completion and cancellation remain explicit audited administrator commands.
 
 The first constraint version supports:
 
@@ -115,7 +117,7 @@ Let users validate a private/current revision, receive per-rule observed-versus-
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: CHALLENGE-01 through CHALLENGE-03 require the next milestone pulse check and a dedicated local plan written against the completed LIB authority. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: The post-LIB pulse check is complete and `local/implementation-plans/032-curated-constraint-challenges.md` is the worker-ready authority. Implement CHALLENGE-01, CHALLENGE-02, and CHALLENGE-03 sequentially; CHALLENGE-01 is next. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
