@@ -3,8 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
+import { ChallengeEntryPanel } from "@/features/challenges/challenge-entry-panel.client";
 import { challengePhaseMessage } from "@/features/challenges/lifecycle";
-import { getPublicChallenge } from "@/server/repositories/challenges";
+import {
+  getMyChallengeEntry,
+  getPublicChallenge,
+  listMyChallengeRevisionOptions,
+  listPublicChallengeEntries,
+} from "@/server/repositories/challenges";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +34,13 @@ export default async function ChallengeDetailPage({
   const { slug } = await params;
   const challenge = await getPublicChallenge(slug);
   if (!challenge) notFound();
+  const [revisionOptions, myEntry, publicEntries] = await Promise.all([
+    challenge.phase === "open"
+      ? listMyChallengeRevisionOptions(challenge.id)
+      : Promise.resolve([]),
+    getMyChallengeEntry(challenge.id),
+    listPublicChallengeEntries(slug),
+  ]);
   const phase = challengePhaseMessage({
     phase: challenge.phase,
     votingOpensAt: challenge.votingOpensAt,
@@ -143,11 +156,59 @@ export default async function ChallengeDetailPage({
             <p className="mt-3 whitespace-pre-line">
               {challenge.eligibilityTerms}
             </p>
-            <p className="text-muted mt-4">
-              Challenge entry and voting controls are not part of this release
-              slice.
-            </p>
           </section>
+          {challenge.phase === "open" ? (
+            <ChallengeEntryPanel
+              challengeId={challenge.id}
+              challengeVersionId={challenge.currentVersionId}
+              slug={challenge.slug}
+              options={revisionOptions}
+              myEntry={myEntry}
+            />
+          ) : challenge.phase === "scheduled" ? (
+            <p className="border-subtle bg-surface-soft rounded-control mt-10 border p-5">
+              Preflight and exact entry submission open with the challenge.
+            </p>
+          ) : null}
+          {(challenge.phase === "voting" ||
+            challenge.phase === "completed") && (
+            <section className="mt-10" aria-labelledby="public-entries-heading">
+              <h2 id="public-entries-heading" className="text-2xl font-bold">
+                Challenge entries
+              </h2>
+              {publicEntries.length ? (
+                <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {publicEntries.map((entry) => (
+                    <li
+                      key={entry.entryId}
+                      className="border-subtle bg-surface rounded-card border p-5"
+                    >
+                      <p className="text-accent font-mono text-xs tracking-widest uppercase">
+                        @{entry.entrantUsername} · revision{" "}
+                        {entry.revisionNumber}
+                      </p>
+                      <h3 className="mt-2 text-xl font-bold">
+                        {entry.projectTitle}
+                      </h3>
+                      <p className="text-muted mt-2 text-sm">
+                        {entry.revisionMessage ?? "No revision note."}
+                      </p>
+                      <Link
+                        href={`/challenges/${challenge.slug}/entries/${entry.entryId}`}
+                        className="border-strong mt-4 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                      >
+                        Hear exact entry
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted mt-4">
+                  No moderation-visible active entries are available.
+                </p>
+              )}
+            </section>
+          )}
         </article>
       </Container>
     </main>

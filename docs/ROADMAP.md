@@ -115,11 +115,13 @@ Status: Complete in the repository. Administrators can create and append draft v
 
 Let users validate a private/current revision, receive per-rule observed-versus-required feedback, and submit or explicitly replace one exact immutable eligible revision before the deadline. Server/database authority revalidates submission; the client preflight is advisory.
 
+Status: Complete in the repository. Active project owners can preflight current immutable revisions with complete observed-versus-required feedback, then explicitly attest challenge-scoped display and submit or replace one exact entry. Postgres independently extracts normalized facts, enforces constraint-v1 eligibility, deadline/current-version/current-revision authority, idempotency, and replacement contention. Pre-voting projections expose no entry identities or counts; voting/completed projections and browser-local previews are challenge-scoped and do not publish private projects, enable downloads, or grant reuse. The migration is repository-only and is not applied to hosted Supabase.
+
 ### CHALLENGE-03 — Voting, official results, and moderation
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: CHALLENGE-01 is complete in the repository. `local/implementation-plans/032-curated-constraint-challenges.md` remains the worker-ready authority; CHALLENGE-02 is next, followed by CHALLENGE-03. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: CHALLENGE-01 and CHALLENGE-02 are complete in the repository. `local/implementation-plans/032-curated-constraint-challenges.md` remains the worker-ready authority; CHALLENGE-03 is next. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 

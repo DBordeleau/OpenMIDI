@@ -3,7 +3,10 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FiLoader, FiPause, FiPlay } from "react-icons/fi";
-import { publicMidiRevisionSchema, type PublicMidiRevision } from "./contract";
+import {
+  midiArrangementPreviewSchema,
+  type MidiArrangementPreview,
+} from "./contract";
 import { PublicMidiPreviewRuntime } from "./preview-runtime.client";
 import { schedulePublicMidiRevision } from "./schedule";
 
@@ -19,18 +22,20 @@ export function PublicMidiQuickPreview({
   title,
   durationMs,
   compact = false,
+  previewEndpoint,
 }: {
-  projectId: string;
-  revisionId: string;
+  projectId?: string;
+  revisionId?: string;
   title: string;
   durationMs: number;
   compact?: boolean;
+  previewEndpoint?: string;
 }) {
   const instanceId = useId();
   const reduceMotion = useReducedMotion();
   const [status, setStatus] = useState<PreviewStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const dataRef = useRef<PublicMidiRevision | null>(null);
+  const dataRef = useRef<MidiArrangementPreview | null>(null);
   const runtimeRef = useRef<PublicMidiPreviewRuntime | null>(null);
   const playheadMs = useRef(0);
   const playheadAtStartMs = useRef(0);
@@ -89,12 +94,16 @@ export function PublicMidiQuickPreview({
     const controller = new AbortController();
     request.current = controller;
     const response = await fetch(
-      `/api/projects/${projectId}/revisions/${revisionId}/preview`,
+      previewEndpoint ??
+        `/api/projects/${projectId}/revisions/${revisionId}/preview`,
       { method: "POST", cache: "no-store", signal: controller.signal },
     );
     if (!response.ok) throw new Error("Preview unavailable");
-    const data = publicMidiRevisionSchema.parse(await response.json());
-    if (data.projectId !== projectId || data.revisionId !== revisionId) {
+    const data = midiArrangementPreviewSchema.parse(await response.json());
+    if (
+      (projectId && data.projectId !== projectId) ||
+      (revisionId && data.revisionId !== revisionId)
+    ) {
       throw new Error("Preview changed");
     }
     const patterns = new Map(
@@ -110,7 +119,7 @@ export function PublicMidiQuickPreview({
     dataRef.current = data;
     request.current = null;
     return data;
-  }, [projectId, revisionId]);
+  }, [previewEndpoint, projectId, revisionId]);
 
   const play = async () => {
     window.dispatchEvent(
