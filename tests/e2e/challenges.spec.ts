@@ -153,6 +153,9 @@ test.describe("curated challenge lifecycle", () => {
     await expect(publicPage.getByText("Use 4 tracks.")).toBeVisible();
     await expect(publicPage.getByText("Challenge E2E")).toBeVisible();
     await expect(publicPage.getByText(fixture.starterTitle)).toBeVisible();
+    const presentation = publicPage.locator("article.challenge-pulse");
+    await expect(presentation).toHaveCSS("border-left-width", "4px");
+    await expect(presentation).not.toHaveCSS("background-image", "none");
     await expect(
       publicPage.getByRole("heading", { name: "Frozen schedule" }),
     ).toBeVisible();

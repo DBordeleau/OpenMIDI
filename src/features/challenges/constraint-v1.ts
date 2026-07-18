@@ -4,6 +4,7 @@ import {
   INSTRUMENT_PRESETS_CATALOG_1,
   type InstrumentFamily,
 } from "@/features/midi/presets";
+import { MIDI_V3_MAX_TEMPO_BPM } from "@/features/midi/domain-v3";
 import { formatMusicalKey } from "@/features/projects/musical-key";
 import { musicalKeys } from "@/features/projects/schema";
 
@@ -24,9 +25,24 @@ const integerRangeSchema = z
 
 const tempoRangeSchema = z
   .object({
-    minimum: z.number().min(20).max(400).nullable().default(null),
-    maximum: z.number().min(20).max(400).nullable().default(null),
-    exact: z.number().min(20).max(400).nullable().default(null),
+    minimum: z
+      .number()
+      .min(20)
+      .max(MIDI_V3_MAX_TEMPO_BPM)
+      .nullable()
+      .default(null),
+    maximum: z
+      .number()
+      .min(20)
+      .max(MIDI_V3_MAX_TEMPO_BPM)
+      .nullable()
+      .default(null),
+    exact: z
+      .number()
+      .min(20)
+      .max(MIDI_V3_MAX_TEMPO_BPM)
+      .nullable()
+      .default(null),
   })
   .strict()
   .superRefine((range, context) => {

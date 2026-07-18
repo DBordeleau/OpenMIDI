@@ -178,6 +178,30 @@ a {
   box-shadow: 0 16px 48px -12px rgb(255 141 99 / 85%);
 }
 
+/* Frozen challenge presentation choices alter only the public invitation's
+   visual treatment; lifecycle and authorization remain data-driven. */
+.challenge-pulse,
+.challenge-nocturne,
+.challenge-sunrise {
+  border-inline-start: 0.25rem solid var(--challenge-presentation-accent);
+  border-radius: var(--radius-card);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  background: radial-gradient(
+    circle at 92% 4%,
+    color-mix(in srgb, var(--challenge-presentation-accent) 16%, transparent),
+    transparent 34%
+  );
+}
+.challenge-pulse {
+  --challenge-presentation-accent: var(--color-accent);
+}
+.challenge-nocturne {
+  --challenge-presentation-accent: var(--color-berry);
+}
+.challenge-sunrise {
+  --challenge-presentation-accent: var(--color-accent-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

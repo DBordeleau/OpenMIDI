@@ -88,4 +88,36 @@ describe("AdminChallengeForm", () => {
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
     expect(requestIds[0]).not.toBe(requestIds[1]);
   });
+
+  it("authors every supported meter boundary and caps tempo at manifest v3", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <AdminChallengeForm mode="create" defaults={defaults} starters={[]} />,
+    );
+    await user.click(
+      screen.getByRole("checkbox", { name: "Enable meter rule" }),
+    );
+    const numerator = screen.getByRole("spinbutton", {
+      name: "Time signature numerator",
+    });
+    await user.clear(numerator);
+    await user.type(numerator, "32");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Time signature denominator" }),
+      "32",
+    );
+
+    const payload = JSON.parse(
+      (container.querySelector('input[name="payload"]') as HTMLInputElement)
+        .value,
+    );
+    expect(payload.constraints.timeSignature).toEqual({
+      numerator: 32,
+      denominator: 32,
+    });
+    const tempoInputs = screen.getByRole("group", { name: "Tempo (BPM)" });
+    for (const input of tempoInputs.querySelectorAll('input[type="number"]')) {
+      expect(input).toHaveAttribute("max", "300");
+    }
+  });
 });

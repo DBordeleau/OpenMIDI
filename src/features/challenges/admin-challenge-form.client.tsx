@@ -7,6 +7,7 @@ import {
   INSTRUMENT_FAMILIES,
   INSTRUMENT_PRESETS_CATALOG_1,
 } from "@/features/midi/presets";
+import { MIDI_V3_MAX_TEMPO_BPM } from "@/features/midi/domain-v3";
 import { musicalKeys } from "@/features/projects/schema";
 import {
   initialChallengeFormActionState,
@@ -257,34 +258,19 @@ export function AdminChallengeForm({
             update("constraints", { ...value.constraints, tempoBpm: next })
           }
           step="0.001"
+          minimum={20}
+          maximum={MIDI_V3_MAX_TEMPO_BPM}
+          initialExact={120}
         />
-        <label className="grid gap-2 text-sm font-semibold">
-          Time signature
-          <select
-            value={
-              value.constraints.timeSignature
-                ? `${value.constraints.timeSignature.numerator}/${value.constraints.timeSignature.denominator}`
-                : ""
-            }
-            onChange={(event) => {
-              const [numerator, denominator] = event.target.value
-                .split("/")
-                .map(Number);
-              update("constraints", {
-                ...value.constraints,
-                timeSignature: event.target.value
-                  ? { numerator, denominator }
-                  : null,
-              });
-            }}
-            className="border-strong bg-canvas rounded-control min-h-11 border px-4"
-          >
-            <option value="">No meter rule</option>
-            {["2/4", "3/4", "4/4", "5/4", "6/8", "7/8", "12/8"].map((meter) => (
-              <option key={meter}>{meter}</option>
-            ))}
-          </select>
-        </label>
+        <TimeSignatureControls
+          value={value.constraints.timeSignature}
+          onChange={(next) =>
+            update("constraints", {
+              ...value.constraints,
+              timeSignature: next,
+            })
+          }
+        />
         <SelectField
           label="Declared musical key"
           value={value.constraints.musicalKey ?? ""}
@@ -687,6 +673,9 @@ function RangeControls({
   value,
   onChange,
   step = "1",
+  minimum = 0,
+  maximum = 32,
+  initialExact = 1,
 }: {
   label: string;
   value: {
@@ -702,6 +691,9 @@ function RangeControls({
     } | null,
   ) => void;
   step?: string;
+  minimum?: number;
+  maximum?: number;
+  initialExact?: number;
 }) {
   return (
     <fieldset className="border-subtle rounded-control border p-4">
@@ -713,7 +705,7 @@ function RangeControls({
           onChange={(event) =>
             onChange(
               event.target.checked
-                ? { minimum: null, maximum: null, exact: 1 }
+                ? { minimum: null, maximum: null, exact: initialExact }
                 : null,
             )
           }
@@ -728,6 +720,8 @@ function RangeControls({
               <input
                 type="number"
                 step={step}
+                min={minimum}
+                max={maximum}
                 value={value[key] ?? ""}
                 onChange={(event) =>
                   onChange({
@@ -742,6 +736,76 @@ function RangeControls({
               />
             </label>
           ))}
+        </div>
+      )}
+    </fieldset>
+  );
+}
+
+const timeSignatureDenominators = [1, 2, 4, 8, 16, 32] as const;
+
+function TimeSignatureControls({
+  value,
+  onChange,
+}: {
+  value: ChallengeFormDefaults["constraints"]["timeSignature"];
+  onChange: (
+    value: ChallengeFormDefaults["constraints"]["timeSignature"],
+  ) => void;
+}) {
+  return (
+    <fieldset className="border-subtle rounded-control border p-4">
+      <legend className="px-2 text-sm font-semibold">Time signature</legend>
+      <label className="mb-3 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(event) =>
+            onChange(
+              event.target.checked ? { numerator: 4, denominator: 4 } : null,
+            )
+          }
+        />
+        Enable meter rule
+      </label>
+      {value && (
+        <div className="grid grid-cols-2 gap-3">
+          <label className="grid gap-1 text-xs">
+            Numerator
+            <input
+              aria-label="Time signature numerator"
+              type="number"
+              min={1}
+              max={32}
+              value={value.numerator}
+              onChange={(event) =>
+                onChange({ ...value, numerator: Number(event.target.value) })
+              }
+              className="border-strong bg-canvas rounded-control min-h-10 border px-2"
+            />
+          </label>
+          <label className="grid gap-1 text-xs">
+            Denominator
+            <select
+              aria-label="Time signature denominator"
+              value={value.denominator}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  denominator: Number(
+                    event.target.value,
+                  ) as (typeof timeSignatureDenominators)[number],
+                })
+              }
+              className="border-strong bg-canvas rounded-control min-h-10 border px-2"
+            >
+              {timeSignatureDenominators.map((denominator) => (
+                <option key={denominator} value={denominator}>
+                  {denominator}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       )}
     </fieldset>

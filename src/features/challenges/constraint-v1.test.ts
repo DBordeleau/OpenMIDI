@@ -24,6 +24,21 @@ const complete = {
 };
 
 describe("challenge constraint v1", () => {
+  it("shares the manifest-v3 300 BPM ceiling", () => {
+    expect(
+      canonicalizeChallengeConstraintsV1({
+        schemaVersion: 1,
+        tempoBpm: { minimum: null, maximum: null, exact: 300 },
+      }).tempoBpm?.exact,
+    ).toBe(300);
+    expect(() =>
+      canonicalizeChallengeConstraintsV1({
+        schemaVersion: 1,
+        tempoBpm: { minimum: null, maximum: null, exact: 300.001 },
+      }),
+    ).toThrow();
+  });
+
   it("accepts and describes every supported rule", () => {
     const canonical = canonicalizeChallengeConstraintsV1(complete);
     expect(canonical.instruments?.allowedPresetVersions[0]?.presetId).toBe(

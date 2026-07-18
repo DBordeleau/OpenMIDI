@@ -58,6 +58,12 @@ export const phaseLabels: Record<ChallengePhase, string> = {
   cancelled: "Cancelled",
 };
 
+export function isChallengePubliclyAddressable(input: {
+  publishedAt: string | null;
+}) {
+  return input.publishedAt !== null;
+}
+
 function toMillis(value: string | Date) {
   const time = new Date(value).getTime();
   if (!Number.isFinite(time)) throw new Error("challenge_time_invalid");

@@ -14,7 +14,8 @@ declare
   v_min numeric;
   v_max numeric;
   v_exact numeric;
-  v_limit numeric := case when p_kind = 'tempo' then 400 else 32 end;
+  -- Manifest-v3 arrangements use the same 300 BPM ceiling.
+  v_limit numeric := case when p_kind = 'tempo' then 300 else 32 end;
   v_floor numeric := case when p_kind = 'tempo' then 20 else 0 end;
 begin
   if p_value is null or p_value = 'null'::jsonb then return null; end if;
@@ -111,7 +112,7 @@ begin
         or (item->>'version')::numeric <> trunc((item->>'version')::numeric)
         or not exists (
           select 1 from public.midi_library_presets p
-          where p.preset_id=item->>'presetId' and p.version=(item->>'version')::integer
+          where p.preset_id=item->>'presetId' and p.version=(item->>'version')::integer and p.active
         )
     ) or exists (
       select 1
@@ -124,7 +125,7 @@ begin
         or (item->>'version')::numeric <> trunc((item->>'version')::numeric)
         or not exists (
           select 1 from public.midi_library_presets p
-          where p.preset_id=item->>'presetId' and p.version=(item->>'version')::integer
+          where p.preset_id=item->>'presetId' and p.version=(item->>'version')::integer and p.active
         )
     ) then raise sqlstate '22023' using message = 'challenge_constraint_preset_invalid'; end if;
 
@@ -458,6 +459,12 @@ begin
     return jsonb_build_object('challengeId',v_existing.challenge_id,'versionId',v_existing.challenge_version_id,'lifecycleVersion',v_existing.new_lifecycle_version);
   end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_slug,0));
+  -- A concurrent identical request may have completed while this call waited.
+  select * into v_existing from private.challenge_admin_actions where actor_id=v_actor and request_id=p_request_id;
+  if found then
+    if v_existing.action<>'create' or v_existing.request_payload_sha256<>v_hash then raise sqlstate 'PT409' using message='challenge_request_conflict'; end if;
+    return jsonb_build_object('challengeId',v_existing.challenge_id,'versionId',v_existing.challenge_version_id,'lifecycleVersion',v_existing.new_lifecycle_version);
+  end if;
   if exists(select 1 from public.challenges where slug=v_slug) then raise sqlstate 'PT409' using message='challenge_slug_taken'; end if;
   insert into public.challenges(slug,created_by) values(v_slug,v_actor) returning * into v_challenge;
   v_version_id:=private.insert_challenge_version(v_challenge.id,1,v_actor,p_request_id,p_version,p_judges);
@@ -496,6 +503,12 @@ begin
   end if;
   select * into v_challenge from public.challenges where id=p_challenge_id for update;
   if not found then raise sqlstate 'PT404' using message='challenge_not_found'; end if;
+  -- Recheck after the challenge-row lock so concurrent retries converge.
+  select * into v_existing from private.challenge_admin_actions where actor_id=v_actor and request_id=p_request_id;
+  if found then
+    if v_existing.action<>'revise' or v_existing.request_payload_sha256<>v_hash then raise sqlstate 'PT409' using message='challenge_request_conflict'; end if;
+    return jsonb_build_object('challengeId',v_existing.challenge_id,'versionId',v_existing.challenge_version_id,'lifecycleVersion',v_existing.new_lifecycle_version);
+  end if;
   if v_challenge.state<>'draft' then raise sqlstate 'PT409' using message='challenge_not_revisable'; end if;
   if v_challenge.lifecycle_version<>p_expected_lifecycle_version or v_challenge.current_version_id<>p_expected_current_version_id then
     raise sqlstate 'PT409' using message='challenge_stale';
@@ -534,6 +547,12 @@ begin
   end if;
   select * into v_challenge from public.challenges where id=p_challenge_id for update;
   if not found then raise sqlstate 'PT404' using message='challenge_not_found'; end if;
+  -- Recheck after the challenge-row lock so concurrent retries converge.
+  select * into v_existing from private.challenge_admin_actions where actor_id=v_actor and request_id=p_request_id;
+  if found then
+    if v_existing.action<>'publish' or v_existing.request_payload_sha256<>v_hash then raise sqlstate 'PT409' using message='challenge_request_conflict'; end if;
+    return jsonb_build_object('challengeId',v_existing.challenge_id,'versionId',v_existing.challenge_version_id,'lifecycleVersion',v_existing.new_lifecycle_version);
+  end if;
   if v_challenge.state<>'draft' then raise sqlstate 'PT409' using message='challenge_not_publishable'; end if;
   if v_challenge.lifecycle_version<>p_expected_lifecycle_version or v_challenge.current_version_id<>p_expected_current_version_id then raise sqlstate 'PT409' using message='challenge_stale'; end if;
   select * into v_version from public.challenge_versions where id=v_challenge.current_version_id;
@@ -580,6 +599,12 @@ begin
   end if;
   select * into v_challenge from public.challenges where id=p_challenge_id for update;
   if not found then raise sqlstate 'PT404' using message='challenge_not_found'; end if;
+  -- Recheck after the challenge-row lock so concurrent retries converge.
+  select * into v_existing from private.challenge_admin_actions where actor_id=v_actor and request_id=p_request_id;
+  if found then
+    if v_existing.action<>'cancel' or v_existing.request_payload_sha256<>v_hash then raise sqlstate 'PT409' using message='challenge_request_conflict'; end if;
+    return jsonb_build_object('challengeId',v_existing.challenge_id,'versionId',v_existing.challenge_version_id,'lifecycleVersion',v_existing.new_lifecycle_version);
+  end if;
   if v_challenge.state not in ('draft','published') then raise sqlstate 'PT409' using message='challenge_not_cancellable'; end if;
   if v_challenge.lifecycle_version<>p_expected_lifecycle_version or v_challenge.current_version_id<>p_expected_current_version_id then raise sqlstate 'PT409' using message='challenge_stale'; end if;
   update public.challenges set state='cancelled',cancelled_at=statement_timestamp(),cancelled_by=v_actor,cancellation_note=v_reason,lifecycle_version=lifecycle_version+1,updated_at=statement_timestamp() where id=v_challenge.id;

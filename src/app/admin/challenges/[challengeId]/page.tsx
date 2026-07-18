@@ -6,7 +6,10 @@ import { requireAdmin } from "@/features/auth/guards";
 import { AdminChallengeForm } from "@/features/challenges/admin-challenge-form.client";
 import { AdminChallengeLifecycle } from "@/features/challenges/admin-challenge-lifecycle.client";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
-import { challengePhaseMessage } from "@/features/challenges/lifecycle";
+import {
+  challengePhaseMessage,
+  isChallengePubliclyAddressable,
+} from "@/features/challenges/lifecycle";
 import {
   getAdminChallenge,
   listEligibleChallengeStarters,
@@ -60,7 +63,7 @@ export default async function AdminChallengeDetailPage({
               })}
             </p>
           </div>
-          {challenge.state !== "draft" && (
+          {isChallengePubliclyAddressable(challenge) && (
             <Link
               className="border-strong min-h-11 rounded-full border px-5 py-3 font-semibold"
               href={`/challenges/${challenge.slug}`}

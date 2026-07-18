@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(50);
 
 select has_table('public','challenges','stable challenge identities exist');
 select has_table('public','challenge_versions','immutable challenge versions exist');
@@ -23,6 +23,11 @@ select is(
 select is(private.challenge_public_phase('published','2026-08-01T12:00:00Z','2026-08-08T12:00:00Z','2026-08-01T11:59:59Z'),'scheduled','phase before opening is scheduled');
 select is(private.challenge_public_phase('published','2026-08-01T12:00:00Z','2026-08-08T12:00:00Z','2026-08-01T12:00:00Z'),'open','opening instant is open');
 select is(private.challenge_public_phase('published','2026-08-01T12:00:00Z','2026-08-08T12:00:00Z','2026-08-08T12:00:00Z'),'voting','submission close instant enters voting phase');
+select lives_ok($$select private.validate_challenge_constraints_v1('{"schemaVersion":1,"tempoBpm":{"exact":300}}')$$,'SQL accepts the manifest-v3 maximum tempo');
+select throws_ok($$select private.validate_challenge_constraints_v1('{"schemaVersion":1,"tempoBpm":{"exact":300.001}}')$$,'22023','challenge_constraint_range_bounds','SQL rejects tempo above the manifest-v3 maximum');
+update public.midi_library_presets set active=false where preset_id='warm-keys' and version=1;
+select throws_ok($$select private.validate_challenge_constraints_v1('{"schemaVersion":1,"instruments":{"requiredPresetVersions":[{"presetId":"warm-keys","version":1}]}}')$$,'22023','challenge_constraint_preset_invalid','SQL rejects inactive preset versions');
+update public.midi_library_presets set active=true where preset_id='warm-keys' and version=1;
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','fd000000-0000-4000-8000-000000000001','authenticated','authenticated','challenge-member@example.test','','{}','{}',now(),now()),
@@ -138,6 +143,19 @@ set local request.jwt.claim.sub='fd000000-0000-4000-8000-000000000003';
 select lives_ok($$select public.publish_challenge((select id from starter_challenge_fixture),'fd100000-0000-4000-8000-000000000006',1,(select current_version_id from starter_challenge_fixture))$$,'restored exact starter permits publication');
 select is(public.get_public_challenge('starter-study')#>>'{starter,creatorCreditName}','Starter Maker','public detail retains immutable starter creator snapshot');
 select is(public.get_public_challenge('starter-study')#>>'{judges,1,creditName}','Starter Maker','linked judge uses immutable profile credit snapshot');
+
+select lives_ok($$
+  select public.create_challenge_draft('fd100000-0000-4000-8000-000000000007','preset-publication-check',jsonb_build_object('title','Preset Publication Check','prompt','Use one active preset.','description','Publication revalidates preset activity.','eligibilityTerms','Original work only.','presentationCode','pulse','opensAt',now()+interval '1 day','submissionsCloseAt',now()+interval '2 days','votingOpensAt',now()+interval '3 days','votingClosesAt',now()+interval '4 days','resultsExpectedAt',now()+interval '5 days','judgingMode','community','officialPlacementCount',0,'constraints','{"schemaVersion":1,"instruments":{"requiredPresetVersions":[{"presetId":"warm-keys","version":1}]}}'::jsonb),'[{"role":"host","displayName":"Host","profileId":null}]')
+$$,'active preset version may be frozen into a draft');
+reset role;
+create temp table preset_publication_fixture as select id,current_version_id from public.challenges where slug='preset-publication-check';
+grant select on preset_publication_fixture to authenticated;
+update public.midi_library_presets set active=false where preset_id='warm-keys' and version=1;
+set local role authenticated;
+set local request.jwt.claim.sub='fd000000-0000-4000-8000-000000000003';
+select throws_ok($$select public.publish_challenge((select id from preset_publication_fixture),gen_random_uuid(),1,(select current_version_id from preset_publication_fixture))$$,'22023','challenge_constraint_preset_invalid','publication revalidates preset activity');
+reset role;
+update public.midi_library_presets set active=true where preset_id='warm-keys' and version=1;
 
 select * from finish();
 rollback;

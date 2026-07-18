@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { challengePhaseMessage, deriveChallengePhase } from "./lifecycle";
+import {
+  challengePhaseMessage,
+  deriveChallengePhase,
+  isChallengePubliclyAddressable,
+} from "./lifecycle";
 
 const schedule = {
   opensAt: "2026-08-01T12:00:00.000Z",
@@ -43,5 +47,14 @@ describe("challenge lifecycle", () => {
     expect(deriveChallengePhase({ state: "cancelled", ...schedule })).toBe(
       "cancelled",
     );
+  });
+
+  it("exposes a public link only after a challenge has been published", () => {
+    expect(isChallengePubliclyAddressable({ publishedAt: null })).toBe(false);
+    expect(
+      isChallengePubliclyAddressable({
+        publishedAt: "2026-08-01T12:00:00.000Z",
+      }),
+    ).toBe(true);
   });
 });
