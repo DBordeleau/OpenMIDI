@@ -3,10 +3,18 @@ import "server-only";
 import { z } from "zod";
 import { canonicalizeChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
 import {
+  challengeEntryCommandResponseSchema,
+  challengePreflightSchema,
+  challengeRevisionOptionSchema,
+  myChallengeEntrySchema,
+  publicChallengeEntrySchema,
+} from "@/features/challenges/entry-contract";
+import {
   challengePhaseSchema,
   challengeStateSchema,
 } from "@/features/challenges/lifecycle";
 import type { Challenge } from "@/features/challenges/types";
+import { midiArrangementPreviewSchema } from "@/features/public-midi/contract";
 import type { Json } from "@/lib/supabase/database.types";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -206,4 +214,96 @@ export async function listEligibleChallengeStarters() {
     title: row.title,
     revisionNumber: row.revision_number,
   }));
+}
+
+export async function listMyChallengeRevisionOptions(challengeId: string) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("list_my_challenge_revision_options", {
+    p_challenge_id: challengeId,
+  });
+  if (error || !data) return [];
+  return z.array(challengeRevisionOptionSchema).parse(data);
+}
+
+export async function preflightChallengeRevision(input: {
+  challengeId: string;
+  challengeVersionId: string;
+  revisionId: string;
+}) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("preflight_challenge_revision", {
+    p_challenge_id: input.challengeId,
+    p_challenge_version_id: input.challengeVersionId,
+    p_revision_id: input.revisionId,
+  });
+  return {
+    data: data ? challengePreflightSchema.parse(data) : null,
+    error,
+  };
+}
+
+export async function submitChallengeEntry(input: {
+  challengeId: string;
+  challengeVersionId: string;
+  revisionId: string;
+  requestId: string;
+  expectedActiveEntryId: string | null;
+  displayAttestationVersion: string;
+}) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("submit_challenge_entry", {
+    p_challenge_id: input.challengeId,
+    p_challenge_version_id: input.challengeVersionId,
+    p_project_revision_id: input.revisionId,
+    p_request_id: input.requestId,
+    // Postgres accepts SQL null for the first-entry sentinel; generated RPC
+    // argument types cannot express nullable function parameters.
+    p_expected_active_entry_id: input.expectedActiveEntryId!,
+    p_display_attestation_version: input.displayAttestationVersion,
+  });
+  return {
+    data: data ? challengeEntryCommandResponseSchema.parse(data) : null,
+    error,
+  };
+}
+
+export async function getMyChallengeEntry(challengeId: string) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("get_my_challenge_entry", {
+    p_challenge_id: challengeId,
+  });
+  if (error || !data) return null;
+  return myChallengeEntrySchema.parse(data);
+}
+
+export async function listPublicChallengeEntries(slug: string) {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc("list_public_challenge_entries", {
+    p_slug: slug,
+  });
+  if (error) throw new Error("challenge_entries_unavailable");
+  return z.array(publicChallengeEntrySchema).parse(data);
+}
+
+export async function getPublicChallengeEntry(slug: string, entryId: string) {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc("get_public_challenge_entry", {
+    p_slug: slug,
+    p_entry_id: entryId,
+  });
+  if (error || !data) return null;
+  return publicChallengeEntrySchema.parse(data);
+}
+
+export async function getPublicChallengeEntryPreview(
+  slug: string,
+  entryId: string,
+) {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc("get_public_challenge_entry_preview", {
+    p_slug: slug,
+    p_entry_id: entryId,
+  });
+  if (error || !data) return null;
+  return midiArrangementPreviewSchema.parse(data);
 }
