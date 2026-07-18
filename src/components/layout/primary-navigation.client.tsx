@@ -20,6 +20,11 @@ const links = [
     active: (pathname: string) => pathname.startsWith("/library"),
   },
   {
+    href: "/challenges",
+    label: "Challenges",
+    active: (pathname: string) => pathname.startsWith("/challenges"),
+  },
+  {
     href: "/studio",
     label: "Studio",
     active: (pathname: string) =>

@@ -22,7 +22,7 @@ describe("SiteHeader", () => {
     ).toHaveAttribute("href", "/#versioning");
     expect(
       within(sections).getByRole("link", { name: "Challenges" }),
-    ).toHaveAttribute("href", "/#challenges");
+    ).toHaveAttribute("href", "/challenges");
 
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",

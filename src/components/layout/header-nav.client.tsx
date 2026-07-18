@@ -10,7 +10,7 @@ const sectionLinks = [
   { href: "/explore", label: "Explore" },
   { href: "/library", label: "The MIDI Library" },
   { href: "/#versioning", label: "Versioning" },
-  { href: "/#challenges", label: "Challenges" },
+  { href: "/challenges", label: "Challenges" },
 ] as const;
 
 /**

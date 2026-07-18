@@ -109,6 +109,8 @@ The first constraint version supports:
 - exact time signature; and
 - exact declared key.
 
+Status: Complete in the repository. Administrators can create and append draft versions, publish or cancel through idempotent optimistic commands, and inspect private projections. Anonymous visitors receive only bounded published/cancelled-safe index and canonical detail projections. Constraint schema v1 canonicalizes deterministically in TypeScript and Postgres, and scheduled/open/voting labels derive from frozen UTC boundaries without cron. The migration is repository-only and is not applied to hosted Supabase.
+
 ### CHALLENGE-02 — Preflight, authoritative validation, and entries
 
 Let users validate a private/current revision, receive per-rule observed-versus-required feedback, and submit or explicitly replace one exact immutable eligible revision before the deadline. Server/database authority revalidates submission; the client preflight is advisory.
@@ -117,7 +119,7 @@ Let users validate a private/current revision, receive per-rule observed-versus-
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: The post-LIB pulse check is complete and `local/implementation-plans/032-curated-constraint-challenges.md` is the worker-ready authority. Implement CHALLENGE-01, CHALLENGE-02, and CHALLENGE-03 sequentially; CHALLENGE-01 is next. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: CHALLENGE-01 is complete in the repository. `local/implementation-plans/032-curated-constraint-challenges.md` remains the worker-ready authority; CHALLENGE-02 is next, followed by CHALLENGE-03. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
