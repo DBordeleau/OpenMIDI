@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(43);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','fb000000-0000-4000-8000-000000000001','authenticated','authenticated','lib2-owner@example.test','','{}','{}',now(),now()),
@@ -92,6 +92,57 @@ select throws_ok($$select public.get_public_midi_library_pattern_comparison(
   (select id from public.midi_pattern_versions where create_request_id='fb200000-0000-4000-8000-000000000001'),
   (select id from public.midi_pattern_versions where create_request_id='fb200000-0000-4000-8000-000000000003'))$$,
   'PT403','midi_library_comparison_not_authorized','private-only version cannot enter comparison');
+reset role;
+
+-- Grow the authorized history beyond the application bound. The detail RPC must
+-- cap before aggregating notes, retain the listed version, and leave explicit
+-- authorized comparison access independent from the first history window.
+create temp table lib2_extra_versions as
+  select i as version_number,gen_random_uuid() as version_id
+  from generate_series(4,102) i;
+grant select on lib2_extra_versions to anon;
+insert into public.midi_pattern_versions(
+  id,midi_pattern_id,version_number,create_request_id,creator_id,creator_credit_name,
+  ppq,duration_ticks,note_count,content_sha256,reuse_license_code,
+  reuse_license_version,reuse_license_url,created_at
+)
+select x.version_id,f.midi_pattern_id,x.version_number,gen_random_uuid(),
+  'fb000000-0000-4000-8000-000000000001','LIB Two Owner',480,960,1,
+  lpad(to_hex(x.version_number),64,'0'),'CC-BY-4.0','4.0',
+  'https://creativecommons.org/licenses/by/4.0/',now()+make_interval(secs=>x.version_number)
+from lib2_extra_versions x cross join lib2_fixture f;
+insert into public.midi_pattern_notes(
+  midi_pattern_version_id,note_id,start_tick,duration_ticks,pitch,velocity
+)
+select version_id,gen_random_uuid(),0,240,60,90 from lib2_extra_versions;
+insert into public.arrangement_clips(
+  arrangement_version_id,project_id,track_id,clip_id,midi_pattern_version_id,
+  start_tick,duration_ticks,source_start_tick,loop
+)
+select 'fb520000-0000-4000-8000-000000000001',
+  'fb500000-0000-4000-8000-000000000001',
+  'fb540000-0000-4000-8000-000000000001',gen_random_uuid(),version_id,
+  0,960,0,false
+from lib2_extra_versions;
+set local role anon;
+select is(jsonb_array_length(public.get_public_midi_library_listing(
+  (select listing_id from lib2_fixture))->'history'),100,
+  'detail history is bounded to 100 authorized versions before application mapping');
+select ok(public.get_public_midi_library_listing((select listing_id from lib2_fixture))
+  #>'{history}' @> jsonb_build_array(jsonb_build_object(
+    'midiPatternVersionId',(select midi_pattern_version_id from lib2_fixture))),
+  'bounded history always retains the exact listed version');
+select ok(not (public.get_public_midi_library_listing((select listing_id from lib2_fixture))
+  #>'{history}' @> jsonb_build_array(jsonb_build_object(
+    'midiPatternVersionId',(select id from public.midi_pattern_versions
+      where create_request_id='fb200000-0000-4000-8000-000000000002')))),
+  'deterministic history window excludes an older non-listed version when over capacity');
+select lives_ok($$select public.get_public_midi_library_pattern_comparison(
+  (select listing_id from lib2_fixture),
+  (select midi_pattern_version_id from lib2_fixture),
+  (select id from public.midi_pattern_versions
+    where create_request_id='fb200000-0000-4000-8000-000000000002'))$$,
+  'explicit authorized comparison remains available outside the bounded history window');
 reset role;
 
 set local role authenticated;

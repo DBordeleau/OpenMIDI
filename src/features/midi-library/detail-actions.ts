@@ -91,6 +91,7 @@ export async function applyMidiLibraryModerationActionAction(
     return {
       status: "success",
       message: "The moderation action was recorded.",
+      referenceId: parsed.data.requestId,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

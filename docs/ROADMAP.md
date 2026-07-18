@@ -84,7 +84,7 @@ Status: Complete in the repository. `/library` and `/library/manage` use the exa
 
 Add library browse/detail pages with deterministic preview, read-only notes, immutable version/lineage history, selection between any two versions in the same pattern history, prominent reuse-mode labels, visible external credits/rights terms, and public-project usage. Add **Report unoriginal or unauthorized work** with administrator hide/review/restore actions. Private project usage and reports must never leak through counts or links.
 
-Status: Complete in the repository. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, bounded authorized history, URL-selected shared DIFF comparison and paired audition, separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions. The LIB-02 migration is not applied to hosted Supabase without separate authority. LIB-03 is next.
+Status: Complete in the repository. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, a deterministic 100-version authorized history window, URL-selected shared DIFF comparison and paired audition (including explicit authorized versions outside that first window), separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions with a fresh idempotency key per successful action. The LIB-02 migrations are not applied to hosted Supabase without separate authority. LIB-03 is next.
 
 ### LIB-03 — Saved clips and Studio import
 

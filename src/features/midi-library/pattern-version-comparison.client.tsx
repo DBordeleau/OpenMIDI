@@ -97,6 +97,15 @@ export function MidiLibraryPatternComparisonView({
   comparison: MidiLibraryPatternComparison;
 }) {
   const router = useRouter();
+  const selectorVersions = [...history, comparison.from, comparison.to]
+    .filter(
+      (version, index, versions) =>
+        versions.findIndex(
+          (candidate) =>
+            candidate.midiPatternVersionId === version.midiPatternVersionId,
+        ) === index,
+    )
+    .sort((left, right) => left.versionNumber - right.versionNumber);
   const pair = {
     from: comparison.from.midiPatternVersionId,
     to: comparison.to.midiPatternVersionId,
@@ -141,7 +150,7 @@ export function MidiLibraryPatternComparisonView({
               }
               className="border-strong bg-canvas mt-2 block min-h-11 w-full rounded-full border px-4"
             >
-              {history.map((version) => (
+              {selectorVersions.map((version) => (
                 <option
                   key={version.midiPatternVersionId}
                   value={version.midiPatternVersionId}

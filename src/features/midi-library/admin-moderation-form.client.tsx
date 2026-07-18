@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminMidiLibraryReport } from "./types";
 import {
@@ -16,14 +16,22 @@ export function MidiLibraryAdminModerationForm({
   report: AdminMidiLibraryReport;
 }) {
   const router = useRouter();
-  const [requestId] = useState(() => crypto.randomUUID());
-  const [state, action, pending] = useActionState(
-    applyMidiLibraryModerationActionAction,
-    initialState,
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const applyAction = useCallback(
+    async (previous: MidiLibraryActionState, formData: FormData) => {
+      const next = await applyMidiLibraryModerationActionAction(
+        previous,
+        formData,
+      );
+      if (next.status === "success") {
+        setRequestId(crypto.randomUUID());
+        router.refresh();
+      }
+      return next;
+    },
+    [router],
   );
-  useEffect(() => {
-    if (state.status === "success") router.refresh();
-  }, [router, state.status]);
+  const [state, action, pending] = useActionState(applyAction, initialState);
   return (
     <form
       action={action}

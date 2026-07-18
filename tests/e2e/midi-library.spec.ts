@@ -326,6 +326,14 @@ test.describe("public MIDI library", () => {
       page.getByRole("link", { name: fixture.title }).click(),
     ]);
     const reportUrl = page.url();
+    await page.getByLabel("Action").selectOption("assign_self");
+    await page
+      .getByLabel("Decision note")
+      .fill("Assign this focused browser rights review to me.");
+    await page.getByRole("button", { name: "Apply action" }).click();
+    await expect(
+      page.getByText("The moderation action was recorded."),
+    ).toBeVisible();
     await page.getByLabel("Action").selectOption("hide");
     await page
       .getByLabel("Decision note")
