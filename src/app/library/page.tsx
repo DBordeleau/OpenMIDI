@@ -7,6 +7,8 @@ import {
   parseMidiLibraryFilters,
 } from "@/features/midi-library/schema";
 import { MidiLibraryPreview } from "@/features/midi-library/midi-library-preview.client";
+import { MidiLibraryReuseControls } from "@/features/midi-library/reuse-controls.client";
+import { getOptionalViewer } from "@/features/auth/guards";
 import {
   formatInstrumentFamily,
   formatPitch,
@@ -18,6 +20,8 @@ import type {
 } from "@/features/midi-library/types";
 import {
   listMidiLibraryOptions,
+  listOwnedPrivateMidiWorkspaces,
+  listSavedMidiLibraryPatterns,
   searchPublicMidiLibrary,
 } from "@/server/repositories/midi-library";
 
@@ -34,7 +38,13 @@ export default async function MidiLibraryPage({
   searchParams: Promise<PageSearchParams>;
 }) {
   const parsed = parseMidiLibraryFilters(await searchParams);
-  const options = await listMidiLibraryOptions();
+  const viewer = await getOptionalViewer();
+  const [options, saved, workspaces] = await Promise.all([
+    listMidiLibraryOptions(),
+    viewer ? listSavedMidiLibraryPatterns() : Promise.resolve([]),
+    viewer ? listOwnedPrivateMidiWorkspaces() : Promise.resolve([]),
+  ]);
+  const savedIds = new Set(saved.map((item) => item.midiPatternVersionId));
   let result: Awaited<ReturnType<typeof searchPublicMidiLibrary>> | null = null;
   let error = parsed.success ? null : parsed.message;
   if (parsed.success)
@@ -73,9 +83,16 @@ export default async function MidiLibraryPage({
               synths. Every card says clearly what reuse is—and isn’t—allowed.
             </p>
           </div>
-          <ButtonLink href="/library/manage" variant="secondary">
-            List your MIDI
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            {viewer && (
+              <ButtonLink href="/library/saved" variant="secondary">
+                Saved clips
+              </ButtonLink>
+            )}
+            <ButtonLink href="/library/manage" variant="secondary">
+              List your MIDI
+            </ButtonLink>
+          </div>
         </header>
 
         {filters && (
@@ -330,6 +347,27 @@ export default async function MidiLibraryPage({
                       forking, editing, and exporting are not granted.
                     </p>
                   )}
+                  {listing.reuseMode === "commercial_reuse" && viewer ? (
+                    <MidiLibraryReuseControls
+                      listingId={listing.listingId}
+                      patternVersionId={listing.midiPatternVersionId}
+                      title={listing.title}
+                      saved={savedIds.has(listing.midiPatternVersionId)}
+                      canReuse
+                      workspaces={workspaces}
+                      compact
+                    />
+                  ) : listing.reuseMode === "commercial_reuse" ? (
+                    <p className="border-subtle text-muted mt-4 border-t pt-4 text-sm">
+                      <Link
+                        className="text-accent underline"
+                        href={`/sign-in?next=${encodeURIComponent(`/library/${listing.listingId}`)}`}
+                      >
+                        Sign in
+                      </Link>{" "}
+                      to save, import, fork, edit, or export this CC BY version.
+                    </p>
+                  ) : null}
                 </article>
               ))}
             </div>

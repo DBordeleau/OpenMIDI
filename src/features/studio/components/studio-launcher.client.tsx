@@ -29,6 +29,7 @@ type CommonProps = {
     instrumentName: string | null;
     creditName: string;
   }>;
+  initialEditorClipId?: string;
 };
 
 export type StudioLauncherProps = CommonProps &

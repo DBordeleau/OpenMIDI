@@ -4,6 +4,7 @@ import {
   encodeMidiLibraryCursor,
   midiLibraryListingInputSchema,
   midiLibrarySearchParams,
+  midiLibraryReuseCommandSchema,
   parseMidiLibraryFilters,
 } from "./schema";
 
@@ -87,6 +88,32 @@ describe("MIDI library contracts", () => {
       midiLibraryListingInputSchema.safeParse({
         ...base,
         supportingSourceUrl: "http://example.test",
+      }).success,
+    ).toBe(false);
+  });
+  it("binds import and editor reuse to an optimistic workspace version", () => {
+    const base = {
+      listingId: "10000000-0000-4000-8000-000000000001",
+      patternVersionId: "10000000-0000-4000-8000-000000000002",
+      requestId: "10000000-0000-4000-8000-000000000003",
+      operation: "import",
+      workspaceId: "10000000-0000-4000-8000-000000000004",
+      expectedWorkspaceLockVersion: 3,
+      copyName: null,
+      startTick: 0,
+    };
+    expect(midiLibraryReuseCommandSchema.safeParse(base).success).toBe(true);
+    expect(
+      midiLibraryReuseCommandSchema.safeParse({
+        ...base,
+        expectedWorkspaceLockVersion: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      midiLibraryReuseCommandSchema.safeParse({
+        ...base,
+        operation: "open_editor",
+        copyName: null,
       }).success,
     ).toBe(false);
   });

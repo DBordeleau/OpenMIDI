@@ -1,7 +1,7 @@
 # OpenMIDI technical design
 
-Status: MIDI-only foundation plus LIB-01 and LIB-02 complete in the repository; hosted LIB migrations pending authority
-Last updated: 2026-07-17
+Status: MIDI-only foundation plus LIB-01 through LIB-03 complete in the repository; hosted LIB migrations pending authority
+Last updated: 2026-07-18
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
 
@@ -27,7 +27,7 @@ PIVOT-01 through PIVOT-10 and the administrator-invitation reconciliation are im
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - bounded semantic comparison for contribution versions and any two authorized same-project revisions, with a static accessible note overlay and mutually exclusive browser-local audition;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations plus administrator-invitation, two beta-feedback, and two unapplied LIB forward migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- four reviewed clean baseline migrations plus administrator-invitation, two beta-feedback, and four unapplied LIB forward migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
@@ -38,7 +38,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Wave A, LIB-01, and LIB-02 are complete in the repository. The library now has explicit exact-version listing/unlisting, versioned rights attestations, immutable external credits, derived musical facets, bounded safe search, browser-local preview, canonical detail/history/shared DIFF, public-only usage, and private rights-report moderation with optimistic audited visibility actions. Detail history is capped at 100 authorized versions before note aggregation while explicit authorized comparisons remain addressable outside that window. LIB-03 saved clips and authorized reuse is next. The retained hosted project remains at seven migrations; `20260717220750_public_midi_library.sql`, `20260717232107_lib_02_library_detail_moderation.sql`, and the ordered follow-up `20260718063241_lib_02_bound_history_projection.sql` are intentionally unapplied until explicit hosted-mutation authority is granted. Curated challenges, linked challenge awards, and release hardening follow the library, and Vercel deployment remains deferred to RELEASE-03.
+Wave A and LIB-01 through LIB-03 are complete in the repository. The library now has explicit exact-version listing/unlisting, versioned rights attestations, immutable external credits, derived musical facets, bounded safe search, browser-local preview/export, canonical detail/history/shared DIFF, public-only usage, private rights-report moderation, private exact-version saved clips, optimistic workspace import, and attributed copy-on-write fork/editor paths. Detail history is capped at 100 authorized versions before note aggregation while explicit authorized comparisons remain addressable outside that window. The retained hosted project remains at seven migrations; `20260717220750_public_midi_library.sql`, `20260717232107_lib_02_library_detail_moderation.sql`, `20260718063241_lib_02_bound_history_projection.sql`, and `20260718070409_lib_03_saved_clips_reuse.sql` are intentionally unapplied until explicit hosted-mutation authority is granted. The post-LIB milestone pulse check and worker-ready CHALLENGE plan are next; linked challenge awards and release hardening follow, and Vercel deployment remains deferred to RELEASE-03.
 
 ## Global invariants
 

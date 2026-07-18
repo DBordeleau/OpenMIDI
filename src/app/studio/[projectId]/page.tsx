@@ -16,10 +16,16 @@ import { resolveStudioSession } from "@/server/services/studio-session";
 // fix vercel/next.js#94128 ships in the pinned stable release.
 export default async function StudioProjectPage({
   params,
+  searchParams = Promise.resolve({}),
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams?: Promise<{ editClip?: string }>;
 }) {
   const { projectId } = await params;
+  const editClip = (await searchParams).editClip;
+  const initialEditorClipId = projectIdSchema.safeParse(editClip).success
+    ? editClip
+    : undefined;
   if (!projectIdSchema.safeParse(projectId).success) notFound();
   const viewer = await requireViewer(`/studio/${projectId}`);
   const session = await resolveStudioSession(projectId, viewer.id);
@@ -69,6 +75,7 @@ export default async function StudioProjectPage({
           durationMs={workspaceDurationMs}
           tracks={studioTrackCredits(workspace.manifest, patternVersions)}
           patternVersions={patternVersions}
+          initialEditorClipId={initialEditorClipId}
         />
       ) : workspace ? (
         <StudioLauncher
@@ -89,6 +96,7 @@ export default async function StudioProjectPage({
           durationMs={workspaceDurationMs}
           tracks={studioTrackCredits(workspace.manifest, patternVersions)}
           patternVersions={patternVersions}
+          initialEditorClipId={initialEditorClipId}
         />
       ) : revision && editable ? (
         <CreateWorkspaceForm

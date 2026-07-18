@@ -11,6 +11,11 @@ vi.mock("next/navigation", () => ({ notFound: vi.fn() }));
 vi.mock("@/server/repositories/midi-library", () => ({
   getPublicMidiLibraryListing: vi.fn(),
   getPublicMidiLibraryPatternComparison: vi.fn(),
+  listSavedMidiLibraryPatterns: vi.fn(),
+  listOwnedPrivateMidiWorkspaces: vi.fn(),
+}));
+vi.mock("@/features/auth/guards", () => ({
+  getOptionalViewer: vi.fn().mockResolvedValue(null),
 }));
 vi.mock("@/features/midi-library/midi-library-preview.client", () => ({
   MidiLibraryPreview: () => <div>Deterministic local preview</div>,
@@ -139,6 +144,12 @@ describe("library detail route", () => {
     expect(
       screen.getByText("Report unoriginal or unauthorized work"),
     ).toBeVisible();
+    expect(
+      screen.getByText(/Reference-only listings cannot be saved/),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /Save clip/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("uses a non-leaking not-found state for hidden or unlisted detail", async () => {

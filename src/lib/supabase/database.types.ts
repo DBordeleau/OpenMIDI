@@ -1076,7 +1076,7 @@ export type Database = {
           credited_name: string
           id: string
           inherited_from_credit_id: string | null
-          listing_id: string
+          listing_id: string | null
           midi_pattern_version_id: string
           position: number
           role: string
@@ -1090,7 +1090,7 @@ export type Database = {
           credited_name: string
           id?: string
           inherited_from_credit_id?: string | null
-          listing_id: string
+          listing_id?: string | null
           midi_pattern_version_id: string
           position: number
           role: string
@@ -1104,7 +1104,7 @@ export type Database = {
           credited_name?: string
           id?: string
           inherited_from_credit_id?: string | null
-          listing_id?: string
+          listing_id?: string | null
           midi_pattern_version_id?: string
           position?: number
           role?: string
@@ -2109,6 +2109,59 @@ export type Database = {
           },
         ]
       }
+      saved_midi_patterns: {
+        Row: {
+          created_at: string
+          midi_pattern_version_id: string
+          save_request_id: string
+          source_listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          midi_pattern_version_id: string
+          save_request_id: string
+          source_listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          midi_pattern_version_id?: string
+          save_request_id?: string
+          source_listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_midi_patterns_midi_pattern_version_id_fkey"
+            columns: ["midi_pattern_version_id"]
+            isOneToOne: false
+            referencedRelation: "midi_pattern_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_midi_patterns_source_listing_id_fkey"
+            columns: ["source_listing_id"]
+            isOneToOne: false
+            referencedRelation: "midi_library_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_midi_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_midi_patterns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string
@@ -2606,6 +2659,10 @@ export type Database = {
         Args: { p_contribution_id: string }
         Returns: Json
       }
+      get_midi_library_export: {
+        Args: { p_listing_id: string; p_pattern_version_id: string }
+        Returns: Json
+      }
       get_own_account_recovery: { Args: never; Returns: Json }
       get_project_revision_history_v3: {
         Args: { p_project_id: string }
@@ -2703,6 +2760,16 @@ export type Database = {
           version_number: number
         }[]
       }
+      list_owned_private_midi_workspaces: {
+        Args: never
+        Returns: {
+          lock_version: number
+          project_id: string
+          project_title: string
+          updated_at: string
+          workspace_id: string
+        }[]
+      }
       list_public_profile_contributions: {
         Args: {
           p_after_accepted_at?: string
@@ -2720,6 +2787,32 @@ export type Database = {
           p_profile_id: string
         }
         Returns: Json
+      }
+      list_saved_midi_library_patterns: {
+        Args: { p_limit?: number }
+        Returns: {
+          can_reuse: boolean
+          category_name: string
+          created_at: string
+          creator_credit_name: string
+          creator_display_name: string
+          creator_username: string
+          duration_ticks: number
+          external_credits: Json
+          license_code: string
+          license_url: string
+          license_version: string
+          midi_pattern_version_id: string
+          note_count: number
+          notes: Json
+          preset_id: string
+          preset_name: string
+          preset_version: number
+          reuse_mode: string
+          source_availability: string
+          source_listing_id: string
+          title: string
+        }[]
       }
       list_viewer_contributions: {
         Args: {
@@ -2880,6 +2973,13 @@ export type Database = {
         Args: { p_expected_avatar_version_id: string }
         Returns: undefined
       }
+      remove_saved_midi_library_pattern: {
+        Args: { p_pattern_version_id: string; p_request_id: string }
+        Returns: {
+          midi_pattern_version_id: string
+          removed: boolean
+        }[]
+      }
       request_account_deletion: {
         Args: { p_request_id: string; p_username: string }
         Returns: Json
@@ -2912,6 +3012,29 @@ export type Database = {
           status: string
         }[]
       }
+      reuse_midi_library_pattern: {
+        Args: {
+          p_copy_name?: string
+          p_expected_workspace_lock_version?: number
+          p_listing_id: string
+          p_operation: string
+          p_pattern_version_id: string
+          p_request_id: string
+          p_start_tick?: number
+          p_workspace_id?: string
+        }
+        Returns: {
+          clip_id: string
+          derived_pattern_id: string
+          derived_pattern_version_id: string
+          lock_version: number
+          operation: string
+          project_id: string
+          source_pattern_version_id: string
+          track_id: string
+          workspace_id: string
+        }[]
+      }
       review_contribution: {
         Args: {
           p_contribution_id: string
@@ -2937,6 +3060,18 @@ export type Database = {
       revision_manifest_checksum_valid: {
         Args: { p_project_id: string; p_revision_id: string }
         Returns: boolean
+      }
+      save_midi_library_pattern: {
+        Args: {
+          p_listing_id: string
+          p_pattern_version_id: string
+          p_request_id: string
+        }
+        Returns: {
+          created_at: string
+          midi_pattern_version_id: string
+          source_listing_id: string
+        }[]
       }
       save_midi_workspace_v3: {
         Args: {

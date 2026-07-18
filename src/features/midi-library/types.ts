@@ -172,3 +172,47 @@ export type AdminMidiLibraryReport = {
   targetVersion: number;
   unlistedAt?: string;
 };
+
+export type SavedMidiPattern = {
+  midiPatternVersionId: string;
+  sourceListingId: string;
+  title: string;
+  creatorUsername: string;
+  creatorDisplayName: string;
+  creatorCreditName: string;
+  reuseMode: "commercial_reuse";
+  license: { code: "CC-BY-4.0"; version: "4.0"; url: string };
+  categoryName: string;
+  preset: { id: string; version: number; name: string };
+  durationTicks: number;
+  noteCount: number;
+  savedAt: string;
+  sourceAvailability:
+    "active" | "unlisted" | "moderation_hidden" | "unavailable";
+  canReuse: boolean;
+  externalCredits: MidiLibraryCredit[];
+  notes: MidiLibraryNote[];
+};
+
+export type OwnedPrivateMidiWorkspace = {
+  projectId: string;
+  projectTitle: string;
+  workspaceId: string;
+  lockVersion: number;
+  updatedAt: string;
+};
+
+export type MidiLibraryExport = {
+  listingId: string;
+  midiPatternId: string;
+  midiPatternVersionId: string;
+  title: string;
+  creatorCreditName: string;
+  license: { code: "CC-BY-4.0"; version: "4.0"; url: string };
+  externalCredits: MidiLibraryCredit[];
+  ppq: 480;
+  durationTicks: number;
+  presetId: string;
+  presetVersion: number;
+  notes: MidiLibraryNote[];
+};

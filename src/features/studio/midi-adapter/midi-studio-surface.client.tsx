@@ -158,6 +158,7 @@ export function MidiStudioSurface(props: Props) {
     trackId: string;
     clipId: string;
   } | null>(null);
+  const initialEditorHandled = useRef(false);
   const [lifecycle] = useState(
     () =>
       new MutableStudioLifecycle({
@@ -183,6 +184,31 @@ export function MidiStudioSurface(props: Props) {
     }),
     [midiVersions],
   );
+
+  useEffect(() => {
+    if (initialEditorHandled.current || !props.initialEditorClipId || !editable)
+      return;
+    const clipId = props.initialEditorClipId;
+    const track = manifestRef.current.tracks.find(
+      (candidate) =>
+        candidate.kind === "midi" &&
+        candidate.clips.some((clip) => clip.clipId === clipId),
+    );
+    const clip = track?.clips.find((candidate) => candidate.clipId === clipId);
+    if (!track || !clip || !("midiStemVersionId" in clip)) return;
+    const version = stemVersions.get(clip.midiStemVersionId);
+    if (!version) return;
+    initialEditorHandled.current = true;
+    setEditorOrigin("50% 38%");
+    setComposerTarget({
+      operation: "replace",
+      trackId: track.trackId,
+      clipId,
+      version,
+      startTick: clip.startTick,
+    });
+    setDraftSaveStatus("saved");
+  }, [editable, props.initialEditorClipId, stemVersions]);
 
   useEffect(() => {
     if (!importMenuOpen) return;

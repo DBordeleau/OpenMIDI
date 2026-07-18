@@ -25,7 +25,7 @@ The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute
 | Copy-on-write project forks and lineage                          | Complete                            |
 | Public project discovery, preview, history, profiles, moderation | Complete                            |
 | Visual project/contribution/pattern comparison                   | Planned                             |
-| Public MIDI library and saved clip collection                    | Planned                             |
+| Public MIDI library and saved clip collection                    | Complete in repository              |
 | Curated challenges, validation, voting, and results              | Planned                             |
 | Challenge achievements and profile badges                        | Planned                             |
 | Beta bug/suggestion intake and administrator triage              | Planned                             |

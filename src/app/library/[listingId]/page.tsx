@@ -6,6 +6,8 @@ import { MidiLibraryPreview } from "@/features/midi-library/midi-library-preview
 import { MidiLibraryReadOnlyPianoRoll } from "@/features/midi-library/read-only-piano-roll";
 import { MidiLibraryPatternComparisonView } from "@/features/midi-library/pattern-version-comparison.client";
 import { MidiLibraryReportForm } from "@/features/midi-library/report-form.client";
+import { MidiLibraryReuseControls } from "@/features/midi-library/reuse-controls.client";
+import { getOptionalViewer } from "@/features/auth/guards";
 import {
   MIDI_LIBRARY_RIGHTS_LABELS,
   formatInstrumentFamily,
@@ -15,6 +17,8 @@ import { libraryUuidSchema } from "@/features/midi-library/detail";
 import {
   getPublicMidiLibraryListing,
   getPublicMidiLibraryPatternComparison,
+  listOwnedPrivateMidiWorkspaces,
+  listSavedMidiLibraryPatterns,
 } from "@/server/repositories/midi-library";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +35,13 @@ export default async function MidiLibraryDetailPage({
   if (!listingId.success) notFound();
   const detail = await getPublicMidiLibraryListing(listingId.data);
   if (!detail) notFound();
+  const viewer = await getOptionalViewer();
+  const [saved, workspaces] = viewer
+    ? await Promise.all([
+        listSavedMidiLibraryPatterns(),
+        listOwnedPrivateMidiWorkspaces(),
+      ])
+    : [[], []];
   const query = await searchParams;
   const first = detail.history[0];
   const last = detail.history.at(-1);
@@ -150,6 +161,41 @@ export default async function MidiLibraryDetailPage({
               )}
             </dl>
           </section>
+
+          {listing.reuseMode === "commercial_reuse" && viewer ? (
+            <MidiLibraryReuseControls
+              listingId={listing.listingId}
+              patternVersionId={listing.midiPatternVersionId}
+              title={listing.title}
+              saved={saved.some(
+                (item) =>
+                  item.midiPatternVersionId === listing.midiPatternVersionId,
+              )}
+              canReuse
+              workspaces={workspaces}
+            />
+          ) : listing.reuseMode === "commercial_reuse" ? (
+            <section className="rounded-card border-subtle mt-6 border p-5">
+              <p className="text-muted">
+                <Link
+                  className="text-accent underline"
+                  href={`/sign-in?next=${encodeURIComponent(`/library/${listing.listingId}`)}`}
+                >
+                  Sign in
+                </Link>{" "}
+                to save this exact version or reuse it in a private workspace.
+              </p>
+            </section>
+          ) : (
+            <section className="rounded-card border-subtle mt-6 border p-5">
+              <h2 className="font-bold">Listen and learn—no reusable copy.</h2>
+              <p className="text-muted mt-2 text-sm">
+                Reference-only listings cannot be saved, imported, forked,
+                opened for editing, or exported. The same rule is enforced by
+                every server command.
+              </p>
+            </section>
+          )}
 
           <MidiLibraryPreview
             listingId={listing.listingId}

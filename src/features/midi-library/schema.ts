@@ -278,3 +278,35 @@ export const midiLibraryUnlistInputSchema = z
     expectedCreatorVersion: z.number().int().positive(),
   })
   .strict();
+
+export const midiLibrarySavedCommandSchema = z
+  .object({
+    listingId: z.uuid(),
+    patternVersionId: z.uuid(),
+    requestId: z.uuid(),
+  })
+  .strict();
+
+export const midiLibraryReuseCommandSchema = z
+  .object({
+    listingId: z.uuid(),
+    patternVersionId: z.uuid(),
+    requestId: z.uuid(),
+    operation: z.enum(["import", "fork", "open_editor"]),
+    workspaceId: z.uuid().nullable(),
+    expectedWorkspaceLockVersion: z.number().int().positive().nullable(),
+    copyName: z.string().trim().min(1).max(120).nullable(),
+    startTick: z.number().int().nonnegative().default(0),
+  })
+  .strict()
+  .refine(
+    ({ operation, workspaceId, expectedWorkspaceLockVersion, copyName }) =>
+      operation === "fork"
+        ? workspaceId === null &&
+          expectedWorkspaceLockVersion === null &&
+          copyName !== null
+        : workspaceId !== null &&
+          expectedWorkspaceLockVersion !== null &&
+          (operation === "import" || copyName !== null),
+    { message: "The reuse destination is inconsistent." },
+  );

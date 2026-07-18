@@ -50,6 +50,9 @@ Acceptance verifies the expected contribution version and current project revisi
 - Direct pattern-version RLS remains owner/member/public-project scoped. A library listing does not make unlisted/private base rows enumerable; reference-only notes are readable only inside the safe catalog projection.
 - `get_public_midi_library_listing` returns one active non-hidden exact listing with notes, rights, separate external credits, platform lineage, a deterministic maximum of 100 authorized same-pattern history versions that always includes the listed version, and exact-version public-project usage. `get_public_midi_library_pattern_comparison` independently proves both explicit selections use the same pattern and satisfy the same listing/public-project authorization rules, including versions outside that first bounded history window.
 - `private.midi_library_reports` stores bounded claimant/source evidence against an exact listing and pattern version. `private.midi_library_moderation_actions` stores idempotent optimistic administrator audit records. Report submission has no visibility side effect; hide/restore updates only listing moderation visibility/version and safe public functions exclude hidden rows immediately.
+- `saved_midi_patterns` is an RLS-protected private bookmark keyed by user and exact immutable pattern version. It references the listing edition used to save and copies no notes or ownership.
+- `private.midi_library_reuses` snapshots the exact source listing/pattern/version, CC BY terms, creator credit, and external credits for import, explicit fork, and editor-copy commands. A narrow private reuse-access relation lets only the reuser load an exact imported source in Studio after the public listing projection closes.
+- `reuse_midi_library_pattern` validates source eligibility independently, uses the existing workspace lock for imports, and creates owned private pattern/version children before editor navigation. Inherited external credits are append-only rows attached to the child version. `get_midi_library_export` returns validated structured notes/attribution only; the browser creates the file.
 
 ## Moderation, deletion, and avatar operations
 
@@ -72,9 +75,8 @@ All application-facing tables have RLS enabled. Anonymous access is limited to s
 
 ## Planned post-pivot extensions
 
-These are accepted data-boundary requirements not yet implemented after LIB-02. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
+These are accepted data-boundary requirements not yet implemented after LIB-03. Their exact schema belongs to the corresponding detailed implementation plan and forward migration.
 
-- **Saved clips:** private user-owned bookmarks point only to exact immutable commercially reusable pattern versions. Saving never copies notes, changes ownership, or grants public visibility. Studio import creates a normal attributed copy-on-write workspace reference. Save/import/fork/editor-copy/export commands recheck reuse mode authoritatively and reject reference-only versions.
 - **Beta feedback:** private bug/suggestion records hold bounded user-provided text and disclosed context for administrator triage. They do not store attachments, complete manifests, secrets, signed URLs, or automatic logs.
 - **Challenges:** normalized lifecycle, ownership, featured-placement, entry, vote, and finalized-result relationships accompany a validated versioned constraint snapshot. Entries pin exact immutable project revisions; client preflight never replaces authoritative submission validation. Completed challenge/result rows remain addressable and immutable except for audited corrections or moderation visibility.
 - **Achievements:** versioned badge definitions and immutable idempotent awards reference the recipient and authoritative finalized challenge result/revision that earned them. Public profiles use a narrow award projection containing the canonical completed-challenge/result link.

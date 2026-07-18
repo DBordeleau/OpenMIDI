@@ -72,7 +72,7 @@ Status: Complete. Authenticated beta intake, serialized administrator triage com
 
 ## Wave B — Public MIDI library and saved clips
 
-This is the next sequential implementation program after DIFF. Begin with a dedicated reviewed LIB plan before implementing LIB-01.
+This sequential program is complete in the repository. Its four ordered forward migrations remain unapplied to hosted Supabase pending explicit authority.
 
 ### LIB-01 — Explicit listing and searchable catalog
 
@@ -90,7 +90,7 @@ Status: Complete in the repository. Canonical listing detail now exposes exact i
 
 Add a private saved-pattern collection referencing exact immutable commercially reusable versions. Saving does not duplicate notes or transfer ownership. Users can import a commercially reusable saved/discovered version into a chosen private workspace, fork it explicitly, or open it in the MIDI editor through an owned private copy-on-write draft. Reference-only listings remain preview/history surfaces and all reuse commands reject them authoritatively. All permitted reuse paths preserve platform lineage, license, and external credits.
 
-Status: LIB-01 and LIB-02 are complete in the repository. LIB-03 is next and consumes the exact-version detail, rights, history, and moderation authority.
+Status: Complete in the repository. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The post-LIB milestone pulse check and worker-ready CHALLENGE plan are next; the LIB migrations remain unapplied to hosted Supabase without separate authority.
 
 ## Wave C — Curated constraint challenges
 
@@ -115,7 +115,7 @@ Let users validate a private/current revision, receive per-rule observed-versus-
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: CHALLENGE-01 through CHALLENGE-03 require a detailed local challenge plan after LIB-03. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: CHALLENGE-01 through CHALLENGE-03 require the next milestone pulse check and a dedicated local plan written against the completed LIB authority. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
