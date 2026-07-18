@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requireViewer } from "@/features/auth/guards";
 import { getViewerDashboard } from "@/server/repositories/dashboard";
 import { assertViewerAdmin } from "@/server/repositories/moderation";
+import { getFeaturedChallenge } from "@/server/repositories/challenges";
 import DashboardPage from "./page";
 
 vi.mock("@/features/auth/guards", () => ({ requireViewer: vi.fn() }));
@@ -11,6 +12,9 @@ vi.mock("@/server/repositories/dashboard", () => ({
 }));
 vi.mock("@/server/repositories/moderation", () => ({
   assertViewerAdmin: vi.fn(),
+}));
+vi.mock("@/server/repositories/challenges", () => ({
+  getFeaturedChallenge: vi.fn(),
 }));
 vi.mock("@/features/invitations/admin-invite-form.client", () => ({
   AdminInviteForm: () => <div data-testid="admin-invite-form" />,
@@ -35,6 +39,7 @@ describe("dashboard administrator invitation visibility", () => {
     vi.clearAllMocks();
     vi.mocked(requireViewer).mockResolvedValue({ id: "viewer" } as never);
     vi.mocked(getViewerDashboard).mockResolvedValue(dashboard);
+    vi.mocked(getFeaturedChallenge).mockResolvedValue(null);
   });
 
   it("renders the invitation card for a database-verified administrator", async () => {

@@ -4,9 +4,11 @@ import { Container } from "@/components/layout/container";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
+import { FeaturedChallengeCard } from "@/features/challenges/featured-challenge-card";
 import { AdminInviteForm } from "@/features/invitations/admin-invite-form.client";
 import { getViewerDashboard } from "@/server/repositories/dashboard";
 import { assertViewerAdmin } from "@/server/repositories/moderation";
+import { getFeaturedChallenge } from "@/server/repositories/challenges";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -31,9 +33,10 @@ function Empty({
 
 export default async function DashboardPage() {
   await requireViewer("/dashboard");
-  const [dashboard, isAdmin] = await Promise.all([
+  const [dashboard, isAdmin, featuredChallenge] = await Promise.all([
     getViewerDashboard(),
     assertViewerAdmin(),
+    getFeaturedChallenge(),
   ]);
   return (
     <main id="main-content">
@@ -52,6 +55,7 @@ export default async function DashboardPage() {
           </div>
           <ButtonLink href="/projects/new">New project</ButtonLink>
         </Reveal>
+        <FeaturedChallengeCard featured={featuredChallenge} />
         <Reveal
           as="section"
           delay={0.08}

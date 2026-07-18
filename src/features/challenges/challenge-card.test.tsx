@@ -10,6 +10,7 @@ const challenge: Challenge = {
   slug: "four-track-sprint",
   state: "published",
   phase: "open",
+  acceptsVotes: false,
   lifecycleVersion: 2,
   currentVersionId: "20000000-0000-4000-8000-000000000001",
   versionNumber: 1,
@@ -41,10 +42,15 @@ const challenge: Challenge = {
   ],
   starter: null,
   publishedAt: "2026-07-20T12:00:00.000Z",
+  completedAt: null,
   cancelledAt: null,
   cancellationNote: null,
   createdAt: "2026-07-19T12:00:00.000Z",
   updatedAt: "2026-07-20T12:00:00.000Z",
+  moderationState: null,
+  moderationVersion: null,
+  currentResultId: null,
+  result: null,
 };
 
 describe("public challenge presentation", () => {

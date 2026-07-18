@@ -71,6 +71,12 @@ export default async function AdminChallengeDetailPage({
               Open public page
             </Link>
           )}
+          <Link
+            className="border-strong min-h-11 rounded-full border px-5 py-3 font-semibold"
+            href={`/admin/challenges/${challenge.id}/results`}
+          >
+            Voting, moderation, and results
+          </Link>
         </div>
         <div className="mt-8">
           <ChallengeRules constraints={challenge.constraints} />

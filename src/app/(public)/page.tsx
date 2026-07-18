@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FiHeadphones, FiPlus } from "react-icons/fi";
 import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
+import { describeChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
+import { hasSupabasePublicEnvConfiguration } from "@/lib/env/public";
+import { getFeaturedChallenge } from "@/server/repositories/challenges";
 import { ChallengeGauges } from "./_components/challenge-gauges.client";
 import { DiffMachine } from "./_components/diff-machine.client";
 import { HeroCanvas } from "./_components/hero-canvas.client";
@@ -15,6 +19,7 @@ export const metadata: Metadata = {
   description:
     "Write MIDI in your browser and publish it to a public repository where anyone can open, listen, and remix it while your name stays on every note you wrote.",
 };
+export const dynamic = "force-dynamic";
 
 // Decorative note figures for the library cards' mini piano rolls. Steps are
 // out of 16, rows out of 8 — matching the mockup's flow() coordinates.
@@ -71,7 +76,11 @@ function RollNotes({
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const featured = hasSupabasePublicEnvConfiguration()
+    ? await getFeaturedChallenge()
+    : null;
+  const featuredChallenge = featured?.challenge ?? null;
   return (
     <div className={styles.root} data-landing-scroll>
       <SectionScroller />
@@ -470,29 +479,57 @@ export default function Home() {
                 <div className={styles.ticketEyebrow}>
                   <span className={styles.live}>
                     <span className={styles.pulse} />
-                    Round 014 · open now
+                    {featured?.label ?? "Challenge desk"}
                   </span>
-                  <span className={styles.clock}>closes in 4d 06h</span>
+                  <span className={styles.clock}>
+                    {featuredChallenge
+                      ? new Date(
+                          featuredChallenge.votingClosesAt,
+                        ).toLocaleDateString()
+                      : "No challenge scheduled"}
+                  </span>
                 </div>
-                <p className={styles.ticketTitle}>Two Tracks, Sixty Seconds</p>
+                <p className={styles.ticketTitle}>
+                  {featuredChallenge?.title ??
+                    "The next creative constraint is being tuned"}
+                </p>
                 <p className={styles.ticketSub}>
-                  Use only two tracks and create a song in C minor that is no
-                  longer than 60 seconds. Make the two tracks sound like
-                  they&apos;re arguing.
+                  {featuredChallenge?.prompt ??
+                    "Browse completed sessions while the next administrator-curated challenge is prepared."}
                 </p>
                 <div className={styles.stakes}>
                   <span className={styles.stake}>
-                    <b>214</b> entered
+                    <b>{featuredChallenge?.versionNumber ?? "—"}</b> rules
+                    version
                   </span>
                   <span className={styles.stake}>
-                    <b>1</b> guest pick
+                    <b>
+                      {featuredChallenge
+                        ? describeChallengeConstraintsV1(
+                            featuredChallenge.constraints,
+                          ).length
+                        : "—"}
+                    </b>{" "}
+                    exact constraints
                   </span>
                   <span className={styles.stake}>
-                    <b>1 </b> people&apos;s pick
+                    <b>{featuredChallenge?.judgingMode ?? "curated"}</b> judging
                   </span>
                 </div>
+                <Link
+                  href={
+                    featuredChallenge
+                      ? `/challenges/${featuredChallenge.slug}`
+                      : "/challenges"
+                  }
+                  className={styles.clock}
+                >
+                  {featuredChallenge
+                    ? "Open canonical challenge →"
+                    : "Browse challenges →"}
+                </Link>
               </div>
-              <ChallengeGauges />
+              <ChallengeGauges constraints={featuredChallenge?.constraints} />
             </div>
           </Reveal>
         </div>

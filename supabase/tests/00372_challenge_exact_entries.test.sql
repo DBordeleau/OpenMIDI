@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(53);
+select plan(55);
 
 select has_table('public','challenge_entries','exact challenge entries exist');
 select has_table('private','challenge_entry_commands','private entry command audit exists');
@@ -73,7 +73,7 @@ private.validate_challenge_constraints_v1('{"schemaVersion":1,"trackCount":{"exa
 update public.challenges set current_version_id='fe600000-0000-4000-8000-000000000001' where id='fe500000-0000-4000-8000-000000000001';
 
 set local role anon;
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),0,'pre-voting public list reveals no entry count or identity');
+select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),0,'pre-voting public list reveals no entry count or identity');
 select throws_ok($$select * from private.challenge_entry_commands$$,'42501',null,'private entry command audit is never publicly readable');
 select throws_ok($$select public.preflight_challenge_revision('fe500000-0000-4000-8000-000000000001','fe600000-0000-4000-8000-000000000001','fe400000-0000-4000-8000-000000000002')$$,'42501',null,'anonymous cannot preflight');
 set local role authenticated;
@@ -136,7 +136,7 @@ set local role authenticated;
 set local request.jwt.claim.sub='fe000000-0000-4000-8000-000000000001';
 select is(public.get_my_challenge_entry('fe500000-0000-4000-8000-000000000001')->>'revisionNumber','3','owner My entry projection pins replacement revision');
 select is(public.submit_challenge_entry('fe500000-0000-4000-8000-000000000001','fe600000-0000-4000-8000-000000000001','fe400000-0000-4000-8000-000000000004',gen_random_uuid(),(select (result->>'entryId')::uuid from submitted),'challenge-display-attestation-v1')->>'errorCode','PT409','stale replacement contention fails');
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),0,'entrant list remains completely hidden before voting opens');
+select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),0,'entrant list remains completely hidden before voting opens');
 select is(public.get_public_challenge_entry('exact-entry-test',(select (result->>'entryId')::uuid from replacement)),null,'entry detail remains hidden before voting');
 
 reset role;
@@ -146,17 +146,17 @@ alter table public.challenge_versions enable trigger challenge_versions_immutabl
 set local role authenticated;
 set local request.jwt.claim.sub='fe000000-0000-4000-8000-000000000001';
 select is(public.submit_challenge_entry('fe500000-0000-4000-8000-000000000001','fe600000-0000-4000-8000-000000000001','fe400000-0000-4000-8000-000000000004',gen_random_uuid(),(select (result->>'entryId')::uuid from replacement),'challenge-display-attestation-v1')->>'errorCode','PT409','exact close boundary rejects late replacement');
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),1,'voting phase exposes only the one active visible entry');
+select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),1,'voting phase exposes only the one active visible entry');
 select is(public.get_public_challenge_entry('exact-entry-test',(select (result->>'entryId')::uuid from replacement))->>'projectTitle','Private Four Track Entry','challenge projection exposes the exact private-project snapshot');
 select is(public.get_public_challenge_entry_preview('exact-entry-test',(select (result->>'entryId')::uuid from replacement))->>'revisionId','fe400000-0000-4000-8000-000000000004','challenge preview returns only the pinned exact revision through its safe endpoint authority');
 select is((select visibility::text from public.projects where id='fe100000-0000-4000-8000-000000000001'),'private','challenge submission never makes the project generally public');
 reset role;
 update public.projects set moderation_state='hidden' where id='fe100000-0000-4000-8000-000000000001';
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),0,'hidden source project immediately removes exact entry projection');
+select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),0,'hidden source project immediately removes exact entry projection');
 select is(public.get_public_challenge_entry_preview('exact-entry-test',(select (result->>'entryId')::uuid from replacement)),null,'hidden source project removes challenge preview data');
 update public.projects set moderation_state='visible' where id='fe100000-0000-4000-8000-000000000001';
 update public.challenges set state='completed',completed_at=now() where id='fe500000-0000-4000-8000-000000000001';
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),1,'completed phase retains only the active moderation-visible exact entry');
+select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')->'entries'),1,'completed phase retains only the active moderation-visible exact entry');
 
 set local role authenticated;
 set local request.jwt.claim.sub='fe000000-0000-4000-8000-000000000002';
@@ -180,7 +180,7 @@ select is(public.submit_challenge_entry('fe500000-0000-4000-8000-000000000001','
 reset role;
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 select '00000000-0000-0000-0000-000000000000',('fe900000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,'authenticated','authenticated',
-  'hidden-entry-'||i||'@example.test','','{}','{}',now(),now() from generate_series(1,25) i;
+  'page-entry-'||i||'@example.test','','{}','{}',now(),now() from generate_series(1,25) i;
 update public.profiles set username='HiddenEntry'||right(id::text,2),username_normalized=lower('HiddenEntry'||right(id::text,2)),
   display_name='Hidden Entry',credit_name='Hidden Entry',profile_completed_at=now()
 where id::text like 'fe900000-0000-4000-8000-%';
@@ -194,10 +194,18 @@ select ('fea00000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,e.challenge_id,e
   ('fe900000-0000-4000-8000-'||lpad(i::text,12,'0'))::uuid,e.project_id,e.project_revision_id,e.project_title_snapshot,
   'HiddenEntry'||lpad(i::text,2,'0'),e.entrant_display_name_snapshot,e.entrant_credit_name_snapshot,e.revision_number_snapshot,
   e.revision_message_snapshot,e.attribution_snapshot,e.duration_ms_snapshot,e.display_attestation_version,e.display_attested_at,
-  e.evaluator_version,e.facts,e.evaluation,e.evaluation_sha256,'active',null,gen_random_uuid(),e.submitted_at-interval '2 days','hidden'
+  e.evaluator_version,e.facts,e.evaluation,e.evaluation_sha256,'active',null,gen_random_uuid(),e.submitted_at-interval '2 days','visible'
 from public.challenge_entries e cross join generate_series(1,25) i
 where e.id=(select (result->>'entryId')::uuid from replacement);
-select is(jsonb_array_length(public.list_public_challenge_entries('exact-entry-test')),1,'visibility filtering precedes the 25-entry page cap');
+create temp table public_entry_page as select public.list_public_challenge_entries('exact-entry-test') page;
+select is(jsonb_array_length((select page->'entries' from public_entry_page)),25,'the first rotated entry page is capped at 25');
+select ok((select page->'nextCursor' from public_entry_page) is not null,'a stable continuation cursor is returned when more entries remain');
+select is(jsonb_array_length(public.list_public_challenge_entries(
+  'exact-entry-test',
+  ((select page from public_entry_page)->>'rotationBucket')::timestamptz,
+  (select page from public_entry_page)#>>'{nextCursor,rotationKey}',
+  ((select page from public_entry_page)#>>'{nextCursor,entryId}')::uuid
+)->'entries'),1,'the continuation cursor reaches the entry after the first 25');
 
 select * from finish();
 rollback;

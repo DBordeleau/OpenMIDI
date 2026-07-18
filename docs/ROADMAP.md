@@ -121,7 +121,7 @@ Status: Complete in the repository. Active project owners can preflight current 
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: CHALLENGE-01 and CHALLENGE-02 are complete in the repository. `local/implementation-plans/032-curated-constraint-challenges.md` remains the worker-ready authority; CHALLENGE-03 is next. User-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: Complete in the repository. Private one-logical-vote authority, deterministic hourly rotation, report-only intake, optimistic audited challenge/entry/vote moderation, database-computed favorite ties, immutable complete result corrections, permanent completed projections, and canonical featured selection/fallback now ship together. Landing and dashboard consume the same signed-out-safe featured projection. The three CHALLENGE migrations remain repository-only; user-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
@@ -129,7 +129,7 @@ Status: CHALLENGE-01 and CHALLENGE-02 are complete in the repository. `local/imp
 
 Add an extensible badge-definition catalog and immutable profile award records tied to exact challenge results, placements, recipients, and submitted revisions. Every displayed badge links to its completed challenge/result page. Launch with generic Winner, Community Favorite, and configurable Top Placement badges. Challenge-specific artwork/definitions may be added later without schema redesign.
 
-Status: Needs a detailed local plan after CHALLENGE-03 freezes result authority. XP, levels, streaks, and purchasable status remain deferred.
+Status: Next. The post-CHALLENGE pulse is complete and `local/implementation-plans/033-challenge-achievements-profile-awards.md` is worker-ready against the merged immutable result schema. XP, levels, streaks, and purchasable status remain deferred.
 
 ## Wave E — Release and deployment
 

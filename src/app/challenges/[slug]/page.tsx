@@ -4,10 +4,17 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
 import { ChallengeEntryPanel } from "@/features/challenges/challenge-entry-panel.client";
+import { publicChallengeEntryCursorSchema } from "@/features/challenges/entry-contract";
+import {
+  ChallengeReportControl,
+  ChallengeVoteControl,
+} from "@/features/challenges/challenge-community-controls.client";
 import { challengePhaseMessage } from "@/features/challenges/lifecycle";
+import { challengeEntryPageHref } from "@/features/challenges/rotation";
 import {
   getMyChallengeEntry,
   getPublicChallenge,
+  listMyActiveChallengeVoteIds,
   listMyChallengeRevisionOptions,
   listPublicChallengeEntries,
 } from "@/server/repositories/challenges";
@@ -28,19 +35,31 @@ export async function generateMetadata({
 
 export default async function ChallengeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+  const parsedCursor = publicChallengeEntryCursorSchema.safeParse({
+    rotationBucket: query.rotationBucket,
+    rotationKey: query.afterRotationKey,
+    entryId: query.afterEntryId,
+  });
+  const cursor = parsedCursor.success ? parsedCursor.data : null;
   const challenge = await getPublicChallenge(slug);
   if (!challenge) notFound();
-  const [revisionOptions, myEntry, publicEntries] = await Promise.all([
-    challenge.phase === "open"
-      ? listMyChallengeRevisionOptions(challenge.id)
-      : Promise.resolve([]),
-    getMyChallengeEntry(challenge.id),
-    listPublicChallengeEntries(slug),
-  ]);
+  const [revisionOptions, myEntry, publicEntryPage, activeVoteIds] =
+    await Promise.all([
+      challenge.phase === "open"
+        ? listMyChallengeRevisionOptions(challenge.id)
+        : Promise.resolve([]),
+      getMyChallengeEntry(challenge.id),
+      listPublicChallengeEntries(slug, cursor),
+      listMyActiveChallengeVoteIds(challenge.id),
+    ]);
+  const publicEntries = publicEntryPage.entries;
   const phase = challengePhaseMessage({
     phase: challenge.phase,
     votingOpensAt: challenge.votingOpensAt,
@@ -157,6 +176,10 @@ export default async function ChallengeDetailPage({
               {challenge.eligibilityTerms}
             </p>
           </section>
+          <ChallengeReportControl
+            challengeId={challenge.id}
+            slug={challenge.slug}
+          />
           {challenge.phase === "open" ? (
             <ChallengeEntryPanel
               challengeId={challenge.id}
@@ -193,12 +216,27 @@ export default async function ChallengeDetailPage({
                       <p className="text-muted mt-2 text-sm">
                         {entry.revisionMessage ?? "No revision note."}
                       </p>
+                      {entry.voteTotal !== null && (
+                        <p className="text-accent-2 mt-3 font-semibold">
+                          {entry.voteTotal}{" "}
+                          {entry.voteTotal === 1 ? "vote" : "votes"}
+                        </p>
+                      )}
                       <Link
                         href={`/challenges/${challenge.slug}/entries/${entry.entryId}`}
                         className="border-strong mt-4 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
                       >
                         Hear exact entry
                       </Link>
+                      {challenge.acceptsVotes && (
+                        <ChallengeVoteControl
+                          entryId={entry.entryId}
+                          slug={challenge.slug}
+                          initiallyActive={activeVoteIds.includes(
+                            entry.entryId,
+                          )}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -207,6 +245,80 @@ export default async function ChallengeDetailPage({
                   No moderation-visible active entries are available.
                 </p>
               )}
+              {publicEntryPage.nextCursor && (
+                <Link
+                  href={challengeEntryPageHref({
+                    slug: challenge.slug,
+                    rotationBucket: publicEntryPage.rotationBucket,
+                    rotationKey: publicEntryPage.nextCursor.rotationKey,
+                    entryId: publicEntryPage.nextCursor.entryId,
+                  })}
+                  className="border-strong mt-6 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                >
+                  Next entries →
+                </Link>
+              )}
+            </section>
+          )}
+          {challenge.result && (
+            <section
+              className="border-accent bg-surface-raised rounded-card mt-10 border p-6 sm:p-8"
+              aria-labelledby="challenge-results-heading"
+            >
+              <p className="text-accent font-mono text-xs tracking-widest uppercase">
+                Permanent result Â· version {challenge.result.version}
+              </p>
+              <h2
+                id="challenge-results-heading"
+                className="mt-2 text-3xl font-bold"
+              >
+                Official results
+              </h2>
+              <p className="mt-4 whitespace-pre-line">
+                {challenge.result.note}
+              </p>
+              <h3 className="mt-7 text-xl font-bold">Official placements</h3>
+              {challenge.result.placements.length ? (
+                <ol className="mt-3 space-y-3">
+                  {challenge.result.placements.map((placement) => (
+                    <li
+                      key={placement.entryId}
+                      className="border-subtle rounded-control border p-4"
+                    >
+                      <strong>
+                        #{placement.place} Â· {placement.label}
+                      </strong>{" "}
+                      <span className="text-muted">
+                        {placement.projectTitle} by @{placement.entrantUsername}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="text-muted mt-3">
+                  This community challenge has no official judged placements.
+                </p>
+              )}
+              <h3 className="mt-7 text-xl font-bold">Community Favorite</h3>
+              <ul className="mt-3 space-y-3">
+                {challenge.result.communityFavorites.map((favorite) => (
+                  <li
+                    key={favorite.entryId}
+                    className="border-subtle rounded-control border p-4"
+                  >
+                    <strong>{favorite.projectTitle}</strong>{" "}
+                    <span className="text-muted">
+                      by @{favorite.entrantUsername} Â· {favorite.voteTotal}{" "}
+                      {favorite.voteTotal === 1 ? "vote" : "votes"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted mt-5 text-sm">
+                Finalized{" "}
+                {new Date(challenge.result.finalizedAt).toLocaleString()}. Every
+                highest included-vote tie is shown.
+              </p>
             </section>
           )}
         </article>

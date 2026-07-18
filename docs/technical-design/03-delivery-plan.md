@@ -1,6 +1,6 @@
 # Delivery plan and verification
 
-Status: MIDI-only foundation, semantic visual diff, feedback, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-02 complete in repository; six post-hosted migrations and Vercel deployment deferred
+Status: MIDI-only foundation, semantic visual diff, feedback, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-03 complete in repository; seven post-hosted migrations and Vercel deployment deferred
 
 ## Implemented foundation
 
@@ -21,12 +21,12 @@ The two-attempt ceiling applies to an unchanged environment blocker. A concrete 
 
 ## Post-pivot MVP sequence
 
-DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-02 are complete in the repository. CHALLENGE-03 is next from the worker-ready local plan, grounded in the merged immutable challenge lifecycle and exact-entry authority.
+DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-03 are complete in the repository. The post-CHALLENGE pulse reconciles the immutable result authority; BADGE-01 is next from worker-ready local plan 033.
 
 1. **Wave A — DIFF and FEEDBACK:** complete with landing-matched static semantic comparisons for authorized revision pairs plus authenticated beta feedback and a private administrator queue.
 2. **Wave B — LIB:** complete with rights-gated public pattern listing, commercially reusable and reference-only modes, All/mode Explore filtering, external credits, copyright reporting/moderation, bounded musical search/filtering, browser-local preview/export, any-two-version history diffs, private saved clips, and attributed reusable-only save/import/fork/editor actions.
-3. **Wave C — CHALLENGE:** CHALLENGE-01 and CHALLENGE-02 are complete with administrator-curated immutable challenge versions, time-derived phases, audited commands, deterministic advisory/authoritative eligibility, one exact active entry, atomic replacement, and phase-safe challenge-only preview projections. Voting, moderation, featured discovery, and permanently addressable finalized results follow in CHALLENGE-03.
-4. **Wave D — BADGE:** derive extensible immutable profile awards from finalized challenge results and link every award to its canonical completed challenge/result.
+3. **Wave C — CHALLENGE:** complete with administrator-curated immutable versions, time-derived phases, authoritative eligibility, exact entries, private serialized voting, popularity-independent rotation, private reports, optimistic moderation, append-only permanent results/corrections, all favorite ties, and canonical featured discovery.
+4. **Wave D — BADGE:** next; derive extensible immutable profile awards from exact current finalized result versions and link every award to its canonical completed challenge/result without changing challenge result history.
 5. **Wave E — RELEASE:** coordinate the OpenMIDI frontend/repository rename, seed useful beta content, harden critical paths, configure Vercel, and run production smoke checks.
 
 DIFF and FEEDBACK are the only parallel-safe product programs by default. Library, challenge, badge, and release slices are dependency-ordered. Detailed worker plans must declare any narrower parallel ownership before branches start.

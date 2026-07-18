@@ -544,6 +544,169 @@ export type Database = {
           },
         ]
       }
+      challenge_result_community_favorites: {
+        Row: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          final_vote_total: number
+        }
+        Insert: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          final_vote_total: number
+        }
+        Update: {
+          challenge_entry_id?: string
+          challenge_result_id?: string
+          final_vote_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_result_community_favorites_challenge_entry_id_fkey"
+            columns: ["challenge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_result_community_favorites_challenge_result_id_fkey"
+            columns: ["challenge_result_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_result_entries: {
+        Row: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          final_vote_total: number
+        }
+        Insert: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          final_vote_total: number
+        }
+        Update: {
+          challenge_entry_id?: string
+          challenge_result_id?: string
+          final_vote_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_result_entries_challenge_entry_id_fkey"
+            columns: ["challenge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_result_entries_challenge_result_id_fkey"
+            columns: ["challenge_result_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_result_placements: {
+        Row: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          place: number
+          placement_label: string
+        }
+        Insert: {
+          challenge_entry_id: string
+          challenge_result_id: string
+          place: number
+          placement_label: string
+        }
+        Update: {
+          challenge_entry_id?: string
+          challenge_result_id?: string
+          place?: number
+          placement_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_result_placements_challenge_entry_id_fkey"
+            columns: ["challenge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_result_placements_challenge_result_id_fkey"
+            columns: ["challenge_result_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_results: {
+        Row: {
+          challenge_id: string
+          challenge_version_id: string
+          correction_reason: string | null
+          finalized_at: string
+          finalized_by: string
+          id: string
+          public_note: string
+          request_id: string
+          result_version: number
+          supersedes_result_id: string | null
+        }
+        Insert: {
+          challenge_id: string
+          challenge_version_id: string
+          correction_reason?: string | null
+          finalized_at?: string
+          finalized_by: string
+          id?: string
+          public_note: string
+          request_id: string
+          result_version: number
+          supersedes_result_id?: string | null
+        }
+        Update: {
+          challenge_id?: string
+          challenge_version_id?: string
+          correction_reason?: string | null
+          finalized_at?: string
+          finalized_by?: string
+          id?: string
+          public_note?: string
+          request_id?: string
+          result_version?: number
+          supersedes_result_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_results_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_results_challenge_version_fk"
+            columns: ["challenge_id", "challenge_version_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_versions"
+            referencedColumns: ["challenge_id", "id"]
+          },
+          {
+            foreignKeyName: "challenge_results_supersedes_result_id_fkey"
+            columns: ["supersedes_result_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_versions: {
         Row: {
           challenge_id: string
@@ -663,6 +826,84 @@ export type Database = {
           },
         ]
       }
+      challenge_votes: {
+        Row: {
+          challenge_entry_id: string
+          challenge_id: string
+          created_at: string
+          excluded_at: string | null
+          excluded_by: string | null
+          id: string
+          removed_at: string | null
+          state: string
+          updated_at: string
+          vote_version: number
+          voter_id: string
+        }
+        Insert: {
+          challenge_entry_id: string
+          challenge_id: string
+          created_at?: string
+          excluded_at?: string | null
+          excluded_by?: string | null
+          id?: string
+          removed_at?: string | null
+          state?: string
+          updated_at?: string
+          vote_version?: number
+          voter_id: string
+        }
+        Update: {
+          challenge_entry_id?: string
+          challenge_id?: string
+          created_at?: string
+          excluded_at?: string | null
+          excluded_by?: string | null
+          id?: string
+          removed_at?: string | null
+          state?: string
+          updated_at?: string
+          vote_version?: number
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_votes_challenge_entry_id_fkey"
+            columns: ["challenge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_votes_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_votes_entry_challenge_fk"
+            columns: ["challenge_id", "challenge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_entries"
+            referencedColumns: ["challenge_id", "id"]
+          },
+          {
+            foreignKeyName: "challenge_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_votes_voter_id_fkey"
+            columns: ["voter_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges: {
         Row: {
           cancellation_note: string | null
@@ -671,9 +912,13 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string
+          current_result_id: string | null
           current_version_id: string | null
           id: string
           lifecycle_version: number
+          moderation_state: string
+          moderation_updated_at: string
+          moderation_version: number
           published_at: string | null
           slug: string
           state: string
@@ -686,9 +931,13 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by: string
+          current_result_id?: string | null
           current_version_id?: string | null
           id?: string
           lifecycle_version?: number
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           published_at?: string | null
           slug: string
           state?: string
@@ -701,9 +950,13 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string
+          current_result_id?: string | null
           current_version_id?: string | null
           id?: string
           lifecycle_version?: number
+          moderation_state?: string
+          moderation_updated_at?: string
+          moderation_version?: number
           published_at?: string | null
           slug?: string
           state?: string
@@ -737,6 +990,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_current_result_fk"
+            columns: ["id", "current_result_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_results"
+            referencedColumns: ["challenge_id", "id"]
           },
           {
             foreignKeyName: "challenges_current_version_fk"
@@ -2923,6 +3183,10 @@ export type Database = {
           username_normalized: string
         }[]
       }
+      clear_featured_challenge: {
+        Args: { p_expected_version: number; p_request_id: string }
+        Returns: Json
+      }
       complete_profile_image_upload: {
         Args: { p_asset_id: string }
         Returns: string
@@ -3051,6 +3315,19 @@ export type Database = {
           project_id: string
         }[]
       }
+      finalize_challenge_result: {
+        Args: {
+          p_challenge_id: string
+          p_correction_reason?: string
+          p_expected_current_result_id: string
+          p_expected_current_version_id: string
+          p_expected_lifecycle_version: number
+          p_placements: Json
+          p_public_note: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       fork_project_v3: {
         Args: {
           p_description: string
@@ -3074,6 +3351,10 @@ export type Database = {
         Returns: Json
       }
       get_admin_challenge: { Args: { p_challenge_id: string }; Returns: Json }
+      get_admin_challenge_results: {
+        Args: { p_challenge_id: string }
+        Returns: Json
+      }
       get_admin_midi_library_report: {
         Args: { p_report_id: string }
         Returns: Json
@@ -3087,6 +3368,7 @@ export type Database = {
         Args: { p_contribution_id: string }
         Returns: Json
       }
+      get_featured_challenge: { Args: never; Returns: Json }
       get_midi_library_export: {
         Args: { p_listing_id: string; p_pattern_version_id: string }
         Returns: Json
@@ -3188,6 +3470,10 @@ export type Database = {
           listing_id: string
         }[]
       }
+      list_my_active_challenge_vote_ids: {
+        Args: { p_challenge_id: string }
+        Returns: Json
+      }
       list_my_challenge_revision_options: {
         Args: { p_challenge_id: string }
         Returns: Json
@@ -3221,7 +3507,15 @@ export type Database = {
           workspace_id: string
         }[]
       }
-      list_public_challenge_entries: { Args: { p_slug: string }; Returns: Json }
+      list_public_challenge_entries: {
+        Args: {
+          p_after_entry_id?: string
+          p_after_rotation_key?: string
+          p_rotation_bucket?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       list_public_challenges: {
         Args: { p_after_id?: string; p_after_updated_at?: string }
         Returns: Json
@@ -3295,6 +3589,18 @@ export type Database = {
       }
       list_viewer_reports: {
         Args: { p_after_created_at?: string; p_after_id?: string }
+        Returns: Json
+      }
+      moderate_challenge_target: {
+        Args: {
+          p_action: string
+          p_challenge_id: string
+          p_entry_id: string
+          p_expected_version: number
+          p_reason: string
+          p_request_id: string
+          p_vote_id: string
+        }
         Returns: Json
       }
       mutate_admin_beta_feedback: {
@@ -3458,6 +3764,17 @@ export type Database = {
           midi_pattern_version_id: string
           removed: boolean
         }[]
+      }
+      report_challenge_content: {
+        Args: {
+          p_challenge_id: string
+          p_details?: string
+          p_entry_id: string
+          p_reason: string
+          p_request_id: string
+          p_target_kind: string
+        }
+        Returns: string
       }
       request_account_deletion: {
         Args: { p_request_id: string; p_username: string }
@@ -3690,6 +4007,18 @@ export type Database = {
           trending_score: number
           updated_at: string
         }[]
+      }
+      set_challenge_vote: {
+        Args: { p_active: boolean; p_entry_id: string; p_request_id: string }
+        Returns: Json
+      }
+      set_featured_challenge: {
+        Args: {
+          p_challenge_id: string
+          p_expected_version: number
+          p_request_id: string
+        }
+        Returns: Json
       }
       set_project_contributions_open: {
         Args: {

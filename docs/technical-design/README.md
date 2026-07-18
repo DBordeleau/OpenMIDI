@@ -1,6 +1,6 @@
 # OpenMIDI technical design
 
-Status: MIDI-only foundation plus LIB-01 through LIB-03 complete in the repository; hosted LIB migrations pending authority
+Status: MIDI-only foundation plus LIB-01 through LIB-03 and CHALLENGE-01 through CHALLENGE-03 complete in the repository; seven hosted-pending migrations await authority
 Last updated: 2026-07-18
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
@@ -27,7 +27,7 @@ PIVOT-01 through PIVOT-10 and the administrator-invitation reconciliation are im
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - bounded semantic comparison for contribution versions and any two authorized same-project revisions, with a static accessible note overlay and mutually exclusive browser-local audition;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations plus administrator-invitation, two beta-feedback, four unapplied LIB, and two unapplied challenge forward migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- four reviewed clean baseline migrations plus administrator-invitation, two beta-feedback, four unapplied LIB, and three unapplied challenge forward migrations, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
@@ -38,7 +38,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Wave A, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-02 are complete in the repository. The library retains its exact-version rights, discovery, history, moderation, saved-clip, and attributed reuse boundaries. Challenge identities point to append-only immutable versions with validated canonical constraint-v1 JSON/hashes, exact starter and host/judge snapshots, audited idempotent administrator commands, and time-derived public phases. Active owners can now preflight current immutable revisions, explicitly attest challenge-only display, and submit or replace one exact entry under authoritative Postgres evaluation and contention-safe idempotency. Pre-voting entry identity/count data is absent; voting/completed entry and browser-local preview projections expose only the pinned active visible revision without widening private-project or reuse authority. The retained hosted project remains at seven migrations; the four LIB migrations, `20260718171612_challenge_01_versioned_lifecycle.sql`, and `20260718190737_challenge_02_exact_entries.sql` are intentionally unapplied until explicit hosted-mutation authority is granted. CHALLENGE-03 is next from local plan 032, linked challenge awards follow it, and Vercel deployment remains deferred to RELEASE-03.
+Wave A, LIB-01 through LIB-03, and CHALLENGE-01 through CHALLENGE-03 are complete in the repository. The library retains its exact-version rights, discovery, history, moderation, saved-clip, and attributed reuse boundaries. Challenge identities point to append-only immutable versions with validated canonical constraint-v1 JSON/hashes, exact starter and host/judge snapshots, audited idempotent administrator commands, and time-derived public phases. Active owners preflight and submit exact revisions under authoritative Postgres evaluation. Voting uses one private logical row per voter/entry, serialized desired-state commands, no self-votes, phase-safe own-vote reads, and deterministic UTC-bucket rotation that never uses popularity. Private reports have no visibility side effect; optimistic administrator commands moderate challenges, entries, and votes with immutable audit. Finalization recomputes eligible votes and every favorite tie into append-only complete result versions, while landing and dashboard share one canonical featured projection with safe fallback. The retained hosted project remains at seven migrations; the four LIB migrations plus `20260718171612_challenge_01_versioned_lifecycle.sql`, `20260718190737_challenge_02_exact_entries.sql`, and `20260718202909_challenge_03_voting_results.sql` are intentionally unapplied until explicit hosted-mutation authority is granted. BADGE-01 is next from local plan 033, and Vercel deployment remains deferred to RELEASE-03.
 
 ## Global invariants
 

@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import type { CanonicalChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
+import { describeChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
 import styles from "./landing.module.css";
 
 type Gauge = { label: ReactNode; value: ReactNode; fill: number };
 
 // The live constraint check for the example entry. Percentages drive the bar
 // widths; the labels lean into restrictive, competitive framing.
-const GAUGES: Gauge[] = [
+const EXAMPLE_GAUGES: Gauge[] = [
   {
     label: "tracks ≤ 2",
     value: (
@@ -52,7 +54,24 @@ const GAUGES: Gauge[] = [
  * scroll into view, then a "inside the lines" stamp lands — so the reader sees
  * the entry being measured live against the week's limits.
  */
-export function ChallengeGauges() {
+export function ChallengeGauges({
+  constraints,
+}: {
+  constraints?: CanonicalChallengeConstraintsV1;
+}) {
+  const gauges: Gauge[] = useMemo(
+    () =>
+      constraints
+        ? describeChallengeConstraintsV1(constraints)
+            .slice(0, 5)
+            .map((rule, index) => ({
+              label: `rule ${String(index + 1).padStart(2, "0")}`,
+              value: <b>{rule}</b>,
+              fill: 100,
+            }))
+        : EXAMPLE_GAUGES,
+    [constraints],
+  );
   const wrapRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const fillRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -67,7 +86,7 @@ export function ChallengeGauges() {
     const timers: number[] = [];
 
     const run = () => {
-      GAUGES.forEach((g, i) => {
+      gauges.forEach((g, i) => {
         timers.push(
           window.setTimeout(
             () => {
@@ -83,7 +102,7 @@ export function ChallengeGauges() {
       timers.push(
         window.setTimeout(
           () => stampRef.current?.classList.add(styles.on),
-          reduce ? 0 : 160 + GAUGES.length * 140,
+          reduce ? 0 : 160 + gauges.length * 140,
         ),
       );
     };
@@ -110,11 +129,11 @@ export function ChallengeGauges() {
       io?.disconnect();
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, []);
+  }, [gauges]);
 
   return (
     <div ref={wrapRef} className={styles.ticketBody}>
-      {GAUGES.map((g, i) => (
+      {gauges.map((g, i) => (
         <div
           key={i}
           className={styles.gauge}

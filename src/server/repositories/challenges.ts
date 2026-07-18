@@ -7,13 +7,19 @@ import {
   challengePreflightSchema,
   challengeRevisionOptionSchema,
   myChallengeEntrySchema,
+  publicChallengeEntryPageSchema,
   publicChallengeEntrySchema,
+  type PublicChallengeEntryCursor,
 } from "@/features/challenges/entry-contract";
 import {
   challengePhaseSchema,
   challengeStateSchema,
 } from "@/features/challenges/lifecycle";
-import type { Challenge } from "@/features/challenges/types";
+import type {
+  Challenge,
+  ChallengeResult,
+  FeaturedChallenge,
+} from "@/features/challenges/types";
 import { midiArrangementPreviewSchema } from "@/features/public-midi/contract";
 import type { Json } from "@/lib/supabase/database.types";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
@@ -27,11 +33,60 @@ const judgeSchema = z.object({
   creditName: z.string(),
 });
 
+const resultAttributionSchema = z.object({
+  kind: z.enum(["publisher", "accepted_contributor"]),
+  creditName: z.string(),
+});
+
+const challengeResultSchema: z.ZodType<ChallengeResult> = z.object({
+  id: z.uuid(),
+  version: z.number().int().positive(),
+  finalizedAt: z.string(),
+  note: z.string(),
+  entries: z.array(
+    z.object({
+      entryId: z.uuid(),
+      projectTitle: z.string(),
+      entrantUsername: z.string(),
+      entrantDisplayName: z.string(),
+      entrantCreditName: z.string(),
+      revisionNumber: z.number().int().positive(),
+      revisionMessage: z.string().nullable(),
+      attributions: z.array(resultAttributionSchema),
+      durationMs: z.number().int().nonnegative(),
+      submittedAt: z.string(),
+      voteTotal: z.number().int().nonnegative(),
+    }),
+  ),
+  placements: z.array(
+    z.object({
+      place: z.number().int().positive(),
+      label: z.string(),
+      entryId: z.uuid(),
+      projectTitle: z.string(),
+      entrantUsername: z.string(),
+      entrantCreditName: z.string(),
+    }),
+  ),
+  communityFavorites: z.array(
+    z.object({
+      entryId: z.uuid(),
+      projectTitle: z.string(),
+      entrantUsername: z.string(),
+      entrantCreditName: z.string(),
+      voteTotal: z.number().int().nonnegative(),
+    }),
+  ),
+  supersedesResultId: z.uuid().nullable(),
+  correctionReason: z.string().nullable(),
+});
+
 const challengeSchema: z.ZodType<Challenge> = z.object({
   id: z.uuid(),
   slug: z.string(),
   state: challengeStateSchema,
   phase: challengePhaseSchema,
+  acceptsVotes: z.boolean(),
   lifecycleVersion: z.number().int().positive(),
   currentVersionId: z.uuid(),
   versionNumber: z.number().int().positive(),
@@ -62,10 +117,26 @@ const challengeSchema: z.ZodType<Challenge> = z.object({
     })
     .nullable(),
   publishedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
   cancelledAt: z.string().nullable(),
   cancellationNote: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  moderationState: z.enum(["visible", "hidden"]).nullable(),
+  moderationVersion: z.number().int().positive().nullable(),
+  currentResultId: z.uuid().nullable(),
+  result: challengeResultSchema.nullable(),
+});
+
+const featuredChallengeSchema: z.ZodType<FeaturedChallenge> = z.object({
+  selectionKind: z.enum([
+    "selected",
+    "next_scheduled",
+    "active",
+    "recent_completed",
+  ]),
+  label: z.string(),
+  challenge: challengeSchema,
 });
 
 const commandResultSchema = z.object({
@@ -276,13 +347,23 @@ export async function getMyChallengeEntry(challengeId: string) {
   return myChallengeEntrySchema.parse(data);
 }
 
-export async function listPublicChallengeEntries(slug: string) {
+export async function listPublicChallengeEntries(
+  slug: string,
+  cursor: PublicChallengeEntryCursor | null = null,
+) {
   const db = createSupabaseAnonymousClient();
   const { data, error } = await db.rpc("list_public_challenge_entries", {
     p_slug: slug,
+    ...(cursor
+      ? {
+          p_rotation_bucket: cursor.rotationBucket,
+          p_after_rotation_key: cursor.rotationKey,
+          p_after_entry_id: cursor.entryId,
+        }
+      : {}),
   });
   if (error) throw new Error("challenge_entries_unavailable");
-  return z.array(publicChallengeEntrySchema).parse(data);
+  return publicChallengeEntryPageSchema.parse(data);
 }
 
 export async function getPublicChallengeEntry(slug: string, entryId: string) {
@@ -306,4 +387,191 @@ export async function getPublicChallengeEntryPreview(
   });
   if (error || !data) return null;
   return midiArrangementPreviewSchema.parse(data);
+}
+
+const voteCommandSchema = z.union([
+  z.object({
+    entryId: z.uuid(),
+    active: z.boolean(),
+    voteVersion: z.number().int().positive(),
+  }),
+  z.object({ errorCode: z.string().regex(/^PT[0-9]{3}$/) }),
+]);
+
+export async function setChallengeVote(input: {
+  entryId: string;
+  active: boolean;
+  requestId: string;
+}) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("set_challenge_vote", {
+    p_entry_id: input.entryId,
+    p_active: input.active,
+    p_request_id: input.requestId,
+  });
+  return { data: data ? voteCommandSchema.parse(data) : null, error };
+}
+
+export async function listMyActiveChallengeVoteIds(challengeId: string) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("list_my_active_challenge_vote_ids", {
+    p_challenge_id: challengeId,
+  });
+  if (error || !data) return [];
+  return z.array(z.uuid()).parse(data);
+}
+
+export async function reportChallengeContent(input: {
+  requestId: string;
+  targetKind: "challenge" | "entry";
+  challengeId: string;
+  entryId: string | null;
+  reason:
+    "spam" | "harassment" | "rights_concern" | "vote_manipulation" | "other";
+  details: string | null;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("report_challenge_content", {
+    p_request_id: input.requestId,
+    p_target_kind: input.targetKind,
+    p_challenge_id: input.challengeId,
+    p_entry_id: input.entryId!,
+    p_reason: input.reason,
+    p_details: input.details!,
+  });
+}
+
+export async function moderateChallengeTarget(input: {
+  requestId: string;
+  challengeId: string;
+  entryId: string | null;
+  voteId: string | null;
+  action:
+    | "challenge_hide"
+    | "challenge_restore"
+    | "entry_hide"
+    | "entry_restore"
+    | "entry_disqualify"
+    | "vote_exclude"
+    | "vote_restore";
+  expectedVersion: number;
+  reason: string;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("moderate_challenge_target", {
+    p_request_id: input.requestId,
+    p_challenge_id: input.challengeId,
+    p_entry_id: input.entryId!,
+    p_vote_id: input.voteId!,
+    p_action: input.action,
+    p_expected_version: input.expectedVersion,
+    p_reason: input.reason,
+  });
+}
+
+const adminResultsSchema = z.object({
+  challenge: challengeSchema,
+  results: z.array(challengeResultSchema),
+  entries: z.array(
+    z.object({
+      entryId: z.uuid(),
+      projectTitle: z.string(),
+      entrantUsername: z.string(),
+      status: z.enum(["active", "replaced", "withdrawn", "disqualified"]),
+      moderationState: z.enum(["visible", "hidden"]),
+      moderationVersion: z.number().int().positive(),
+      voteTotal: z.number().int().nonnegative(),
+    }),
+  ),
+  votes: z.array(
+    z.object({
+      voteId: z.uuid(),
+      entryId: z.uuid(),
+      voterId: z.uuid(),
+      state: z.enum(["active", "removed", "excluded"]),
+      voteVersion: z.number().int().positive(),
+      updatedAt: z.string(),
+    }),
+  ),
+  reports: z.array(
+    z.object({
+      reportId: z.uuid(),
+      targetKind: z.enum(["challenge", "entry"]),
+      entryId: z.uuid().nullable(),
+      targetLabel: z.string(),
+      reason: z.enum([
+        "spam",
+        "harassment",
+        "rights_concern",
+        "vote_manipulation",
+        "other",
+      ]),
+      details: z.string().max(1000).nullable(),
+      createdAt: z.string(),
+    }),
+  ),
+  reportCount: z.number().int().nonnegative(),
+  featuredSelection: z.object({
+    challengeId: z.uuid().nullable(),
+    version: z.number().int().nonnegative(),
+  }),
+});
+
+export type AdminChallengeResults = z.infer<typeof adminResultsSchema>;
+
+export async function getAdminChallengeResults(challengeId: string) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("get_admin_challenge_results", {
+    p_challenge_id: challengeId,
+  });
+  if (error || !data) return null;
+  return adminResultsSchema.parse(data);
+}
+
+export async function finalizeChallengeResult(input: {
+  challengeId: string;
+  requestId: string;
+  expectedLifecycleVersion: number;
+  expectedCurrentVersionId: string;
+  expectedCurrentResultId: string | null;
+  publicNote: string;
+  placements: Array<{ entryId: string; place: number; label: string }>;
+  correctionReason: string | null;
+}) {
+  const db = await createSupabaseServerClient();
+  return db.rpc("finalize_challenge_result", {
+    p_challenge_id: input.challengeId,
+    p_request_id: input.requestId,
+    p_expected_lifecycle_version: input.expectedLifecycleVersion,
+    p_expected_current_version_id: input.expectedCurrentVersionId,
+    p_expected_current_result_id: input.expectedCurrentResultId!,
+    p_public_note: input.publicNote,
+    p_placements: input.placements,
+    p_correction_reason: input.correctionReason!,
+  });
+}
+
+export async function setFeaturedChallenge(input: {
+  requestId: string;
+  challengeId: string | null;
+  expectedVersion: number;
+}) {
+  const db = await createSupabaseServerClient();
+  return input.challengeId
+    ? db.rpc("set_featured_challenge", {
+        p_request_id: input.requestId,
+        p_challenge_id: input.challengeId,
+        p_expected_version: input.expectedVersion,
+      })
+    : db.rpc("clear_featured_challenge", {
+        p_request_id: input.requestId,
+        p_expected_version: input.expectedVersion,
+      });
+}
+
+export async function getFeaturedChallenge() {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc("get_featured_challenge");
+  if (error || !data) return null;
+  return featuredChallengeSchema.parse(data);
 }

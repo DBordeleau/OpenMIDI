@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { parseSupabasePublicEnv } from "./public";
+import {
+  hasSupabasePublicEnvConfiguration,
+  parseSupabasePublicEnv,
+} from "./public";
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("parseSupabasePublicEnv", () => {
   it.each([
@@ -56,4 +61,30 @@ describe("parseSupabasePublicEnv", () => {
       }
     },
   );
+});
+
+describe("hasSupabasePublicEnvConfiguration", () => {
+  it("allows the raw browser job to render without hosted data configuration", () => {
+    vi.stubEnv("CI", "true");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", undefined);
+    expect(hasSupabasePublicEnvConfiguration()).toBe(false);
+  });
+
+  it("does not hide missing configuration outside the browser CI boundary", () => {
+    vi.stubEnv("CI", undefined);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", undefined);
+    expect(() => hasSupabasePublicEnvConfiguration()).toThrow(
+      "NEXT_PUBLIC_SUPABASE_URL",
+    );
+  });
+
+  it("still rejects a partially configured runtime", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.com");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", undefined);
+    expect(() => hasSupabasePublicEnvConfiguration()).toThrow(
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    );
+  });
 });

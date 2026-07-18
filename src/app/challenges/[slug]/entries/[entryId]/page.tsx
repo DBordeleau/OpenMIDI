@@ -5,8 +5,13 @@ import { z } from "zod";
 import { Container } from "@/components/layout/container";
 import { PublicMidiQuickPreview } from "@/features/public-midi/quick-preview-player.client";
 import {
+  ChallengeReportControl,
+  ChallengeVoteControl,
+} from "@/features/challenges/challenge-community-controls.client";
+import {
   getPublicChallenge,
   getPublicChallengeEntry,
+  listMyActiveChallengeVoteIds,
 } from "@/server/repositories/challenges";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +49,7 @@ export default async function ChallengeEntryDetailPage({
     getPublicChallengeEntry(parsed.data.slug, parsed.data.entryId),
   ]);
   if (!challenge || !entry) notFound();
+  const activeVoteIds = await listMyActiveChallengeVoteIds(challenge.id);
   return (
     <main id="main-content">
       <Container className="py-12 sm:py-16">
@@ -72,6 +78,19 @@ export default async function ChallengeEntryDetailPage({
             durationMs={entry.durationMs}
             previewEndpoint={`/api/challenges/${challenge.slug}/entries/${entry.entryId}/preview`}
           />
+          {entry.voteTotal !== null && (
+            <p className="text-accent-2 mt-5 text-lg font-semibold">
+              Final total: {entry.voteTotal}{" "}
+              {entry.voteTotal === 1 ? "vote" : "votes"}
+            </p>
+          )}
+          {challenge.acceptsVotes && (
+            <ChallengeVoteControl
+              entryId={entry.entryId}
+              slug={challenge.slug}
+              initiallyActive={activeVoteIds.includes(entry.entryId)}
+            />
+          )}
           <section
             className="border-subtle bg-surface-soft rounded-card mt-8 border p-6"
             aria-labelledby="attribution-heading"
@@ -96,6 +115,11 @@ export default async function ChallengeEntryDetailPage({
             copy, and it does not expose the source project workspace or
             history.
           </p>
+          <ChallengeReportControl
+            challengeId={challenge.id}
+            entryId={entry.entryId}
+            slug={challenge.slug}
+          />
         </article>
       </Container>
     </main>
