@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({ notFound: vi.fn() }));
 vi.mock("@/server/repositories/midi-library", () => ({
   getPublicMidiLibraryListing: vi.fn(),
   getPublicMidiLibraryPatternComparison: vi.fn(),
-  listSavedMidiLibraryPatterns: vi.fn(),
+  listSavedMidiLibraryPatternIds: vi.fn(),
   listOwnedPrivateMidiWorkspaces: vi.fn(),
 }));
 vi.mock("@/features/auth/guards", () => ({

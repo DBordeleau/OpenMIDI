@@ -221,6 +221,8 @@ export async function listOwnedMidiLibraryVersions(): Promise<
     reuseLicenseCode: row.reuse_license_code,
     durationTicks: row.duration_ticks,
     noteCount: row.note_count,
+    hasSourceLineage: row.has_source_lineage,
+    hasInheritedExternalCredits: row.has_inherited_external_credits,
     activeListingId: row.active_listing_id,
     activeListingPatternVersionId: row.active_listing_pattern_version_id,
     activeReuseMode:
@@ -477,6 +479,18 @@ export async function listSavedMidiLibraryPatterns(): Promise<
       externalCredits: row.external_credits,
       notes: row.notes,
     }));
+}
+
+export async function listSavedMidiLibraryPatternIds(
+  patternVersionIds: string[],
+): Promise<string[]> {
+  if (!patternVersionIds.length) return [];
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("list_saved_midi_library_pattern_ids", {
+    p_pattern_version_ids: patternVersionIds,
+  });
+  if (error) throw new Error("midi_library_saved_ids_unavailable");
+  return (data ?? []).map((row) => row.midi_pattern_version_id);
 }
 
 export async function listOwnedPrivateMidiWorkspaces(): Promise<

@@ -56,6 +56,13 @@ export async function listMidiLibraryAction(
         message:
           "Commercial listing requires this exact version to carry CC BY 4.0.",
       };
+    if (message.includes("derived_rights_basis"))
+      return {
+        ok: false,
+        code: "derived_rights_basis_required",
+        message:
+          "This pattern comes from a reusable source. List it as an authorized adaptation so its inherited attribution stays intact.",
+      };
     if (message.includes("active_listing"))
       return {
         ok: false,

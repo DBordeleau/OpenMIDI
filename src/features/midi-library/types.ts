@@ -89,6 +89,8 @@ export type OwnedMidiLibraryVersion = {
   reuseLicenseCode: string | null;
   durationTicks: number;
   noteCount: number;
+  hasSourceLineage: boolean;
+  hasInheritedExternalCredits: boolean;
   activeListingId: string | null;
   activeListingPatternVersionId: string | null;
   activeReuseMode: MidiLibraryReuseMode | null;

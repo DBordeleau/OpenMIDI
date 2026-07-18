@@ -18,7 +18,7 @@ import {
   getPublicMidiLibraryListing,
   getPublicMidiLibraryPatternComparison,
   listOwnedPrivateMidiWorkspaces,
-  listSavedMidiLibraryPatterns,
+  listSavedMidiLibraryPatternIds,
 } from "@/server/repositories/midi-library";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +36,9 @@ export default async function MidiLibraryDetailPage({
   const detail = await getPublicMidiLibraryListing(listingId.data);
   if (!detail) notFound();
   const viewer = await getOptionalViewer();
-  const [saved, workspaces] = viewer
+  const [savedIds, workspaces] = viewer
     ? await Promise.all([
-        listSavedMidiLibraryPatterns(),
+        listSavedMidiLibraryPatternIds([detail.listing.midiPatternVersionId]),
         listOwnedPrivateMidiWorkspaces(),
       ])
     : [[], []];
@@ -167,10 +167,7 @@ export default async function MidiLibraryDetailPage({
               listingId={listing.listingId}
               patternVersionId={listing.midiPatternVersionId}
               title={listing.title}
-              saved={saved.some(
-                (item) =>
-                  item.midiPatternVersionId === listing.midiPatternVersionId,
-              )}
+              saved={savedIds.includes(listing.midiPatternVersionId)}
               canReuse
               workspaces={workspaces}
             />

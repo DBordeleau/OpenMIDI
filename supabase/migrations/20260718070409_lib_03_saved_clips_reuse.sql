@@ -69,6 +69,106 @@ create unique index midi_pattern_inherited_credit_position_idx
   on public.midi_pattern_external_credits(midi_pattern_version_id,position)
   where listing_id is null;
 
+alter function public.list_midi_library_pattern_version(
+  uuid,uuid,text,text,text,text,text,text,text,text,text,integer,text[],jsonb,uuid
+) set schema private;
+revoke all on function private.list_midi_library_pattern_version(
+  uuid,uuid,text,text,text,text,text,text,text,text,text,integer,text[],jsonb,uuid
+) from public,anon,authenticated;
+
+create or replace function public.list_midi_library_pattern_version(
+  p_pattern_version_id uuid,
+  p_request_id uuid,
+  p_reuse_mode text,
+  p_rights_basis text,
+  p_attestation_version text,
+  p_description text,
+  p_supporting_source_url text,
+  p_supporting_source_terms text,
+  p_public_domain_rationale text,
+  p_category_code text,
+  p_suggested_preset_id text,
+  p_suggested_preset_version integer,
+  p_tags text[],
+  p_external_credits jsonb,
+  p_replace_listing_id uuid default null
+) returns table(listing_id uuid,creator_version integer,listed_at timestamptz)
+language plpgsql security definer set search_path=''
+as $$
+declare
+  v_actor uuid := (select auth.uid());
+  v_pattern public.midi_patterns%rowtype;
+  v_version public.midi_pattern_versions%rowtype;
+  v_inherited_version_id uuid;
+  v_inherited_credits jsonb := '[]'::jsonb;
+  v_combined_credits jsonb;
+begin
+  select * into v_version from public.midi_pattern_versions where id=p_pattern_version_id;
+  if found then
+    select * into v_pattern from public.midi_patterns
+    where id=v_version.midi_pattern_id and owner_id=v_actor and deleted_at is null;
+  end if;
+  if v_pattern.id is not null and (
+    v_pattern.source_pattern_version_id is not null or v_version.source_pattern_version_id is not null
+  ) then
+    if p_rights_basis is distinct from 'authorized_adaptation' then
+      raise sqlstate 'PT409' using message='midi_library_derived_rights_basis_required';
+    end if;
+    select pv.id into v_inherited_version_id
+    from public.midi_pattern_versions pv
+    where pv.midi_pattern_id=v_pattern.id and exists(
+      select 1 from public.midi_pattern_external_credits ec
+      where ec.midi_pattern_version_id=pv.id and ec.listing_id is null
+    )
+    order by pv.version_number,pv.id limit 1;
+    select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+      'creditedName',ec.credited_name,'role',ec.role,'workTitle',ec.work_title,
+      'sourceUrl',ec.source_url,'sourceTerms',ec.source_terms,
+      'attributionNote',ec.attribution_note
+    )) order by ec.position),'[]'::jsonb) into v_inherited_credits
+    from public.midi_pattern_external_credits ec
+    where ec.midi_pattern_version_id=v_inherited_version_id and ec.listing_id is null;
+  end if;
+  if p_external_credits is null or jsonb_typeof(p_external_credits)<>'array' then
+    v_combined_credits:=p_external_credits;
+  else
+    v_combined_credits:=v_inherited_credits||p_external_credits;
+  end if;
+  return query select * from private.list_midi_library_pattern_version(
+    p_pattern_version_id,p_request_id,p_reuse_mode,p_rights_basis,p_attestation_version,
+    p_description,p_supporting_source_url,p_supporting_source_terms,p_public_domain_rationale,
+    p_category_code,p_suggested_preset_id,p_suggested_preset_version,p_tags,
+    v_combined_credits,p_replace_listing_id
+  );
+end $$;
+
+drop function public.list_owned_midi_library_versions(integer);
+create or replace function public.list_owned_midi_library_versions(p_limit integer default 100)
+returns table(
+  pattern_id uuid,pattern_name text,pattern_version_id uuid,version_number integer,created_at timestamptz,
+  reuse_license_code text,duration_ticks integer,note_count integer,has_source_lineage boolean,
+  has_inherited_external_credits boolean,
+  active_listing_id uuid,active_listing_pattern_version_id uuid,active_reuse_mode text,active_creator_version integer
+)
+language sql stable security definer set search_path=''
+as $$
+  select p.id,p.name,v.id,v.version_number,v.created_at,v.reuse_license_code,v.duration_ticks,v.note_count,
+    p.source_pattern_version_id is not null or v.source_pattern_version_id is not null,
+    exists(select 1 from public.midi_pattern_versions inherited_version
+      join public.midi_pattern_external_credits inherited_credit
+        on inherited_credit.midi_pattern_version_id=inherited_version.id
+        and inherited_credit.listing_id is null
+      where inherited_version.midi_pattern_id=p.id),
+    l.id,l.midi_pattern_version_id,l.reuse_mode,l.creator_version
+  from public.midi_patterns p
+  join public.midi_pattern_versions v on v.midi_pattern_id=p.id
+  left join public.midi_library_listings l on l.midi_pattern_id=p.id and l.unlisted_at is null
+  where (select auth.uid()) is not null and (select private.is_active_project_actor())
+    and p.owner_id=(select auth.uid()) and p.deleted_at is null
+  order by v.created_at desc,v.id desc
+  limit least(greatest(coalesce(p_limit,100),1),100)
+$$;
+
 create index saved_midi_patterns_user_recent_idx
   on public.saved_midi_patterns(user_id,created_at desc,midi_pattern_version_id);
 create index saved_midi_patterns_listing_idx on public.saved_midi_patterns(source_listing_id);
@@ -225,7 +325,20 @@ as $$
   join public.midi_library_categories c on c.code=l.category_code
   join public.midi_library_presets pr on pr.preset_id=l.suggested_preset_id and pr.version=l.suggested_preset_version
   where s.user_id=(select auth.uid()) and (select private.is_active_project_actor())
-  order by s.created_at desc,s.midi_pattern_version_id desc limit least(greatest(p_limit,1),100)
+  order by s.created_at desc,s.midi_pattern_version_id desc
+  limit least(greatest(coalesce(p_limit,100),1),100)
+$$;
+
+create or replace function public.list_saved_midi_library_pattern_ids(p_pattern_version_ids uuid[])
+returns table(midi_pattern_version_id uuid)
+language sql stable security definer set search_path=''
+as $$
+  select s.midi_pattern_version_id
+  from public.saved_midi_patterns s
+  where s.user_id=(select auth.uid()) and (select private.is_active_project_actor())
+    and cardinality(coalesce(p_pattern_version_ids,'{}'::uuid[])) between 1 and 25
+    and s.midi_pattern_version_id=any(p_pattern_version_ids)
+  order by s.midi_pattern_version_id
 $$;
 
 create or replace function public.list_owned_private_midi_workspaces()
@@ -372,12 +485,22 @@ end $$;
 
 revoke all on function private.get_midi_library_reuse_authority(uuid,uuid,uuid,boolean) from public;
 revoke all on function private.can_read_pattern_version(uuid) from public;
+revoke all on function public.list_midi_library_pattern_version(
+  uuid,uuid,text,text,text,text,text,text,text,text,text,integer,text[],jsonb,uuid
+) from public,anon;
+grant execute on function public.list_midi_library_pattern_version(
+  uuid,uuid,text,text,text,text,text,text,text,text,text,integer,text[],jsonb,uuid
+) to authenticated;
+revoke all on function public.list_owned_midi_library_versions(integer) from public,anon;
+grant execute on function public.list_owned_midi_library_versions(integer) to authenticated;
 revoke all on function public.save_midi_library_pattern(uuid,uuid,uuid) from public,anon;
 grant execute on function public.save_midi_library_pattern(uuid,uuid,uuid) to authenticated;
 revoke all on function public.remove_saved_midi_library_pattern(uuid,uuid) from public,anon;
 grant execute on function public.remove_saved_midi_library_pattern(uuid,uuid) to authenticated;
 revoke all on function public.list_saved_midi_library_patterns(integer) from public,anon;
 grant execute on function public.list_saved_midi_library_patterns(integer) to authenticated;
+revoke all on function public.list_saved_midi_library_pattern_ids(uuid[]) from public,anon;
+grant execute on function public.list_saved_midi_library_pattern_ids(uuid[]) to authenticated;
 revoke all on function public.list_owned_private_midi_workspaces() from public,anon;
 grant execute on function public.list_owned_private_midi_workspaces() to authenticated;
 revoke all on function public.reuse_midi_library_pattern(uuid,uuid,uuid,text,uuid,integer,text,integer) from public,anon;

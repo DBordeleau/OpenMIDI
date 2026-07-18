@@ -21,6 +21,8 @@ const version = {
   reuseLicenseCode: "CC-BY-4.0",
   durationTicks: 1920,
   noteCount: 4,
+  hasSourceLineage: false,
+  hasInheritedExternalCredits: false,
   activeListingId: null,
   activeListingPatternVersionId: null,
   activeReuseMode: null,
@@ -48,5 +50,28 @@ describe("creator listing workflow", () => {
       <MidiLibraryListingManager versions={[version]} options={options} />,
     );
     expect(screen.getByText(/Credit acknowledges a source/)).toBeVisible();
+  });
+  it("locks derived patterns to adaptation rights and inherited credits", () => {
+    render(
+      <MidiLibraryListingManager
+        versions={[
+          {
+            ...version,
+            hasSourceLineage: true,
+            hasInheritedExternalCredits: true,
+          },
+        ]}
+        options={options}
+      />,
+    );
+    expect(
+      screen.getByText(/inherited external credits will be carried/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("radio", { name: /Wholly original/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("radio", { name: /Authorized adaptation/ }),
+    ).toBeChecked();
   });
 });

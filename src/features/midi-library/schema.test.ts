@@ -81,6 +81,8 @@ describe("MIDI library contracts", () => {
       suggestedPresetVersion: 1,
       tags: [],
       externalCredits: [{ creditedName: "Composer", role: "Composer" }],
+      hasSourceLineage: false,
+      hasInheritedExternalCredits: false,
       replaceListingId: null,
     };
     expect(midiLibraryListingInputSchema.safeParse(base).success).toBe(true);
@@ -88,6 +90,25 @@ describe("MIDI library contracts", () => {
       midiLibraryListingInputSchema.safeParse({
         ...base,
         supportingSourceUrl: "http://example.test",
+      }).success,
+    ).toBe(false);
+    expect(
+      midiLibraryListingInputSchema.safeParse({
+        ...base,
+        hasSourceLineage: true,
+        hasInheritedExternalCredits: true,
+        externalCredits: [],
+      }).success,
+    ).toBe(true);
+    expect(
+      midiLibraryListingInputSchema.safeParse({
+        ...base,
+        hasSourceLineage: true,
+        hasInheritedExternalCredits: true,
+        rightsBasis: "original",
+        supportingSourceUrl: null,
+        supportingSourceTerms: null,
+        externalCredits: [],
       }).success,
     ).toBe(false);
   });

@@ -21,7 +21,7 @@ import type {
 import {
   listMidiLibraryOptions,
   listOwnedPrivateMidiWorkspaces,
-  listSavedMidiLibraryPatterns,
+  listSavedMidiLibraryPatternIds,
   searchPublicMidiLibrary,
 } from "@/server/repositories/midi-library";
 
@@ -39,12 +39,10 @@ export default async function MidiLibraryPage({
 }) {
   const parsed = parseMidiLibraryFilters(await searchParams);
   const viewer = await getOptionalViewer();
-  const [options, saved, workspaces] = await Promise.all([
+  const [options, workspaces] = await Promise.all([
     listMidiLibraryOptions(),
-    viewer ? listSavedMidiLibraryPatterns() : Promise.resolve([]),
     viewer ? listOwnedPrivateMidiWorkspaces() : Promise.resolve([]),
   ]);
-  const savedIds = new Set(saved.map((item) => item.midiPatternVersionId));
   let result: Awaited<ReturnType<typeof searchPublicMidiLibrary>> | null = null;
   let error = parsed.success ? null : parsed.message;
   if (parsed.success)
@@ -56,6 +54,13 @@ export default async function MidiLibraryPage({
           ? "The catalog changed while you were browsing. Start again from the first page."
           : "The library is taking a moment to tune up. Try again.";
     }
+  const savedIds = new Set(
+    viewer && result
+      ? await listSavedMidiLibraryPatternIds(
+          result.listings.map((item) => item.midiPatternVersionId),
+        )
+      : [],
+  );
   const filters = parsed.success ? parsed.data : null;
   const families = [
     ...new Set(options.presets.map((preset) => preset.family)),

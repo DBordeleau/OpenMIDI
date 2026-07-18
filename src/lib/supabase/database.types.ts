@@ -2752,6 +2752,8 @@ export type Database = {
           active_reuse_mode: string
           created_at: string
           duration_ticks: number
+          has_inherited_external_credits: boolean
+          has_source_lineage: boolean
           note_count: number
           pattern_id: string
           pattern_name: string
@@ -2787,6 +2789,12 @@ export type Database = {
           p_profile_id: string
         }
         Returns: Json
+      }
+      list_saved_midi_library_pattern_ids: {
+        Args: { p_pattern_version_ids: string[] }
+        Returns: {
+          midi_pattern_version_id: string
+        }[]
       }
       list_saved_midi_library_patterns: {
         Args: { p_limit?: number }

@@ -47,7 +47,9 @@ export function MidiLibraryListingManager({
   const [reuseMode, setReuseMode] = useState<
     "commercial_reuse" | "reference_only"
   >(selected?.reuseLicenseCode ? "commercial_reuse" : "reference_only");
-  const [basis, setBasis] = useState<Basis>("original");
+  const [basis, setBasis] = useState<Basis>(
+    versions[0]?.hasSourceLineage ? "authorized_adaptation" : "original",
+  );
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(options.categories[0]?.code ?? "");
   const [preset, setPreset] = useState(options.presets[0]?.id ?? "");
@@ -92,6 +94,7 @@ export function MidiLibraryListingManager({
     setReuseMode(
       next?.reuseLicenseCode ? "commercial_reuse" : "reference_only",
     );
+    setBasis(next?.hasSourceLineage ? "authorized_adaptation" : "original");
     setResult(null);
   }
   function updateCredit(index: number, key: keyof Credit, value: string) {
@@ -133,6 +136,8 @@ export function MidiLibraryListingManager({
         suggestedPresetVersion: 1,
         tags,
         externalCredits,
+        hasSourceLineage: selected.hasSourceLineage,
+        hasInheritedExternalCredits: selected.hasInheritedExternalCredits,
         replaceListingId:
           selected.activeListingId &&
           selected.activeListingPatternVersionId !== selected.patternVersionId
@@ -256,6 +261,10 @@ export function MidiLibraryListingManager({
                 <Choice
                   key={value}
                   checked={basis === value}
+                  disabled={Boolean(
+                    selected?.hasSourceLineage &&
+                    value !== "authorized_adaptation",
+                  )}
                   onChange={() => setBasis(value as Basis)}
                   title={title}
                 >
@@ -264,6 +273,15 @@ export function MidiLibraryListingManager({
               ))}
             </div>
           </fieldset>
+          {selected?.hasSourceLineage && (
+            <p className="border-accent/40 bg-surface-soft rounded-card mt-4 border p-4 text-sm">
+              This pattern has verified OpenMIDI source lineage. Its rights
+              basis must remain an authorized adaptation.
+              {selected.hasInheritedExternalCredits
+                ? " Inherited external credits will be carried into the new listing automatically."
+                : " No inherited external credits are recorded, so add the required source credit below."}
+            </p>
+          )}
           {uncertain && (
             <div
               className="border-danger/40 bg-surface-soft text-danger rounded-card mt-4 border p-4"
@@ -401,7 +419,10 @@ export function MidiLibraryListingManager({
                   onChange={(event) =>
                     updateCredit(index, "creditedName", event.target.value)
                   }
-                  required={basis !== "original"}
+                  required={
+                    basis !== "original" &&
+                    !selected?.hasInheritedExternalCredits
+                  }
                 />
               </label>
               <label className="field-label">
@@ -412,7 +433,10 @@ export function MidiLibraryListingManager({
                   onChange={(event) =>
                     updateCredit(index, "role", event.target.value)
                   }
-                  required={basis !== "original"}
+                  required={
+                    basis !== "original" &&
+                    !selected?.hasInheritedExternalCredits
+                  }
                 />
               </label>
               <label className="field-label">

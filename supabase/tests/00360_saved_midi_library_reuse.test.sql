@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(50);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','fc000000-0000-4000-8000-000000000001','authenticated','authenticated','lib3-owner@example.test','','{}','{}',now(),now()),
@@ -19,6 +19,9 @@ select has_table('private','midi_library_reuses','private immutable reuse proven
 select ok(not exists(select 1 from information_schema.role_table_grants where table_schema='private' and table_name='midi_library_reuses' and grantee in ('anon','authenticated')),'reuse provenance has no direct application grant');
 select ok(not has_function_privilege('anon','public.save_midi_library_pattern(uuid,uuid,uuid)','execute'),'anonymous cannot save');
 select ok(has_function_privilege('authenticated','public.reuse_midi_library_pattern(uuid,uuid,uuid,text,uuid,integer,text,integer)','execute'),'authenticated actor receives bounded reuse command');
+select has_function('public','list_saved_midi_library_pattern_ids',array['uuid[]'],'lightweight exact saved-ID projection exists');
+select ok(not has_function_privilege('anon','public.list_saved_midi_library_pattern_ids(uuid[])','execute'),'anonymous cannot query saved IDs');
+select ok(pg_get_functiondef('public.list_saved_midi_library_patterns(integer)'::regprocedure) ~ 'coalesce\(p_limit,[[:space:]]*100\)','null collection limit is coalesced before clamping');
 
 insert into public.midi_patterns(id,owner_id,create_request_id,name,visibility,rights_attestation_version,published_at) values
 ('fc100000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000001','fc110000-0000-4000-8000-000000000001','Reusable pulse','public','cc-by-4.0-attestation-v1',now()),
@@ -51,6 +54,10 @@ select lives_ok($$select public.save_midi_library_pattern('fc300000-0000-4000-80
 select throws_ok($$select public.save_midi_library_pattern('fc300000-0000-4000-8000-000000000002','fc200000-0000-4000-8000-000000000002',gen_random_uuid())$$,'PT404','midi_library_reuse_source_not_found','reference-only save is rejected authoritatively');
 select is((select count(*) from public.saved_midi_patterns),1::bigint,'owner RLS exposes only the saved exact-version row');
 select is((select count(*) from public.list_saved_midi_library_patterns()),1::bigint,'private collection projection returns the bookmark');
+select is((select count(*) from public.list_saved_midi_library_pattern_ids(array[
+  'fc200000-0000-4000-8000-000000000001'::uuid,
+  'fc200000-0000-4000-8000-000000000002'::uuid
+])),1::bigint,'lightweight projection returns only requested exact saved IDs');
 select is((select external_credits->0->>'creditedName' from public.list_saved_midi_library_patterns()),'Outside Writer','saved projection retains external credits');
 select is((select count(*) from public.list_owned_private_midi_workspaces()),1::bigint,'only an owned private workspace is offered');
 select throws_ok($$select public.get_midi_library_export('fc300000-0000-4000-8000-000000000002','fc200000-0000-4000-8000-000000000002')$$,'PT404','midi_library_reuse_source_not_found','reference-only export is rejected');
@@ -74,6 +81,25 @@ select ok((select v.reuse_license_code='CC-BY-4.0' and v.note_count=2 from publi
 select is((select count(*) from public.midi_pattern_external_credits ec join private.midi_library_reuses r on r.derived_pattern_version_id=ec.midi_pattern_version_id where r.request_id='fc510000-0000-4000-8000-000000000002'),1::bigint,'fork inherits immutable external credit');
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000002';
+select throws_ok($$select public.list_midi_library_pattern_version(
+  (select pattern_version_id from public.list_owned_midi_library_versions(100) where pattern_name='Owned pulse copy'),
+  gen_random_uuid(),'commercial_reuse','original','midi-library-commercial-attestation-v1','',null,null,null,
+  'rhythm','warm-keys',1,'{}'::text[],'[]'::jsonb,null
+)$$,'PT409','midi_library_derived_rights_basis_required','derived fork cannot be relisted as wholly original');
+select lives_ok($$select public.list_midi_library_pattern_version(
+  (select pattern_version_id from public.list_owned_midi_library_versions(100) where pattern_name='Owned pulse copy'),
+  'fc530000-0000-4000-8000-000000000001','commercial_reuse','authorized_adaptation',
+  'midi-library-commercial-attestation-v1','','https://example.test/source','CC BY 4.0 source grant',null,
+  'rhythm','warm-keys',1,'{}'::text[],'[]'::jsonb,null
+)$$,'derived fork relists with inherited credits and compatible source rights');
+reset role;
+select is((select rights_basis from public.midi_library_listings where request_id='fc530000-0000-4000-8000-000000000001'),'authorized_adaptation','derived listing records adaptation rights');
+select is((select count(*) from public.midi_pattern_external_credits ec join public.midi_library_listings l on l.id=ec.listing_id where l.request_id='fc530000-0000-4000-8000-000000000001'),1::bigint,'derived listing receives an immutable listing-bound inherited-credit snapshot');
+select is((select ec.credited_name from public.midi_pattern_external_credits ec join public.midi_library_listings l on l.id=ec.listing_id where l.request_id='fc530000-0000-4000-8000-000000000001'),'Outside Writer','derived listing cannot erase inherited credit identity');
+select is((select public.get_public_midi_library_listing(l.id)->'listing'->'externalCredits'->0->>'creditedName' from public.midi_library_listings l where l.request_id='fc530000-0000-4000-8000-000000000001'),'Outside Writer','public detail projects the inherited listing snapshot');
+set local role authenticated;
+set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000002';
+select ok((select has_source_lineage and has_inherited_external_credits from public.list_owned_midi_library_versions(100) where pattern_name='Owned pulse copy'),'owner listing projection marks the fork and its inherited credits');
 select lives_ok($$select public.reuse_midi_library_pattern('fc300000-0000-4000-8000-000000000001','fc200000-0000-4000-8000-000000000001','fc510000-0000-4000-8000-000000000003','open_editor','fc420000-0000-4000-8000-000000000001',2,'Editable pulse copy',0)$$,'editor path creates and imports an owned child');
 reset role;
 select ok((select r.derived_pattern_version_id=wc.midi_pattern_version_id and r.clip_id=wc.clip_id from private.midi_library_reuses r join public.workspace_clips wc on wc.workspace_id=r.workspace_id and wc.clip_id=r.clip_id where r.request_id='fc510000-0000-4000-8000-000000000003'),'editor path never edits or imports the public source directly');
