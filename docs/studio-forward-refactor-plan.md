@@ -2,7 +2,7 @@
 
 > **Historical implementation record:** STUDIO-01 through STUDIO-06 and UX-01 through UX-05 landed and established the current Studio. The MIDI-only replacement PRD, [pivot contract](technical-design/midi-only-pivot-contract.md), and [roadmap](ROADMAP.md) supersede this document wherever it retains audio, manifest-v2, stem, source-admission, PR 19, or PR 20 as a future target. Do not use those superseded sections to add compatibility; the pivot removes it in ordered slices.
 >
-> OpenMIDI was the product name when this record was written. The current product name is OpenMIDI; historical naming below is intentionally preserved.
+> This historical record predates the current product identity. Its implementation language is retained as planning evidence.
 
 Status: Historical implementation record; superseded as current behavior and future direction by PIVOT-01 through PIVOT-10
 Prepared: 2026-07-14  
@@ -48,7 +48,7 @@ This proposal supports the current PRD rather than changing OpenMIDI into a prof
 
 - The PRD already describes an integrated browser workspace for synchronized MIDI and compatible legacy audio.
 - The PRD explicitly says OpenMIDI is not intended to replace Ableton Live, FL Studio, Logic, or Pro Tools.
-- The roadmap already plans a OpenMIDI-owned composite MIDI/audio adapter and manifest v2.
+- The roadmap already plans a platform-owned composite MIDI/audio adapter and manifest v2.
 - ADR-003 still applies: mutable private workspaces sit on immutable revision history.
 - ADR-004 still applies: the OpenMIDI manifest, not an editor's live object graph, is the portable authority.
 - ADR-006 still applies for the MVP: Waveform Playlist remains the legacy-audio implementation behind the client-only adapter.

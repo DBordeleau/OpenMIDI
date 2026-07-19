@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(20);
 
 select is(
   (select count(*) from private.midi_synth_presets
@@ -26,6 +26,32 @@ select is((select count(*) from public.genres), 12::bigint, 'genre lookup catalo
 select is((select count(*) from public.instruments), 16::bigint, 'instrument lookup catalog is preserved');
 select is((select count(*) from public.midi_library_presets), 24::bigint, 'library preset lookup catalog is preserved');
 select is((select count(*) from public.badge_definitions), 3::bigint, 'badge definition catalog is preserved');
+
+select is(
+  (select count(*) from public.discovery_state),
+  1::bigint,
+  'reconciliation retains exactly one discovery singleton'
+);
+select is(
+  (select count(*) from public.discovery_state where singleton and version > 0),
+  1::bigint,
+  'the retained discovery singleton has a valid positive version'
+);
+select is(
+  (select count(*) from public.search_public_projects()),
+  0::bigint,
+  'empty Explore discovery works immediately after reconciliation'
+);
+select is(
+  public.list_public_profile_projects(
+    (select id from public.profiles order by id limit 1),
+    (select version from public.discovery_state where singleton),
+    null,
+    null
+  ),
+  '[]'::jsonb,
+  'empty public-profile project discovery works immediately after reconciliation'
+);
 
 select is((select count(*) from public.projects), 0::bigint, 'fresh replay has no prelaunch projects');
 select is((select count(*) from public.midi_patterns), 0::bigint, 'fresh replay has no prelaunch patterns');

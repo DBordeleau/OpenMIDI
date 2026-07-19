@@ -1,5 +1,87 @@
 begin;
 
+-- This one-time prelaunch reset intentionally clears rows protected by normal
+-- immutable, append-only, lifecycle, and discovery-maintenance triggers. Keep
+-- the complete affected relation set in one place so every user trigger is
+-- restored before this transaction can commit.
+create temporary table release_01_trigger_tables (
+  relation_name text primary key
+) on commit drop;
+
+insert into release_01_trigger_tables (relation_name)
+select relation_name
+from unnest(array[
+  'private.deletion_request_workspaces',
+  'private.moderation_actions',
+  'private.moderation_reports',
+  'private.content_holds',
+  'private.deletion_requests',
+  'public.profile_awards',
+  'private.challenge_award_issuance',
+  'public.challenge_result_community_favorites',
+  'public.challenge_result_placements',
+  'public.challenge_result_entries',
+  'private.challenge_featured_selection',
+  'private.challenge_featured_actions',
+  'private.challenge_moderation_actions',
+  'private.challenge_reports',
+  'private.challenge_vote_commands',
+  'private.challenge_entry_commands',
+  'private.challenge_admin_actions',
+  'public.challenge_votes',
+  'public.challenge_entries',
+  'public.challenge_results',
+  'public.challenge_judge_credits',
+  'public.challenge_versions',
+  'public.challenges',
+  'private.midi_library_moderation_actions',
+  'private.midi_library_reports',
+  'private.saved_midi_pattern_removals',
+  'public.saved_midi_patterns',
+  'private.midi_library_reuse_access',
+  'private.midi_library_reuses',
+  'public.midi_library_listing_tags',
+  'public.midi_pattern_external_credits',
+  'public.midi_library_listings',
+  'private.workspace_snapshots',
+  'public.workspace_clips',
+  'public.workspace_tracks',
+  'public.workspaces',
+  'public.contribution_reviews',
+  'public.revision_attributions',
+  'public.activity_events',
+  'public.project_genres',
+  'public.project_members',
+  'public.project_stats',
+  'public.project_tags',
+  'public.public_project_catalog',
+  'public.arrangement_clips',
+  'public.arrangement_tracks',
+  'public.projects',
+  'public.project_revisions',
+  'public.contributions',
+  'public.contribution_versions',
+  'public.arrangement_versions',
+  'public.midi_patterns',
+  'public.midi_pattern_versions',
+  'public.midi_pattern_notes'
+]) as candidate(relation_name)
+where to_regclass(relation_name) is not null;
+
+do $release_01$
+declare
+  relation_name text;
+begin
+  for relation_name in
+    select trigger_table.relation_name
+    from release_01_trigger_tables as trigger_table
+    order by trigger_table.relation_name
+  loop
+    execute format('alter table %s disable trigger user', relation_name);
+  end loop;
+end
+$release_01$;
+
 -- Preserve identity, operator, feedback, avatar, and lookup-catalog state while
 -- removing prelaunch musical state and any audit rows that depend on it.
 create temporary table release_01_deletion_requests_to_remove
@@ -119,17 +201,17 @@ delete from public.contribution_reviews;
 delete from public.revision_attributions;
 delete from public.activity_events;
 
--- The deferred owner triggers assume a project survives every membership or
--- project update. This one-time transaction removes both sides together.
-alter table public.project_members disable trigger members_owner_invariant;
-alter table public.projects disable trigger projects_owner_invariant;
-
 delete from public.project_genres;
 delete from public.project_members;
 delete from public.project_stats;
 delete from public.project_tags;
 delete from public.public_project_catalog;
-delete from public.discovery_state;
+
+insert into public.discovery_state(singleton, version, updated_at)
+values (true, 1, statement_timestamp())
+on conflict (singleton) do update
+set version = public.discovery_state.version + 1,
+    updated_at = statement_timestamp();
 
 delete from public.arrangement_clips;
 delete from public.arrangement_tracks;
@@ -137,7 +219,12 @@ delete from public.arrangement_tracks;
 update public.projects
 set current_revision_id = null,
     source_project_id = null,
-    source_revision_id = null;
+    source_revision_id = null,
+    status = 'draft',
+    visibility = 'private',
+    open_to_contributions = false,
+    published_at = null,
+    rights_attestation_version = null;
 
 update public.project_revisions
 set parent_revision_id = null,
@@ -146,16 +233,19 @@ set parent_revision_id = null,
     accepted_contribution_version_id = null;
 
 update public.contributions
-set current_version_id = null;
+set current_version_id = null,
+    status = 'draft',
+    submitted_at = null,
+    withdrawn_at = null,
+    reviewed_at = null,
+    reviewed_by = null,
+    review_note = null;
 
 delete from public.contribution_versions;
 delete from public.contributions;
 delete from public.project_revisions;
 delete from public.arrangement_versions;
 delete from public.projects;
-
-alter table public.project_members enable trigger members_owner_invariant;
-alter table public.projects enable trigger projects_owner_invariant;
 
 update public.midi_patterns
 set source_pattern_id = null,
@@ -250,5 +340,19 @@ comment on table public.project_revisions is
 
 comment on table private.midi_synth_presets is
   'Versioned deterministic OpenMIDI synthesis preset catalog retained across the prelaunch musical reset.';
+
+do $release_01$
+declare
+  relation_name text;
+begin
+  for relation_name in
+    select trigger_table.relation_name
+    from release_01_trigger_tables as trigger_table
+    order by trigger_table.relation_name
+  loop
+    execute format('alter table %s enable trigger user', relation_name);
+  end loop;
+end
+$release_01$;
 
 commit;

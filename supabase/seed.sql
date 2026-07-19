@@ -100,7 +100,9 @@ insert into public.midi_library_presets(preset_id,version,family_code,display_na
   ('bell',1,'plucks-bells-textures','Bell',23),('mallet',1,'plucks-bells-textures','Mallet',24);
 
 insert into public.discovery_state(singleton,version,updated_at)
-values(true,1,'2026-07-16T00:00:00Z');
+values(true,1,'2026-07-16T00:00:00Z')
+on conflict(singleton) do update
+set version=excluded.version,updated_at=excluded.updated_at;
 
 -- Reserved local/CI actor only. The .test TLD cannot receive real sign-ins.
 insert into private.signup_invitations(email_normalized,note)

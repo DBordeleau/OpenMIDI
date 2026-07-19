@@ -147,7 +147,7 @@ The MVP will not include:
 - Professional DAW parity
 - VST, Audio Unit, AAX, or other third-party plugin hosting
 - Proprietary DAW project import or export
-- Real-time multi-user editing or live OpenMIDIs
+- Real-time multi-user editing or live collaborative sessions
 - Automatic merging of divergent musical changes
 - User-created challenge rule programming
 - Cash prizes, entry fees, betting, or paid competition placement
