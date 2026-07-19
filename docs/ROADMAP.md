@@ -1,12 +1,12 @@
 # OpenMIDI MVP roadmap
 
-Status: Post-pivot MVP release path accepted; implementation not yet deployed
-Current checkpoint: RELEASE-02 complete; RELEASE-03 deployment remains unauthorized
-Hosted state: reviewed schema behavior is current; linked migration-ledger verification, hosted seed, provider configuration, and Vercel deployment are deferred
+Status: Post-pivot MVP deployed as an invite-only beta
+Current checkpoint: RELEASE-03 complete
+Hosted state: all 16 migrations recorded; approved seed and production deployment live
 
 ## Release target
 
-The next milestone is an invite-only OpenMIDI beta deployed to Vercel. It must let users create and publish MIDI projects, contribute and fork, discover reusable MIDI patterns, understand musical changes, participate in one curated constraint challenge, earn challenge awards, and report beta problems without relying on uploaded musical media.
+The invite-only OpenMIDI beta is deployed to Vercel. It lets users create and publish MIDI projects, contribute and fork, discover reusable MIDI patterns, understand musical changes, participate in curated constraint challenges, earn challenge awards, and report beta problems without relying on uploaded musical media.
 
 OpenMIDI is the sole prelaunch product and technical identity. RELEASE-01 removed the former working name and namespace from the current repository, including persisted engine identifiers, fixtures, local infrastructure names, and clean-baseline migration source. Git history retains archaeology; current runtime compatibility with prelaunch musical data is not required.
 
@@ -78,19 +78,19 @@ This sequential program is complete, and the retained hosted schema includes its
 
 Add explicit pattern-version listing/unlisting with two rights modes: **Commercial reuse permitted — CC BY 4.0** and **Reference only — reuse not granted**. Include derived musical metadata, safe public projections, bounded search/filter contracts, an All/commercially-reusable/reference-only Explore filter, external-credit snapshots, and a rights-classification/attestation gate. Expand the current CC-only public-pattern constraints and read policy through a reviewed forward migration: CC-licensed versions cannot be downgraded, while reference-only versions retain no reuse license and use a separate public-display attestation. Reference-only is not a cure for missing rights; uncertain-rights covers/recreations cannot enter either mode. Public project publication must not list every pattern automatically.
 
-Status: Complete. `/library` and `/library/manage` use the exact-version listing commands, safe 25-row keyset search projection, deterministic note facets, two rights filters, immutable external-credit snapshots, and exclusive browser-local preview. The retained hosted schema includes this slice; linked-ledger recording remains to be verified in RELEASE-03.
+Status: Complete. `/library` and `/library/manage` use the exact-version listing commands, safe 25-row keyset search projection, deterministic note facets, two rights filters, immutable external-credit snapshots, and exclusive browser-local preview. The retained hosted schema and ledger include this slice.
 
 ### LIB-02 — Discovery, preview, history, usage, and pattern diff
 
 Add library browse/detail pages with deterministic preview, read-only notes, immutable version/lineage history, selection between any two versions in the same pattern history, prominent reuse-mode labels, visible external credits/rights terms, and public-project usage. Add **Report unoriginal or unauthorized work** with administrator hide/review/restore actions. Private project usage and reports must never leak through counts or links.
 
-Status: Complete. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, a deterministic 100-version authorized history window, URL-selected shared DIFF comparison and paired audition (including explicit authorized versions outside that first window), separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions with a fresh idempotency key per successful action. The retained hosted schema includes this slice; linked-ledger recording remains to be verified in RELEASE-03.
+Status: Complete. Canonical listing detail now exposes exact identity, browser-local preview, read-only notes, a deterministic 100-version authorized history window, URL-selected shared DIFF comparison and paired audition (including explicit authorized versions outside that first window), separated platform lineage/external credits, public-project-only usage, private rights reports, and optimistic audited administrator hide/restore/resolve/dismiss actions with a fresh idempotency key per successful action. The retained hosted schema and ledger include this slice.
 
 ### LIB-03 — Saved clips and Studio import
 
 Add a private saved-pattern collection referencing exact immutable commercially reusable versions. Saving does not duplicate notes or transfer ownership. Users can import a commercially reusable saved/discovered version into a chosen private workspace, fork it explicitly, or open it in the MIDI editor through an owned private copy-on-write draft. Reference-only listings remain preview/history surfaces and all reuse commands reject them authoritatively. All permitted reuse paths preserve platform lineage, license, and external credits.
 
-Status: Complete. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The retained hosted schema includes all four LIB changes; linked-ledger recording remains to be verified in RELEASE-03.
+Status: Complete. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The retained hosted schema and ledger include all four LIB changes.
 
 ## Wave C — Curated constraint challenges
 
@@ -109,19 +109,19 @@ The first constraint version supports:
 - exact time signature; and
 - exact declared key.
 
-Status: Complete. Administrators can create and append draft versions, publish or cancel through idempotent optimistic commands, and inspect private projections. Anonymous visitors receive only bounded published/cancelled-safe index and canonical detail projections. Constraint schema v1 canonicalizes deterministically in TypeScript and Postgres, and scheduled/open/voting labels derive from frozen UTC boundaries without cron. The retained hosted schema includes this slice; linked-ledger recording remains to be verified in RELEASE-03.
+Status: Complete. Administrators can create and append draft versions, publish or cancel through idempotent optimistic commands, and inspect private projections. Anonymous visitors receive only bounded published/cancelled-safe index and canonical detail projections. Constraint schema v1 canonicalizes deterministically in TypeScript and Postgres, and scheduled/open/voting labels derive from frozen UTC boundaries without cron. The retained hosted schema and ledger include this slice.
 
 ### CHALLENGE-02 — Preflight, authoritative validation, and entries
 
 Let users validate a private/current revision, receive per-rule observed-versus-required feedback, and submit or explicitly replace one exact immutable eligible revision before the deadline. Server/database authority revalidates submission; the client preflight is advisory.
 
-Status: Complete. Active project owners can preflight current immutable revisions with complete observed-versus-required feedback, then explicitly attest challenge-scoped display and submit or replace one exact entry. Postgres independently extracts normalized facts, enforces constraint-v1 eligibility, deadline/current-version/current-revision authority, idempotency, and replacement contention. Pre-voting projections expose no entry identities or counts; voting/completed projections and browser-local previews are challenge-scoped and do not publish private projects, enable downloads, or grant reuse. The retained hosted schema includes this slice; linked-ledger recording remains to be verified in RELEASE-03.
+Status: Complete. Active project owners can preflight current immutable revisions with complete observed-versus-required feedback, then explicitly attest challenge-scoped display and submit or replace one exact entry. Postgres independently extracts normalized facts, enforces constraint-v1 eligibility, deadline/current-version/current-revision authority, idempotency, and replacement contention. Pre-voting projections expose no entry identities or counts; voting/completed projections and browser-local previews are challenge-scoped and do not publish private projects, enable downloads, or grant reuse. The retained hosted schema and ledger include this slice.
 
 ### CHALLENGE-03 — Voting, official results, and moderation
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: Complete. Private one-logical-vote authority, deterministic hourly rotation, report-only intake, optimistic audited challenge/entry/vote moderation, database-computed favorite ties, immutable complete result corrections, permanent completed projections, and canonical featured selection/fallback now ship together. Landing and dashboard consume the same signed-out-safe featured projection. The retained hosted schema includes all three CHALLENGE changes, while linked-ledger recording remains to be verified in RELEASE-03; user-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: Complete. Private one-logical-vote authority, deterministic hourly rotation, report-only intake, optimistic audited challenge/entry/vote moderation, database-computed favorite ties, immutable complete result corrections, permanent completed projections, and canonical featured selection/fallback now ship together. Landing and dashboard consume the same signed-out-safe featured projection. The retained hosted schema and ledger include all three CHALLENGE changes; user-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
@@ -129,7 +129,7 @@ Status: Complete. Private one-logical-vote authority, deterministic hourly rotat
 
 Add an extensible badge-definition catalog and immutable profile award records tied to exact challenge results, placements, recipients, and submitted revisions. Every displayed badge links to its completed challenge/result page. Launch with generic Winner, Community Favorite, and configurable Top Placement badges. Challenge-specific artwork/definitions may be added later without schema redesign.
 
-Status: Complete. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The retained hosted schema includes the BADGE change, while linked-ledger recording remains to be verified in RELEASE-03; XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred.
+Status: Complete. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The retained hosted schema and ledger include the BADGE change; XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred.
 
 ## Wave E — Release and deployment
 
@@ -149,7 +149,7 @@ Status: Complete. Three compact original projects, seven reviewed manifest-v3 pa
 
 Verify the retained hosted schema against the repository and inspect the linked migration ledger. If SQL Editor executions are missing from history, reconcile the ledger through a separately reviewed, authorized, non-schema procedure before any later migration. Then configure Vercel against the retained hosted Supabase project, configure exact site/OAuth callback URLs and secrets, run the approved beta seed dry run/import, deploy the avatar function if required, and run the production smoke path. Do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Document rollback/disable procedures and verify that no musical Storage or source-audio infrastructure returns.
 
-Status: Ready after RELEASE-02 but explicitly unauthorized until the user starts RELEASE-03 and supplies the production-origin/operator decisions named by the release plan. RELEASE-03 owns provider configuration, approved hosted seed import, deployment, and production smoke only. Merging code never changes hosted data or configuration automatically.
+Status: Complete. The retained project ledger was reconciled to all 16 reviewed versions without replaying schema SQL, the existing Google OAuth client and exact production origins were configured, the approved RELEASE-02 seed imported as 7 patterns/3 projects/1 challenge and then resolved entirely as `REUSE`, and the invite-only beta was promoted to `https://open-midi.vercel.app/`. Production smoke, usage baseline, fixes, and rollback are recorded in the [RELEASE-03 evidence](technical-design/evidence/release-03-hosted-rollout.md). Merging later code still never changes hosted data or configuration automatically.
 
 ## Release gates
 

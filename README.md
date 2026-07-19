@@ -2,7 +2,7 @@
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** The MIDI-only pivot, semantic visual-diff program, beta feedback, library, challenges, badges, RELEASE-01 identity reconciliation, and RELEASE-02 seeded-beta hardening are complete. The retained hosted schema implements the reviewed changes through the corrected RELEASE-01 reconciliation, and its disposable musical data was cleared. Because later changes were executed through the Supabase SQL Editor, the linked migration ledger has not been verified to contain all 16 repository versions. RELEASE-02 did not mutate hosted data or configuration. Ledger verification/reconciliation, OAuth/Vercel configuration, hosted beta import, deployment, and production smoke remain explicitly deferred to RELEASE-03.
+> **Current status:** The post-pivot MVP through RELEASE-03 is deployed as an invite-only beta at [open-midi.vercel.app](https://open-midi.vercel.app/). The retained hosted Supabase schema and linked migration ledger both contain all 16 reviewed repository versions. The approved deterministic beta content is imported, the production OAuth/application origins are configured, and the production smoke path is recorded in the [RELEASE-03 evidence](docs/technical-design/evidence/release-03-hosted-rollout.md).
 
 ## Target MVP scope
 
@@ -27,7 +27,7 @@ The [product requirements](docs/PRD.md) describe the intended experience, the tr
 - [Tone.js](https://tonejs.github.io/) behind a client-only MIDI runtime and versioned bundled synthesis presets
 - [Vitest](https://vitest.dev/) and React Testing Library for unit/component tests
 - [Playwright](https://playwright.dev/) for browser tests
-- Vercel for eventual deployment
+- Vercel for the invite-only production beta
 
 ## Prerequisites
 
@@ -102,7 +102,7 @@ Open [http://localhost:3000](http://localhost:3000), and stop the server with `C
 
 Before debugging missing rows, RLS, Auth, RPCs, or Storage, check the host configured by `NEXT_PUBLIC_SUPABASE_URL` without exposing any keys. Use the logs and schema for that environment. Local containers and hosted Supabase are independent databases, so local logs cannot explain a request sent to the hosted URL, and locally applied migrations do not automatically update hosted Supabase.
 
-Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. The retained hosted schema is current through the corrected RELEASE-01 behavior, but the linked ledger may omit SQL Editor executions. RELEASE-03 must compare the exact linked ledger with the repository sequence and use a separately reviewed, non-schema reconciliation if entries are missing; do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Every hosted mutation requires a target check and explicit authority, and merging code never applies it automatically.
+Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. The retained hosted schema and ledger currently match all 16 reviewed migrations. Before any later hosted migration, compare the exact linked ledger with the repository sequence; do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Every hosted mutation requires a target check and explicit authority, and merging code never applies it automatically.
 
 RELEASE-01 changed the local Supabase project ID to `openmidi`. If containers from a pre-RELEASE-01 checkout remain, identify their project ID from that checkout or Git history and run `npx supabase stop --project-id <obsolete-local-project-id>`. Add `--no-backup` only after confirming its local data is disposable. The current scripts do not stop or delete another local stack automatically.
 
@@ -289,7 +289,7 @@ Use `npm run supabase:start:auth` when explicitly exercising Auth, PostgREST, an
 
 Product sign-in is Google-only. Google Cloud, hosted Supabase, exact callback URLs, invitation provisioning, and the production smoke checklist are documented in [docs/setup/google-auth.md](docs/setup/google-auth.md). Local/CI browser automation can prepare the seeded `.test` actor with `npm run auth:e2e:setup`; it requires an ephemeral `TEST_AUTH_PASSWORD`, and the test route additionally requires `ENABLE_TEST_AUTH=true`.
 
-The RELEASE-02 seed dry run/import, moderation, copyright-contact, feedback, challenge, rollback/disable, incident, and $0-budget procedures are documented in [docs/runbooks/beta-operations.md](docs/runbooks/beta-operations.md).
+The hosted deployment and rollback procedure is documented in [production deployment](docs/setup/production-deployment.md). Seed operations, moderation, copyright-contact, feedback, challenges, disable procedures, incidents, and the $0-budget boundary remain documented in [beta operations](docs/runbooks/beta-operations.md).
 
 If OAuth reports a callback mismatch, compare the canonical `SITE_URL`, Supabase redirect allowlist, and Google/Supabase callback URI exactly. Do not alternate between `localhost` and `127.0.0.1`. If an invited account is rejected, confirm the normalized invitation is active in the same hosted/local database the app uses and that the Before User Created hook was enabled after migration. If OAuth succeeds but onboarding reports `viewer_profile_PT500`, verify the `on_auth_user_created` trigger and backfill a profile for any Auth user created before that trigger. Clear stale cookies after changing origins or resetting Auth.
 

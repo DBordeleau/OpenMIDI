@@ -1,6 +1,6 @@
 # Google authentication and invitations
 
-OpenMIDI uses Supabase Google OAuth with PKCE and an invite-only Before User Created database hook. Repository code does not contain Google credentials, hosted project references, or real invitation emails. Existing external OAuth branding may still show the prelaunch identity until RELEASE-03 performs the authorized provider rename.
+OpenMIDI uses Supabase Google OAuth with PKCE and an invite-only Before User Created database hook. Production uses the existing approved Google Web OAuth client for `https://open-midi.vercel.app/`; its secret remains only in provider configuration. Repository code does not contain Google credentials, real invitation emails, or provider secrets.
 
 ## Google Cloud
 
@@ -19,7 +19,7 @@ Apply the database migration before enabling the hook, then:
 4. After the application and migration are deployed, sign in as a bootstrapped administrator and use **Invite a collaborator** on `/dashboard` to activate one exact Google email. This adds allowlist access immediately; it does not send an email. Use reviewed SQL against `private.signup_invitations` only for first-administrator bootstrap or operational recovery. Revoke access by setting `revoked_at = now()` through reviewed SQL; revocation UI is not part of the MVP.
 5. Verify an invited Google account creates one Auth/profile row and an uninvited account creates neither.
 
-The application needs only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SITE_URL`. Do not add the Google secret or Supabase service-role key to the application environment.
+The application needs only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SITE_URL`. Production `SITE_URL` is `https://open-midi.vercel.app`. Do not add the Google secret or Supabase service-role key to the application environment.
 
 Insert invitations into the same project named by `NEXT_PUBLIC_SUPABASE_URL`; a local invitation has no effect on hosted Auth. Keep the application origin exact and consistent: `localhost` and `127.0.0.1` are different cookie hosts, so switching between them can lose the PKCE verifier during the callback. Add the chosen application callback to the Supabase redirect allowlist and restart Next.js after changing `SITE_URL`.
 

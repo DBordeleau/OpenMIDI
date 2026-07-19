@@ -1,7 +1,7 @@
 # OpenMIDI technical design
 
-Status: MIDI-only foundation through RELEASE-02 complete; hosted schema current, linked migration ledger unverified, and deployment deferred
-Last updated: 2026-07-18
+Status: MIDI-only MVP through RELEASE-03 deployed as an invite-only beta
+Last updated: 2026-07-19
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
 
@@ -14,6 +14,7 @@ This document set turns the [product requirements](../PRD.md) into implementatio
 | [midi-only-pivot-contract.md](midi-only-pivot-contract.md)            | Manifest v3, patterns, arrangements, presets, attribution, and deferred extensions |
 | [studio-forward-refactor-plan.md](../studio-forward-refactor-plan.md) | Historical Studio refactor record only                                             |
 | [RELEASE-02 evidence](evidence/release-02-seeded-beta-hardening.md)   | Seed rights, import rehearsal, hardening, verification, and operational boundary   |
+| [RELEASE-03 evidence](evidence/release-03-hosted-rollout.md)          | Hosted reconciliation, deployment, production smoke, baseline, and rollback        |
 
 ## Current implementation pulse
 
@@ -37,9 +38,9 @@ Supabase Storage contains only private avatar originals and public avatar deriva
 
 The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and UX sequencing remains in Git history, ADRs, the Studio-forward record, and `evidence/`. It explains how the system evolved but is superseded as current behavior and future delivery authority. Do not copy compatibility requirements from those records into new implementation.
 
-## Next work and hosted state
+## Hosted state and next work
 
-Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01, and RELEASE-02 are complete. The library, challenge, and badge authorization contracts remain unchanged. The retained hosted schema implements all reviewed changes through the corrected RELEASE-01 reconciliation, which cleared disposable musical state while preserving the reviewed non-musical boundary. The later changes were executed through the SQL Editor, so the linked ledger is not yet verified against all 16 repository migrations. RELEASE-03 must verify and, if needed, reconcile that history through an authorized reviewed procedure before later migration work. RELEASE-02 added deterministic rights-safe beta definitions, a dry-run-first idempotent importer, release-path hardening, and operator procedures without hosted mutation. Authorized hosted seed import, provider configuration, Vercel deployment, and production smoke remain deferred to RELEASE-03.
+Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 through RELEASE-03 are complete. The retained hosted project records all 16 reviewed migration versions, and the approved rights-safe seed is live. The invite-only beta runs at `https://open-midi.vercel.app/` against the retained Supabase project with browser-only MIDI synthesis, avatar-only Storage, and no musical Edge Function or media pipeline. Later schema, data, provider, or deployment mutations continue to require an exact target check and explicit authority.
 
 ## Global invariants
 

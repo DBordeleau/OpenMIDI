@@ -1,6 +1,6 @@
 # Invite-only beta operations
 
-This runbook is the RELEASE-02 operator contract for invitations, moderation, copyright reports, feedback, curated challenges, deterministic beta content, rollback/disable actions, and incidents. It contains no production origin, project reference, actor, email, or secret. Fill those values only in an approved operator session.
+This runbook is the operator contract for invitations, moderation, copyright reports, feedback, curated challenges, deterministic beta content, rollback/disable actions, and incidents. The invite-only beta is live at `https://open-midi.vercel.app/`; exact provider credentials, actor emails, and secrets remain outside the repository.
 
 ## Authority and stop conditions
 
@@ -114,7 +114,7 @@ Clear the three process-scoped variables after the run and close the operator sh
 
 ## Rollback and disable procedures
 
-The hosted schema implements the reviewed changes, but the linked ledger may omit SQL Editor executions. Before deployment, verify schema and ledger state and reconcile missing history only through a reviewed, authorized, non-schema RELEASE-03 procedure. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
+The hosted schema and linked ledger contain all 16 reviewed migration versions. Before any later hosted migration, verify the exact target and compare local/remote history again. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
 
 For a seed or application incident:
 

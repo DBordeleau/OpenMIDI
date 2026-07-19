@@ -2,7 +2,7 @@
 
 Status: Accepted target contract for PIVOT-01–PIVOT-10
 Date: 2026-07-16
-Implementation state: Implemented and hosted-rehearsed through PIVOT-10; Vercel deployment deferred
+Implementation state: Implemented and deployed through RELEASE-03
 
 Product naming: The product is now OpenMIDI. Historical OpenMIDI wording and persisted `openmidi-midi` engine/version values in this completed contract remain intentional compatibility evidence.
 

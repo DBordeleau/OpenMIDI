@@ -1,8 +1,8 @@
 # OpenMIDI — Product Requirements Document
 
-Status: Approved post-pivot MIDI-only MVP; foundation complete and release program defined
+Status: Approved post-pivot MIDI-only MVP; invite-only beta deployed
 
-Last updated: 2026-07-18
+Last updated: 2026-07-19
 
 Supersedes: The collaboration-first, MIDI-plus-legacy-audio MVP definition
 
@@ -18,22 +18,22 @@ The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute
 
 ## Implementation checkpoint
 
-| Capability                                                       | Current repository state  |
-| ---------------------------------------------------------------- | ------------------------- |
-| MIDI Studio, recording, arranging, save, publication, and export | Complete                  |
-| Contributions, owner review, acceptance, and attribution         | Complete                  |
-| Copy-on-write project forks and lineage                          | Complete                  |
-| Public project discovery, preview, history, profiles, moderation | Complete                  |
-| Visual project/contribution/pattern comparison                   | Complete                  |
-| Public MIDI library and saved clip collection                    | Complete                  |
-| Curated challenges, validation, voting, and results              | Complete                  |
-| Challenge achievements and profile badges                        | Complete                  |
-| Beta bug/suggestion intake and administrator triage              | Complete                  |
-| OpenMIDI frontend/repository rename                              | Complete: RELEASE-01      |
-| Seeded-beta hardening                                            | Complete: RELEASE-02      |
-| Hosted rollout, Vercel deployment, and production smoke          | Deferred until RELEASE-03 |
+| Capability                                                       | Current repository state |
+| ---------------------------------------------------------------- | ------------------------ |
+| MIDI Studio, recording, arranging, save, publication, and export | Complete                 |
+| Contributions, owner review, acceptance, and attribution         | Complete                 |
+| Copy-on-write project forks and lineage                          | Complete                 |
+| Public project discovery, preview, history, profiles, moderation | Complete                 |
+| Visual project/contribution/pattern comparison                   | Complete                 |
+| Public MIDI library and saved clip collection                    | Complete                 |
+| Curated challenges, validation, voting, and results              | Complete                 |
+| Challenge achievements and profile badges                        | Complete                 |
+| Beta bug/suggestion intake and administrator triage              | Complete                 |
+| OpenMIDI frontend/repository rename                              | Complete: RELEASE-01     |
+| Seeded-beta hardening                                            | Complete: RELEASE-02     |
+| Hosted rollout, Vercel deployment, and production smoke          | Complete: RELEASE-03     |
 
-“Complete” describes merged repository behavior, not a production deployment. OpenMIDI is not yet deployed to Vercel.
+“Complete” describes deployed invite-only beta behavior unless a row explicitly names a deferred follow-up. OpenMIDI is live at `https://open-midi.vercel.app/`.
 
 ## Product thesis
 
@@ -682,4 +682,4 @@ PIVOT-00 through PIVOT-10 resolved the repository strategy, reset posture, manif
 
 ## Remaining product decisions
 
-The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs and beta feedback first, then the public MIDI library, curated challenges, challenge awards, and release/deployment. The feature programs, RELEASE-01 identity reset, and RELEASE-02 seeded-beta hardening are complete. The retained hosted schema implements all reviewed behavior through the corrected reconciliation, but later SQL Editor execution did not establish that every repository migration is recorded in the linked ledger. RELEASE-03 must verify and, if required, reconcile that history before later migrations or deployment. Hosted beta import, external provider configuration, and Vercel deployment remain RELEASE-03 operations requiring explicit authority.
+The [tracked roadmap](ROADMAP.md) records the completed path through semantic visual diffs, beta feedback, the public MIDI library, curated challenges, challenge awards, identity reset, seeded-beta hardening, and the authorized RELEASE-03 rollout. The retained hosted schema and linked ledger now match all 16 reviewed migrations, the deterministic beta seed is imported, and the invite-only application is deployed. A public copyright/contact channel remains required before any unrestricted launch.
