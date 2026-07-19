@@ -1,0 +1,29 @@
+# Local dependencies and generated build/test output
+node_modules/
+.next/
+.next-e2e/
+out/
+build/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Local-only configuration and runtime state
+.env
+.env.*
+.vercel/
+local/
+supabase/.branches/
+supabase/.temp/
+supabase/.volumes/
+supabase/.env
+supabase/.env.*
+
+# Editor, repository, and machine-local files
+.git/
+.claude/
+.vscode/
+*.tsbuildinfo
+next-env.d.ts
+*.log
