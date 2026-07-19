@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FiLoader, FiPause, FiPlay } from "react-icons/fi";
 import {
-  midiArrangementPreviewSchema,
+  publicMidiPreviewResponseSchema,
   type MidiArrangementPreview,
 } from "./contract";
 import { PublicMidiPreviewRuntime } from "./preview-runtime.client";
@@ -99,7 +99,7 @@ export function PublicMidiQuickPreview({
       { method: "POST", cache: "no-store", signal: controller.signal },
     );
     if (!response.ok) throw new Error("Preview unavailable");
-    const data = midiArrangementPreviewSchema.parse(await response.json());
+    const data = publicMidiPreviewResponseSchema.parse(await response.json());
     if (
       (projectId && data.projectId !== projectId) ||
       (revisionId && data.revisionId !== revisionId)

@@ -35,6 +35,11 @@ export const publicMidiRevisionSchema = midiArrangementPreviewSchema
   })
   .strict();
 
+export const publicMidiPreviewResponseSchema = z.union([
+  publicMidiRevisionSchema,
+  midiArrangementPreviewSchema,
+]);
+
 export type PublicMidiRevision = z.infer<typeof publicMidiRevisionSchema>;
 export type MidiArrangementPreview = z.infer<
   typeof midiArrangementPreviewSchema
