@@ -118,6 +118,22 @@ export const publicChallengeEntryCursorSchema = z
   })
   .strict();
 
+export const publicChallengeAwardTargetQuerySchema = z
+  .object({
+    result: z.uuid(),
+    entry: z.uuid(),
+  })
+  .strict();
+
+export const publicChallengeAwardTargetSchema = publicChallengeEntrySchema
+  .omit({ rotationKey: true })
+  .extend({
+    resultId: z.uuid(),
+    resultVersion: z.number().int().positive(),
+    resultFinalizedAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+
 export type ChallengeRevisionOption = z.infer<
   typeof challengeRevisionOptionSchema
 >;
@@ -126,4 +142,7 @@ export type MyChallengeEntry = z.infer<typeof myChallengeEntrySchema>;
 export type PublicChallengeEntry = z.infer<typeof publicChallengeEntrySchema>;
 export type PublicChallengeEntryCursor = z.infer<
   typeof publicChallengeEntryCursorSchema
+>;
+export type PublicChallengeAwardTarget = z.infer<
+  typeof publicChallengeAwardTargetSchema
 >;

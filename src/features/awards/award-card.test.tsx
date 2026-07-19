@@ -28,7 +28,7 @@ function makeAward(
     projectRevisionId: `50000000-0000-4000-8000-${id.toString().padStart(12, "0")}`,
     projectTitle: "Night Bus",
     revisionNumber: 3,
-    challengeHref: `/challenges/four-track-sprint?result=${resultId}#entry-${entryId}`,
+    challengeHref: `/challenges/four-track-sprint?result=${resultId}&entry=${entryId}#entry-${entryId}`,
     ...patch,
   };
 }

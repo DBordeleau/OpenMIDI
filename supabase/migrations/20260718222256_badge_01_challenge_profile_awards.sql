@@ -489,7 +489,7 @@ begin
       'projectRevisionId',x.project_revision_id,
       'projectTitle',x.project_title_snapshot,
       'revisionNumber',x.revision_number_snapshot,
-      'challengeHref','/challenges/'||x.challenge_slug_snapshot||'?result='||x.challenge_result_id::text||'#entry-'||x.challenge_entry_id::text
+      'challengeHref','/challenges/'||x.challenge_slug_snapshot||'?result='||x.challenge_result_id::text||'&entry='||x.challenge_entry_id::text||'#entry-'||x.challenge_entry_id::text
     ) order by x.awarded_at desc,x.id desc)
     from (
       select a.* from public.profile_awards a
@@ -512,6 +512,40 @@ begin
 end;
 $$;
 
+create or replace function public.get_public_challenge_award_target(
+  p_slug text,
+  p_result_id uuid,
+  p_entry_id uuid
+) returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.challenge_entry_public_projection(e.id,statement_timestamp())||jsonb_build_object(
+    'resultId',r.id,
+    'resultVersion',r.result_version,
+    'resultFinalizedAt',r.finalized_at
+  )
+  from public.challenges c
+  join public.challenge_results r on r.id=c.current_result_id and r.challenge_id=c.id
+  join public.challenge_result_entries re
+    on re.challenge_result_id=r.id and re.challenge_entry_id=p_entry_id
+  join public.challenge_entries e
+    on e.id=re.challenge_entry_id and e.challenge_id=c.id and e.challenge_version_id=r.challenge_version_id
+  where c.slug=p_slug
+    and c.state='completed'
+    and c.moderation_state='visible'
+    and r.id=p_result_id
+    and private.challenge_entry_is_public(e,statement_timestamp())
+    and exists(
+      select 1 from public.profile_awards a
+      where a.challenge_id=c.id
+        and a.challenge_result_id=r.id
+        and a.challenge_entry_id=e.id
+    )
+$$;
+
 alter table public.badge_definitions enable row level security;
 alter table public.badge_definition_versions enable row level security;
 alter table public.profile_awards enable row level security;
@@ -525,11 +559,14 @@ grant select,insert,update,delete on table public.badge_definitions,public.badge
 revoke all on function private.issue_challenge_awards_for_result(uuid,uuid) from public,anon,authenticated;
 revoke all on function public.reconcile_current_challenge_awards(uuid,uuid,uuid) from public,anon;
 revoke all on function public.list_public_profile_awards(uuid,timestamptz,uuid) from public;
+revoke all on function public.get_public_challenge_award_target(text,uuid,uuid) from public;
 grant execute on function public.reconcile_current_challenge_awards(uuid,uuid,uuid) to authenticated;
 grant execute on function public.list_public_profile_awards(uuid,timestamptz,uuid) to anon,authenticated;
+grant execute on function public.get_public_challenge_award_target(text,uuid,uuid) to anon,authenticated;
 
 comment on table public.badge_definitions is 'Stable badge identities with one current immutable presentation version used only for future issuance.';
 comment on table public.badge_definition_versions is 'Append-only bounded badge presentation and qualification versions.';
 comment on table public.profile_awards is 'Immutable exact challenge-result, entry, revision, recipient, and badge-version award evidence.';
 comment on table private.challenge_award_issuance is 'Private append-only finalization and reconciliation award issuance audit evidence.';
 comment on function public.list_public_profile_awards(uuid,timestamptz,uuid) is 'Bounded current-result-only public profile award projection with moderation and source visibility inheritance.';
+comment on function public.get_public_challenge_award_target(text,uuid,uuid) is 'Exact current-result award-entry target that fails closed across challenge, result, entry, award, and public-visibility boundaries.';

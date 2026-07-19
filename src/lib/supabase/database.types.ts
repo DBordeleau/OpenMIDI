@@ -3653,6 +3653,10 @@ export type Database = {
         Returns: Json
       }
       get_public_challenge: { Args: { p_slug: string }; Returns: Json }
+      get_public_challenge_award_target: {
+        Args: { p_entry_id: string; p_result_id: string; p_slug: string }
+        Returns: Json
+      }
       get_public_challenge_entry: {
         Args: { p_entry_id: string; p_slug: string }
         Returns: Json

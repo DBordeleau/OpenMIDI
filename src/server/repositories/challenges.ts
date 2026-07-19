@@ -7,6 +7,7 @@ import {
   challengePreflightSchema,
   challengeRevisionOptionSchema,
   myChallengeEntrySchema,
+  publicChallengeAwardTargetSchema,
   publicChallengeEntryPageSchema,
   publicChallengeEntrySchema,
   type PublicChallengeEntryCursor,
@@ -265,6 +266,21 @@ export async function getPublicChallenge(slug: string) {
   });
   if (error || !data) return null;
   return challengeSchema.parse(data);
+}
+
+export async function getPublicChallengeAwardTarget(
+  slug: string,
+  resultId: string,
+  entryId: string,
+) {
+  const db = createSupabaseAnonymousClient();
+  const { data, error } = await db.rpc("get_public_challenge_award_target", {
+    p_slug: slug,
+    p_result_id: resultId,
+    p_entry_id: entryId,
+  });
+  if (error || !data) return null;
+  return publicChallengeAwardTargetSchema.parse(data);
 }
 
 export async function listEligibleChallengeStarters() {

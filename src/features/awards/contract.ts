@@ -38,7 +38,7 @@ export const publicProfileAwardSchema = z
   })
   .strict()
   .superRefine((award, context) => {
-    const exactHref = `/challenges/${award.challengeSlug}?result=${award.challengeResultId}#entry-${award.challengeEntryId}`;
+    const exactHref = `/challenges/${award.challengeSlug}?result=${award.challengeResultId}&entry=${award.challengeEntryId}#entry-${award.challengeEntryId}`;
     if (award.challengeHref !== exactHref)
       context.addIssue({
         code: "custom",

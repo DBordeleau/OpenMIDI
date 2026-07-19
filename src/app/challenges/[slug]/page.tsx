@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
 import { ChallengeEntryPanel } from "@/features/challenges/challenge-entry-panel.client";
-import { publicChallengeEntryCursorSchema } from "@/features/challenges/entry-contract";
+import {
+  publicChallengeAwardTargetQuerySchema,
+  publicChallengeEntryCursorSchema,
+} from "@/features/challenges/entry-contract";
 import {
   ChallengeReportControl,
   ChallengeVoteControl,
@@ -14,6 +17,7 @@ import { challengeEntryPageHref } from "@/features/challenges/rotation";
 import {
   getMyChallengeEntry,
   getPublicChallenge,
+  getPublicChallengeAwardTarget,
   listMyActiveChallengeVoteIds,
   listMyChallengeRevisionOptions,
   listPublicChallengeEntries,
@@ -42,6 +46,13 @@ export default async function ChallengeDetailPage({
 }) {
   const { slug } = await params;
   const query = await searchParams;
+  const hasAwardTarget =
+    query.result !== undefined || query.entry !== undefined;
+  const parsedAwardTarget = publicChallengeAwardTargetQuerySchema.safeParse({
+    result: query.result,
+    entry: query.entry,
+  });
+  if (hasAwardTarget && !parsedAwardTarget.success) notFound();
   const parsedCursor = publicChallengeEntryCursorSchema.safeParse({
     rotationBucket: query.rotationBucket,
     rotationKey: query.afterRotationKey,
@@ -50,15 +61,32 @@ export default async function ChallengeDetailPage({
   const cursor = parsedCursor.success ? parsedCursor.data : null;
   const challenge = await getPublicChallenge(slug);
   if (!challenge) notFound();
-  const [revisionOptions, myEntry, publicEntryPage, activeVoteIds] =
-    await Promise.all([
-      challenge.phase === "open"
-        ? listMyChallengeRevisionOptions(challenge.id)
-        : Promise.resolve([]),
-      getMyChallengeEntry(challenge.id),
-      listPublicChallengeEntries(slug, cursor),
-      listMyActiveChallengeVoteIds(challenge.id),
-    ]);
+  const [
+    revisionOptions,
+    myEntry,
+    publicEntryPage,
+    activeVoteIds,
+    awardTarget,
+  ] = await Promise.all([
+    challenge.phase === "open"
+      ? listMyChallengeRevisionOptions(challenge.id)
+      : Promise.resolve([]),
+    getMyChallengeEntry(challenge.id),
+    listPublicChallengeEntries(slug, cursor),
+    listMyActiveChallengeVoteIds(challenge.id),
+    parsedAwardTarget.success
+      ? getPublicChallengeAwardTarget(
+          slug,
+          parsedAwardTarget.data.result,
+          parsedAwardTarget.data.entry,
+        )
+      : Promise.resolve(null),
+  ]);
+  if (
+    parsedAwardTarget.success &&
+    (!awardTarget || challenge.result?.id !== awardTarget.resultId)
+  )
+    notFound();
   const publicEntries = publicEntryPage.entries;
   const phase = challengePhaseMessage({
     phase: challenge.phase,
@@ -180,6 +208,47 @@ export default async function ChallengeDetailPage({
             challengeId={challenge.id}
             slug={challenge.slug}
           />
+          {awardTarget && (
+            <section
+              id={`entry-${awardTarget.entryId}`}
+              tabIndex={-1}
+              className="border-accent bg-surface-raised rounded-card mt-10 border p-6 sm:p-8"
+              aria-labelledby="award-source-entry-heading"
+            >
+              <p className="text-accent font-mono text-xs tracking-widest uppercase">
+                Award source · permanent result version{" "}
+                {awardTarget.resultVersion}
+              </p>
+              <h2
+                id="award-source-entry-heading"
+                className="mt-2 text-3xl font-bold"
+              >
+                Exact award entry
+              </h2>
+              <p className="mt-4 text-lg">
+                <strong>{awardTarget.projectTitle}</strong> by @
+                {awardTarget.entrantUsername}
+              </p>
+              <p className="text-muted mt-2">
+                Revision {awardTarget.revisionNumber} · finalized with result{" "}
+                <time dateTime={awardTarget.resultFinalizedAt}>
+                  {new Date(awardTarget.resultFinalizedAt).toLocaleString()}
+                </time>
+              </p>
+              {awardTarget.voteTotal !== null && (
+                <p className="text-accent-2 mt-3 font-semibold">
+                  {awardTarget.voteTotal}{" "}
+                  {awardTarget.voteTotal === 1 ? "vote" : "votes"}
+                </p>
+              )}
+              <Link
+                href={`/challenges/${challenge.slug}/entries/${awardTarget.entryId}`}
+                className="border-strong mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+              >
+                Hear exact entry
+              </Link>
+            </section>
+          )}
           {challenge.phase === "open" ? (
             <ChallengeEntryPanel
               challengeId={challenge.id}
@@ -204,7 +273,11 @@ export default async function ChallengeDetailPage({
                   {publicEntries.map((entry) => (
                     <li
                       key={entry.entryId}
-                      id={`entry-${entry.entryId}`}
+                      id={
+                        awardTarget?.entryId === entry.entryId
+                          ? undefined
+                          : `entry-${entry.entryId}`
+                      }
                       className="border-subtle bg-surface rounded-card border p-5"
                     >
                       <p className="text-accent font-mono text-xs tracking-widest uppercase">

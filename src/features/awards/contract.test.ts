@@ -21,7 +21,7 @@ const award = {
   projectTitle: "Night Bus",
   revisionNumber: 3,
   challengeHref:
-    "/challenges/four-track-sprint?result=30000000-0000-4000-8000-000000000001#entry-40000000-0000-4000-8000-000000000001",
+    "/challenges/four-track-sprint?result=30000000-0000-4000-8000-000000000001&entry=40000000-0000-4000-8000-000000000001#entry-40000000-0000-4000-8000-000000000001",
 } as const;
 
 describe("public profile award contract", () => {

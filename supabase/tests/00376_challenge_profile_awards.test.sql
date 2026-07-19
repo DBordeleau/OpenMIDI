@@ -18,6 +18,7 @@ select ok(not exists(
     and grantee in ('anon','authenticated')
 ),'application roles receive no base award or audit table grants');
 select ok(has_function_privilege('anon','public.list_public_profile_awards(uuid,timestamptz,uuid)','execute'),'anonymous profiles reach only the bounded award projection');
+select ok(has_function_privilege('anon','public.get_public_challenge_award_target(text,uuid,uuid)','execute'),'anonymous award links reach only the exact safe target projection');
 select ok(has_function_privilege('authenticated','public.reconcile_current_challenge_awards(uuid,uuid,uuid)','execute'),'authenticated role reaches the guarded reconciliation command');
 select ok(not has_function_privilege('anon','public.reconcile_current_challenge_awards(uuid,uuid,uuid)','execute'),'anonymous role cannot reconcile awards');
 select ok(not has_function_privilege('authenticated','private.issue_challenge_awards_for_result(uuid,uuid)','execute'),'authenticated callers cannot invoke private issuance');
@@ -148,13 +149,35 @@ select is(jsonb_array_length((select awards from first_public_awards)),3,'signed
 select ok((select awards::text from first_public_awards) not like '%projectId%' and (select awards::text from first_public_awards) not like '%finalVoteTotal%'
   and (select awards::text from first_public_awards) not like '%correction%' and (select awards::text from first_public_awards) not like '%admin%',
   'public projection leaks no private project, voter, correction, or administrator evidence');
-select ok((select bool_and(value->>'challengeHref' like '/challenges/%?result=%#entry-%') from first_public_awards,jsonb_array_elements(awards)),
+select ok((select bool_and(value->>'challengeHref' like '/challenges/%?result=%&entry=%#entry-%') from first_public_awards,jsonb_array_elements(awards)),
   'every public award links to exact canonical challenge result and entry context');
+reset role;
+grant select on first_result,community_result to anon;
+set local role anon;
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000001')->>'projectTitle',
+  'Winner exact entry','the exact current result and qualifying entry resolve independently of entry-list paging');
+select ok((public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000001'))::text
+    not like '%projectId%' and
+    (public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000001'))::text
+    not like '%entrantId%',
+  'exact award target exposes no private project or identity identifiers');
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from community_result),'fd600000-0000-4000-8000-000000000001'),null::jsonb,
+  'a result from another challenge is rejected');
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000003'),null::jsonb,
+  'an entry outside the requested result is rejected');
 reset role;
 
 update public.challenge_entries set moderation_state='hidden',moderation_version=moderation_version+1 where id='fd600000-0000-4000-8000-000000000001';
 set local role anon;
 select is(jsonb_array_length(public.list_public_profile_awards('fd000000-0000-4000-8000-000000000002')),1,'entry hiding removes its awards from public presentation');
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000001'),null::jsonb,
+  'a hidden exact award entry fails closed without returning snapshot identity or project data');
 reset role;
 update public.challenge_entries set moderation_state='visible',moderation_version=moderation_version+1 where id='fd600000-0000-4000-8000-000000000001';
 update public.challenges set moderation_state='hidden',moderation_version=moderation_version+1 where id='fd400000-0000-4000-8000-000000000001';
@@ -192,6 +215,12 @@ select is((select count(distinct challenge_result_id) from public.profile_awards
   'old and corrected exact result evidence remain independently addressable');
 grant select on corrected_result to anon;
 set local role anon;
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from first_result),'fd600000-0000-4000-8000-000000000001'),null::jsonb,
+  'a superseded result ID cannot silently resolve against the corrected current result');
+select is(public.get_public_challenge_award_target('badge-result-test',
+    (select (response->>'resultId')::uuid from corrected_result),'fd600000-0000-4000-8000-000000000001')->>'resultId',
+  (select response->>'resultId' from corrected_result),'the exact corrected current result ID is honored');
 select is(jsonb_array_length(public.list_public_profile_awards('fd000000-0000-4000-8000-000000000002')),3,
   'public projection exposes only corrected current-result awards plus the other current challenge');
 select is((select count(*) from jsonb_array_elements(public.list_public_profile_awards('fd000000-0000-4000-8000-000000000002')) item
