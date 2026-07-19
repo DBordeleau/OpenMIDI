@@ -9,10 +9,12 @@ Outcome: Invite-only beta deployed and production smoke accepted
 - Supabase project: `xjfynngyqywnllgotvcw` (retained; no replacement project)
 - Production origin: `https://open-midi.vercel.app/`
 - Vercel project: `dillon-bordeleaus-projects/open-midi`
-- Application commit: `732d104`
-- Verified preview: `dpl_4ZhgCC45mFCr4Nj6wN41LB4E7PgT`
-- Production deployment: `dpl_2Mc9qAVYT7QUKS26MUH8DnheCpvq`
-- Previous known-good production deployment: `dpl_CGsF5VvPi7d5n8rSf3zmu7266LK3`
+- Verified rollout application commit: `732d104`
+- Verified rollout preview: `dpl_4ZhgCC45mFCr4Nj6wN41LB4E7PgT`
+- Verified rollout production deployment: `dpl_2Mc9qAVYT7QUKS26MUH8DnheCpvq`
+- Production deployment immediately preceding that rollout: `dpl_CGsF5VvPi7d5n8rSf3zmu7266LK3`
+
+These identifiers are historical RELEASE-03 rollout evidence, not permanent claims about the deployment currently serving production or a universal future rollback target.
 
 No credential, token, signed URL, invitation email, private report, or Storage object path is recorded here.
 
@@ -67,6 +69,8 @@ Two smoke defects were fixed and redeployed: strict public-project preview parsi
 
 Immediately after final promotion, the production route matrix returned expected `200`, `307`, and `404` statuses; the representative accepted-revision preview returned revision 2 with 3 tracks and 3 pattern versions. Vercel reported no runtime error cluster.
 
+The repository is connected to Vercel, so merging PR #66 into the configured production branch is expected to create a subsequent production deployment. The operator must wait for it, record its exact commit and deployment ID, confirm the production alias, and repeat the narrow route/preview/runtime-error smoke before treating the merged commit as production-verified. That application deployment does not mutate Supabase schema, data, migration history, Auth/provider configuration, or seed state.
+
 ## Verification
 
 - Final `npm run check`: passed (114 test files, 369 tests, production build included).
@@ -83,6 +87,6 @@ This remains a $0-budget MIDI-only beta baseline: structured MIDI lives in Postg
 
 ## Rollback and deferred checks
 
-Application rollback uses `npx vercel rollback dpl_CGsF5VvPi7d5n8rSf3zmu7266LK3 --yes`, followed by alias and narrow-smoke verification. Database history remains forward-only. Do not rerun RELEASE-01, reverse ledger repairs, or delete seeded lineage ad hoc.
+Application rollback begins by listing deployments and inspecting both the current deployment and its preceding candidates. The operator must identify the exact previously verified deployment from the applicable release evidence, confirm its commit/environment/readiness, and only then run `npx vercel rollback <confirmed-previous-deployment-id> --yes`. Wait for completion, verify the production alias, and repeat narrow smoke. The historical rollout IDs above remain useful evidence but are not an automatic future rollback choice. Database history remains forward-only. Do not rerun RELEASE-01, reverse ledger repairs, or delete seeded lineage ad hoc.
 
 Before unrestricted launch, approve and publish a public copyright/contact channel and repeat the account-scoped production smoke on the final launch candidate. Avatar upload/processing should also be manually repeated when an operator has a disposable image and intends to mutate avatar state.
