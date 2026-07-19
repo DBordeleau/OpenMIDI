@@ -35,7 +35,7 @@ export function ProjectVisibilityForm({
       <h2 className="mt-2 text-xl font-bold">This project is {visibility}.</h2>
       <p className="text-muted mt-2">
         {visibility === "private"
-          ? "Making it public adds safe project and credit metadata to Explore. Stems, manifests, downloads, and studio access stay private."
+          ? "Making it public adds safe project and credit metadata to Explore. Private workspaces, manifests, downloads, and Studio access stay private."
           : "Making it private removes it from Explore and hides its public page. Existing contribution drafts keep their exact private workspace access."}
       </p>
       {state.message && (

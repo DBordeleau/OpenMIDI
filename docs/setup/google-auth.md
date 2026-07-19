@@ -62,3 +62,5 @@ If the code exchange succeeds but onboarding raises `viewer_profile_PT500`, the 
 Google credentials are intentionally optional. Start the reduced stack with `npm run supabase:start:auth`, reset it, set an ephemeral `TEST_AUTH_PASSWORD`, then run `npm run auth:e2e:setup`. The `/test-auth` route additionally requires `ENABLE_TEST_AUTH=true`, is restricted to an `@example.test` actor, and returns 404 in production.
 
 Real Google smoke testing remains an operator step: verify consent domains, invited and rejected creation, callback cookies across refresh, onboarding routing, returning-user routing, safe cancellation errors, and sign-out.
+
+Use [Invite-only beta operations](../runbooks/beta-operations.md) for the day-to-day invitation checklist, stop conditions, incident containment, and release smoke evidence.

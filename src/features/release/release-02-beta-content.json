@@ -1,0 +1,541 @@
+{
+  "fixtureVersion": 1,
+  "rightsReview": {
+    "reviewedAt": "2026-07-18",
+    "basis": "Every note sequence and arrangement was composed specifically for OpenMIDI RELEASE-02. No cover, recreation, sample, audio, remote asset, or third-party musical source is included. Commercial listings use CC BY 4.0; reference-only listings are original works intentionally shared without reuse permission."
+  },
+  "projects": [
+    {
+      "key": "neon-steps",
+      "requestId": "a2000000-0000-4000-8000-000000000001",
+      "saveRequestId": "a2000000-0000-4000-8000-000000000002",
+      "publishRequestId": "a2000000-0000-4000-8000-000000000003",
+      "title": "Neon Steps",
+      "description": "A compact syncopated groove with room to reshape the bass and answer the pluck.",
+      "tempoBpm": 112,
+      "musicalKey": "d-minor",
+      "timeSignature": { "numerator": 4, "denominator": 4 },
+      "durationTicks": 7680,
+      "licenseCode": "all-rights-reserved",
+      "genreIds": ["10000000-0000-4000-8000-000000000001"],
+      "primaryGenreId": "10000000-0000-4000-8000-000000000001",
+      "tagIds": [
+        "20000000-0000-4000-8000-000000000002",
+        "20000000-0000-4000-8000-000000000010"
+      ],
+      "revisionMessage": "Seed edition: pocket, bass, and bright reply.",
+      "tracks": [
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000001",
+          "clipId": "a2200000-0000-4000-8000-000000000001",
+          "patternKey": "neon-pocket",
+          "name": "Pocket",
+          "presetId": "electro-kit",
+          "gainDb": -4,
+          "pan": 0
+        },
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000002",
+          "clipId": "a2200000-0000-4000-8000-000000000002",
+          "patternKey": "neon-bass",
+          "name": "Low Steps",
+          "presetId": "analog-bass",
+          "gainDb": -5,
+          "pan": -0.08
+        },
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000003",
+          "clipId": "a2200000-0000-4000-8000-000000000003",
+          "patternKey": "neon-reply",
+          "name": "Gold Reply",
+          "presetId": "bright-pluck",
+          "gainDb": -7,
+          "pan": 0.16
+        }
+      ]
+    },
+    {
+      "key": "windowlight-waltz",
+      "requestId": "a2000000-0000-4000-8000-000000000011",
+      "saveRequestId": "a2000000-0000-4000-8000-000000000012",
+      "publishRequestId": "a2000000-0000-4000-8000-000000000013",
+      "title": "Windowlight Waltz",
+      "description": "A gentle three-beat sketch for learning voicing, space, and melodic handoff.",
+      "tempoBpm": 90,
+      "musicalKey": "g-major",
+      "timeSignature": { "numerator": 3, "denominator": 4 },
+      "durationTicks": 5760,
+      "licenseCode": "all-rights-reserved",
+      "genreIds": ["10000000-0000-4000-8000-00000000000b"],
+      "primaryGenreId": "10000000-0000-4000-8000-00000000000b",
+      "tagIds": [
+        "20000000-0000-4000-8000-00000000000d",
+        "20000000-0000-4000-8000-000000000008"
+      ],
+      "revisionMessage": "Seed edition: warm voicing and an open-window melody.",
+      "tracks": [
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000011",
+          "clipId": "a2200000-0000-4000-8000-000000000011",
+          "patternKey": "windowlight-chords",
+          "name": "Window Chords",
+          "presetId": "warm-keys",
+          "gainDb": -7,
+          "pan": -0.12
+        },
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000012",
+          "clipId": "a2200000-0000-4000-8000-000000000012",
+          "patternKey": "windowlight-air",
+          "name": "Air Line",
+          "presetId": "soft-lead",
+          "gainDb": -9,
+          "pan": 0.14
+        }
+      ]
+    },
+    {
+      "key": "pocket-circuit",
+      "requestId": "a2000000-0000-4000-8000-000000000021",
+      "saveRequestId": "a2000000-0000-4000-8000-000000000022",
+      "publishRequestId": "a2000000-0000-4000-8000-000000000023",
+      "title": "Pocket Circuit",
+      "description": "Four bars of clipped drums and a small lead motif built for quick forks and challenge practice.",
+      "tempoBpm": 124,
+      "musicalKey": "a-minor",
+      "timeSignature": { "numerator": 4, "denominator": 4 },
+      "durationTicks": 7680,
+      "licenseCode": "cc-by-4.0",
+      "genreIds": ["10000000-0000-4000-8000-000000000002"],
+      "primaryGenreId": "10000000-0000-4000-8000-000000000002",
+      "tagIds": [
+        "20000000-0000-4000-8000-000000000006",
+        "20000000-0000-4000-8000-00000000000c"
+      ],
+      "revisionMessage": "Seed edition: clipped rhythm and one clear hook.",
+      "tracks": [
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000021",
+          "clipId": "a2200000-0000-4000-8000-000000000021",
+          "patternKey": "circuit-drums",
+          "name": "Circuit Drums",
+          "presetId": "drum-machine",
+          "gainDb": -4,
+          "pan": 0
+        },
+        {
+          "trackId": "a2100000-0000-4000-8000-000000000022",
+          "clipId": "a2200000-0000-4000-8000-000000000022",
+          "patternKey": "circuit-hook",
+          "name": "Pocket Hook",
+          "presetId": "square-lead",
+          "gainDb": -8,
+          "pan": 0.1
+        }
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "key": "neon-pocket",
+      "projectKey": "neon-steps",
+      "requestId": "a3000000-0000-4000-8000-000000000001",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000002",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000003",
+      "name": "Neon Pocket",
+      "durationTicks": 1920,
+      "expectedContentSha256": "36ed69b1e86030523c60edb4c04b302e3e7bfa50b778b3a9744e2eb97e4d5eba",
+      "reuseMode": "commercial_reuse",
+      "categoryCode": "drums",
+      "suggestedPresetId": "electro-kit",
+      "tags": ["rhythmic", "syncopated", "loop-friendly"],
+      "description": "A four-on-the-floor pocket with a light offbeat lift.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000001",
+          "startTick": 0,
+          "durationTicks": 120,
+          "pitch": 36,
+          "velocity": 108
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000002",
+          "startTick": 480,
+          "durationTicks": 120,
+          "pitch": 38,
+          "velocity": 96
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000005",
+          "startTick": 720,
+          "durationTicks": 90,
+          "pitch": 42,
+          "velocity": 70
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000003",
+          "startTick": 960,
+          "durationTicks": 120,
+          "pitch": 36,
+          "velocity": 106
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000004",
+          "startTick": 1440,
+          "durationTicks": 120,
+          "pitch": 38,
+          "velocity": 98
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000006",
+          "startTick": 1680,
+          "durationTicks": 90,
+          "pitch": 42,
+          "velocity": 74
+        }
+      ]
+    },
+    {
+      "key": "neon-bass",
+      "projectKey": "neon-steps",
+      "requestId": "a3000000-0000-4000-8000-000000000011",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000012",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000013",
+      "name": "Low Steps",
+      "durationTicks": 1920,
+      "expectedContentSha256": "e83bb7eebbf741148a6e04029a7f6eccbede7ec8905ce03807708b9cc01d38d7",
+      "reuseMode": "commercial_reuse",
+      "categoryCode": "bassline",
+      "suggestedPresetId": "analog-bass",
+      "tags": ["rhythmic", "dark", "loop-friendly"],
+      "description": "A short D-minor bass walk with a syncopated return.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000011",
+          "startTick": 0,
+          "durationTicks": 360,
+          "pitch": 38,
+          "velocity": 100
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000012",
+          "startTick": 480,
+          "durationTicks": 240,
+          "pitch": 41,
+          "velocity": 92
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000013",
+          "startTick": 840,
+          "durationTicks": 360,
+          "pitch": 45,
+          "velocity": 98
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000014",
+          "startTick": 1320,
+          "durationTicks": 240,
+          "pitch": 41,
+          "velocity": 90
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000015",
+          "startTick": 1680,
+          "durationTicks": 240,
+          "pitch": 36,
+          "velocity": 102
+        }
+      ]
+    },
+    {
+      "key": "neon-reply",
+      "projectKey": "neon-steps",
+      "requestId": "a3000000-0000-4000-8000-000000000021",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000022",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000023",
+      "name": "Gold Reply",
+      "durationTicks": 1920,
+      "expectedContentSha256": "817aa30d0c842427549bc60bb99e6c3cf690687d0d29f1957f4164a3c804775f",
+      "reuseMode": "reference_only",
+      "categoryCode": "melody",
+      "suggestedPresetId": "bright-pluck",
+      "tags": ["melodic", "syncopated"],
+      "description": "An original bright reply intentionally shared for reference, not reuse.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000021",
+          "startTick": 240,
+          "durationTicks": 240,
+          "pitch": 74,
+          "velocity": 92
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000022",
+          "startTick": 600,
+          "durationTicks": 240,
+          "pitch": 77,
+          "velocity": 88
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000023",
+          "startTick": 960,
+          "durationTicks": 360,
+          "pitch": 81,
+          "velocity": 96
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000024",
+          "startTick": 1440,
+          "durationTicks": 360,
+          "pitch": 79,
+          "velocity": 86
+        }
+      ]
+    },
+    {
+      "key": "windowlight-chords",
+      "projectKey": "windowlight-waltz",
+      "requestId": "a3000000-0000-4000-8000-000000000031",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000032",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000033",
+      "name": "Window Chords",
+      "durationTicks": 1440,
+      "expectedContentSha256": "013a174381931b8980391c7ee911ed73416d2f7fcb054ef487a686d4fc12bcd8",
+      "reuseMode": "reference_only",
+      "categoryCode": "harmony",
+      "suggestedPresetId": "warm-keys",
+      "tags": ["harmonic", "mellow", "loop-friendly"],
+      "description": "An original G-major waltz voicing intentionally shared for study only.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000031",
+          "startTick": 0,
+          "durationTicks": 420,
+          "pitch": 55,
+          "velocity": 78
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000032",
+          "startTick": 0,
+          "durationTicks": 420,
+          "pitch": 59,
+          "velocity": 72
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000033",
+          "startTick": 0,
+          "durationTicks": 420,
+          "pitch": 62,
+          "velocity": 74
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000034",
+          "startTick": 480,
+          "durationTicks": 420,
+          "pitch": 57,
+          "velocity": 76
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000035",
+          "startTick": 480,
+          "durationTicks": 420,
+          "pitch": 60,
+          "velocity": 70
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000036",
+          "startTick": 480,
+          "durationTicks": 420,
+          "pitch": 64,
+          "velocity": 72
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000037",
+          "startTick": 960,
+          "durationTicks": 420,
+          "pitch": 55,
+          "velocity": 80
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000038",
+          "startTick": 960,
+          "durationTicks": 420,
+          "pitch": 59,
+          "velocity": 74
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000039",
+          "startTick": 960,
+          "durationTicks": 420,
+          "pitch": 62,
+          "velocity": 76
+        }
+      ]
+    },
+    {
+      "key": "windowlight-air",
+      "projectKey": "windowlight-waltz",
+      "requestId": "a3000000-0000-4000-8000-000000000041",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000042",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000043",
+      "name": "Air Line",
+      "durationTicks": 1440,
+      "expectedContentSha256": "17317c6d99db0812214305ab905a6349b882989f014e2a11ccd3fc470eb71120",
+      "reuseMode": "reference_only",
+      "categoryCode": "melody",
+      "suggestedPresetId": "soft-lead",
+      "tags": ["melodic", "mellow"],
+      "description": "A spare ascending phrase that leaves room between each note.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000041",
+          "startTick": 0,
+          "durationTicks": 360,
+          "pitch": 67,
+          "velocity": 76
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000042",
+          "startTick": 480,
+          "durationTicks": 360,
+          "pitch": 71,
+          "velocity": 82
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000043",
+          "startTick": 960,
+          "durationTicks": 420,
+          "pitch": 74,
+          "velocity": 86
+        }
+      ]
+    },
+    {
+      "key": "circuit-drums",
+      "projectKey": "pocket-circuit",
+      "requestId": "a3000000-0000-4000-8000-000000000051",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000052",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000053",
+      "name": "Circuit Drums",
+      "durationTicks": 1920,
+      "expectedContentSha256": "97954cac95fe2a2b2bf15a914e6b943e0e6345afe3e64b51588b7c9159d5386f",
+      "reuseMode": "commercial_reuse",
+      "categoryCode": "drums",
+      "suggestedPresetId": "drum-machine",
+      "tags": ["rhythmic", "minimal", "loop-friendly"],
+      "description": "A clipped two-sound drum loop for quick arrangement exercises.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000051",
+          "startTick": 0,
+          "durationTicks": 100,
+          "pitch": 36,
+          "velocity": 110
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000052",
+          "startTick": 480,
+          "durationTicks": 100,
+          "pitch": 38,
+          "velocity": 94
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000053",
+          "startTick": 960,
+          "durationTicks": 100,
+          "pitch": 36,
+          "velocity": 106
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000054",
+          "startTick": 1440,
+          "durationTicks": 100,
+          "pitch": 38,
+          "velocity": 98
+        }
+      ]
+    },
+    {
+      "key": "circuit-hook",
+      "projectKey": "pocket-circuit",
+      "requestId": "a3000000-0000-4000-8000-000000000061",
+      "versionRequestId": "a3000000-0000-4000-8000-000000000062",
+      "listingRequestId": "a3000000-0000-4000-8000-000000000063",
+      "name": "Pocket Hook",
+      "durationTicks": 1920,
+      "expectedContentSha256": "f08830fea8278fae584ce23c3d2fcf1752717b60ebd5e9ba5185fc4ecaaa55a0",
+      "reuseMode": "commercial_reuse",
+      "categoryCode": "melody",
+      "suggestedPresetId": "square-lead",
+      "tags": ["melodic", "minimal", "upbeat"],
+      "description": "An original A-minor hook intentionally visible for listening and study only.",
+      "notes": [
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000061",
+          "startTick": 0,
+          "durationTicks": 240,
+          "pitch": 69,
+          "velocity": 92
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000062",
+          "startTick": 360,
+          "durationTicks": 240,
+          "pitch": 72,
+          "velocity": 88
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000063",
+          "startTick": 720,
+          "durationTicks": 360,
+          "pitch": 76,
+          "velocity": 96
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000064",
+          "startTick": 1200,
+          "durationTicks": 240,
+          "pitch": 72,
+          "velocity": 86
+        },
+        {
+          "noteId": "a3100000-0000-4000-8000-000000000065",
+          "startTick": 1560,
+          "durationTicks": 360,
+          "pitch": 71,
+          "velocity": 90
+        }
+      ]
+    }
+  ],
+  "challenge": {
+    "requestId": "a4000000-0000-4000-8000-000000000001",
+    "publishRequestId": "a4000000-0000-4000-8000-000000000002",
+    "slug": "four-bar-spark",
+    "title": "Four-Bar Spark",
+    "prompt": "Make one tiny idea feel complete in four bars.",
+    "description": "Build a compact loop with a clear rhythmic or melodic identity. Leave enough space that another listener can hear the choices you made.",
+    "eligibilityTerms": "Submit one current immutable revision you own. Use only material you are authorized to publish and display for this challenge.",
+    "presentationCode": "sunrise",
+    "opensAt": "2026-08-01T16:00:00.000Z",
+    "submissionsCloseAt": "2026-08-15T16:00:00.000Z",
+    "votingOpensAt": "2026-08-16T16:00:00.000Z",
+    "votingClosesAt": "2026-08-22T16:00:00.000Z",
+    "resultsExpectedAt": "2026-08-24T16:00:00.000Z",
+    "judgingMode": "hybrid",
+    "officialPlacementCount": 1,
+    "expectedConstraintsSha256": "65ba65f299bdbc0228209c0225dbcd8939901811cb80b4c8a4f4f1da817504af",
+    "constraints": {
+      "schemaVersion": 1,
+      "trackCount": { "minimum": 2, "maximum": 4, "exact": null },
+      "distinctInstrumentCount": { "minimum": 2, "maximum": 4, "exact": null },
+      "instruments": null,
+      "tempoBpm": { "minimum": 90, "maximum": 130, "exact": null },
+      "timeSignature": { "numerator": 4, "denominator": 4 },
+      "musicalKey": null
+    },
+    "judges": [
+      { "role": "host", "displayName": "OpenMIDI Curator", "profileId": null }
+    ]
+  }
+}

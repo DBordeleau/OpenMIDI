@@ -47,3 +47,5 @@ No production schedule, URL, token, or Vault secret is part of the current repos
 Project, eligible contribution, and account deletion is recoverable for 30 days when moderation and holds permit. Published credits, accepted contributions, and fork lineage survive as tombstones. Global sign-out revokes refresh tokens on a best-effort caller-scoped request; issued access tokens and signed URLs expire on their existing short lifetimes, so deleted-profile authorization checks remain mandatory.
 
 Formal takedown, appeal, statutory erasure, emergency response, and production administrator assignment remain reviewed manual release operations.
+
+The release-day invitation, library-rights/copyright, feedback, challenge, seed, disable, and incident procedures are consolidated in [Invite-only beta operations](beta-operations.md).

@@ -16,7 +16,7 @@ export function ButtonLink({
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition ${styles}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition motion-reduce:transform-none motion-reduce:transition-none ${styles}`}
     >
       {children}
     </Link>
@@ -31,7 +31,7 @@ export function Button({
     <button
       type="button"
       onClick={onClick}
-      className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-px"
+      className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-px motion-reduce:transform-none motion-reduce:transition-none"
     >
       {children}
     </button>
