@@ -66,11 +66,9 @@ export function midiPitchName(pitch: number) {
   return `${names[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
 }
 
-export function pianoKeyLabel(
-  pitch: number,
-  drumMap: Readonly<Record<string, string>> | null,
-) {
-  if (drumMap) return drumMap[String(pitch)] ?? null;
+export function pianoKeyLabel(pitch: number) {
+  // The roll gutter labels only the C octaves so the grid stays quiet; drum
+  // names live on the performance keys and the kit map summary instead.
   return pitch % 12 === 0 ? midiPitchName(pitch) : null;
 }
 

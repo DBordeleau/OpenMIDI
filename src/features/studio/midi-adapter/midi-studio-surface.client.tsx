@@ -1234,19 +1234,19 @@ export function MidiStudioSurface(props: Props) {
                             initial={
                               reduce
                                 ? { opacity: 0 }
-                                : { opacity: 0, y: -6, scale: 0.98 }
+                                : { opacity: 0, y: 6, scale: 0.98 }
                             }
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={
                               reduce
                                 ? { opacity: 0 }
-                                : { opacity: 0, y: -6, scale: 0.98 }
+                                : { opacity: 0, y: 6, scale: 0.98 }
                             }
                             transition={{
                               duration: reduce ? 0 : 0.16,
                               ease: [0.2, 0.8, 0.2, 1],
                             }}
-                            className="border-strong bg-surface rounded-card absolute top-11 right-0 z-50 w-80 max-w-[calc(100vw-2rem)] origin-top-right space-y-3 border p-4 shadow-xl"
+                            className="border-strong bg-surface rounded-card absolute right-0 bottom-11 z-50 w-80 max-w-[calc(100vw-2rem)] origin-bottom-right space-y-3 border p-4 shadow-xl"
                           >
                             <label
                               className="block text-xs font-semibold"

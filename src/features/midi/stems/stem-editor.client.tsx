@@ -243,9 +243,16 @@ export function MidiStemEditor({
     scrollTop: 0,
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
-  // Inside Studio the piano roll is the star, so the exact-value panel starts
-  // collapsed; the standalone editor has room to show it up front.
-  const [notesOpen, setNotesOpen] = useState(!host);
+  // The exact-value panel starts open everywhere: keyboard users and the
+  // studio mockups both treat the inspector as a first-class surface, not an
+  // optional drawer.
+  const [notesOpen, setNotesOpen] = useState(true);
+  // Velocity-lane stem being dragged, with its uncommitted preview value; the
+  // command commits once on release so history stays one entry per gesture.
+  const [velocityDrag, setVelocityDrag] = useState<{
+    noteId: string;
+    velocity: number;
+  } | null>(null);
   // Collapsing the recorder hands almost the whole container to the piano roll
   // for people composing with the mouse only.
   const [performOpen, setPerformOpen] = useState(true);
@@ -758,7 +765,7 @@ export function MidiStemEditor({
           : canvasColor;
       context.textAlign = "right";
       context.fillText(
-        pianoKeyLabel(pitch, preset.drumMap) ?? "",
+        pianoKeyLabel(pitch) ?? "",
         PIANO_KEY_WIDTH - 7,
         y + PITCH_ROW_HEIGHT / 2,
       );
@@ -2085,12 +2092,22 @@ export function MidiStemEditor({
                           ? "border-strong bg-canvas text-ink"
                           : "border-subtle bg-ink text-canvas"
                     }`}
-                    aria-label={`Play ${midiPitchName(pitch)}, MIDI note ${pitch}`}
+                    aria-label={`Play ${midiPitchName(pitch)}${
+                      preset.drumMap?.[String(pitch)]
+                        ? ` — ${preset.drumMap[String(pitch)]}`
+                        : ""
+                    }, MIDI note ${pitch}`}
                     aria-pressed={active}
+                    title={preset.drumMap?.[String(pitch)]}
                     onPointerEnter={() => enterPerformanceKey(pitch)}
                     data-performance-pitch={pitch}
                   >
-                    {preset.drumMap?.[String(pitch)] ?? midiPitchName(pitch)}
+                    <span className="block">{midiPitchName(pitch)}</span>
+                    {preset.drumMap?.[String(pitch)] && (
+                      <span className="mt-0.5 block max-w-16 truncate text-[9px] font-normal opacity-75">
+                        {preset.drumMap[String(pitch)]}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -2445,7 +2462,7 @@ export function MidiStemEditor({
 
         <div
           ref={rollRef}
-          className={`border-strong bg-canvas rounded-control order-3 mt-2 overflow-auto border ${host ? "min-h-0 flex-1" : "h-[28rem] max-h-[70vh]"}`}
+          className={`border-strong bg-canvas rounded-control order-3 mt-2 overflow-auto border ${host ? "min-h-96 flex-1" : "h-[28rem] max-h-[70vh]"}`}
           onScroll={(event) => {
             const { scrollLeft, scrollTop } = event.currentTarget;
             setViewport((current) => ({
@@ -2483,6 +2500,122 @@ export function MidiStemEditor({
               }}
             />
           </div>
+        </div>
+
+        <div
+          className="border-strong bg-canvas rounded-control relative order-3 mt-2 h-24 shrink-0 overflow-hidden border"
+          role="group"
+          aria-label="Velocity lane. Drag a stem or focus it and press the arrow keys to change that note's velocity."
+        >
+          <span className="text-muted absolute top-1.5 left-2 z-10 font-mono text-[9px] tracking-widest uppercase">
+            Velocity
+          </span>
+          <span
+            aria-hidden
+            className="bg-strong absolute inset-y-0 w-0.5"
+            style={{ left: PIANO_KEY_WIDTH - 1 }}
+          />
+          {history.notes.map((note) => {
+            const x =
+              PIANO_KEY_WIDTH +
+              (note.startTick / MIDI_PPQ) * pixelsPerBeat -
+              viewport.scrollLeft;
+            if (x < PIANO_KEY_WIDTH - 2 || x > viewport.width + 24)
+              return null;
+            const shownVelocity =
+              velocityDrag?.noteId === note.noteId
+                ? velocityDrag.velocity
+                : note.velocity;
+            const stemSelected = selectedIds.has(note.noteId);
+            return (
+              <button
+                key={note.noteId}
+                type="button"
+                role="slider"
+                aria-label={`Velocity of ${midiPitchName(note.pitch)} at tick ${note.startTick}`}
+                aria-valuemin={1}
+                aria-valuemax={127}
+                aria-valuenow={shownVelocity}
+                aria-orientation="vertical"
+                className="focus-visible:ring-accent absolute bottom-0 w-3 -translate-x-1/2 cursor-ns-resize touch-none focus-visible:ring-2"
+                style={{
+                  left: x,
+                  height: `${10 + (shownVelocity / 127) * 78}%`,
+                }}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  setSelectedIds(new Set([note.noteId]));
+                  setVelocityDrag({
+                    noteId: note.noteId,
+                    velocity: note.velocity,
+                  });
+                }}
+                onPointerMove={(event) => {
+                  if (velocityDrag?.noteId !== note.noteId) return;
+                  const lane = event.currentTarget.parentElement;
+                  if (!lane) return;
+                  const rect = lane.getBoundingClientRect();
+                  const ratio =
+                    1 - (event.clientY - rect.top) / Math.max(1, rect.height);
+                  setVelocityDrag({
+                    noteId: note.noteId,
+                    velocity: Math.max(
+                      1,
+                      Math.min(127, Math.round(ratio * 127)),
+                    ),
+                  });
+                }}
+                onPointerUp={() => {
+                  if (velocityDrag?.noteId !== note.noteId) return;
+                  if (velocityDrag.velocity !== note.velocity)
+                    commitCommand(
+                      {
+                        type: "setVelocity",
+                        noteIds: [note.noteId],
+                        velocity: velocityDrag.velocity,
+                      },
+                      "Velocity updated from the velocity lane.",
+                    );
+                  setVelocityDrag(null);
+                }}
+                onPointerCancel={() => setVelocityDrag(null)}
+                onLostPointerCapture={() => setVelocityDrag(null)}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowUp" && event.key !== "ArrowDown")
+                    return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const next = Math.max(
+                    1,
+                    Math.min(
+                      127,
+                      note.velocity + (event.key === "ArrowUp" ? 8 : -8),
+                    ),
+                  );
+                  if (next !== note.velocity)
+                    commitCommand(
+                      {
+                        type: "setVelocity",
+                        noteIds: [note.noteId],
+                        velocity: next,
+                      },
+                      "Velocity updated from the velocity lane.",
+                    );
+                }}
+              >
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-1 top-0 bottom-0 rounded-t-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
+                  style={{ opacity: 0.5 + (shownVelocity / 127) * 0.5 }}
+                />
+                <span
+                  aria-hidden
+                  className={`absolute -top-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
+                />
+              </button>
+            );
+          })}
         </div>
 
         <p

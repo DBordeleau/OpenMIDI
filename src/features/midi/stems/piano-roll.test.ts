@@ -57,11 +57,11 @@ describe("piano-roll key presentation", () => {
     });
   });
 
-  it("labels only C pitches for melodic sounds and mapped drum rows", () => {
-    expect(pianoKeyLabel(60, null)).toBe("C4");
-    expect(pianoKeyLabel(61, null)).toBeNull();
-    expect(pianoKeyLabel(36, { "36": "Kick" })).toBe("Kick");
-    expect(pianoKeyLabel(37, { "36": "Kick" })).toBeNull();
+  it("labels only C pitches in the roll gutter for every preset", () => {
+    expect(pianoKeyLabel(60)).toBe("C4");
+    expect(pianoKeyLabel(61)).toBeNull();
+    expect(pianoKeyLabel(36)).toBe("C2");
+    expect(pianoKeyLabel(37)).toBeNull();
     expect(midiPitchName(73)).toBe("C♯5");
   });
 });

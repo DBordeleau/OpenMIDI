@@ -627,55 +627,7 @@ export function ArrangerWorkspace(props: Props) {
       tabIndex={0}
     >
       <header className="border-subtle bg-surface-raised/60 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3 backdrop-blur-md">
-        <div
-          className="flex min-w-0 items-center gap-3"
-          aria-label="Transport position"
-        >
-          <div className="studio-lcd" aria-live="off">
-            <div className="studio-lcd-seg">
-              <span className="studio-lcd-val">
-                {formatMusicalPosition(props.playheadTick, view.timeSignature)}
-              </span>
-              <span className="studio-lcd-lbl" aria-hidden>
-                Position
-              </span>
-            </div>
-            <div className="studio-lcd-seg max-md:hidden">
-              <span className="studio-lcd-val">
-                {formatClockTime(props.playheadTick, view.tempoBpm)}
-              </span>
-              <span className="studio-lcd-lbl" aria-hidden>
-                Time
-              </span>
-            </div>
-            <div className="studio-lcd-seg max-lg:hidden">
-              <span className="studio-lcd-val studio-lcd-val--gold">
-                {view.tempoBpm}
-              </span>
-              <span className="studio-lcd-lbl" aria-hidden>
-                Tempo
-              </span>
-            </div>
-            <div className="studio-lcd-seg max-lg:hidden">
-              <span className="studio-lcd-val">
-                {view.timeSignature.numerator}/{view.timeSignature.denominator}
-              </span>
-              <span className="studio-lcd-lbl" aria-hidden>
-                Signature
-              </span>
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="cta-gradient grid h-12 w-12 place-items-center rounded-full text-xl transition-transform hover:-translate-y-px disabled:opacity-50"
-          aria-label={props.playing ? "Pause arrangement" : "Play arrangement"}
-          disabled={view.tracks.length === 0}
-          onClick={props.onTogglePlayback}
-        >
-          {props.playing ? <FiPause /> : <FiPlay />}
-        </button>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <label className="text-muted hidden text-[10px] font-semibold uppercase md:block">
             Snap
             <select
@@ -716,10 +668,63 @@ export function ArrangerWorkspace(props: Props) {
           >
             <FiRotateCw />
           </button>
-          {props.actionRegion}
+        </div>
+        <div
+          className="flex min-w-0 items-center gap-3"
+          aria-label="Transport position"
+        >
+          <button
+            type="button"
+            className="cta-gradient grid h-12 w-12 place-items-center rounded-full text-xl transition-transform hover:-translate-y-px disabled:opacity-50"
+            aria-label={
+              props.playing ? "Pause arrangement" : "Play arrangement"
+            }
+            disabled={view.tracks.length === 0}
+            onClick={props.onTogglePlayback}
+          >
+            {props.playing ? <FiPause /> : <FiPlay />}
+          </button>
+          <div className="studio-lcd" aria-live="off">
+            <div className="studio-lcd-seg">
+              <span className="studio-lcd-val">
+                {formatMusicalPosition(props.playheadTick, view.timeSignature)}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Position
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-md:hidden">
+              <span className="studio-lcd-val">
+                {formatClockTime(props.playheadTick, view.tempoBpm)}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Time
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-lg:hidden">
+              <span className="studio-lcd-val studio-lcd-val--gold">
+                {view.tempoBpm}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Tempo
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-lg:hidden">
+              <span className="studio-lcd-val">
+                {view.timeSignature.numerator}/{view.timeSignature.denominator}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Signature
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          {props.statusRegion}
         </div>
       </header>
 
+      <div className="flex min-h-0 min-w-0 flex-1">
       <div className="relative flex min-h-0 min-w-0 flex-1">
         <div
           ref={scrollRef}
@@ -994,13 +999,27 @@ export function ArrangerWorkspace(props: Props) {
                             12,
                             ticksToPixels(clip.durationTicks, scale),
                           );
+                          const hue =
+                            TRACK_HUES[trackIndex % TRACK_HUES.length];
+                          const clipSelected =
+                            selection?.kind === "clip" &&
+                            selection.clipId === clip.clipId;
                           return (
                             <button
                               type="button"
                               key={clip.clipId}
                               data-clip-id={clip.clipId}
-                              className={`focus-visible:ring-accent rounded-control absolute top-4 h-36 overflow-hidden border text-left focus-visible:ring-2 ${selection?.kind === "clip" && selection.clipId === clip.clipId ? "border-accent bg-accent/20" : "border-strong bg-surface-raised"}`}
-                              style={{ left, width }}
+                              className="focus-visible:ring-accent absolute top-4 h-36 overflow-hidden rounded-xl border text-left shadow-[0_4px_16px_rgb(0_0_0/0.38)] transition-[filter] hover:brightness-110 focus-visible:ring-2"
+                              style={{
+                                left,
+                                width,
+                                borderColor: hue,
+                                background:
+                                  "linear-gradient(170deg, rgb(48 33 56 / 0.96), rgb(32 22 39 / 0.96))",
+                                boxShadow: clipSelected
+                                  ? `0 0 0 1.5px ${hue}, 0 4px 18px rgb(0 0 0 / 0.48)`
+                                  : undefined,
+                              }}
                               aria-label={`MIDI clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${clip.durationTicks} ticks, credited to ${clip.creditName}.`}
                               onClick={() =>
                                 setSelection({
@@ -1040,13 +1059,17 @@ export function ArrangerWorkspace(props: Props) {
                               onPointerCancel={cancelClipDrag}
                               onLostPointerCapture={cancelClipDrag}
                             >
-                              <span className="text-ink absolute top-1 left-2 z-10 max-w-[calc(100%-1rem)] truncate text-[10px] font-semibold">
+                              <span
+                                className="absolute top-1.5 left-2.5 z-10 max-w-[calc(100%-1rem)] truncate font-mono text-[9px] font-semibold tracking-widest uppercase"
+                                style={{ color: hue }}
+                              >
                                 {track.name}
                               </span>
                               <MidiNotes
                                 notes={clip.notes}
                                 clipStart={clip.startTick}
                                 clipDuration={clip.durationTicks}
+                                hue={hue}
                               />
                             </button>
                           );
@@ -1201,6 +1224,81 @@ export function ArrangerWorkspace(props: Props) {
           </button>
         </div>
       </div>
+      <aside
+        className="border-subtle bg-surface-raised/40 hidden w-80 shrink-0 flex-col gap-2 overflow-y-auto border-l p-4 backdrop-blur-md xl:flex"
+        aria-label="Clip inspector"
+      >
+        <p className="text-accent font-mono text-[10px] tracking-widest uppercase">
+          Clip
+        </p>
+        {selectedClip && selectedTrack && !contextMenu ? (
+          <ClipInspector
+            key={selectedClip.clipId}
+            clip={selectedClip}
+            track={selectedTrack}
+            editable={props.editable}
+            midiVersions={props.midiVersions}
+            onPatch={(patch, group) =>
+              props.onCommand(
+                {
+                  type: "patchClip",
+                  trackId: selectedTrack.trackId,
+                  clipId: selectedClip.clipId,
+                  patch,
+                },
+                `${selectedClip.clipId}:${group}`,
+              )
+            }
+            onReplace={(versionId) =>
+              props.onReplaceVersion(
+                selectedTrack.trackId,
+                selectedClip.clipId,
+                versionId,
+              )
+            }
+            onEdit={() =>
+              props.onEditMidiClip(selectedTrack.trackId, selectedClip.clipId)
+            }
+            canPaste={clipboard?.kind === selectedTrack.kind}
+            onCopy={() =>
+              setClipboard(
+                copyArrangementClip(
+                  props.manifest,
+                  selectedTrack.trackId,
+                  selectedClip.clipId,
+                ),
+              )
+            }
+            onPaste={() => {
+              if (!clipboard) return;
+              props.onCommand({
+                type: "pasteClip",
+                targetTrackId: selectedTrack.trackId,
+                clipboard,
+                newClipId: crypto.randomUUID(),
+                startTick: props.playheadTick,
+              });
+            }}
+            onDelete={() => {
+              props.onCommand({
+                type: "deleteMidiClip",
+                trackId: selectedTrack.trackId,
+                clipId: selectedClip.clipId,
+              });
+              setSelection({
+                kind: "track",
+                trackId: selectedTrack.trackId,
+              });
+            }}
+          />
+        ) : (
+          <p className="text-muted text-sm leading-6">
+            Select a clip on the timeline to inspect its exact start, length,
+            loop, and pattern version here.
+          </p>
+        )}
+      </aside>
+      </div>
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
@@ -1322,7 +1420,7 @@ export function ArrangerWorkspace(props: Props) {
               ? "Track selected · mix and reorder from its channel."
               : "No selection."}
         </p>
-        {props.statusRegion}
+        {props.actionRegion}
       </footer>
     </section>
   );
@@ -1353,6 +1451,7 @@ function MidiNotes({
   notes,
   clipStart,
   clipDuration,
+  hue,
 }: {
   notes: readonly {
     noteId: string;
@@ -1363,6 +1462,7 @@ function MidiNotes({
   }[];
   clipStart: number;
   clipDuration: number;
+  hue: string;
 }) {
   const pitches = notes.map((note) => note.pitch);
   const low = Math.min(...pitches, 48);
@@ -1372,12 +1472,14 @@ function MidiNotes({
       {notes.map((note) => (
         <span
           key={note.noteId}
-          className="bg-accent-2 absolute min-w-px rounded-sm"
+          className="absolute min-w-px rounded-full"
           style={{
+            background: hue,
+            opacity: 0.35 + (note.velocity / 127) * 0.6,
             left: `${((note.startTick - clipStart) / clipDuration) * 100}%`,
             width: `${Math.max(0.5, (note.durationTicks / clipDuration) * 100)}%`,
             bottom: `${((note.pitch - low) / Math.max(1, high - low)) * 80 + 8}%`,
-            height: Math.max(2, (note.velocity / 127) * 5),
+            height: Math.max(3, (note.velocity / 127) * 5),
           }}
         />
       ))}
