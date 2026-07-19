@@ -6,7 +6,7 @@ Last updated: 2026-07-18
 
 Supersedes: The collaboration-first, MIDI-plus-legacy-audio MVP definition
 
-Product identity: OpenMIDI is the sole prelaunch product and technical namespace. RELEASE-01 removed the former working identity from the current repository, including persisted engine identifiers and clean-baseline migration source. Existing musical domain data does not require retention; the retained hosted Supabase project is reconciled forward during the explicitly authorized release rollout.
+Product identity: OpenMIDI is the sole prelaunch product and technical namespace. RELEASE-01 removed the former working identity from the current repository, including persisted engine identifiers and clean-baseline migration source. The corrected forward reconciliation has been applied to the retained hosted Supabase project and cleared disposable musical domain data without changing the retained project identity.
 
 ## Product summary
 
@@ -30,7 +30,7 @@ The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute
 | Challenge achievements and profile badges                        | Complete                  |
 | Beta bug/suggestion intake and administrator triage              | Complete                  |
 | OpenMIDI frontend/repository rename                              | Complete: RELEASE-01      |
-| Seeded-beta hardening                                            | Planned: RELEASE-02       |
+| Seeded-beta hardening                                            | Complete: RELEASE-02      |
 | Hosted rollout, Vercel deployment, and production smoke          | Deferred until RELEASE-03 |
 
 “Complete” describes merged repository behavior, not a production deployment. OpenMIDI is not yet deployed to Vercel.
@@ -682,4 +682,4 @@ PIVOT-00 through PIVOT-10 resolved the repository strategy, reset posture, manif
 
 ## Remaining product decisions
 
-The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs and beta feedback first, then the public MIDI library, curated challenges, challenge awards, and release/deployment. The feature programs and RELEASE-01 identity reset are complete in the repository; RELEASE-02 seeded-beta hardening is next. The reset does not revisit MIDI-only persistence, licensing, immutable-history, or avatar-only Storage boundaries. Every hosted migration, destructive musical-data reconciliation, and the eventual Vercel deployment still requires explicit operational authority.
+The [tracked roadmap](ROADMAP.md) sequences semantic visual diffs and beta feedback first, then the public MIDI library, curated challenges, challenge awards, and release/deployment. The feature programs, RELEASE-01 identity reset, and RELEASE-02 seeded-beta hardening are complete. The retained hosted project already contains all reviewed migrations through the corrected reconciliation; they must not be rerun or repaired. Hosted beta import, external provider configuration, and Vercel deployment remain RELEASE-03 operations requiring explicit authority.

@@ -1,8 +1,8 @@
 # OpenMIDI MVP roadmap
 
 Status: Post-pivot MVP release path accepted; implementation not yet deployed
-Current checkpoint: RELEASE-01 complete in the repository; RELEASE-02 is next
-Hosted state: existing Supabase project remains at seven migrations; nine reviewed migrations and Vercel deployment are deferred
+Current checkpoint: RELEASE-02 complete; RELEASE-03 deployment remains unauthorized
+Hosted state: all 16 reviewed migrations are applied; hosted seed, provider configuration, and Vercel deployment are deferred
 
 ## Release target
 
@@ -72,7 +72,7 @@ Status: Complete. Authenticated beta intake, serialized administrator triage com
 
 ## Wave B — Public MIDI library and saved clips
 
-This sequential program is complete in the repository. Its four ordered forward migrations remain unapplied to hosted Supabase pending explicit authority.
+This sequential program is complete, and its four ordered forward migrations are applied to the retained hosted Supabase project.
 
 ### LIB-01 — Explicit listing and searchable catalog
 
@@ -90,7 +90,7 @@ Status: Complete in the repository. Canonical listing detail now exposes exact i
 
 Add a private saved-pattern collection referencing exact immutable commercially reusable versions. Saving does not duplicate notes or transfer ownership. Users can import a commercially reusable saved/discovered version into a chosen private workspace, fork it explicitly, or open it in the MIDI editor through an owned private copy-on-write draft. Reference-only listings remain preview/history surfaces and all reuse commands reject them authoritatively. All permitted reuse paths preserve platform lineage, license, and external credits.
 
-Status: Complete in the repository. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The post-LIB milestone pulse check is complete; the four LIB migrations remain unapplied to hosted Supabase without separate authority.
+Status: Complete. Private exact-version bookmarks, saved-clip preview/attribution, optimistic workspace import, explicit private copy-on-write forks, owned editor copies, and browser-local attributed MIDI export all enforce commercial reuse independently. Reference-only, hidden, deleted, unreadable, incompatible, and stale-lock sources are rejected authoritatively. Existing valid saved/project references and attribution survive creator unlisting. The four LIB migrations are applied to the retained hosted project.
 
 ## Wave C — Curated constraint challenges
 
@@ -109,19 +109,19 @@ The first constraint version supports:
 - exact time signature; and
 - exact declared key.
 
-Status: Complete in the repository. Administrators can create and append draft versions, publish or cancel through idempotent optimistic commands, and inspect private projections. Anonymous visitors receive only bounded published/cancelled-safe index and canonical detail projections. Constraint schema v1 canonicalizes deterministically in TypeScript and Postgres, and scheduled/open/voting labels derive from frozen UTC boundaries without cron. The migration is repository-only and is not applied to hosted Supabase.
+Status: Complete. Administrators can create and append draft versions, publish or cancel through idempotent optimistic commands, and inspect private projections. Anonymous visitors receive only bounded published/cancelled-safe index and canonical detail projections. Constraint schema v1 canonicalizes deterministically in TypeScript and Postgres, and scheduled/open/voting labels derive from frozen UTC boundaries without cron. The migration is applied to the retained hosted project.
 
 ### CHALLENGE-02 — Preflight, authoritative validation, and entries
 
 Let users validate a private/current revision, receive per-rule observed-versus-required feedback, and submit or explicitly replace one exact immutable eligible revision before the deadline. Server/database authority revalidates submission; the client preflight is advisory.
 
-Status: Complete in the repository. Active project owners can preflight current immutable revisions with complete observed-versus-required feedback, then explicitly attest challenge-scoped display and submit or replace one exact entry. Postgres independently extracts normalized facts, enforces constraint-v1 eligibility, deadline/current-version/current-revision authority, idempotency, and replacement contention. Pre-voting projections expose no entry identities or counts; voting/completed projections and browser-local previews are challenge-scoped and do not publish private projects, enable downloads, or grant reuse. The migration is repository-only and is not applied to hosted Supabase.
+Status: Complete. Active project owners can preflight current immutable revisions with complete observed-versus-required feedback, then explicitly attest challenge-scoped display and submit or replace one exact entry. Postgres independently extracts normalized facts, enforces constraint-v1 eligibility, deadline/current-version/current-revision authority, idempotency, and replacement contention. Pre-voting projections expose no entry identities or counts; voting/completed projections and browser-local previews are challenge-scoped and do not publish private projects, enable downloads, or grant reuse. The migration is applied to the retained hosted project.
 
 ### CHALLENGE-03 — Voting, official results, and moderation
 
 Add a post-submission voting phase, randomized/rotated entry presentation, one mutable vote per eligible user/entry, no self-votes, hidden totals until close, Community Favorite calculation, administrator-recorded official placements, and challenge/entry/vote moderation. Surface the featured active challenge on the landing page and dashboard. Keep completed challenge pages permanently addressable with frozen rules, entries, leaderboard/rankings, and results.
 
-Status: Complete in the repository. Private one-logical-vote authority, deterministic hourly rotation, report-only intake, optimistic audited challenge/entry/vote moderation, database-computed favorite ties, immutable complete result corrections, permanent completed projections, and canonical featured selection/fallback now ship together. Landing and dashboard consume the same signed-out-safe featured projection. The three CHALLENGE migrations remain repository-only; user-created challenge hosting, cash prizes, and programmable rules remain out of scope.
+Status: Complete. Private one-logical-vote authority, deterministic hourly rotation, report-only intake, optimistic audited challenge/entry/vote moderation, database-computed favorite ties, immutable complete result corrections, permanent completed projections, and canonical featured selection/fallback now ship together. Landing and dashboard consume the same signed-out-safe featured projection. The three CHALLENGE migrations are applied to the retained hosted project; user-created challenge hosting, cash prizes, and programmable rules remain out of scope.
 
 ## Wave D — Recognition
 
@@ -129,7 +129,7 @@ Status: Complete in the repository. Private one-logical-vote authority, determin
 
 Add an extensible badge-definition catalog and immutable profile award records tied to exact challenge results, placements, recipients, and submitted revisions. Every displayed badge links to its completed challenge/result page. Launch with generic Winner, Community Favorite, and configurable Top Placement badges. Challenge-specific artwork/definitions may be added later without schema redesign.
 
-Status: Complete in the repository. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The BADGE migration remains repository-only, and XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred.
+Status: Complete. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The BADGE migration is applied to the retained hosted project, and XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred.
 
 ## Wave E — Release and deployment
 
@@ -137,19 +137,19 @@ Status: Complete in the repository. Three stable badge identities point to appen
 
 Complete the OpenMIDI identity reset across user-facing copy, metadata, package/repository links, environment examples, runtime/browser namespaces, persisted manifest/diff engine identifiers, test actors/fixtures, local infrastructure identity, current documentation, and clean-baseline migration source. Add a reviewed forward reconciliation migration for the retained hosted project rather than requiring a new Supabase project. Git history remains the historical record.
 
-Status: Complete in the repository. Product copy, package/repository setup, runtime and browser namespaces, manifest/diff/export identity, tests, clean migration source, local Supabase identity, and documentation now use only OpenMIDI. The no-allowlist tracked-text contract runs in `npm run check`. Forward migration `20260719010758_release_01_openmidi_identity_reconciliation.sql` transactionally deletes disposable musical state while preserving identity/operator/feedback/avatar/catalog state. The retained hosted project remains unchanged at seven applied migrations; nine migrations are pending and RELEASE-02 is next.
+Status: Complete. Product copy, package/repository setup, runtime and browser namespaces, manifest/diff/export identity, tests, clean migration source, local Supabase identity, and documentation now use only OpenMIDI. The no-allowlist tracked-text contract runs in `npm run check`. The corrected forward reconciliation is applied to the retained hosted project and cleared disposable musical state while preserving identity/operator/feedback/avatar/catalog state. It must not be rerun or repaired.
 
 ### RELEASE-02 — Seeded beta and release hardening
 
 Seed several useful public projects, a curated MIDI-library set, and one scheduled/open challenge. Perform the final accessibility, authorization, moderation, empty/error/loading-state, responsive, usage-budget, and administrator runbook pass. Confirm feedback triage and invitations are usable before inviting testers.
 
-Status: Next after RELEASE-01. It prepares deterministic, original, rights-safe beta fixtures and operator tooling in the repository; it does not mutate hosted production data.
+Status: Complete. Three compact original projects, seven reviewed manifest-v3 pattern fixtures spanning both rights modes, one approachable curated challenge, a dry-run-first idempotent actor-owned importer, critical-state hardening, and operator runbooks ship without hosted mutation.
 
 ### RELEASE-03 — Vercel deployment and production smoke
 
-Configure Vercel against the retained hosted Supabase project, apply only reviewed pending migrations in order, configure exact site/OAuth callback URLs and secrets, deploy the avatar function if required, and run the production smoke path. Document rollback/disable procedures and verify that no musical Storage or source-audio infrastructure returns.
+Configure Vercel against the retained hosted Supabase project, configure exact site/OAuth callback URLs and secrets, run the approved beta seed dry run/import, deploy the avatar function if required, and run the production smoke path. Do not rerun or repair the 16 already-applied migrations. Document rollback/disable procedures and verify that no musical Storage or source-audio infrastructure returns.
 
-Status: Sequentially blocked on RELEASE-02. Deployment remains explicitly unauthorized until the user starts RELEASE-03 and supplies the production-origin/operator decisions named by the release plan. RELEASE-03 owns the approved deletion of existing hosted musical domain data, the OpenMIDI namespace reconciliation, the remaining migrations, and provider configuration. Merging code never applies migrations or changes hosted configuration automatically.
+Status: Ready after RELEASE-02 but explicitly unauthorized until the user starts RELEASE-03 and supplies the production-origin/operator decisions named by the release plan. RELEASE-03 owns provider configuration, approved hosted seed import, deployment, and production smoke only. Merging code never changes hosted data or configuration automatically.
 
 ## Release gates
 

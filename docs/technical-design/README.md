@@ -1,6 +1,6 @@
 # OpenMIDI technical design
 
-Status: MIDI-only foundation through RELEASE-01 complete in the repository; nine hosted-pending migrations await authority
+Status: MIDI-only foundation through RELEASE-02 complete; hosted migrations current and deployment deferred
 Last updated: 2026-07-18
 
 This document set turns the [product requirements](../PRD.md) into implementation contracts. The tracked [roadmap](../ROADMAP.md) owns delivery order, the [pivot contract](midi-only-pivot-contract.md) freezes manifest-v3 vocabulary and invariants, and the [brand guide](../design/brand.md) owns user-facing presentation.
@@ -13,6 +13,7 @@ This document set turns the [product requirements](../PRD.md) into implementatio
 | [decisions/README.md](decisions/README.md)                            | Stable accepted and superseded architectural decisions                             |
 | [midi-only-pivot-contract.md](midi-only-pivot-contract.md)            | Manifest v3, patterns, arrangements, presets, attribution, and deferred extensions |
 | [studio-forward-refactor-plan.md](../studio-forward-refactor-plan.md) | Historical Studio refactor record only                                             |
+| [RELEASE-02 evidence](evidence/release-02-seeded-beta-hardening.md)   | Seed rights, import rehearsal, hardening, verification, and operational boundary   |
 
 ## Current implementation pulse
 
@@ -27,7 +28,7 @@ The MIDI-only foundation and post-pivot feature program through BADGE-01 are imp
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - bounded semantic comparison for contribution versions and any two authorized same-project revisions, with a static accessible note overlay and mutually exclusive browser-local audition;
 - reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- four reviewed clean baseline migrations plus administrator-invitation, two beta-feedback, four unapplied LIB, three unapplied challenge, one unapplied badge, and `20260719010758_release_01_openmidi_identity_reconciliation.sql`, deterministic MIDI-only seed, current generated types, and pgTAP coverage; and
+- all 16 reviewed migrations through the corrected RELEASE-01 reconciliation, deterministic MIDI-only infrastructure seed, versioned RELEASE-02 beta definitions, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
 Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
@@ -38,7 +39,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Next work and hosted state
 
-Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 are complete in the repository. The library, challenge, and badge authorization contracts remain unchanged. The clean application and migration baseline now use the canonical OpenMIDI package, runtime, persisted engine, semantic diff, browser, local Supabase, and E2E identities. The retained hosted project remains at seven migrations; four LIB migrations, `20260718171612_challenge_01_versioned_lifecycle.sql`, `20260718190737_challenge_02_exact_entries.sql`, `20260718202909_challenge_03_voting_results.sql`, `20260718222256_badge_01_challenge_profile_awards.sql`, and `20260719010758_release_01_openmidi_identity_reconciliation.sql` are intentionally unapplied until explicit hosted-mutation authority is granted. The [RELEASE-01 evidence](evidence/release-01-openmidi-identity-reset.md) records the reset and preservation boundary. RELEASE-02 seeded-beta hardening is next. Destructive hosted musical-data cleanup and Vercel deployment remain deferred to explicitly authorized RELEASE-03.
+Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01, and RELEASE-02 are complete. The library, challenge, and badge authorization contracts remain unchanged. The retained hosted project contains all 16 reviewed migrations through the corrected RELEASE-01 reconciliation, which cleared disposable musical state while preserving the reviewed non-musical boundary. Those migrations must not be rerun, repaired, or modified. RELEASE-02 added deterministic rights-safe beta definitions, a dry-run-first idempotent importer, release-path hardening, and operator procedures without hosted mutation. Authorized hosted seed import, provider configuration, Vercel deployment, and production smoke remain deferred to RELEASE-03.
 
 ## Global invariants
 
