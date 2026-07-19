@@ -34,6 +34,7 @@ import {
   clampZoom,
   DEFAULT_PIXELS_PER_QUARTER,
   getRulerMarks,
+  ticksToMilliseconds,
   ticksToPixels,
 } from "./timeline";
 import { buildArrangerViewModel } from "./view-model";
@@ -46,9 +47,13 @@ import {
 import { pixelsToTicks } from "./timeline";
 
 // Keep in lockstep with the `17rem` channel column in the grids below: the
-// playhead and timeline are positioned in pixels and must line up with the CSS
-// channel width (17rem × 16px = 272px).
-const CHANNEL_PX = 272;
+// playhead and timeline are positioned in pixels and must line up with that
+// CSS width. The studio's fluid rem scale means 17rem is not a fixed pixel
+// count, so the root font size is measured at runtime (useRootFontPx).
+const CHANNEL_REM = 17;
+// Channel lane hues cycle through the brand accents so tracks read at a
+// glance in both the channel strip and its lane.
+const TRACK_HUES = ["#ffc879", "#ff8d63", "#e77aa6", "#ffb08f", "#c6adb4"];
 const iconButton =
   "border-strong text-muted hover:border-accent hover:text-accent grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-40";
 const channelButton =
@@ -59,6 +64,30 @@ const button =
   "border-strong hover:border-accent inline-flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold disabled:opacity-50";
 const field =
   "border-strong bg-canvas rounded-control min-h-10 w-full border px-2 text-sm disabled:opacity-60";
+
+function useRootFontPx() {
+  const [rootFontPx, setRootFontPx] = useState(16);
+  useEffect(() => {
+    const measure = () =>
+      setRootFontPx(
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        ) || 16,
+      );
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  return rootFontPx;
+}
+
+function formatClockTime(ticks: number, tempoBpm: number) {
+  const totalSeconds = ticksToMilliseconds(ticks, tempoBpm) / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const tenths = Math.floor((totalSeconds % 1) * 10);
+  return `${minutes}:${String(seconds).padStart(2, "0")}.${tenths}`;
+}
 
 type Props = {
   manifest: WorkspaceManifestV2;
@@ -148,6 +177,10 @@ export function ArrangerWorkspace(props: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingImportRef = useRef<HTMLInputElement>(null);
   const reduce = useReducedMotion();
+  const rootFontPx = useRootFontPx();
+  // Local name kept in lockstep with the historical constant: every pixel
+  // computation below offsets by the sticky channel column's live width.
+  const CHANNEL_PX = CHANNEL_REM * rootFontPx;
   const clipDragRef = useRef(clipDrag);
   const dragPointerRef = useRef({ clientX: 0, altKey: false });
   const autoScrollRef = useRef<number | null>(null);
@@ -485,7 +518,7 @@ export function ArrangerWorkspace(props: Props) {
   return (
     <section
       aria-label="Arrangement workspace"
-      className="rounded-card border-strong bg-surface flex min-h-0 flex-1 flex-col overflow-hidden border shadow-xl"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDown={(event) => {
         if (
           event.target instanceof HTMLElement &&
@@ -593,22 +626,49 @@ export function ArrangerWorkspace(props: Props) {
       }}
       tabIndex={0}
     >
-      <header className="border-subtle bg-surface-raised grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3">
+      <header className="border-subtle bg-surface-raised/60 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3 backdrop-blur-md">
         <div
           className="flex min-w-0 items-center gap-3"
           aria-label="Transport position"
         >
-          <p className="min-w-24 font-mono text-sm" aria-live="off">
-            {formatMusicalPosition(props.playheadTick, view.timeSignature)}
-          </p>
-          <p className="text-muted hidden text-xs lg:block">
-            {view.tempoBpm} BPM · {view.timeSignature.numerator}/
-            {view.timeSignature.denominator}
-          </p>
+          <div className="studio-lcd" aria-live="off">
+            <div className="studio-lcd-seg">
+              <span className="studio-lcd-val">
+                {formatMusicalPosition(props.playheadTick, view.timeSignature)}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Position
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-md:hidden">
+              <span className="studio-lcd-val">
+                {formatClockTime(props.playheadTick, view.tempoBpm)}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Time
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-lg:hidden">
+              <span className="studio-lcd-val studio-lcd-val--gold">
+                {view.tempoBpm}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Tempo
+              </span>
+            </div>
+            <div className="studio-lcd-seg max-lg:hidden">
+              <span className="studio-lcd-val">
+                {view.timeSignature.numerator}/{view.timeSignature.denominator}
+              </span>
+              <span className="studio-lcd-lbl" aria-hidden>
+                Signature
+              </span>
+            </div>
+          </div>
         </div>
         <button
           type="button"
-          className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg disabled:opacity-50"
+          className="cta-gradient grid h-12 w-12 place-items-center rounded-full text-xl transition-transform hover:-translate-y-px disabled:opacity-50"
           aria-label={props.playing ? "Pause arrangement" : "Play arrangement"}
           disabled={view.tracks.length === 0}
           onClick={props.onTogglePlayback}
@@ -656,38 +716,6 @@ export function ArrangerWorkspace(props: Props) {
           >
             <FiRotateCw />
           </button>
-          <button
-            type="button"
-            className={iconButton}
-            aria-label="Zoom out"
-            onClick={() =>
-              setPixelsPerQuarter((value) => clampZoom(value / 1.5))
-            }
-          >
-            <FiMinus />
-          </button>
-          <span className="text-muted w-14 text-center font-mono text-xs">
-            {Math.round((pixelsPerQuarter / DEFAULT_PIXELS_PER_QUARTER) * 100)}%
-          </span>
-          <button
-            type="button"
-            className={iconButton}
-            aria-label="Zoom in"
-            onClick={() =>
-              setPixelsPerQuarter((value) => clampZoom(value * 1.5))
-            }
-          >
-            <FiPlus />
-          </button>
-          <button
-            type="button"
-            aria-pressed={follow}
-            className={`${iconButton} ${follow ? "border-accent text-accent" : ""}`}
-            aria-label="Follow playhead"
-            onClick={() => setFollow((value) => !value)}
-          >
-            <FiCrosshair />
-          </button>
           {props.actionRegion}
         </div>
       </header>
@@ -701,8 +729,8 @@ export function ArrangerWorkspace(props: Props) {
             className="relative min-w-max"
             style={{ width: timelineWidth + CHANNEL_PX }}
           >
-            <div className="border-subtle bg-surface sticky top-0 z-30 grid h-11 grid-cols-[17rem_1fr] border-b">
-              <div className="border-subtle bg-surface sticky left-0 z-40 flex items-center border-r px-3">
+            <div className="border-subtle bg-surface/85 sticky top-0 z-30 grid h-11 grid-cols-[17rem_1fr] border-b backdrop-blur-md">
+              <div className="border-subtle bg-surface/85 sticky left-0 z-40 flex items-center border-r px-3 backdrop-blur-md">
                 <span className="text-muted font-mono text-[10px] tracking-widest uppercase">
                   Channels
                 </span>
@@ -791,7 +819,15 @@ export function ArrangerWorkspace(props: Props) {
                       }}
                       className={`border-subtle grid h-44 grid-cols-[17rem_1fr] border-b ${selected ? "bg-surface-soft" : ""} ${trackDrag?.targetIndex === trackIndex || clipDrag?.targetTrackId === track.trackId ? "ring-accent ring-2 ring-inset" : ""}`}
                     >
-                      <div className="border-subtle bg-surface sticky left-0 z-20 border-r p-2.5">
+                      <div className="border-subtle bg-surface/85 sticky left-0 z-20 border-r p-2.5 pl-4 backdrop-blur-md">
+                        <span
+                          aria-hidden
+                          className="absolute top-2.5 bottom-2.5 left-1 w-1 rounded-full"
+                          style={{
+                            background:
+                              TRACK_HUES[trackIndex % TRACK_HUES.length],
+                          }}
+                        />
                         <button
                           type="button"
                           className="focus-visible:ring-accent w-full rounded text-left focus-visible:ring-2"
@@ -1130,6 +1166,40 @@ export function ArrangerWorkspace(props: Props) {
             />
           </div>
         </div>
+        <div className="border-subtle bg-surface-raised/75 absolute right-4 bottom-4 z-40 flex items-center gap-1.5 rounded-full border px-2 py-1.5 shadow-xl backdrop-blur-md">
+          <button
+            type="button"
+            className={iconButton}
+            aria-label="Zoom out"
+            onClick={() =>
+              setPixelsPerQuarter((value) => clampZoom(value / 1.5))
+            }
+          >
+            <FiMinus />
+          </button>
+          <span className="text-muted w-12 text-center font-mono text-xs">
+            {Math.round((pixelsPerQuarter / DEFAULT_PIXELS_PER_QUARTER) * 100)}%
+          </span>
+          <button
+            type="button"
+            className={iconButton}
+            aria-label="Zoom in"
+            onClick={() =>
+              setPixelsPerQuarter((value) => clampZoom(value * 1.5))
+            }
+          >
+            <FiPlus />
+          </button>
+          <button
+            type="button"
+            aria-pressed={follow}
+            className={`${iconButton} ${follow ? "border-accent text-accent" : ""}`}
+            aria-label="Follow playhead"
+            onClick={() => setFollow((value) => !value)}
+          >
+            <FiCrosshair />
+          </button>
+        </div>
       </div>
       {typeof document !== "undefined" &&
         createPortal(
@@ -1244,7 +1314,7 @@ export function ArrangerWorkspace(props: Props) {
           </AnimatePresence>,
           document.body,
         )}
-      <footer className="border-subtle bg-surface-raised flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2">
+      <footer className="border-subtle bg-surface-raised/60 flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2 backdrop-blur-md">
         <p className="text-muted text-xs" aria-live="polite">
           {selection?.kind === "clip"
             ? "Clip selected · right-click for options, double-click to edit."

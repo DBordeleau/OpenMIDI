@@ -25,7 +25,8 @@ export default async function StudioLayout({
   return (
     <main
       id="main-content"
-      className="flex min-h-[calc(100vh-4.5rem)] flex-col gap-3 px-3 py-3 sm:px-4"
+      data-studio-scale
+      className="flex min-h-[calc(100vh-4.5rem)] flex-col px-3 py-3 sm:px-4"
     >
       <StudioShell
         initialProjects={initialProjects}

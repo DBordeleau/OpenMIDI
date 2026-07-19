@@ -14,20 +14,44 @@ export function BlankStudioWorkspace() {
   return (
     <>
       <section
-        className="border-strong bg-surface rounded-card flex min-h-0 flex-1 flex-col overflow-hidden border shadow-xl max-md:hidden [@media(pointer:coarse)]:hidden"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden max-md:hidden [@media(pointer:coarse)]:hidden"
         aria-label="Blank arrangement workspace"
       >
-        <header className="border-subtle bg-surface-raised grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3">
+        <header className="border-subtle bg-surface-raised/60 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b p-3 backdrop-blur-md">
           <div
             className="flex min-w-0 items-center gap-3"
             aria-label="Transport position"
           >
-            <p className="min-w-24 font-mono text-sm">1.1.1</p>
-            <p className="text-muted hidden text-xs lg:block">120 BPM · 4/4</p>
+            <div className="studio-lcd opacity-60">
+              <div className="studio-lcd-seg">
+                <span className="studio-lcd-val">1.1.1</span>
+                <span className="studio-lcd-lbl" aria-hidden>
+                  Position
+                </span>
+              </div>
+              <div className="studio-lcd-seg max-md:hidden">
+                <span className="studio-lcd-val">0:00.0</span>
+                <span className="studio-lcd-lbl" aria-hidden>
+                  Time
+                </span>
+              </div>
+              <div className="studio-lcd-seg max-lg:hidden">
+                <span className="studio-lcd-val studio-lcd-val--gold">120</span>
+                <span className="studio-lcd-lbl" aria-hidden>
+                  Tempo
+                </span>
+              </div>
+              <div className="studio-lcd-seg max-lg:hidden">
+                <span className="studio-lcd-val">4/4</span>
+                <span className="studio-lcd-lbl" aria-hidden>
+                  Signature
+                </span>
+              </div>
+            </div>
           </div>
           <button
             type="button"
-            className="cta-gradient grid h-11 w-11 place-items-center rounded-full text-lg opacity-40"
+            className="cta-gradient grid h-12 w-12 place-items-center rounded-full text-xl opacity-40"
             aria-label="Play arrangement"
             aria-describedby="blank-project-control-reason"
             disabled
@@ -69,7 +93,7 @@ export function BlankStudioWorkspace() {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <div className="border-subtle bg-surface grid h-11 grid-cols-[17rem_1fr] border-b">
+            <div className="border-subtle bg-surface/85 grid h-11 grid-cols-[17rem_1fr] border-b">
               <div className="border-subtle flex items-center border-r px-3">
                 <span className="text-muted font-mono text-[10px] tracking-widest uppercase">
                   Channels
@@ -96,7 +120,7 @@ export function BlankStudioWorkspace() {
                   key={index}
                   className="border-subtle grid h-44 grid-cols-[17rem_1fr] border-b"
                 >
-                  <div className="border-subtle bg-surface border-r p-3">
+                  <div className="border-subtle bg-surface/85 border-r p-3">
                     <span className="bg-surface-raised block h-3 w-24 rounded-full" />
                     <span className="bg-surface-raised mt-3 block h-2 w-36 rounded-full" />
                     <div className="mt-5 flex gap-2">
@@ -131,7 +155,7 @@ export function BlankStudioWorkspace() {
           </div>
         </div>
 
-        <footer className="border-subtle bg-surface-raised flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2">
+        <footer className="border-subtle bg-surface-raised/60 flex min-h-12 flex-wrap items-center justify-between gap-3 border-t px-4 py-2 backdrop-blur-md">
           <p
             id="blank-project-control-reason"
             className="text-muted text-xs"
@@ -143,7 +167,7 @@ export function BlankStudioWorkspace() {
         </footer>
       </section>
 
-      <section className="border-strong bg-surface rounded-card hidden border p-6 shadow-xl max-md:block [@media(pointer:coarse)]:block">
+      <section className="hidden p-6 max-md:block [@media(pointer:coarse)]:block">
         <h1 className="text-xl font-semibold">Studio needs a desktop setup</h1>
         <p className="text-muted mt-2 leading-7">
           Use a desktop-sized screen and a precise pointer to arrange music in

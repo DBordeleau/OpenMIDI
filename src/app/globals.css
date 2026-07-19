@@ -178,6 +178,76 @@ a {
   box-shadow: 0 16px 48px -12px rgb(255 141 99 / 85%);
 }
 
+/* ── Studio "glass window" treatment ──────────────────────────────────
+   The Studio renders as one translucent window floating over the ambient
+   glow instead of a stack of opaque cards (docs/design/brand.md §5).
+
+   Fluid scale: a page that marks an element with [data-studio-scale]
+   grows the whole rem scale with the display so the DAW reads like
+   native desktop software on 1440p+ monitors. This is an html-level
+   rule on purpose — rem sizing must come from the root — and no
+   utility class controls html font-size, so the cascade-layer caveat
+   above does not apply. */
+html:has([data-studio-scale]) {
+  font-size: clamp(14px, 0.5vw + 8.5px, 21px);
+}
+
+.studio-glass {
+  background: rgb(30 21 36 / 62%);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1.6rem 3.6rem rgb(0 0 0 / 45%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+
+/* Logic-style recessed transport display (the "LCD"). */
+.studio-lcd {
+  display: flex;
+  align-items: stretch;
+  background: rgb(14 9 18 / 78%);
+  border: 1px solid rgb(0 0 0 / 45%);
+  border-radius: 0.9rem;
+  padding: 0.3rem 0.25rem;
+  box-shadow:
+    inset 0 0.15rem 0.6rem rgb(0 0 0 / 60%),
+    inset 0 -1px 0 rgb(255 255 255 / 5%);
+}
+.studio-lcd-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  padding: 0 0.85rem;
+}
+.studio-lcd-seg + .studio-lcd-seg {
+  border-left: 1px solid rgb(255 255 255 / 7%);
+}
+.studio-lcd-val {
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.studio-lcd-val--gold {
+  color: var(--color-accent-2);
+}
+.studio-lcd-lbl {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgb(198 173 180 / 60%);
+  white-space: nowrap;
+}
+
 /* Frozen challenge presentation choices alter only the public invitation's
    visual treatment; lifecycle and authorization remain data-driven. */
 .challenge-pulse,

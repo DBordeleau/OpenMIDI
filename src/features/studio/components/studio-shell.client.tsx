@@ -215,7 +215,8 @@ export function StudioShell({
 
   return (
     <StudioShellContext.Provider value={context}>
-      <header className="border-subtle bg-surface/95 rounded-card relative z-40 flex min-h-11 flex-wrap items-center gap-1 border px-2 py-1 shadow-lg backdrop-blur-sm">
+      <div className="studio-glass flex min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="border-subtle relative z-40 flex min-h-11 flex-wrap items-center gap-1 border-b px-2 py-1.5">
         <button
           type="button"
           onClick={() => requestNavigation("/studio")}
@@ -388,12 +389,13 @@ export function StudioShell({
       </header>
 
       {switchTarget && (
-        <p className="text-muted" role="status" aria-live="polite">
+        <p className="text-muted px-3 py-1" role="status" aria-live="polite">
           Saving and closing this session before opening {switchTarget}…
         </p>
       )}
 
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </div>
 
       {panel === "browser" && (
         <StudioDialog title="Choose a project" onClose={() => setPanel(null)}>

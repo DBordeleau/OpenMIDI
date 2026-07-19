@@ -2366,12 +2366,16 @@ export function MidiStemEditor({
             >
               <FiFastForward />
             </button>
-            <p
-              className="text-muted min-w-16 text-center font-mono text-xs"
-              aria-live="off"
-            >
-              {formatStemPosition(visiblePlayheadTick, beatsPerBar)}
-            </p>
+            <div className="studio-lcd ml-1" aria-live="off">
+              <div className="studio-lcd-seg">
+                <span className="studio-lcd-val">
+                  {formatStemPosition(visiblePlayheadTick, beatsPerBar)}
+                </span>
+                <span className="studio-lcd-lbl" aria-hidden>
+                  Position
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2 justify-self-end">
