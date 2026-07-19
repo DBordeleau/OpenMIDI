@@ -1,6 +1,6 @@
 # Google authentication and invitations
 
-OpenMIDI uses Supabase Google OAuth with PKCE and an invite-only Before User Created database hook. Repository code does not contain Google credentials, hosted project references, or real invitation emails. Existing OAuth consent-screen branding may remain Jam Session until RELEASE-01 coordinates the public rename.
+OpenMIDI uses Supabase Google OAuth with PKCE and an invite-only Before User Created database hook. Repository code does not contain Google credentials, hosted project references, or real invitation emails. Existing external OAuth branding may still show the prelaunch identity until RELEASE-03 performs the authorized provider rename.
 
 ## Google Cloud
 

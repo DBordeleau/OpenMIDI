@@ -63,7 +63,7 @@ async function seedLibraryActor() {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -154,24 +154,24 @@ insert into public.midi_library_listings(id,midi_pattern_id,midi_pattern_version
 values('${ids.referenceListing}','${ids.referencePattern}','${ids.referenceVersion}','${owner.id}',gen_random_uuid(),repeat('7',64),repeat('8',64),'Reference-only browser study','Listening and inspection only.','LibraryDetailOwner','Library Detail Owner','Library Detail Owner','reference_only','original','midi-library-reference-display-attestation-v1','${owner.id}','melody','soft-lead',1,'leads',960,2,1,67,67,'monophonic',to_tsvector('simple','Reference-only browser study'));
 insert into public.projects(id,owner_id,create_request_id,title,license_code) values('${ids.project}','${owner.id}',gen_random_uuid(),'Public usage fixture','cc-by-4.0');
 insert into public.project_members(project_id,user_id,role,created_by) values('${ids.project}','${owner.id}','owner','${owner.id}');
-insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks) values('${ids.arrangement}','${ids.project}','${owner.id}',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('e',64),120,4,4,'c-major',480,960);
+insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks) values('${ids.arrangement}','${ids.project}','${owner.id}',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('e',64),120,4,4,'c-major',480,960);
 insert into public.arrangement_tracks(arrangement_version_id,project_id,track_id,sort_order,name,preset_id,preset_version,gain_db,pan,muted,soloed) values('${ids.arrangement}','${ids.project}','${ids.track}',0,'Lead','soft-lead',1,-6,0,false,false);
 insert into public.arrangement_clips(arrangement_version_id,project_id,track_id,clip_id,midi_pattern_version_id,start_tick,duration_ticks,source_start_tick,loop) values
 ('${ids.arrangement}','${ids.project}','${ids.track}','${ids.clip1}','${ids.version1}',0,960,0,false),('${ids.arrangement}','${ids.project}','${ids.track}','${ids.clip2}','${ids.version2}',0,960,0,false);
-insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id) values('${ids.revision}','${ids.project}',1,'${owner.id}',gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('f',64),1000,'${ids.arrangement}');
+insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id) values('${ids.revision}','${ids.project}',1,'${owner.id}',gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('f',64),1000,'${ids.arrangement}');
 update public.projects set visibility='public',status='active',current_revision_id='${ids.revision}',published_at=statement_timestamp(),bpm=120,musical_key='c-major',rights_attestation_version='cc-by-4.0-reuse-attestation-v1' where id='${ids.project}';
 insert into public.projects(id,owner_id,create_request_id,title,license_code) values('${ids.reuseProject}','${reporter.id}',gen_random_uuid(),'Private library sketch','cc-by-4.0');
 insert into public.project_members(project_id,user_id,role,created_by) values('${ids.reuseProject}','${reporter.id}','owner','${reporter.id}');
-with m as (select jsonb_build_object('manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1','projectId','${ids.reuseProject}'::uuid,'workspaceId','${ids.reuseWorkspace}'::uuid,'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',1920,'tracks','[]'::jsonb) manifest)
+with m as (select jsonb_build_object('manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1','projectId','${ids.reuseProject}'::uuid,'workspaceId','${ids.reuseWorkspace}'::uuid,'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',1920,'tracks','[]'::jsonb) manifest)
 insert into public.workspaces(id,project_id,owner_id,create_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256)
-select '${ids.reuseWorkspace}','${ids.reuseProject}','${reporter.id}',gen_random_uuid(),manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',encode(extensions.digest(convert_to(manifest::text,'UTF8'),'sha256'),'hex') from m;
+select '${ids.reuseWorkspace}','${ids.reuseProject}','${reporter.id}',gen_random_uuid(),manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',encode(extensions.digest(convert_to(manifest::text,'UTF8'),'sha256'),'hex') from m;
 commit;`;
   execFileSync(
     "docker",
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -201,7 +201,7 @@ function grantLibraryAdmin(userId: string) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

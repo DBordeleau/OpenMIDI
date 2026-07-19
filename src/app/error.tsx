@@ -15,7 +15,7 @@ export default function ErrorPage({
           We couldn’t load this page.
         </h1>
         <p className="text-muted mt-4">
-          Try the request again, or return to the Jam Session home page.
+          Try the request again, or return to the OpenMIDI home page.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <Button onClick={reset}>Try again</Button>

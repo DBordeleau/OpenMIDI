@@ -60,7 +60,7 @@ async function resetTestActorProfile() {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

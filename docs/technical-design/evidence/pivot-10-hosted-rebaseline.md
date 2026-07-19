@@ -44,6 +44,6 @@ contains seven recorded migrations. Future hosted mutation remains separately au
 
 ## Deployment boundary
 
-Jam Session is not deployed to Vercel. No Vercel project, environment variable, binding, deployment, or production smoke test was created or changed during PIVOT-10. A future deployment task must configure the existing Supabase values in server/browser-appropriate scopes and run the production smoke path before launch.
+OpenMIDI is not deployed to Vercel. No Vercel project, environment variable, binding, deployment, or production smoke test was created or changed during PIVOT-10. A future deployment task must configure the existing Supabase values in server/browser-appropriate scopes and run the production smoke path before launch.
 
 There is no second-project rollback boundary. The existing project was reset in place, old hosted application/Auth/Storage data was intentionally discarded, and Git history is the schema rollback record.

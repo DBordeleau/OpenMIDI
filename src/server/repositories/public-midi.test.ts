@@ -99,7 +99,7 @@ describe("public MIDI revision history", () => {
     expect(history.at(-1)).toMatchObject({
       revisionNumber: 2,
       parentRevisionId: revisionId(1),
-      algorithmVersion: "jam-session-midi-semantic-diff-1",
+      algorithmVersion: "openmidi-midi-semantic-diff-1",
       summary: ["No semantic musical changes."],
     });
     expect(mocks.limits).toContainEqual({

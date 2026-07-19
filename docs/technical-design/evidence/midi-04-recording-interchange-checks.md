@@ -4,7 +4,7 @@ Status: implementation evidence complete; physical-device/browser matrix remains
 
 ## Implemented boundary
 
-- On-screen piano and A–K QWERTY input share one Jam Session note-on/off path with octave and default-velocity controls.
+- On-screen piano and A–K QWERTY input share one OpenMIDI note-on/off path with octave and default-velocity controls.
 - Recording uses a fixed 120 BPM standalone transport, optional one-bar count-in, an audio-clock-scheduled metronome, and a visible tick playhead. Stopping, focus loss, hidden-tab state, audio suspension, hardware disconnect, and route disposal close open notes and release synth voices.
 - One stopped take enters editor history as one semantic command. Recorded timing is not automatically quantized.
 - Web MIDI is capability-detected and requested only by the **Connect hardware MIDI** gesture with `{ sysex: false }`. Only note-on/off messages cross the adapter. Device identifiers and names are not persisted or logged.

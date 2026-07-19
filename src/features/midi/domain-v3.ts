@@ -10,9 +10,9 @@ export const MIDI_V3_MAX_TEMPO_BPM = 300;
 export const MIDI_V3_MAX_DURATION_TICKS =
   MIDI_V3_MAX_PROJECT_MINUTES * 60 * MIDI_V3_MAX_TEMPO_BPM * MIDI_V3_PPQ;
 
-export const MIDI_V3_ENGINE_ID = "jam-session-midi" as const;
+export const MIDI_V3_ENGINE_ID = "openmidi-midi" as const;
 export const MIDI_V3_ENGINE_VERSION =
-  "jam-session-midi-3_tone-15.1.22_presets-1" as const;
+  "openmidi-midi-3_tone-15.1.22_presets-1" as const;
 export const MIDI_V3_REUSE_LICENSE = {
   code: "CC-BY-4.0",
   version: "4.0",

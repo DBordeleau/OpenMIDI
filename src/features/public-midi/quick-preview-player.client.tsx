@@ -10,7 +10,7 @@ import {
 import { PublicMidiPreviewRuntime } from "./preview-runtime.client";
 import { schedulePublicMidiRevision } from "./schedule";
 
-const PREVIEW_PLAY_EVENT = "jam-session:public-midi-preview-play";
+const PREVIEW_PLAY_EVENT = "openmidi:public-midi-preview-play";
 const BAR_HEIGHTS = [
   36, 58, 82, 48, 72, 94, 62, 42, 76, 54, 88, 66, 44, 80, 60, 92, 52, 70,
 ];

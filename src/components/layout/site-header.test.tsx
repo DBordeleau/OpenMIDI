@@ -8,7 +8,7 @@ describe("SiteHeader", () => {
   it("shows the marketing shell with landing section links when signed out", () => {
     render(<SiteHeader />);
 
-    expect(screen.getByRole("link", { name: "Jam Session" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "OpenMIDI" })).toHaveAttribute(
       "href",
       "/",
     );

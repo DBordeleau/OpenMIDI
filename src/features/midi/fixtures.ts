@@ -82,7 +82,7 @@ export function createMidiFeasibilityFixture(
   return {
     manifest: parseWorkspaceManifestV2({
       manifestVersion: 2,
-      engine: "jam-session-composite",
+      engine: "openmidi-composite",
       engineVersion: COMPOSITE_STUDIO_ENGINE_VERSION,
       projectId: uuid(1),
       tempoBpm: 120,

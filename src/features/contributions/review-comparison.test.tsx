@@ -15,8 +15,8 @@ vi.mock("@/features/midi-diff/paired-audition.client", () => ({
 
 const manifest: ManifestV3 = {
   manifestVersion: 3,
-  engine: "jam-session-midi",
-  engineVersion: "jam-session-midi-3_tone-15.1.22_presets-1",
+  engine: "openmidi-midi",
+  engineVersion: "openmidi-midi-3_tone-15.1.22_presets-1",
   projectId: "20000000-0000-4000-8000-000000000123",
   tempoBpm: 120,
   timeSignature: { numerator: 4, denominator: 4 },
@@ -35,7 +35,7 @@ describe("ReviewComparison", () => {
           base: { manifest, patternVersions: [] },
           submitted: { manifest, patternVersions: [] },
           semanticDiff: {
-            algorithmVersion: "jam-session-midi-semantic-diff-1",
+            algorithmVersion: "openmidi-midi-semantic-diff-1",
             unchanged: true,
             metadata: [],
             tracks: [],

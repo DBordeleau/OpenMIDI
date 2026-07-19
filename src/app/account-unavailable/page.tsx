@@ -8,8 +8,8 @@ export default function AccountUnavailablePage() {
         <section className="mx-auto max-w-xl">
           <h1 className="text-3xl font-bold">Account unavailable</h1>
           <p className="text-muted my-4">
-            This account cannot access Jam Session right now. Contact the
-            operator if you believe this is a mistake.
+            This account cannot access OpenMIDI right now. Contact the operator
+            if you believe this is a mistake.
           </p>
           <form action={signOut}>
             <button className="rounded-control bg-accent min-h-11 px-5 font-semibold text-slate-950">

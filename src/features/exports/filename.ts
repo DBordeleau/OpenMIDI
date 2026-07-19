@@ -19,7 +19,7 @@ export function buildMixFilename(input: {
   projectTitle: string;
   revisionNumber?: number;
 }) {
-  const project = sanitizeFilenamePart(input.projectTitle, "jam-session");
+  const project = sanitizeFilenamePart(input.projectTitle, "openmidi");
   const version = input.revisionNumber ? `r${input.revisionNumber}` : "draft";
   return `${project}-${version}-mix.wav`;
 }

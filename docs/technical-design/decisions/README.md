@@ -26,11 +26,11 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 - **Why:** Reliable attribution, forks, review and recovery require stable history.
 - **Consequence:** Acceptance creates a revision rather than updating one.
 
-### ADR-004: Jam Session manifest is the portable workspace authority
+### ADR-004: OpenMIDI manifest is the portable workspace authority
 
 > Superseded for the MIDI-only target by ADR-011. This remains the historical authority for manifest v1/v2 behavior until the pivot cutover removes it.
 
-- **Decision:** Persist a versioned Jam Session JSON manifest and normalized track projection; do not require an opaque editor-native snapshot for MVP reopen.
+- **Decision:** Persist a versioned OpenMIDI JSON manifest and normalized track projection; do not require an opaque editor-native snapshot for MVP reopen.
 - **Why:** The MVP collaboration subset is small enough to model directly, making it server-validatable, migration-friendly, and independent of a particular editor.
 - **Consequence:** The Waveform Playlist adapter must deterministically hydrate from and export to the manifest, and publish validates every referenced asset.
 
@@ -48,13 +48,13 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 
 - **Decision:** Use pinned Waveform Playlist packages behind `WaveformPlaylistStudioAdapter`; retain Tone.js only where required by the selected playback/export path.
 - **Why:** It supplies the MVP's multitrack timeline, synchronized playback, mixer and export capabilities through modular React/TypeScript packages under the MIT license.
-- **Consequence:** Jam Session owns serialization, product-specific controls, accessibility integration and manifest migrations. OpenDAW remains a post-MVP alternative and cannot be introduced without superseding this ADR.
+- **Consequence:** OpenMIDI owns serialization, product-specific controls, accessibility integration and manifest migrations. OpenDAW remains a post-MVP alternative and cannot be introduced without superseding this ADR.
 
 ### ADR-007: MIDI-first prototype with dormant new-audio admission
 
 > Superseded by ADR-010 through ADR-014. Retained as historical context for the completed MIDI-first interruption.
 
-- **Decision:** After the $0 audio-optimization pass, add a standalone owner-scoped MIDI-stem editor/library and a project path that references exact immutable stem versions, using deterministic bundled Tone.js synthesis behind a Jam Session-owned composite client-only adapter. When the complete MIDI creation/collaboration parity gate passes, disable new `source_audio` reservation globally for the prototype without adding billing or entitlements.
+- **Decision:** After the $0 audio-optimization pass, add a standalone owner-scoped MIDI-stem editor/library and a project path that references exact immutable stem versions, using deterministic bundled Tone.js synthesis behind a OpenMIDI-owned composite client-only adapter. When the complete MIDI creation/collaboration parity gate passes, disable new `source_audio` reservation globally for the prototype without adding billing or entitlements.
 - **Why:** MIDI notes and synth parameters are small enough for the $0 prototype budget and support meaningful browser-native composition, recording, revision, contribution and fork workflows without requiring uploaded media for every new project.
 - **Consequence:** Manifest v1 and all existing audio history remain supported and immutable. Manifest v2 adds discriminated audio/MIDI tracks, stable clips, exact immutable MIDI-stem-version references, and immutable preset versions; canonical notes live in bounded stem drafts/versions rather than being duplicated into every project clip. Existing projects may retain legacy audio and add MIDI, but new source bytes are rejected at reservation authority after transition. Hardware Web MIDI is optional; manual piano-roll/on-screen/keyboard input is required. Sample libraries, payments and arbitrary user synth graphs remain out of scope.
 - **Validation:** The MIDI expansion must prove deterministic save/reload/playback, accessible editing/recording, immutable publish/contribution/accept/fork behavior, bounded public preview and `.mid` export before the audio-admission capability is disabled. Legacy audio playback/download/export/publish regressions and old-client admission-bypass tests must pass.
@@ -80,7 +80,7 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 ### ADR-010: MIDI-only product and removal of source-audio compatibility
 
 - **Status:** Accepted 2026-07-16.
-- **Decision:** Jam Session's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export and profile-avatar Storage.
+- **Decision:** OpenMIDI's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export and profile-avatar Storage.
 - **Why:** Repeated full-quality source retrieval exhausted an unsustainable share of the $0 prototype egress budget, while structured MIDI supports the newly accepted public creation/remix/challenge product more directly.
 - **Consequence:** The staged cutover and hosted rebaseline are complete through PIVOT-10. Historical audio evidence stays in Git/docs but is not current product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
 - **Validation:** The clean baseline and rebaselined hosted project have no source-audio route, bucket, function, cron, quota, schema, dependency, fixture, or product promise; MIDI creation/collaboration remains complete.
@@ -105,7 +105,7 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 
 - **Status:** Accepted 2026-07-16.
 - **Decision:** Public remixable projects/patterns initially use Creative Commons Attribution 4.0 International (`CC-BY-4.0`) with exact license URL/version and explicit publish-time rights attestation. Private drafts grant no public reuse rights.
-- **Why:** CC BY permits sharing, adaptation, and commercial use while requiring attribution, matching Jam Session's automatic lineage/credit product. One license avoids an MVP compatibility matrix and custom legal terms.
+- **Why:** CC BY permits sharing, adaptation, and commercial use while requiring attribution, matching OpenMIDI's automatic lineage/credit product. One license avoids an MVP compatibility matrix and custom legal terms.
 - **Consequence:** Required creator/source/license/change attribution cannot be removed. MIDI downloads include attribution/license material outside the `.mid` payload. Other licenses, payments, and rights-dispute resolution are deferred; public terms still require legal review before unrestricted launch.
 - **Validation:** Copy-on-write reuse preserves exact source/creator/license snapshots through publish, contribution, fork, export, profile rename, and deletion.
 

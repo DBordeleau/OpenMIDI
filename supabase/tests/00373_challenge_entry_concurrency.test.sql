@@ -33,9 +33,9 @@ select extensions.dblink_exec('entry_a',$remote$
   insert into public.project_members(project_id,user_id,role,created_by)
     values('ff100000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001','owner','ff000000-0000-4000-8000-000000000001');
   insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks)
-    values('ff200000-0000-4000-8000-000000000001','ff100000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('1',64),120,4,4,null,480,960);
+    values('ff200000-0000-4000-8000-000000000001','ff100000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('1',64),120,4,4,null,480,960);
   insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id)
-    values('ff400000-0000-4000-8000-000000000001','ff100000-0000-4000-8000-000000000001',1,'ff000000-0000-4000-8000-000000000001',gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('2',64),1000,'ff200000-0000-4000-8000-000000000001');
+    values('ff400000-0000-4000-8000-000000000001','ff100000-0000-4000-8000-000000000001',1,'ff000000-0000-4000-8000-000000000001',gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('2',64),1000,'ff200000-0000-4000-8000-000000000001');
   update public.projects set status='active',visibility='private',current_revision_id='ff400000-0000-4000-8000-000000000001',published_at=now() where id='ff100000-0000-4000-8000-000000000001';
   insert into public.challenges(id,slug,created_by,state,published_at) values('ff500000-0000-4000-8000-000000000001','entry-concurrency-test','ff000000-0000-4000-8000-000000000001','published',now());
   insert into public.challenge_versions(id,challenge_id,version_number,created_by,create_request_id,title,prompt,description,eligibility_terms,presentation_code,opens_at,submissions_close_at,voting_opens_at,voting_closes_at,results_expected_at,judging_mode,official_placement_count,constraints,constraints_sha256)
@@ -70,9 +70,9 @@ select is((select count(*) from public.challenge_entries where entrant_id='ff000
 
 select extensions.dblink_exec('entry_a',$remote$
   insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks)
-    values('ff200000-0000-4000-8000-000000000002','ff100000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('3',64),120,4,4,null,480,960);
+    values('ff200000-0000-4000-8000-000000000002','ff100000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('3',64),120,4,4,null,480,960);
   insert into public.project_revisions(id,project_id,revision_number,parent_revision_id,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id)
-    values('ff400000-0000-4000-8000-000000000002','ff100000-0000-4000-8000-000000000001',2,'ff400000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('4',64),1000,'ff200000-0000-4000-8000-000000000002');
+    values('ff400000-0000-4000-8000-000000000002','ff100000-0000-4000-8000-000000000001',2,'ff400000-0000-4000-8000-000000000001','ff000000-0000-4000-8000-000000000001',gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('4',64),1000,'ff200000-0000-4000-8000-000000000002');
   update public.projects set current_revision_id='ff400000-0000-4000-8000-000000000002' where id='ff100000-0000-4000-8000-000000000001';
 $remote$);
 select extensions.dblink_exec('entry_b',$remote$

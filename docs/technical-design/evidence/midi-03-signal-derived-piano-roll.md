@@ -4,7 +4,7 @@ Status: Complete and verified
 
 ## Implemented boundary
 
-The standalone My stems editor now owns a viewport-rendered piano roll without adopting Signal runtime state, stores, routing, transport, or file authority. Signal remains the interaction reference pinned and attributed by MIDI-01. Canvas state is visual and transient; every committed edit becomes a Jam Session semantic command over canonical `MidiNoteV1` data.
+The standalone My stems editor now owns a viewport-rendered piano roll without adopting Signal runtime state, stores, routing, transport, or file authority. Signal remains the interaction reference pinned and attributed by MIDI-01. Canvas state is visual and transient; every committed edit becomes a OpenMIDI semantic command over canonical `MidiNoteV1` data.
 
 The editor supports double-click and explicit note creation, single/multi-selection, snapped pointer move and resize, duplicate, delete, velocity, quantize, horizontal zoom, pitch/timeline scrolling, and a playback playhead. A synchronized native multi-select note list and exact pitch/start/duration/velocity inspector provide the semantic non-visual authority. Scoped shortcuts cover selection movement/resizing, duplicate, delete, select all, undo, and redo without intercepting text-entry controls.
 

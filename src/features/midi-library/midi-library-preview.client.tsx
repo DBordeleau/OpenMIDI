@@ -7,7 +7,7 @@ import type { MidiLibraryNote } from "./types";
 import { PublicMidiPreviewRuntime } from "@/features/public-midi/preview-runtime.client";
 import type { PublicMidiEvent } from "@/features/public-midi/schedule";
 
-export const MIDI_PREVIEW_PLAY_EVENT = "jam-session:public-midi-preview-play";
+export const MIDI_PREVIEW_PLAY_EVENT = "openmidi:public-midi-preview-play";
 type Status =
   "idle" | "loading" | "playing" | "paused" | "error" | "unavailable";
 const HEIGHTS = [38, 72, 52, 88, 46, 64, 92, 58, 76, 42, 84, 62];

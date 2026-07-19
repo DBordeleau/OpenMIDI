@@ -8,7 +8,7 @@ Environment: Windows, Node 24.18.0, npm 11.11.1, Next.js 16.2.10, local Supabase
 
 ## Decision
 
-Use the React provider surface in `@waveform-playlist/browser` for PR 09, with its `/tone` entry and `@waveform-playlist/playout` for multitrack playback and offline WAV export. The package surface preserves stable Jam Session IDs, stays behind the client-only lazy boundary, and production-builds without browser-module evaluation.
+Use the React provider surface in `@waveform-playlist/browser` for PR 09, with its `/tone` entry and `@waveform-playlist/playout` for multitrack playback and offline WAV export. The package surface preserves stable OpenMIDI IDs, stays behind the client-only lazy boundary, and production-builds without browser-module evaluation.
 
 This is a **conditional pass** because local Chromium automation passed, but Firefox/Safari perceptual checks and Vercel Preview deployment require environments/authority not available in this implementation thread. No product or persisted-format blocker was found.
 

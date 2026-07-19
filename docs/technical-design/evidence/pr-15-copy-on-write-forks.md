@@ -16,7 +16,7 @@
 - Fork schema unit tests cover validated input and Unicode-safe default titles.
 - `npm run check` passes formatting, ESLint, TypeScript, all 93 Vitest assertions, and the Next.js production build.
 - `tests/e2e/forks.spec.ts` exercises confirmation, creation, redirect/status, parent/child navigation, private defaults, no asset-row increase, and lazy workspace creation. The local run exposed and fixed two idempotent-fixture issues plus an auth-redirect race; the final synchronization-only adjustment was not rerun after reaching the plan's browser troubleshooting ceiling.
-- After verification, the pre-existing hosted-config development server was restored and returned HTTP 200 with rendered Jam Session content. The optional `agent-browser` visual CLI was unavailable on PATH.
+- After verification, the pre-existing hosted-config development server was restored and returned HTTP 200 with rendered OpenMIDI content. The optional `agent-browser` visual CLI was unavailable on PATH.
 
 ## Operational notes
 

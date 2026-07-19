@@ -90,7 +90,7 @@ export function createLicensedMidiExport(revision: PublicMidiRevision) {
     },
   };
   const encoder = new TextEncoder();
-  const base = `${sanitizeFilenamePart(revision.projectTitle, "jam-session-midi")}-revision-${revision.revisionNumber}`;
+  const base = `${sanitizeFilenamePart(revision.projectTitle, "openmidi-midi")}-revision-${revision.revisionNumber}`;
   const bytes = createStoredZip([
     { name: `${base}.mid`, bytes: midi.toArray() },
     {

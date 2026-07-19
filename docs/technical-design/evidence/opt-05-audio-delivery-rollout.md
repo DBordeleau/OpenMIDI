@@ -57,7 +57,7 @@ The existing latest-revision audio preview still signs, fetches and decodes its 
 
 Current Supabase documentation lists Free-plan organization quotas of 1 GB Storage and 5 GB egress. Storage quota is measured as GB-hours averaged over the billing period, so deleting late in a cycle may not immediately remove a restriction. Private buckets continue to require RLS-authorized downloads or time-limited signed URLs. Smart CDN is a paid-plan feature, and each signed token has an independent cache identity; the rollout therefore does not assume a Free-plan shared CDN win or reuse signed URLs across actors.
 
-Until PR 18 adds actual-object reconciliation, Jam Session's database gate counts registered ready/reserved source and peak-derivative bytes, warns at 750 MiB and rejects a reservation above 850 MiB. It does not yet reconcile every snapshot, avatar, orphan or cleanup-lag object. The operator must:
+Until PR 18 adds actual-object reconciliation, OpenMIDI's database gate counts registered ready/reserved source and peak-derivative bytes, warns at 750 MiB and rejects a reservation above 850 MiB. It does not yet reconcile every snapshot, avatar, orphan or cleanup-lag object. The operator must:
 
 1. inspect organization Storage and egress in the Supabase usage dashboard before enabling a cohort, weekly during the invite period, and before any large fixture batch;
 2. pause new audio admission and invitations at the application warning, any provider quota alert, or unexplained drift—whichever happens first;

@@ -70,8 +70,8 @@ update public.profiles set username='ChallengeStarter',username_normalized='chal
 insert into private.app_admins(user_id,created_by) values('${actor.id}','${actor.id}') on conflict(user_id) do nothing;
 insert into public.projects(id,owner_id,create_request_id,title,license_code) values('${ids.project}','${owner.id}',gen_random_uuid(),'${starterTitle}','cc-by-4.0');
 insert into public.project_members(project_id,user_id,role,created_by) values('${ids.project}','${owner.id}','owner','${owner.id}');
-insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks) values('${ids.arrangement}','${ids.project}','${owner.id}',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),120,4,4,'c-major',480,960);
-insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id) values('${ids.revision}','${ids.project}',1,'${owner.id}',gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('b',64),1000,'${ids.arrangement}');
+insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks) values('${ids.arrangement}','${ids.project}','${owner.id}',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),120,4,4,'c-major',480,960);
+insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id) values('${ids.revision}','${ids.project}',1,'${owner.id}',gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('b',64),1000,'${ids.arrangement}');
 update public.projects set visibility='public',status='active',current_revision_id='${ids.revision}',published_at=statement_timestamp(),rights_attestation_version='cc-by-4.0-reuse-attestation-v1' where id='${ids.project}';
 commit;`;
   execFileSync(
@@ -79,7 +79,7 @@ commit;`;
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

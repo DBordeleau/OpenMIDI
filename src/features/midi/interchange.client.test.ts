@@ -121,7 +121,7 @@ describe("bounded Standard MIDI interchange", () => {
       expect.objectContaining({ trackName: "Drums", presetId: "drum-machine" }),
     ]);
     expect(imported.warnings).toContain(
-      "Mapped General MIDI programs to the closest Jam Session instrument families.",
+      "Mapped General MIDI programs to the closest OpenMIDI instrument families.",
     );
   });
 

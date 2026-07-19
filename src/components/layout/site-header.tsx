@@ -19,7 +19,7 @@ export function SiteHeader() {
               boxShadow: "0 0 16px rgb(255 175 120 / 0.6)",
             }}
           />
-          Jam Session
+          OpenMIDI
         </Link>
         <HeaderNav />
       </Container>

@@ -217,7 +217,7 @@ begin
   join public.midi_library_presets lp on lp.preset_id=l.suggested_preset_id
     and lp.version=l.suggested_preset_version and lp.active
   join private.midi_synth_presets sp on sp.preset_id=lp.preset_id and sp.version=lp.version
-    and sp.engine_version='jam-session-midi-3_tone-15.1.22_presets-1' and sp.is_active
+    and sp.engine_version='openmidi-midi-3_tone-15.1.22_presets-1' and sp.is_active
   where l.id=p_listing_id and l.midi_pattern_version_id=p_pattern_version_id
     and l.reuse_mode='commercial_reuse' and l.moderation_hidden_at is null
     and v.reuse_license_code='CC-BY-4.0' and v.reuse_license_version='4.0'

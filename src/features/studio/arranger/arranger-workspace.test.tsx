@@ -21,8 +21,8 @@ describe("ArrangerWorkspace", () => {
     const onPendingMidiLaneNameChange = vi.fn();
     const manifest = parseWorkspaceManifestV2({
       manifestVersion: 2,
-      engine: "jam-session-composite",
-      engineVersion: "jam-session-composite-2_tone-15.1.22",
+      engine: "openmidi-composite",
+      engineVersion: "openmidi-composite-2_tone-15.1.22",
       projectId: uuid(1),
       tempoBpm: 120,
       timeSignature: { numerator: 4, denominator: 4 },
@@ -92,8 +92,8 @@ describe("ArrangerWorkspace", () => {
     const versionId = uuid(8);
     const manifest = parseWorkspaceManifestV2({
       manifestVersion: 2,
-      engine: "jam-session-composite",
-      engineVersion: "jam-session-composite-2_tone-15.1.22",
+      engine: "openmidi-composite",
+      engineVersion: "openmidi-composite-2_tone-15.1.22",
       projectId: uuid(1),
       tempoBpm: 120,
       timeSignature: { numerator: 4, denominator: 4 },
@@ -215,8 +215,8 @@ describe("ArrangerWorkspace", () => {
     const versionId = uuid(8);
     const manifest = parseWorkspaceManifestV2({
       manifestVersion: 2,
-      engine: "jam-session-composite",
-      engineVersion: "jam-session-composite-2_tone-15.1.22",
+      engine: "openmidi-composite",
+      engineVersion: "openmidi-composite-2_tone-15.1.22",
       projectId: uuid(1),
       tempoBpm: 120,
       timeSignature: { numerator: 4, denominator: 4 },

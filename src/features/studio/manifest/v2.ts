@@ -8,7 +8,7 @@ export const MAX_CLIPS_PER_TRACK = 32;
 export const MAX_PROJECT_MINUTES = 10;
 export const MAX_MIDI_STEM_DURATION_TICKS = 86_400_000;
 export const COMPOSITE_STUDIO_ENGINE_VERSION =
-  "jam-session-composite-2_tone-15.1.22";
+  "openmidi-composite-2_tone-15.1.22";
 
 const uuidSchema = z.uuid();
 const tickSchema = z.number().int().nonnegative();
@@ -117,7 +117,7 @@ export const workspaceTrackV2Schema = midiTrackV2Schema;
 export const workspaceManifestV2Schema = z
   .object({
     manifestVersion: z.literal(2),
-    engine: z.literal("jam-session-composite"),
+    engine: z.literal("openmidi-composite"),
     engineVersion: z.literal(COMPOSITE_STUDIO_ENGINE_VERSION),
     projectId: uuidSchema,
     tempoBpm: z.number().finite().min(20).max(400),

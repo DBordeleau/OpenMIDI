@@ -8,7 +8,7 @@ MIDI-01 adds candidate contracts and evidence only. Production manifest-v1 parsi
 
 The frozen ownership split is:
 
-- canonical MIDI notes and stem lineage are Jam Session domain data, never Tone.js or Signal state;
+- canonical MIDI notes and stem lineage are OpenMIDI domain data, never Tone.js or Signal state;
 - standalone stem editing emits semantic `add`, `move`, `resize`, `velocity`, `duplicate`, `quantize`, and `delete` commands;
 - project manifests reference exact immutable stem-version and preset-version IDs;
 - the composite controller owns transport, seek/loop coordination, mixer projection, all-notes-off, and idempotent disposal;
@@ -51,7 +51,7 @@ Candidate behavioral references were limited to:
 - `app/src/entities/transform/NoteCoordTransform.ts` and related tick/key transforms for pixel↔musical-coordinate separation;
 - the visible piano-roll, keyboard-shortcut, velocity-control, and selection components as interaction references.
 
-No upstream source was copied. Jam Session's reducer, UUID note identity, schemas, canvas spike, note inspector, React state, accessibility model, and tests are original and domain-owned. Signal's MobX stores, Firebase/API packages, autosave authority, player/transport, SoundFont and SpessaSynth paths, WebGL state, song format, Electron code, icons, fonts, cursors, and `.sf2` assets are explicitly excluded. The upstream notice is preserved in `docs/third-party/signal-LICENSE.txt` and `THIRD_PARTY_NOTICES.md`.
+No upstream source was copied. OpenMIDI's reducer, UUID note identity, schemas, canvas spike, note inspector, React state, accessibility model, and tests are original and domain-owned. Signal's MobX stores, Firebase/API packages, autosave authority, player/transport, SoundFont and SpessaSynth paths, WebGL state, song format, Electron code, icons, fonts, cursors, and `.sf2` assets are explicitly excluded. The upstream notice is preserved in `docs/third-party/signal-LICENSE.txt` and `THIRD_PARTY_NOTICES.md`.
 
 ## Standard MIDI File decision
 

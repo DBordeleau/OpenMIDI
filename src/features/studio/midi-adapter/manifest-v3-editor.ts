@@ -19,8 +19,8 @@ export type StudioPatternVersion = MidiPatternVersionV3 & {
 export function toEditorManifest(manifest: ManifestV3): WorkspaceManifestV2 {
   return parseWorkspaceManifestV2({
     manifestVersion: 2,
-    engine: "jam-session-composite",
-    engineVersion: "jam-session-composite-2_tone-15.1.22",
+    engine: "openmidi-composite",
+    engineVersion: "openmidi-composite-2_tone-15.1.22",
     projectId: manifest.projectId,
     tempoBpm: manifest.tempoBpm,
     timeSignature: manifest.timeSignature,
@@ -55,8 +55,8 @@ export function toWorkspaceManifestV3(
 ): WorkspaceManifestV3 {
   return parseWorkspaceManifestV3({
     manifestVersion: 3,
-    engine: "jam-session-midi",
-    engineVersion: "jam-session-midi-3_tone-15.1.22_presets-1",
+    engine: "openmidi-midi",
+    engineVersion: "openmidi-midi-3_tone-15.1.22_presets-1",
     projectId: manifest.projectId,
     workspaceId: authority.workspaceId,
     tempoBpm: manifest.tempoBpm,

@@ -75,15 +75,15 @@ insert into public.projects(id,owner_id,create_request_id,title,license_code) va
 insert into public.project_members(project_id,user_id,role,created_by) values
 ('${ids.eligibleProject}','${actor.id}','owner','${actor.id}'),('${ids.ineligibleProject}','${actor.id}','owner','${actor.id}');
 insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks) values
-('${ids.eligibleArrangement}','${ids.eligibleProject}','${actor.id}',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),100,4,4,'c-minor',480,1920),
-('${ids.ineligibleArrangement}','${ids.ineligibleProject}','${actor.id}',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('b',64),120,3,4,null,480,1920);
+('${ids.eligibleArrangement}','${ids.eligibleProject}','${actor.id}',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),100,4,4,'c-minor',480,1920),
+('${ids.ineligibleArrangement}','${ids.ineligibleProject}','${actor.id}',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('b',64),120,3,4,null,480,1920);
 insert into public.arrangement_tracks(arrangement_version_id,project_id,track_id,sort_order,name,preset_id,preset_version,gain_db,pan,muted,soloed) values
 ('${ids.eligibleArrangement}','${ids.eligibleProject}','${ids.eligibleTrackA}',0,'Keys','warm-keys',1,0,0,false,false),
 ('${ids.eligibleArrangement}','${ids.eligibleProject}','${ids.eligibleTrackB}',1,'Bass','analog-bass',1,0,0,true,false),
 ('${ids.ineligibleArrangement}','${ids.ineligibleProject}','${ids.ineligibleTrack}',0,'Lead','saw-lead',1,0,0,false,false);
 insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,message,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id) values
-('${ids.eligibleRevision}','${ids.eligibleProject}',1,'${actor.id}',gen_random_uuid(),'Ready for the constraint','{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('c',64),2000,'${ids.eligibleArrangement}'),
-('${ids.ineligibleRevision}','${ids.ineligibleProject}',1,'${actor.id}',gen_random_uuid(),'First sketch','{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('d',64),2000,'${ids.ineligibleArrangement}');
+('${ids.eligibleRevision}','${ids.eligibleProject}',1,'${actor.id}',gen_random_uuid(),'Ready for the constraint','{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('c',64),2000,'${ids.eligibleArrangement}'),
+('${ids.ineligibleRevision}','${ids.ineligibleProject}',1,'${actor.id}',gen_random_uuid(),'First sketch','{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('d',64),2000,'${ids.ineligibleArrangement}');
 update public.projects set status='active',visibility='private',current_revision_id='${ids.eligibleRevision}',published_at=statement_timestamp() where id='${ids.eligibleProject}';
 update public.projects set status='active',visibility='private',current_revision_id='${ids.ineligibleRevision}',published_at=statement_timestamp() where id='${ids.ineligibleProject}';
 insert into public.challenges(id,slug,created_by,state,published_at) values('${ids.challenge}','${slug}','${actor.id}','published',statement_timestamp());
@@ -97,7 +97,7 @@ commit;`;
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

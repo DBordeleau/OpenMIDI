@@ -16,7 +16,7 @@ const recoverySchema = z
 export type MidiDraftRecovery = z.infer<typeof recoverySchema>;
 
 function recoveryKey(ownerId: string, draftId: string) {
-  return `jam-session:midi-draft-recovery:v1:${ownerId}:${draftId}`;
+  return `openmidi:midi-draft-recovery:v1:${ownerId}:${draftId}`;
 }
 
 export function readMidiDraftRecovery(ownerId: string, draftId: string) {

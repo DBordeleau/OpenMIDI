@@ -26,8 +26,8 @@ const workspaceId = "40000000-0000-4000-8000-000000000123";
 const contributionId = "50000000-0000-4000-8000-000000000123";
 const manifest: WorkspaceManifestV3 = {
   manifestVersion: 3,
-  engine: "jam-session-midi",
-  engineVersion: "jam-session-midi-3_tone-15.1.22_presets-1",
+  engine: "openmidi-midi",
+  engineVersion: "openmidi-midi-3_tone-15.1.22_presets-1",
   projectId,
   workspaceId,
   tempoBpm: 120,

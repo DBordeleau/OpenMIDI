@@ -39,11 +39,11 @@ insert into public.project_members(project_id,user_id,role,created_by) values
 insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,
   manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks)
 values('fc200000-0000-4000-8000-000000000001','fc100000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000001',
-  gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('1',64),120,4,4,'c-minor',480,1920);
+  gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('1',64),120,4,4,'c-minor',480,1920);
 insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,
   engine_version,manifest_sha256,duration_ms,arrangement_version_id)
 values('fc300000-0000-4000-8000-000000000001','fc100000-0000-4000-8000-000000000001',1,'fc000000-0000-4000-8000-000000000001',
-  gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('2',64),2000,'fc200000-0000-4000-8000-000000000001');
+  gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('2',64),2000,'fc200000-0000-4000-8000-000000000001');
 update public.projects set status='active',visibility='private',published_at=now(),
   current_revision_id='fc300000-0000-4000-8000-000000000001'
 where id='fc100000-0000-4000-8000-000000000001';

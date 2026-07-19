@@ -109,7 +109,7 @@ test.describe("MIDI-only Studio v3", () => {
       manifest: unknown;
     };
     expect(revision.manifestVersion).toBe(3);
-    expect(revision.engine).toBe("jam-session-midi");
+    expect(revision.engine).toBe("openmidi-midi");
     expect(revision.arrangementVersionId).toBeTruthy();
 
     const counts = JSON.parse(
@@ -166,7 +166,7 @@ function queryLocalDatabase(sql: string) {
     "docker",
     [
       "exec",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -199,7 +199,7 @@ async function ensureStudioActorProfile() {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

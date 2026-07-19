@@ -92,7 +92,7 @@ export function ReviewContributionForm({
         <p className="mt-3" role="alert">
           The project has advanced since this contribution was submitted.
           Acceptance is blocked for this exact base. Request changes so the
-          contributor can rebase; Jam Session will not merge automatically.
+          contributor can rebase; OpenMIDI will not merge automatically.
         </p>
       )}
       <label className="mt-5 block font-semibold" htmlFor="review-note">

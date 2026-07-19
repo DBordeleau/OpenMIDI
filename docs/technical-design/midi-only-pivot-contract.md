@@ -4,7 +4,7 @@ Status: Accepted target contract for PIVOT-01–PIVOT-10
 Date: 2026-07-16
 Implementation state: Implemented and hosted-rehearsed through PIVOT-10; Vercel deployment deferred
 
-Product naming: The product is now OpenMIDI. Historical Jam Session wording and persisted `jam-session-midi` engine/version values in this completed contract remain intentional compatibility evidence.
+Product naming: The product is now OpenMIDI. Historical OpenMIDI wording and persisted `openmidi-midi` engine/version values in this completed contract remain intentional compatibility evidence.
 
 ## Purpose
 
@@ -131,7 +131,7 @@ Project revisions and contribution versions do not own duplicate normalized trac
 
 ### Manifest v3
 
-The target TypeScript discriminant is `manifestVersion: 3`. The target engine ID is `jam-session-midi`; the initial engine version is `jam-session-midi-3_tone-15.1.22_presets-1`. PIVOT-01 and PIVOT-02 must both use this exact value. A later Tone or preset-catalog change requires a new engine version and deliberate compatibility fixtures.
+The target TypeScript discriminant is `manifestVersion: 3`. The target engine ID is `openmidi-midi`; the initial engine version is `openmidi-midi-3_tone-15.1.22_presets-1`. PIVOT-01 and PIVOT-02 must both use this exact value. A later Tone or preset-catalog change requires a new engine version and deliberate compatibility fixtures.
 
 Manifest v3 contains only:
 

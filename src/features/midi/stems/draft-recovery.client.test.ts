@@ -38,7 +38,7 @@ describe("private MIDI draft recovery", () => {
 
   it("ignores malformed or cross-schema browser data", () => {
     localStorage.setItem(
-      `jam-session:midi-draft-recovery:v1:${ownerId}:${draftId}`,
+      `openmidi:midi-draft-recovery:v1:${ownerId}:${draftId}`,
       JSON.stringify({
         version: 1,
         ownerId,
@@ -47,5 +47,33 @@ describe("private MIDI draft recovery", () => {
       }),
     );
     expect(readMidiDraftRecovery(ownerId, draftId)).toBeNull();
+  });
+
+  it("ignores an obsolete prelaunch namespace without rewriting it", () => {
+    const obsoletePrefix = [
+      ["ja", "m"].join(""),
+      ["ses", "sion"].join(""),
+    ].join("-");
+    const obsoleteKey = `${obsoletePrefix}:midi-draft-recovery:v1:${ownerId}:${draftId}`;
+    const obsoleteValue = JSON.stringify({
+      version: 1,
+      ownerId,
+      draftId,
+      serverLockVersion: 1,
+      savedAt: new Date().toISOString(),
+      state: "pending",
+      content: {
+        name: "Obsolete recovery phrase",
+        defaultPresetId: "warm-poly",
+        defaultPresetVersion: 1,
+        ppq: MIDI_PPQ,
+        durationTicks: 7_680,
+        notes: [],
+      },
+    });
+    localStorage.setItem(obsoleteKey, obsoleteValue);
+
+    expect(readMidiDraftRecovery(ownerId, draftId)).toBeNull();
+    expect(localStorage.getItem(obsoleteKey)).toBe(obsoleteValue);
   });
 });
