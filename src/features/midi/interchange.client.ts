@@ -150,7 +150,7 @@ export function importMidiBytes(bytes: Uint8Array): ImportedMidiData {
     )
   ) {
     warnings.push(
-      "Mapped General MIDI programs to the closest Jam Session instrument families.",
+      "Mapped General MIDI programs to the closest OpenMIDI instrument families.",
     );
   }
   if (midi.tracks.filter((track) => track.name.trim()).length > 1) {

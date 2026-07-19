@@ -29,7 +29,7 @@ function queryLocalDatabase(sql: string): string {
     "docker",
     [
       "exec",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -85,7 +85,7 @@ async function setupMidiCollaborationFixture() {
     select public.save_midi_workspace_v3(
       (select id from public.workspaces where create_request_id='fa200000-0000-4000-8000-000000000001'),
       'fa210000-0000-4000-8000-000000000001',1,
-      jsonb_build_object('manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1',
+      jsonb_build_object('manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1',
         'projectId',(select project_id from public.workspaces where create_request_id='fa200000-0000-4000-8000-000000000001'),
         'workspaceId',(select id from public.workspaces where create_request_id='fa200000-0000-4000-8000-000000000001'),
         'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',7680,
@@ -143,7 +143,7 @@ async function setupMidiCollaborationFixture() {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

@@ -25,7 +25,7 @@ select lives_ok($$select public.create_midi_project_workspace_v3(
 select lives_ok($$select public.save_midi_workspace_v3(
   (select id from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000001'),
   'f3150000-0000-4000-8000-000000000001',1,
-  jsonb_build_object('manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1',
+  jsonb_build_object('manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1',
     'projectId',(select project_id from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000001'),
     'workspaceId',(select id from public.workspaces where owner_id='f3100000-0000-4000-8000-000000000001'),
     'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',7680,

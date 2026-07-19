@@ -53,10 +53,9 @@ const env = {
   LOCAL_E2E: "true",
   E2E_EXTERNAL_SERVER: "true",
   NEXT_DIST_DIR: ".next-e2e",
-  TEST_AUTH_EMAIL:
-    process.env.TEST_AUTH_EMAIL ?? "jam-session-e2e@example.test",
+  TEST_AUTH_EMAIL: process.env.TEST_AUTH_EMAIL ?? "openmidi-e2e@example.test",
   TEST_AUTH_PASSWORD:
-    process.env.TEST_AUTH_PASSWORD ?? "jam-session-local-e2e-only",
+    process.env.TEST_AUTH_PASSWORD ?? "openmidi-local-e2e-only",
 };
 
 for (const signal of ["SIGINT", "SIGTERM"]) {

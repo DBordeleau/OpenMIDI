@@ -18,8 +18,8 @@ export function sanitizeNextPath(
   )
     return fallback;
   try {
-    const url = new URL(decoded, "https://jam-session.invalid");
-    if (url.origin !== "https://jam-session.invalid") return fallback;
+    const url = new URL(decoded, "https://openmidi.invalid");
+    if (url.origin !== "https://openmidi.invalid") return fallback;
     const allowed = ALLOWED_DESTINATIONS.some(
       (path) => url.pathname === path || url.pathname.startsWith(`${path}/`),
     );

@@ -7,8 +7,8 @@ export function SiteFooter() {
     <footer className="border-subtle border-t py-8">
       <Container className="text-muted flex flex-col gap-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p>
-          <span className="text-ink font-semibold">Jam Session</span> — make
-          music with the right people.
+          <span className="text-ink font-semibold">OpenMIDI</span> — make music
+          with the right people.
         </p>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2">
           <Link className="hover:text-ink" href="/">

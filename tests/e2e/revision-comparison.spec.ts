@@ -22,7 +22,7 @@ const note5 = "da800000-0000-4000-8000-000000000005";
 
 function manifest(patternVersionId: string) {
   return `jsonb_build_object(
-    'manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1',
+    'manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1',
     'projectId','${projectId}','tempoBpm',120,
     'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major',
     'ppq',480,'durationTicks',1920,
@@ -64,9 +64,9 @@ function seedRevisionComparisonFixture() {
             ('${pattern3}','${note5}',1320,240,76,92)
       on conflict do nothing;
     insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks)
-      values('${arrangement1}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000011',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',${manifest(pattern1)},repeat('a',64),120,4,4,'c-major',480,1920),
-            ('${arrangement2}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000012',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',${manifest(pattern1)},repeat('b',64),120,4,4,'c-major',480,1920),
-            ('${arrangement3}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000013',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',${manifest(pattern3)},repeat('c',64),120,4,4,'c-major',480,1920)
+      values('${arrangement1}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000011',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',${manifest(pattern1)},repeat('a',64),120,4,4,'c-major',480,1920),
+            ('${arrangement2}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000012',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',${manifest(pattern1)},repeat('b',64),120,4,4,'c-major',480,1920),
+            ('${arrangement3}','${projectId}','${ownerId}','da400000-0000-4000-8000-000000000013',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',${manifest(pattern3)},repeat('c',64),120,4,4,'c-major',480,1920)
       on conflict (id) do nothing;
     insert into public.arrangement_tracks(arrangement_version_id,project_id,track_id,sort_order,name,preset_id,preset_version,gain_db,pan,muted,soloed)
       values('${arrangement1}','${projectId}','${trackId}',0,'Revision keys','warm-keys',1,-6,0,false,false),
@@ -101,7 +101,7 @@ function seedRevisionComparisonFixture() {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

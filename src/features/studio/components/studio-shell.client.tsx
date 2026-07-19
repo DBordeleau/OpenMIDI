@@ -216,8 +216,8 @@ export function StudioShell({
         <button
           type="button"
           onClick={() => requestNavigation("/studio")}
-          aria-label="Jam Session Studio"
-          title="Jam Session Studio"
+          aria-label="OpenMIDI Studio"
+          title="OpenMIDI Studio"
           className="hover:bg-surface-raised rounded-control mr-1 flex min-h-9 items-center gap-2 px-2 font-bold tracking-tight transition-colors"
         >
           <span
@@ -448,7 +448,7 @@ export function StudioShell({
         >
           <p className="text-muted mt-3 leading-7">
             {decision.kind === "conflict"
-              ? "Jam Session will not overwrite the newer server draft. Stay to resolve it, or leave while keeping this local recovery copy."
+              ? "OpenMIDI will not overwrite the newer server draft. Stay to resolve it, or leave while keeping this local recovery copy."
               : "The server has not acknowledged these changes. Stay and retry, or leave while keeping the local recovery copy on this device."}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">

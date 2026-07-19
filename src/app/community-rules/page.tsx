@@ -13,7 +13,7 @@ export default function CommunityRulesPage() {
           </p>
           <h1 className="mt-3 text-4xl font-bold">Community rules</h1>
           <p className="text-muted mt-4 text-lg">
-            Jam Session is an invited music community. Bring work you have the
+            OpenMIDI is an invited music community. Bring work you have the
             right to share and treat collaborators like people.
           </p>
           <div className="mt-10 space-y-8">

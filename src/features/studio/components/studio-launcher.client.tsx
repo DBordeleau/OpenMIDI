@@ -80,7 +80,7 @@ export function StudioLauncher(props: StudioLauncherProps) {
   );
   useEffect(() => {
     if (!routeMarked.current) {
-      performance.mark("jam-session:studio:route-start");
+      performance.mark("openmidi:studio:route-start");
       routeMarked.current = true;
     }
     const timer = window.setTimeout(() => setSupport(getStudioSupport()), 0);

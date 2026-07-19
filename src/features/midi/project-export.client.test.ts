@@ -86,14 +86,14 @@ describe("exportMidiProject", () => {
     await renderMidiProjectWav(
       manifest,
       stemVersions,
-      "jam-session-midi-3_tone-15.1.22_presets-1",
+      "openmidi-midi-3_tone-15.1.22_presets-1",
     );
 
     expect(renderMock.create).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Number),
       expect.any(Object),
-      "jam-session-midi-3_tone-15.1.22_presets-1",
+      "openmidi-midi-3_tone-15.1.22_presets-1",
     );
   });
 

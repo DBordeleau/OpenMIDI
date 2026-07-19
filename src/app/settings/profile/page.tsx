@@ -72,7 +72,7 @@ export default async function ProfileSettingsPage({
           <Reveal delay={0.08}>
             <AvatarUploader
               profileId={profile.id}
-              name={profile.displayName ?? "Jam Session member"}
+              name={profile.displayName ?? "OpenMIDI member"}
               avatarUrl={getPublicAvatarUrl(profile.avatarPath)}
               avatarVersionId={profile.avatarVersionId}
             />
@@ -148,8 +148,8 @@ export default async function ProfileSettingsPage({
                 recover for 30 days when moderation permits. Published credits
                 and fork lineage survive as unavailable history. Existing access
                 tokens and signed URLs can remain valid until their short
-                expiry, so Jam Session continues enforcing deleted-account
-                checks at every protected boundary.
+                expiry, so OpenMIDI continues enforcing deleted-account checks
+                at every protected boundary.
               </p>
               <AccountDeletionForm username={profile.username} />
             </Reveal>

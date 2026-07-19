@@ -64,13 +64,13 @@ The baseline misses the two-second shell gate by construction and shows no usefu
 
 Development builds now emit User Timing marks without URLs, paths, filenames, labels, or asset IDs:
 
-- `jam-session:studio:route-start`
-- `jam-session:studio:adapter-mounted`
-- `jam-session:studio:shell-ready`
-- `jam-session:studio:source-fetch-start` / `source-fetch-end`
-- `jam-session:studio:source-decode-start` / `source-decode-end`
-- `jam-session:studio:peaks-ready`
-- `jam-session:studio:playback-ready`
+- `openmidi:studio:route-start`
+- `openmidi:studio:adapter-mounted`
+- `openmidi:studio:shell-ready`
+- `openmidi:studio:source-fetch-start` / `source-fetch-end`
+- `openmidi:studio:source-decode-start` / `source-decode-end`
+- `openmidi:studio:peaks-ready`
+- `openmidi:studio:playback-ready`
 
 Repeated source marks carry only a zero-based source index. At the baseline, shell/peaks/playback marks coincide; OPT-02 and OPT-04 will separate them. Production builds emit none of these marks.
 

@@ -50,10 +50,9 @@ export const synthPresetV1Schema = z
 
 export type SynthPresetV1 = z.infer<typeof synthPresetV1Schema>;
 
-export const MIDI_ENGINE_ID = "jam-session-midi";
-export const MIDI_ENGINE_VERSION = "jam-session-midi-3_tone-15.1.22_presets-1";
-export const LEGACY_MIDI_ENGINE_VERSION =
-  "jam-session-composite-2_tone-15.1.22";
+export const MIDI_ENGINE_ID = "openmidi-midi";
+export const MIDI_ENGINE_VERSION = "openmidi-midi-3_tone-15.1.22_presets-1";
+export const LEGACY_MIDI_ENGINE_VERSION = "openmidi-composite-2_tone-15.1.22";
 export const INSTRUMENT_CATALOG_VERSION = 1;
 
 export const INSTRUMENT_FAMILIES = [

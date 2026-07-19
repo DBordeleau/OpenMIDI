@@ -29,7 +29,7 @@ function localSql(sql: string) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -102,9 +102,9 @@ insert into private.app_admins(user_id,created_by) values('${actor.id}','${actor
 insert into public.projects(id,owner_id,create_request_id,title,license_code) values('${ids.project}','${actor.id}',gen_random_uuid(),'Voting Fixture Source','cc-by-4.0');
 insert into public.project_members(project_id,user_id,role,created_by) values('${ids.project}','${actor.id}','owner','${actor.id}');
 insert into public.arrangement_versions(id,project_id,created_by,create_request_id,manifest_version,engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,musical_key,ppq,duration_ticks)
-values('${ids.arrangement}','${ids.project}','${actor.id}',gen_random_uuid(),3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),120,4,4,'c-minor',480,1920);
+values('${ids.arrangement}','${ids.project}','${actor.id}',gen_random_uuid(),3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1','{}',repeat('a',64),120,4,4,'c-minor',480,1920);
 insert into public.project_revisions(id,project_id,revision_number,created_by,publish_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id)
-values('${ids.revision}','${ids.project}',1,'${actor.id}',gen_random_uuid(),'{}',3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',repeat('b',64),2000,'${ids.arrangement}');
+values('${ids.revision}','${ids.project}',1,'${actor.id}',gen_random_uuid(),'{}',3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',repeat('b',64),2000,'${ids.arrangement}');
 update public.projects set status='active',visibility='private',published_at=statement_timestamp(),current_revision_id='${ids.revision}' where id='${ids.project}';
 insert into public.challenges(id,slug,created_by,state,published_at,lifecycle_version) values('${ids.challenge}','${slug}','${actor.id}','published',statement_timestamp(),2);
 insert into public.challenge_versions(id,challenge_id,version_number,created_by,create_request_id,title,prompt,description,eligibility_terms,presentation_code,opens_at,submissions_close_at,voting_opens_at,voting_closes_at,results_expected_at,judging_mode,official_placement_count,constraints,constraints_sha256)

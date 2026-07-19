@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
-const email = process.env.TEST_AUTH_EMAIL ?? "jam-session-e2e@example.test";
+const email = process.env.TEST_AUTH_EMAIL ?? "openmidi-e2e@example.test";
 const password = process.env.TEST_AUTH_PASSWORD;
 if (!password || password.length < 8)
   throw new Error(

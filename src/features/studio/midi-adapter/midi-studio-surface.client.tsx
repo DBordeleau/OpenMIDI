@@ -262,12 +262,9 @@ export function MidiStudioSurface(props: Props) {
         setPlaying(false);
       }
     };
-    window.addEventListener("jam-session:preview-play", pauseForOtherPlayer);
+    window.addEventListener("openmidi:preview-play", pauseForOtherPlayer);
     return () =>
-      window.removeEventListener(
-        "jam-session:preview-play",
-        pauseForOtherPlayer,
-      );
+      window.removeEventListener("openmidi:preview-play", pauseForOtherPlayer);
   }, [props.projectId]);
 
   const cacheRecovery = useCallback(
@@ -886,7 +883,7 @@ export function MidiStudioSurface(props: Props) {
       return;
     }
     window.dispatchEvent(
-      new CustomEvent("jam-session:preview-play", {
+      new CustomEvent("openmidi:preview-play", {
         detail: { instanceId: `studio:${props.projectId}` },
       }),
     );
@@ -905,7 +902,7 @@ export function MidiStudioSurface(props: Props) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${sanitizeFilenamePart(props.projectTitle, "jam-session")}.${extension}`;
+    link.download = `${sanitizeFilenamePart(props.projectTitle, "openmidi")}.${extension}`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }

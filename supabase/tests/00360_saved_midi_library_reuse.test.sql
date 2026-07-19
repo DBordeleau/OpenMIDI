@@ -43,9 +43,9 @@ insert into public.projects(id,owner_id,create_request_id,title,license_code) va
 ('fc400000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000002','fc410000-0000-4000-8000-000000000001','Private reuse workspace','cc-by-4.0');
 insert into public.project_members(project_id,user_id,role,created_by) values
 ('fc400000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000002','owner','fc000000-0000-4000-8000-000000000002');
-with m as (select jsonb_build_object('manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1','projectId','fc400000-0000-4000-8000-000000000001'::uuid,'workspaceId','fc420000-0000-4000-8000-000000000001'::uuid,'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',1920,'tracks','[]'::jsonb) manifest)
+with m as (select jsonb_build_object('manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1','projectId','fc400000-0000-4000-8000-000000000001'::uuid,'workspaceId','fc420000-0000-4000-8000-000000000001'::uuid,'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',1920,'tracks','[]'::jsonb) manifest)
 insert into public.workspaces(id,project_id,owner_id,create_request_id,manifest,manifest_version,engine,engine_version,manifest_sha256)
-select 'fc420000-0000-4000-8000-000000000001','fc400000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000002','fc430000-0000-4000-8000-000000000001',manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',encode(extensions.digest(convert_to(manifest::text,'UTF8'),'sha256'),'hex') from m;
+select 'fc420000-0000-4000-8000-000000000001','fc400000-0000-4000-8000-000000000001','fc000000-0000-4000-8000-000000000002','fc430000-0000-4000-8000-000000000001',manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',encode(extensions.digest(convert_to(manifest::text,'UTF8'),'sha256'),'hex') from m;
 
 set local role authenticated;
 set local request.jwt.claim.sub='fc000000-0000-4000-8000-000000000002';

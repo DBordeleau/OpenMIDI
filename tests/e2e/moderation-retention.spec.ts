@@ -63,7 +63,7 @@ function prepareProfiles(reporterId: string, targetId: string) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -86,7 +86,7 @@ function grantAdmin(reporterId: string) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

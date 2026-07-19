@@ -38,7 +38,7 @@ export async function generateMetadata({
   const project = await getPublicProject(projectId);
   if (!project) return { robots: { index: false, follow: false } };
   return {
-    title: `${project.title} · Jam Session`,
+    title: project.title,
     description:
       project.description?.slice(0, 160) ??
       `A public music project by @${project.ownerUsername}.`,

@@ -51,7 +51,7 @@ check(filesUnder("supabase/migrations", [".sql"]), [
     /source[_-]?audio|waveform|workspace-snapshots|derived-assets/i,
   ],
   ["pre-pivot stem schema", /midi_stem|midi stems?/i],
-  ["legacy runtime", /waveform-playlist|jam-session-composite/i],
+  ["legacy runtime", /waveform-playlist|openmidi-composite/i],
   [
     "network/cron worker infrastructure",
     /create extension[^;]*(?:pg_net|pg_cron)|\b(?:net|cron)\./i,

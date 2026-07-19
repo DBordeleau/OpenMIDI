@@ -259,7 +259,7 @@ begin
     expected_base_revision_id,message,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,
     accepted_contribution_id,accepted_contribution_version_id,arrangement_version_id)
   values(v_project.id,v_number,v_project.current_revision_id,v_actor,p_request_id,p_expected_project_revision_id,
-    v_message,v_version.manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',
+    v_message,v_version.manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',
     v_version.manifest_sha256,v_version.duration_ms,v_contribution.id,v_version.id,v_version.arrangement_version_id)
   returning * into v_revision;
   insert into public.contribution_reviews(contribution_id,contribution_version_id,reviewer_id,request_id,
@@ -335,7 +335,7 @@ begin
   insert into public.workspaces(id,project_id,owner_id,create_request_id,base_revision_id,contribution_id,
     manifest,manifest_version,engine,engine_version,manifest_sha256)
   values(v_workspace_id,p_project_id,v_actor,p_request_id,p_expected_current_revision_id,v_contribution.id,
-    v_manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',v_hash)
+    v_manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',v_hash)
     returning * into v_workspace;
   perform private.replace_workspace_projection_v3(v_workspace.id,v_manifest);
   return query select v_contribution.id,v_workspace.id,v_contribution.base_revision_id,
@@ -699,8 +699,8 @@ begin
     base_revision_id,workspace_lock_version,manifest,manifest_version,engine,engine_version,
     manifest_sha256,duration_ms,attestation_version,created_by,arrangement_version_id)
   values(v_contribution.id,v_contribution.project_id,v_number,p_request_id,v_contribution.base_revision_id,
-    v_workspace.lock_version,v_arrangement.manifest,3,'jam-session-midi',
-    'jam-session-midi-3_tone-15.1.22_presets-1',v_arrangement.manifest_sha256,v_duration_ms,
+    v_workspace.lock_version,v_arrangement.manifest,3,'openmidi-midi',
+    'openmidi-midi-3_tone-15.1.22_presets-1',v_arrangement.manifest_sha256,v_duration_ms,
     p_attestation_version,v_actor,v_arrangement.id) returning * into v_version;
   update public.contributions set status='submitted',current_version_id=v_version.id,
     submitted_at=statement_timestamp(),withdrawn_at=null,reviewed_at=null,reviewed_by=null,
@@ -802,7 +802,7 @@ CREATE TABLE IF NOT EXISTS "public"."contribution_versions" (
     CONSTRAINT "contribution_versions_manifest_sha256_check" CHECK (("manifest_sha256" ~ '^[0-9a-f]{64}$'::"text")),
     CONSTRAINT "contribution_versions_version_number_check" CHECK (("version_number" > 0)),
     CONSTRAINT "contribution_versions_workspace_lock_version_check" CHECK (("workspace_lock_version" > 0)),
-    CONSTRAINT "contribution_versions_format_check" CHECK (("manifest_version" = 3) AND ("engine" = 'jam-session-midi'::"text") AND ("engine_version" = 'jam-session-midi-3_tone-15.1.22_presets-1'::"text") AND ("arrangement_version_id" IS NOT NULL))
+    CONSTRAINT "contribution_versions_format_check" CHECK (("manifest_version" = 3) AND ("engine" = 'openmidi-midi'::"text") AND ("engine_version" = 'openmidi-midi-3_tone-15.1.22_presets-1'::"text") AND ("arrangement_version_id" IS NOT NULL))
 );
 
 ALTER TABLE "public"."contribution_versions" OWNER TO "postgres";

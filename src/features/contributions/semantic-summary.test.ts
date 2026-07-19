@@ -5,7 +5,7 @@ import { summarizeContributionDiff } from "./semantic-summary";
 describe("summarizeContributionDiff", () => {
   it("reports only changed semantic categories", () => {
     const diff = {
-      algorithmVersion: "jam-session-midi-semantic-diff-1",
+      algorithmVersion: "openmidi-midi-semantic-diff-1",
       unchanged: false,
       metadata: [{ field: "tempoBpm", before: 100, after: 120 }],
       tracks: [],

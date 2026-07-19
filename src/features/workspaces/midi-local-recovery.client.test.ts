@@ -23,7 +23,7 @@ describe("MIDI workspace local recovery", () => {
       serverLockVersion: 1,
       manifest: {
         manifestVersion: 2 as const,
-        engine: "jam-session-composite" as const,
+        engine: "openmidi-composite" as const,
         engineVersion:
           COMPOSITE_STUDIO_ENGINE_VERSION as typeof COMPOSITE_STUDIO_ENGINE_VERSION,
         projectId,
@@ -47,5 +47,18 @@ describe("MIDI workspace local recovery", () => {
     ).toBeNull();
     clearMidiLocalRecovery(viewerId, workspaceId);
     expect(readMidiLocalRecovery(viewerId, workspaceId)).toBeNull();
+  });
+
+  it("ignores an obsolete prelaunch namespace without rewriting it", () => {
+    const obsoletePrefix = [
+      ["ja", "m"].join(""),
+      ["ses", "sion"].join(""),
+    ].join("-");
+    const obsoleteKey = `${obsoletePrefix}:workspace:v2:${viewerId}:${workspaceId}`;
+    const obsoleteValue = JSON.stringify({ version: 2, workspaceId });
+    localStorage.setItem(obsoleteKey, obsoleteValue);
+
+    expect(readMidiLocalRecovery(viewerId, workspaceId)).toBeNull();
+    expect(localStorage.getItem(obsoleteKey)).toBe(obsoleteValue);
   });
 });

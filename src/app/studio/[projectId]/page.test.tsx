@@ -61,8 +61,8 @@ describe("canonical selected Studio route", () => {
     vi.mocked(requireViewer).mockResolvedValue({ id: projectId } as never);
     const manifest = {
       manifestVersion: 3,
-      engine: "jam-session-midi",
-      engineVersion: "jam-session-midi-3_tone-15.1.22_presets-1",
+      engine: "openmidi-midi",
+      engineVersion: "openmidi-midi-3_tone-15.1.22_presets-1",
       projectId,
       workspaceId: "10000000-0000-4000-8000-000000000124",
       tempoBpm: 120,

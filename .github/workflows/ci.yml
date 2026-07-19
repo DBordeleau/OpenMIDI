@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 permissions:
@@ -67,6 +67,8 @@ jobs:
         run: npm ci
       - name: Start local Postgres
         run: npm run supabase:start
+      - name: Rehearse populated RELEASE-01 reconciliation
+        run: npm run db:rehearse:release-01
       - name: Reset local database
         run: npm run db:reset
       - name: Run database lint and tests

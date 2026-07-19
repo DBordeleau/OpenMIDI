@@ -2,7 +2,7 @@
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** The MIDI-only pivot, hosted reconciliation, semantic visual-diff program, beta-feedback flow, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, and BADGE-01 are complete in the repository. The retained hosted project still has its seven authorized migrations; four LIB, three CHALLENGE, and one BADGE migration remain unapplied pending explicit deployment authority. RELEASE-01 is next and will complete a clean OpenMIDI identity reset across product copy, repository metadata, runtime namespaces, persisted engine identifiers, tests, and migration source. Seeded-beta hardening follows in RELEASE-02, while the destructive hosted musical-data reconciliation, pending migrations, OAuth/Vercel configuration, deployment, and production smoke remain explicitly deferred to RELEASE-03.
+> **Current status:** The MIDI-only pivot, hosted reconciliation, semantic visual-diff program, beta-feedback flow, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 are complete in the repository. The retained hosted project still has its seven authorized migrations; nine reviewed migrations remain unapplied: four LIB, three CHALLENGE, one BADGE, and `20260719010758_release_01_openmidi_identity_reconciliation.sql`. RELEASE-02 seeded-beta hardening is next. Hosted musical-data deletion, all pending migrations, OAuth/Vercel configuration, deployment, and production smoke remain explicitly deferred to RELEASE-03.
 
 ## Target MVP scope
 
@@ -60,8 +60,8 @@ These instructions use PowerShell, which is included with Windows.
 4. Clone the repository and enter its directory:
 
    ```powershell
-   git clone <repository-url>
-   cd JamSession
+   git clone https://github.com/DBordeleau/OpenMIDI.git
+   cd OpenMIDI
    ```
 
 5. Install the exact dependencies recorded in `package-lock.json`:
@@ -88,8 +88,8 @@ Install Git and Node.js 24 LTS. A Node version manager is recommended if you wor
 Then run:
 
 ```bash
-git clone <repository-url>
-cd JamSession
+git clone https://github.com/DBordeleau/OpenMIDI.git
+cd OpenMIDI
 npm ci
 npm run dev
 ```
@@ -103,6 +103,8 @@ Open [http://localhost:3000](http://localhost:3000), and stop the server with `C
 Before debugging missing rows, RLS, Auth, RPCs, or Storage, check the host configured by `NEXT_PUBLIC_SUPABASE_URL` without exposing any keys. Use the logs and schema for that environment. Local containers and hosted Supabase are independent databases, so local logs cannot explain a request sent to the hosted URL, and locally applied migrations do not automatically update hosted Supabase.
 
 Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. See the [PIVOT-10 hosted evidence](docs/technical-design/evidence/pivot-10-hosted-rebaseline.md) for the four-migration destructive rebaseline. The administrator-invitation reconciliation and two FEEDBACK-01 migrations were subsequently applied to the retained project, so hosted history now contains seven migrations. Every future hosted migration still requires a target check and explicit authority; merging code never applies it automatically.
+
+RELEASE-01 changed the local Supabase project ID to `openmidi`. If containers from a pre-RELEASE-01 checkout remain, identify their project ID from that checkout or Git history and run `npx supabase stop --project-id <obsolete-local-project-id>`. Add `--no-backup` only after confirming its local data is disposable. The current scripts do not stop or delete another local stack automatically.
 
 ### Local Supabase validation stack
 

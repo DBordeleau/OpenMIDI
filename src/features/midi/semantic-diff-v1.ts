@@ -8,7 +8,7 @@ import {
 } from "@/features/studio/manifest/v3";
 
 export const MIDI_SEMANTIC_DIFF_VERSION =
-  "jam-session-midi-semantic-diff-1" as const;
+  "openmidi-midi-semantic-diff-1" as const;
 
 const semanticDiffInputSchema = z
   .object({

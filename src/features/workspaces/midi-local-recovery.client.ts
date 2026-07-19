@@ -6,7 +6,7 @@ import {
 } from "./schema";
 
 const key = (viewerId: string, workspaceId: string) =>
-  `jam-session:workspace:v2:${viewerId}:${workspaceId}`;
+  `openmidi:workspace:v2:${viewerId}:${workspaceId}`;
 
 export function readMidiLocalRecovery(viewerId: string, workspaceId: string) {
   try {

@@ -33,7 +33,7 @@ export async function generateMetadata({
   const profile = await find((await params).username);
   return profile
     ? {
-        title: `${profile.displayName} (@${profile.username}) · Jam Session`,
+        title: `${profile.displayName} (@${profile.username})`,
         description: profile.bio ?? `Music profile for @${profile.username}.`,
       }
     : {};

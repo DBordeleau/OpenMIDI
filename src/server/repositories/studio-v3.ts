@@ -51,8 +51,8 @@ export async function getStudioWorkspaceV3(
   if (!data) return null;
   if (
     data.manifest_version !== 3 ||
-    data.engine !== "jam-session-midi" ||
-    data.engine_version !== "jam-session-midi-3_tone-15.1.22_presets-1"
+    data.engine !== "openmidi-midi" ||
+    data.engine_version !== "openmidi-midi-3_tone-15.1.22_presets-1"
   ) {
     throw new Error("studio_workspace_requires_manifest_v3");
   }
@@ -94,8 +94,8 @@ export async function getStudioRevisionV3(input: {
   if (!data) return null;
   if (
     data.manifest_version !== 3 ||
-    data.engine !== "jam-session-midi" ||
-    data.engine_version !== "jam-session-midi-3_tone-15.1.22_presets-1" ||
+    data.engine !== "openmidi-midi" ||
+    data.engine_version !== "openmidi-midi-3_tone-15.1.22_presets-1" ||
     !data.arrangement_version_id
   ) {
     throw new Error("studio_revision_requires_manifest_v3");

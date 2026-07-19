@@ -11,7 +11,7 @@ Date: 2026-07-13
 - One idempotent owner command requests changes, rejects, or accepts the exact current submitted version under project → contribution → version → workspace locks.
 - Request changes preserves the workspace for editing and a later immutable version. Rejection archives the workspace and retains participant-private history.
 - Acceptance revalidates the submitted manifest, normalized projection, engine/checksum, asset readiness, trim bounds, and project quota; then creates a contribution-linked revision, preserves per-track `added_by`, updates unique references/usage, emits bounded revision activity, advances the pointer, records review, marks accepted, and archives the workspace atomically.
-- A stale accept creates no revision and instead records requested accept/applied request changes with reason `base_outdated`; Jam Session never auto-merges audio.
+- A stale accept creates no revision and instead records requested accept/applied request changes with reason `base_outdated`; OpenMIDI never auto-merges audio.
 
 ## Persisted and command contracts
 

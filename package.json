@@ -1,5 +1,5 @@
 {
-  "name": "jam-session",
+  "name": "openmidi",
   "version": "0.0.0",
   "private": true,
   "engines": {
@@ -31,8 +31,10 @@
     "db:reset": "supabase db reset",
     "db:lint": "supabase db lint --local --level warning --fail-on warning",
     "db:test": "supabase test db",
+    "db:rehearse:release-01": "node scripts/rehearse-release-01-migration.mjs",
     "db:types": "node scripts/generate-database-types.mjs --write",
     "db:types:check": "node scripts/generate-database-types.mjs --check",
+    "check:identity": "node scripts/check-openmidi-identity.mjs",
     "check:midi-only": "node scripts/check-midi-only.mjs",
     "auth:e2e:setup": "node scripts/setup-auth-e2e.mjs",
     "avatars:process": "node scripts/recover-profile-images.mjs",
@@ -41,8 +43,8 @@
     "retention:preview": "node scripts/run-retention.mjs",
     "retention:execute": "node scripts/run-retention.mjs --execute",
     "supabase:start:storage": "supabase start -x realtime,imgproxy,studio,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta",
-    "db:check": "npm run db:lint && npm run db:test && npm run db:types:check",
-    "check": "npm run check:midi-only && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "db:check": "npm run db:rehearse:release-01 && npm run db:lint && npm run db:test && npm run db:types:check",
+    "check": "npm run check:identity && npm run check:midi-only && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",

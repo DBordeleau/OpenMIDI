@@ -23,7 +23,7 @@ select has_table('private','workspace_snapshots','bounded database workspace sna
 select has_column('public','project_revisions','arrangement_version_id','revision wrapper has expand-first arrangement reference');
 select has_column('public','contribution_versions','arrangement_version_id','contribution wrapper has expand-first arrangement reference');
 select has_column('public','workspace_clips','midi_pattern_version_id','workspace clips reference exact pattern versions');
-select ok((select count(*)=24 from private.midi_synth_presets where engine_version='jam-session-midi-3_tone-15.1.22_presets-1'),'frozen preset catalog has 24 IDs');
+select ok((select count(*)=24 from private.midi_synth_presets where engine_version='openmidi-midi-3_tone-15.1.22_presets-1'),'frozen preset catalog has 24 IDs');
 select ok((select min_note=24 and max_note=60 from private.midi_synth_presets where preset_id='sub-bass' and version=1),'database preset bounds match catalog 1');
 select ok(exists(select 1 from pg_constraint where conrelid='public.midi_pattern_versions'::regclass
   and pg_get_constraintdef(oid) like 'FOREIGN KEY (midi_pattern_id, parent_pattern_version_id)%'),
@@ -65,11 +65,11 @@ select lives_ok($$select public.create_midi_project_workspace_v3(
   'f3040000-0000-4000-8000-000000000001','Pivot project','',120::numeric,'c-major',4::smallint,4::smallint,
   'cc-by-4.0','{}'::uuid[],null::uuid,'{}'::uuid[])$$,'owner creates a v3 project workspace atomically');
 select is((select manifest_version from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),3::smallint,'new workspace uses manifest v3');
-select is((select engine_version from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),'jam-session-midi-3_tone-15.1.22_presets-1','workspace pins the frozen engine version');
+select is((select engine_version from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),'openmidi-midi-3_tone-15.1.22_presets-1','workspace pins the frozen engine version');
 select lives_ok($$select public.save_midi_workspace_v3(
   (select id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),
   'f3050000-0000-4000-8000-000000000001',1,
-  jsonb_build_object('manifestVersion',3,'engine','jam-session-midi','engineVersion','jam-session-midi-3_tone-15.1.22_presets-1',
+  jsonb_build_object('manifestVersion',3,'engine','openmidi-midi','engineVersion','openmidi-midi-3_tone-15.1.22_presets-1',
     'projectId',(select project_id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),
     'workspaceId',(select id from public.workspaces where owner_id='f3000000-0000-4000-8000-000000000001'),
     'tempoBpm',120,'timeSignature',jsonb_build_object('numerator',4,'denominator',4),'musicalKey','c-major','ppq',480,'durationTicks',7680,

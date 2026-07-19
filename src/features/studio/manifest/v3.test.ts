@@ -20,9 +20,9 @@ import {
 
 describe("MIDI manifest v3", () => {
   it("uses the frozen engine contract and canonical track, clip, and note order", () => {
-    expect(V3_MANIFEST_BEFORE.engine).toBe("jam-session-midi");
+    expect(V3_MANIFEST_BEFORE.engine).toBe("openmidi-midi");
     expect(V3_MANIFEST_BEFORE.engineVersion).toBe(
-      "jam-session-midi-3_tone-15.1.22_presets-1",
+      "openmidi-midi-3_tone-15.1.22_presets-1",
     );
     expect(V3_MANIFEST_BEFORE.tracks.map(({ trackId }) => trackId)).toEqual([
       V3_IDS.trackA,

@@ -7,7 +7,7 @@ import { projectRevisionComparisonUrl } from "@/features/midi-diff/project-revis
 import { getProjectRevisionComparison } from "@/server/repositories/project-revision-comparisons";
 
 export const metadata: Metadata = {
-  title: "Compare project revisions · OpenMIDI",
+  title: "Compare project revisions",
   description:
     "Hear two immutable MIDI revisions side by side and inspect every musical change.",
   robots: { index: false, follow: false },

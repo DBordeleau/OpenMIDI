@@ -10,8 +10,8 @@ import {
 
 const manifest = parseWorkspaceManifestV2({
   manifestVersion: 2,
-  engine: "jam-session-composite",
-  engineVersion: "jam-session-composite-2_tone-15.1.22",
+  engine: "openmidi-composite",
+  engineVersion: "openmidi-composite-2_tone-15.1.22",
   projectId: "00000000-0000-4000-8000-000000000001",
   tempoBpm: 120,
   timeSignature: { numerator: 4, denominator: 4 },

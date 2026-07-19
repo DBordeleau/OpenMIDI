@@ -2,7 +2,7 @@
 
 > **Historical implementation record:** STUDIO-01 through STUDIO-06 and UX-01 through UX-05 landed and established the current Studio. The MIDI-only replacement PRD, [pivot contract](technical-design/midi-only-pivot-contract.md), and [roadmap](ROADMAP.md) supersede this document wherever it retains audio, manifest-v2, stem, source-admission, PR 19, or PR 20 as a future target. Do not use those superseded sections to add compatibility; the pivot removes it in ordered slices.
 >
-> Jam Session was the product name when this record was written. The current product name is OpenMIDI; historical naming below is intentionally preserved.
+> This historical record predates the current product identity. Its implementation language is retained as planning evidence.
 
 Status: Historical implementation record; superseded as current behavior and future direction by PIVOT-01 through PIVOT-10
 Prepared: 2026-07-14  
@@ -10,11 +10,11 @@ Sequence: MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, UX-01–UX-05, and PIVOT-00�
 
 ## Executive recommendation
 
-The proposed direction is sound. Jam Session should present the studio as a top-level, persistent workspace that opens, creates, and switches between projects. Projects remain the durable collaboration and history boundary, but they should no longer appear to own a separate studio application.
+The proposed direction is sound. OpenMIDI should present the studio as a top-level, persistent workspace that opens, creates, and switches between projects. Projects remain the durable collaboration and history boundary, but they should no longer appear to own a separate studio application.
 
 The target mental model should be:
 
-> Open Jam Session Studio, then choose what music to work on.
+> Open OpenMIDI Studio, then choose what music to work on.
 
 This is mostly an information-architecture and application-shell inversion. It should **not** introduce a new database-level `studio` entity, weaken project authorization, or change immutable revision semantics. The existing `projects`, `workspaces`, revisions, contribution workspaces, manifests, RLS, and private source delivery remain the domain authority.
 
@@ -44,13 +44,13 @@ MIDI-02–MIDI-04 intentionally delivered the editor and recorder as a standalon
 
 ## Product and architecture alignment
 
-This proposal supports the current PRD rather than changing Jam Session into a professional DAW:
+This proposal supports the current PRD rather than changing OpenMIDI into a professional DAW:
 
 - The PRD already describes an integrated browser workspace for synchronized MIDI and compatible legacy audio.
-- The PRD explicitly says Jam Session is not intended to replace Ableton Live, FL Studio, Logic, or Pro Tools.
-- The roadmap already plans a Jam Session-owned composite MIDI/audio adapter and manifest v2.
+- The PRD explicitly says OpenMIDI is not intended to replace Ableton Live, FL Studio, Logic, or Pro Tools.
+- The roadmap already plans a platform-owned composite MIDI/audio adapter and manifest v2.
 - ADR-003 still applies: mutable private workspaces sit on immutable revision history.
-- ADR-004 still applies: the Jam Session manifest, not an editor's live object graph, is the portable authority.
+- ADR-004 still applies: the OpenMIDI manifest, not an editor's live object graph, is the portable authority.
 - ADR-006 still applies for the MVP: Waveform Playlist remains the legacy-audio implementation behind the client-only adapter.
 - ADR-007 still applies: MIDI is the active prototype creation path after the parity gate, while existing audio history remains supported.
 
@@ -67,7 +67,7 @@ The current implementation has several good foundations:
 - Workspace autosave already uses optimistic concurrency and device-local recovery.
 - Source loading is manifest-first, cancellable, progressive, actor-scoped, and safe to reuse during the same browser session.
 - The current project index RPC is bounded and RLS-scoped, so it can seed a studio project browser.
-- The pinned Waveform Playlist engine already contains move, trim, split, collision, snap, and undo/redo primitives; Jam Session currently exposes only part of them.
+- The pinned Waveform Playlist engine already contains move, trim, split, collision, snap, and undo/redo primitives; OpenMIDI currently exposes only part of them.
 
 The main constraints are:
 
@@ -133,7 +133,7 @@ Copying and pasting a MIDI clip or duplicating its complete track reuses exact i
 
 ### Composing and recording MIDI inside Studio
 
-The primary project workflow must not require a trip to a separate page. Opening the piano roll from an inline pending MIDI lane, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing Jam Session editor inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
+The primary project workflow must not require a trip to a separate page. Opening the piano roll from an inline pending MIDI lane, double-clicking a MIDI clip, or choosing **Edit MIDI part** opens the existing OpenMIDI editor inside the Studio shell as a docked lower editor or focused workspace panel. The arrangement, transport, track headers, and project context remain visible or immediately recoverable.
 
 The integrated editor reuses—not forks—the components and contracts delivered in MIDI-02–MIDI-04:
 
@@ -215,7 +215,7 @@ flowchart LR
   E --> F["Owner workspace"]
   E --> G["Contribution workspace"]
   E --> H["Read-only revision"]
-  F --> I["Jam Session manifest"]
+  F --> I["OpenMIDI manifest"]
   G --> I
   H --> I
   I --> J["Composite client-only adapter"]
@@ -340,13 +340,13 @@ Continue using the brand's warm studio-night tokens, semantic colors, pill actio
 | Compose/record MIDI within Studio                  | High with existing foundation        | Reuse piano roll/recorder, coordinate project transport and draft/workspace locks, keep audition overlays out of manifests, and make finalization/application atomic                                   | Required before the Studio parity gate                                     |
 | Simple per-track varispeed that also changes pitch | Medium                               | Current public multitrack adapter does not expose it; custom playout scheduling, waveform duration, seeking, export, and persistence all change                                                        | Spike only; label honestly as coupled speed/pitch if adopted               |
 | Speed change while preserving pitch                | Low-to-medium                        | The pinned single-track MediaElement mode supports pitch-preserving rate, but the multitrack Tone playout does not expose equivalent per-track stretching; robust time stretching needs additional DSP | Defer unless a measured DSP spike meets quality/CPU/export gates           |
-| Pitch shift while preserving duration              | Medium                               | Tone.js contains `PitchShift`, but Jam Session does not currently persist/apply it; latency, artifacts, CPU, browser variance, and offline export need proof                                           | Run a narrow semitone-based per-track spike; do not promise production yet |
+| Pitch shift while preserving duration              | Medium                               | Tone.js contains `PitchShift`, but OpenMIDI does not currently persist/apply it; latency, artifacts, CPU, browser variance, and offline export need proof                                              | Run a narrow semitone-based per-track spike; do not promise production yet |
 
 ### What Waveform Playlist can realistically do
 
 The pinned `@waveform-playlist/browser@15.3.4` and engine packages already expose clip dragging, boundary trimming, splitting, collision constraints, snapping, and undo/redo. The upstream project also documents multiple clips per track with drag-to-move and trim, and its engine exposes `moveClip`, `trimClip`, and `splitClip` operations.
 
-Jam Session's current Waveform/composite presentation still maps important paths to `clips[0]`. That is why split is not merely a button addition: manifest v2 and database projections can preserve the second clip, but the adapter/UI must hydrate, edit, play, and export every clip without discarding it. STUDIO-04 owns that proof.
+OpenMIDI's current Waveform/composite presentation still maps important paths to `clips[0]`. That is why split is not merely a button addition: manifest v2 and database projections can preserve the second clip, but the adapter/UI must hydrate, edit, play, and export every clip without discarding it. STUDIO-04 owns that proof.
 
 ### Playback speed
 
@@ -379,12 +379,12 @@ The proposed studio shell should be engine-neutral now, but it should not implem
 
 The future direction is plausible if the contracts stay asymmetric:
 
-- **Simple/Waveform to OpenDAW:** import the Jam Session manifest subset—tempo, time signature, track order, source clips, MIDI notes/clips, gain/pan/mute, and supported attribution—into a newly created OpenDAW session.
+- **Simple/Waveform to OpenDAW:** import the OpenMIDI manifest subset—tempo, time signature, track order, source clips, MIDI notes/clips, gain/pan/mute, and supported attribution—into a newly created OpenDAW session.
 - **OpenDAW to Simple/Waveform:** reject as a project conversion. Offer rendered stems and/or bounded MIDI export as an explicit lossy workflow only if licensing, storage, credits, and source-admission policy later allow it.
 
-Do not make `engine = waveform-playlist` the conceptual owner of the shared project format. Manifest v2 should identify the Jam Session format/capability version, while adapter-specific compatibility metadata remains explicit. A future user preference can choose which capable adapter opens a compatible project; it must not rewrite immutable history merely because the preferred editor changed.
+Do not make `engine = waveform-playlist` the conceptual owner of the shared project format. Manifest v2 should identify the OpenMIDI format/capability version, while adapter-specific compatibility metadata remains explicit. A future user preference can choose which capable adapter opens a compatible project; it must not rewrite immutable history merely because the preferred editor changed.
 
-OpenDAW currently advertises an SDK and is licensed under AGPL-3.0. Jam Session's existing architecture correctly requires a separate licensing/hosting review and superseding ADR before integration. A commercial “premium” offering may need a commercial license or a deliberately AGPL-compliant deployment model; this is a legal/product gate, not just an engineering toggle.
+OpenDAW currently advertises an SDK and is licensed under AGPL-3.0. OpenMIDI's existing architecture correctly requires a separate licensing/hosting review and superseding ADR before integration. A commercial “premium” offering may need a commercial license or a deliberately AGPL-compliant deployment model; this is a legal/product gate, not just an engineering toggle.
 
 ## Recommended delivery sequence
 
@@ -614,22 +614,22 @@ Measure separately:
 
 ## Important risks and mitigations
 
-| Risk                                                               | Mitigation                                                                                           |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| “Persistent studio” accidentally keeps multiple audio graphs alive | Persist only the lightweight shell; remount and dispose the selected session subtree                 |
-| Switching loses an unacknowledged draft                            | Explicit save/switch state machine and existing device-local recovery                                |
-| Project picker becomes an authorization boundary                   | Re-authorize the canonical selected route and rely on RLS/service checks                             |
-| MIDI work hard-codes old project route assumptions                 | Decide a route-neutral session descriptor before MIDI-01/MIDI-02                                     |
-| Integrated editing creates two competing authorities               | Draft autosaves separately; only an explicit immutable finalize/apply command changes the manifest   |
-| A failed two-step finalize strands a version or surprises the user | Make finalization and workspace application one idempotent user-visible transaction                  |
-| Copy/edit silently changes every reused MIDI clip                  | New clip IDs on copy; replacement targets the selected clip unless “replace all” is explicit         |
-| Split silently loses regions                                       | Do not expose split until adapter/UI and immutable round trips preserve every v2 projected clip      |
-| Multi-asset tracks complicate credits/retention                    | Initially keep one immutable source asset per audio track                                            |
-| DAW styling expands into DAW parity                                | Preserve PRD non-goals and promote only collaboration-relevant controls                              |
-| Per-track speed drifts out of sync or changes pitch unexpectedly   | Define varispeed vs time stretch explicitly and gate with evidence                                   |
-| Pitch sounds poor or breaks export                                 | Adopt only after multi-browser/live/offline quality evidence                                         |
-| Future OpenDAW preference rewrites project history                 | Treat preference as adapter selection; retain Jam Session manifest authority and immutable revisions |
-| OpenDAW licensing conflicts with a premium SaaS model              | Separate ADR plus qualified AGPL/commercial-license review before integration                        |
+| Risk                                                               | Mitigation                                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| “Persistent studio” accidentally keeps multiple audio graphs alive | Persist only the lightweight shell; remount and dispose the selected session subtree               |
+| Switching loses an unacknowledged draft                            | Explicit save/switch state machine and existing device-local recovery                              |
+| Project picker becomes an authorization boundary                   | Re-authorize the canonical selected route and rely on RLS/service checks                           |
+| MIDI work hard-codes old project route assumptions                 | Decide a route-neutral session descriptor before MIDI-01/MIDI-02                                   |
+| Integrated editing creates two competing authorities               | Draft autosaves separately; only an explicit immutable finalize/apply command changes the manifest |
+| A failed two-step finalize strands a version or surprises the user | Make finalization and workspace application one idempotent user-visible transaction                |
+| Copy/edit silently changes every reused MIDI clip                  | New clip IDs on copy; replacement targets the selected clip unless “replace all” is explicit       |
+| Split silently loses regions                                       | Do not expose split until adapter/UI and immutable round trips preserve every v2 projected clip    |
+| Multi-asset tracks complicate credits/retention                    | Initially keep one immutable source asset per audio track                                          |
+| DAW styling expands into DAW parity                                | Preserve PRD non-goals and promote only collaboration-relevant controls                            |
+| Per-track speed drifts out of sync or changes pitch unexpectedly   | Define varispeed vs time stretch explicitly and gate with evidence                                 |
+| Pitch sounds poor or breaks export                                 | Adopt only after multi-browser/live/offline quality evidence                                       |
+| Future OpenDAW preference rewrites project history                 | Treat preference as adapter selection; retain OpenMIDI manifest authority and immutable revisions  |
+| OpenDAW licensing conflicts with a premium SaaS model              | Separate ADR plus qualified AGPL/commercial-license review before integration                      |
 
 ## Resolved product decisions
 

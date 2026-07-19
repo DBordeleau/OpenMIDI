@@ -54,7 +54,7 @@ function updateViewer(viewerId: string, isAdmin: boolean) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
@@ -77,7 +77,7 @@ function verifyInvitation(normalizedEmail: string) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",

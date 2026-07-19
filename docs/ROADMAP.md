@@ -1,14 +1,14 @@
 # OpenMIDI MVP roadmap
 
 Status: Post-pivot MVP release path accepted; implementation not yet deployed
-Current branch: `master` at post-BADGE checkpoint `97c540d`; RELEASE-01 is next
-Hosted state: existing Supabase project reconciled through seven migrations; Vercel deployment deferred
+Current checkpoint: RELEASE-01 complete in the repository; RELEASE-02 is next
+Hosted state: existing Supabase project remains at seven migrations; nine reviewed migrations and Vercel deployment are deferred
 
 ## Release target
 
 The next milestone is an invite-only OpenMIDI beta deployed to Vercel. It must let users create and publish MIDI projects, contribute and fork, discover reusable MIDI patterns, understand musical changes, participate in one curated constraint challenge, earn challenge awards, and report beta problems without relying on uploaded musical media.
 
-OpenMIDI is the sole prelaunch product and technical identity. RELEASE-01 removes the former working name and namespace from the current repository, including persisted engine identifiers, fixtures, local infrastructure names, and clean-baseline migration source. Git history retains archaeology; current runtime compatibility with prelaunch musical data is not required.
+OpenMIDI is the sole prelaunch product and technical identity. RELEASE-01 removed the former working name and namespace from the current repository, including persisted engine identifiers, fixtures, local infrastructure names, and clean-baseline migration source. Git history retains archaeology; current runtime compatibility with prelaunch musical data is not required.
 
 ## Completed foundation
 
@@ -129,7 +129,7 @@ Status: Complete in the repository. Private one-logical-vote authority, determin
 
 Add an extensible badge-definition catalog and immutable profile award records tied to exact challenge results, placements, recipients, and submitted revisions. Every displayed badge links to its completed challenge/result page. Launch with generic Winner, Community Favorite, and configurable Top Placement badges. Challenge-specific artwork/definitions may be added later without schema redesign.
 
-Status: Complete in the repository. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The BADGE migration remains repository-only, and XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred. RELEASE-01 is next.
+Status: Complete in the repository. Three stable badge identities point to append-only versioned presentations, while immutable awards snapshot the exact recipient, result, entry, revision, badge version, and display context. Initial finalization and corrections issue the complete Winner, all Community Favorite ties, and remaining Top Placement set transactionally from normalized current-result authority. Superseded award rows remain private evidence; the bounded profile projection shows only current visible results with canonical challenge/result/entry links. The BADGE migration remains repository-only, and XP, levels, streaks, participation awards, user-created badges, uploads, and purchasable status remain deferred.
 
 ## Wave E — Release and deployment
 
@@ -137,13 +137,13 @@ Status: Complete in the repository. Three stable badge identities point to appen
 
 Complete the OpenMIDI identity reset across user-facing copy, metadata, package/repository links, environment examples, runtime/browser namespaces, persisted manifest/diff engine identifiers, test actors/fixtures, local infrastructure identity, current documentation, and clean-baseline migration source. Add a reviewed forward reconciliation migration for the retained hosted project rather than requiring a new Supabase project. Git history remains the historical record.
 
-Status: Worker-ready after the post-BADGE pulse and the superseding clean-namespace decision. This slice may make destructive local database/fixture changes and may add the hosted reconciliation migration, but it must not apply hosted migrations, delete hosted data, change external OAuth/Supabase/Vercel configuration, or deploy the application.
+Status: Complete in the repository. Product copy, package/repository setup, runtime and browser namespaces, manifest/diff/export identity, tests, clean migration source, local Supabase identity, and documentation now use only OpenMIDI. The no-allowlist tracked-text contract runs in `npm run check`. Forward migration `20260719010758_release_01_openmidi_identity_reconciliation.sql` transactionally deletes disposable musical state while preserving identity/operator/feedback/avatar/catalog state. The retained hosted project remains unchanged at seven applied migrations; nine migrations are pending and RELEASE-02 is next.
 
 ### RELEASE-02 — Seeded beta and release hardening
 
 Seed several useful public projects, a curated MIDI-library set, and one scheduled/open challenge. Perform the final accessibility, authorization, moderation, empty/error/loading-state, responsive, usage-budget, and administrator runbook pass. Confirm feedback triage and invitations are usable before inviting testers.
 
-Status: Sequentially blocked on RELEASE-01. It prepares deterministic, original, rights-safe beta fixtures and operator tooling in the repository; it does not mutate hosted production data.
+Status: Next after RELEASE-01. It prepares deterministic, original, rights-safe beta fixtures and operator tooling in the repository; it does not mutate hosted production data.
 
 ### RELEASE-03 — Vercel deployment and production smoke
 

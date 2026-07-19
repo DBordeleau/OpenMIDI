@@ -51,7 +51,7 @@ export default async function SignInPage({
           <em className="text-accent font-serif font-medium">session</em>.
         </h1>
         <p className="text-muted mt-3 leading-relaxed">
-          Jam Session is currently invite-only. Sign in with the Google account
+          OpenMIDI is currently invite-only. Sign in with the Google account
           tied to your invitation to start collaborating.
         </p>
         <form action={signInWithGoogle} className="mt-8">

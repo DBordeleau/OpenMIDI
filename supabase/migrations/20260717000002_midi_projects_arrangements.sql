@@ -109,8 +109,8 @@ begin
     or (p_workspace_id is null and (select count(*) from jsonb_object_keys(p_manifest))<>10)
     or (p_workspace_id is not null and (
       not p_manifest ? 'workspaceId' or (select count(*) from jsonb_object_keys(p_manifest))<>11))
-    or p_manifest->>'manifestVersion'<>'3' or p_manifest->>'engine'<>'jam-session-midi'
-    or p_manifest->>'engineVersion'<>'jam-session-midi-3_tone-15.1.22_presets-1'
+    or p_manifest->>'manifestVersion'<>'3' or p_manifest->>'engine'<>'openmidi-midi'
+    or p_manifest->>'engineVersion'<>'openmidi-midi-3_tone-15.1.22_presets-1'
     or p_manifest->>'projectId'<>p_project_id::text
     or (p_workspace_id is null and p_manifest ? 'workspaceId')
     or (p_workspace_id is not null and p_manifest->>'workspaceId'<>p_workspace_id::text)
@@ -154,7 +154,7 @@ begin
       or jsonb_typeof(v_track->'clips')<>'array'
       or not exists(select 1 from private.midi_synth_presets p
         where p.preset_id=v_track->>'presetId' and p.version=(v_track->>'presetVersion')::integer
-          and p.engine_version='jam-session-midi-3_tone-15.1.22_presets-1' and p.is_active) then
+          and p.engine_version='openmidi-midi-3_tone-15.1.22_presets-1' and p.is_active) then
       raise sqlstate '22023' using message='midi_manifest_v3_invalid';
     end if;
     if jsonb_array_length(v_track->'clips')>32 then
@@ -201,8 +201,8 @@ begin
       cross join jsonb_array_elements(t->'clips') c)<>v_clip_count then
     raise sqlstate '22023' using message='midi_manifest_v3_duplicate_id';
   end if;
-  return jsonb_build_object('manifestVersion',3,'engine','jam-session-midi',
-    'engineVersion','jam-session-midi-3_tone-15.1.22_presets-1','projectId',p_project_id,
+  return jsonb_build_object('manifestVersion',3,'engine','openmidi-midi',
+    'engineVersion','openmidi-midi-3_tone-15.1.22_presets-1','projectId',p_project_id,
     'tempoBpm',v_tempo,'timeSignature',jsonb_build_object('numerator',v_num,'denominator',v_den),
     'musicalKey',v_key,'ppq',480,'durationTicks',v_duration,'tracks',v_tracks)
     || case when p_workspace_id is null then '{}'::jsonb else jsonb_build_object('workspaceId',p_workspace_id) end;
@@ -279,8 +279,8 @@ begin
   insert into public.arrangement_versions(project_id,created_by,create_request_id,manifest_version,
     engine,engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,
     time_signature_denominator,musical_key,ppq,duration_ticks)
-  values(v_workspace.project_id,p_actor,p_request_id,3,'jam-session-midi',
-    'jam-session-midi-3_tone-15.1.22_presets-1',v_manifest,v_hash,
+  values(v_workspace.project_id,p_actor,p_request_id,3,'openmidi-midi',
+    'openmidi-midi-3_tone-15.1.22_presets-1',v_manifest,v_hash,
     (v_manifest->>'tempoBpm')::numeric,(v_manifest->'timeSignature'->>'numerator')::smallint,
     (v_manifest->'timeSignature'->>'denominator')::smallint,v_manifest->>'musicalKey',480,
     (v_manifest->>'durationTicks')::integer) returning * into v_arrangement;
@@ -514,8 +514,8 @@ begin
     select v_project.id,x,x=p_primary_genre_id from unnest(coalesce(p_genre_ids,'{}')) x;
   insert into public.project_tags(project_id,tag_id)
     select v_project.id,x from unnest(coalesce(p_tag_ids,'{}')) x;
-  v_manifest:=jsonb_build_object('manifestVersion',3,'engine','jam-session-midi',
-    'engineVersion','jam-session-midi-3_tone-15.1.22_presets-1','projectId',v_project.id,
+  v_manifest:=jsonb_build_object('manifestVersion',3,'engine','openmidi-midi',
+    'engineVersion','openmidi-midi-3_tone-15.1.22_presets-1','projectId',v_project.id,
     'workspaceId',v_workspace_id,'tempoBpm',v_bpm,'timeSignature',jsonb_build_object(
       'numerator',p_time_signature_numerator,'denominator',p_time_signature_denominator),
     'musicalKey',p_musical_key,'ppq',480,'durationTicks',7680,'tracks','[]'::jsonb);
@@ -523,8 +523,8 @@ begin
   v_hash:=encode(extensions.digest(convert_to(v_manifest::text,'UTF8'),'sha256'),'hex');
   insert into public.workspaces(id,project_id,owner_id,create_request_id,manifest,
     manifest_version,engine,engine_version,manifest_sha256)
-  values(v_workspace_id,v_project.id,v_actor,p_request_id,v_manifest,3,'jam-session-midi',
-    'jam-session-midi-3_tone-15.1.22_presets-1',v_hash) returning * into v_workspace;
+  values(v_workspace_id,v_project.id,v_actor,p_request_id,v_manifest,3,'openmidi-midi',
+    'openmidi-midi-3_tone-15.1.22_presets-1',v_hash) returning * into v_workspace;
   return query select v_project.id,v_project.title,v_project.lock_version,v_workspace.id;
 end $$;
 
@@ -656,8 +656,8 @@ begin
     manifest, manifest_version, engine, engine_version, manifest_sha256
   ) values (
     v_workspace_id, p_project_id, v_actor, p_request_id, v_revision.id,
-    v_manifest, 3, 'jam-session-midi',
-    'jam-session-midi-3_tone-15.1.22_presets-1', v_manifest_sha256
+    v_manifest, 3, 'openmidi-midi',
+    'openmidi-midi-3_tone-15.1.22_presets-1', v_manifest_sha256
   ) returning * into v_workspace;
 
   perform private.replace_workspace_projection_v3(v_workspace.id, v_manifest);
@@ -739,7 +739,7 @@ begin
   insert into public.arrangement_versions(project_id,created_by,create_request_id,manifest_version,engine,
     engine_version,manifest,manifest_sha256,tempo_bpm,time_signature_numerator,time_signature_denominator,
     musical_key,ppq,duration_ticks)
-  values(v_target.id,v_actor,p_request_id,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',
+  values(v_target.id,v_actor,p_request_id,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',
     v_manifest,v_hash,v_source_arrangement.tempo_bpm,v_source_arrangement.time_signature_numerator,
     v_source_arrangement.time_signature_denominator,v_source_arrangement.musical_key,480,
     v_source_arrangement.duration_ticks) returning * into v_arrangement;
@@ -756,7 +756,7 @@ begin
   insert into public.project_revisions(project_id,revision_number,parent_revision_id,created_by,publish_request_id,
     expected_base_revision_id,message,manifest,manifest_version,engine,engine_version,manifest_sha256,duration_ms,arrangement_version_id)
   values(v_target.id,1,null,v_actor,p_request_id,null,'Forked from revision '||v_source_revision.revision_number,
-    v_manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',v_hash,
+    v_manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',v_hash,
     ceil(v_arrangement.duration_ticks*60000.0/(v_arrangement.tempo_bpm*480)),v_arrangement.id)
   returning * into v_revision;
   update public.projects set current_revision_id=v_revision.id,status='active',published_at=statement_timestamp(),
@@ -765,7 +765,7 @@ begin
   insert into public.workspaces(id,project_id,owner_id,create_request_id,base_revision_id,manifest,manifest_version,
     engine,engine_version,manifest_sha256,status)
   values((v_workspace_manifest->>'workspaceId')::uuid,v_target.id,v_actor,p_request_id,v_revision.id,
-    v_workspace_manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',
+    v_workspace_manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',
     encode(extensions.digest(convert_to(v_workspace_manifest::text,'UTF8'),'sha256'),'hex'),'active')
   returning * into v_workspace;
   perform private.replace_workspace_projection_v3(v_workspace.id,v_workspace_manifest);
@@ -817,7 +817,7 @@ begin
     publish_request_id,expected_base_revision_id,message,manifest,manifest_version,engine,engine_version,
     manifest_sha256,duration_ms,arrangement_version_id)
   values(v_project.id,v_number,v_project.current_revision_id,v_actor,p_request_id,p_expected_base_revision_id,
-    v_message,v_arrangement.manifest,3,'jam-session-midi','jam-session-midi-3_tone-15.1.22_presets-1',
+    v_message,v_arrangement.manifest,3,'openmidi-midi','openmidi-midi-3_tone-15.1.22_presets-1',
     v_arrangement.manifest_sha256,v_duration_ms,v_arrangement.id) returning * into v_revision;
   update public.projects set current_revision_id=v_revision.id,status='active',published_at=coalesce(published_at,statement_timestamp()),
     lock_version=lock_version+1,updated_at=statement_timestamp() where id=v_project.id;
@@ -1061,8 +1061,8 @@ CREATE TABLE IF NOT EXISTS "public"."arrangement_versions" (
     "duration_ticks" integer NOT NULL,
     "created_at" timestamp with time zone DEFAULT "statement_timestamp"() NOT NULL,
     CONSTRAINT "arrangement_versions_duration_ticks_check" CHECK ((("duration_ticks" >= 1) AND ("duration_ticks" <= 86400000))),
-    CONSTRAINT "arrangement_versions_engine_check" CHECK (("engine" = 'jam-session-midi'::"text")),
-    CONSTRAINT "arrangement_versions_engine_version_check" CHECK (("engine_version" = 'jam-session-midi-3_tone-15.1.22_presets-1'::"text")),
+    CONSTRAINT "arrangement_versions_engine_check" CHECK (("engine" = 'openmidi-midi'::"text")),
+    CONSTRAINT "arrangement_versions_engine_version_check" CHECK (("engine_version" = 'openmidi-midi-3_tone-15.1.22_presets-1'::"text")),
     CONSTRAINT "arrangement_versions_manifest_sha256_check" CHECK (("manifest_sha256" ~ '^[0-9a-f]{64}$'::"text")),
     CONSTRAINT "arrangement_versions_manifest_version_check" CHECK (("manifest_version" = 3)),
     CONSTRAINT "arrangement_versions_musical_key_check" CHECK ((("musical_key" IS NULL) OR ("musical_key" = ANY (ARRAY['c-major'::"text", 'c-sharp-major'::"text", 'd-major'::"text", 'e-flat-major'::"text", 'e-major'::"text", 'f-major'::"text", 'f-sharp-major'::"text", 'g-major'::"text", 'a-flat-major'::"text", 'a-major'::"text", 'b-flat-major'::"text", 'b-major'::"text", 'c-minor'::"text", 'c-sharp-minor'::"text", 'd-minor'::"text", 'e-flat-minor'::"text", 'e-minor'::"text", 'f-minor'::"text", 'f-sharp-minor'::"text", 'g-minor'::"text", 'g-sharp-minor'::"text", 'a-minor'::"text", 'b-flat-minor'::"text", 'b-minor'::"text"])))),
@@ -1195,12 +1195,12 @@ CREATE TABLE IF NOT EXISTS "public"."project_revisions" (
     CONSTRAINT "project_revisions_parent_not_self" CHECK ((("parent_revision_id" IS NULL) OR ("parent_revision_id" <> "id"))),
     CONSTRAINT "project_revisions_parent_shape" CHECK (((("revision_number" = 1) AND ("parent_revision_id" IS NULL)) OR (("revision_number" > 1) AND ("parent_revision_id" IS NOT NULL)))),
     CONSTRAINT "project_revisions_revision_number_check" CHECK (("revision_number" > 0)),
-    CONSTRAINT "project_revisions_manifest_runtime_check" CHECK (("manifest_version" = 3) AND ("engine" = 'jam-session-midi'::"text") AND ("engine_version" = 'jam-session-midi-3_tone-15.1.22_presets-1'::"text") AND ("arrangement_version_id" IS NOT NULL))
+    CONSTRAINT "project_revisions_manifest_runtime_check" CHECK (("manifest_version" = 3) AND ("engine" = 'openmidi-midi'::"text") AND ("engine_version" = 'openmidi-midi-3_tone-15.1.22_presets-1'::"text") AND ("arrangement_version_id" IS NOT NULL))
 );
 
 ALTER TABLE "public"."project_revisions" OWNER TO "postgres";
 
-COMMENT ON TABLE "public"."project_revisions" IS 'Immutable canonical Jam Session project revisions.';
+COMMENT ON TABLE "public"."project_revisions" IS 'Immutable canonical OpenMIDI project revisions.';
 
 COMMENT ON COLUMN "public"."project_revisions"."accepted_contribution_id" IS 'Private normalized lineage for a revision created by accepted contribution.';
 
@@ -1322,7 +1322,7 @@ CREATE TABLE IF NOT EXISTS "public"."workspaces" (
     CONSTRAINT "workspaces_lock_version_check" CHECK (("lock_version" > 0)),
     CONSTRAINT "workspaces_manifest_sha256_check" CHECK (("manifest_sha256" ~ '^[0-9a-f]{64}$'::"text")),
     CONSTRAINT "workspaces_status_check" CHECK (("status" = ANY (ARRAY['active'::"text", 'archived'::"text"]))),
-    CONSTRAINT "workspaces_manifest_runtime_check" CHECK (("manifest_version" = 3) AND ("engine" = 'jam-session-midi'::"text") AND ("engine_version" = 'jam-session-midi-3_tone-15.1.22_presets-1'::"text"))
+    CONSTRAINT "workspaces_manifest_runtime_check" CHECK (("manifest_version" = 3) AND ("engine" = 'openmidi-midi'::"text") AND ("engine_version" = 'openmidi-midi-3_tone-15.1.22_presets-1'::"text"))
 );
 
 ALTER TABLE "public"."workspaces" OWNER TO "postgres";

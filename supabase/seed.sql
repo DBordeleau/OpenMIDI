@@ -5,7 +5,7 @@ begin;
 insert into public.reserved_usernames (username_normalized, reason) values
   ('admin','administrative role confusion'),('administrator','administrative role confusion'),
   ('api','application route'),('auth','application route'),('explore','application route'),
-  ('help','support route'),('jam_session','product identity'),('jamsession','product identity'),
+  ('help','support route'),('openmidi','product identity'),
   ('moderator','moderation role confusion'),('null','system value confusion'),
   ('projects','application route'),('root','administrative role confusion'),
   ('settings','application route'),('studio','application route'),
@@ -13,7 +13,7 @@ insert into public.reserved_usernames (username_normalized, reason) values
   ('undefined','system value confusion'),('www','host name confusion');
 
 insert into public.licenses(code,name,url,summary,allows_derivatives,requires_attribution,share_alike,sort_order) values
-  ('all-rights-reserved','All rights reserved','https://jamsession.example/licenses/all-rights-reserved','No contribution or reuse permission is granted.',false,false,false,0),
+  ('all-rights-reserved','All rights reserved','https://openmidi.example/licenses/all-rights-reserved','No contribution or reuse permission is granted.',false,false,false,0),
   ('cc-by-4.0','CC BY 4.0','https://creativecommons.org/licenses/by/4.0/','Derivatives are allowed with attribution.',true,true,false,1),
   ('cc-by-sa-4.0','CC BY-SA 4.0','https://creativecommons.org/licenses/by-sa/4.0/','Derivatives are allowed with attribution and share-alike.',true,true,true,2),
   ('cc0-1.0','CC0 1.0','https://creativecommons.org/publicdomain/zero/1.0/','Public-domain dedication where legally effective.',true,false,false,3);
@@ -69,18 +69,18 @@ insert into public.instruments(id,slug,name,sort_order) values
   ('30000000-0000-4000-8000-000000000010','mallet','Mallet',16);
 
 insert into private.midi_synth_presets(preset_id,version,min_note,max_note,engine_version) values
-  ('drum-machine',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),('electro-kit',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('lofi-kit',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),('percussion-rack',1,35,81,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('sub-bass',1,24,60,'jam-session-midi-3_tone-15.1.22_presets-1'),('analog-bass',1,24,67,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('fm-bass',1,24,72,'jam-session-midi-3_tone-15.1.22_presets-1'),('pluck-bass',1,28,72,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('warm-keys',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('electric-keys',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('organ',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('glass-keys',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('saw-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('square-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('fm-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('soft-lead',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('warm-pad',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('air-pad',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('string-pad',1,24,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('choir-pad',1,36,96,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('muted-pluck',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('bright-pluck',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1'),
-  ('bell',1,48,108,'jam-session-midi-3_tone-15.1.22_presets-1'),('mallet',1,36,108,'jam-session-midi-3_tone-15.1.22_presets-1');
+  ('drum-machine',1,35,81,'openmidi-midi-3_tone-15.1.22_presets-1'),('electro-kit',1,35,81,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('lofi-kit',1,35,81,'openmidi-midi-3_tone-15.1.22_presets-1'),('percussion-rack',1,35,81,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('sub-bass',1,24,60,'openmidi-midi-3_tone-15.1.22_presets-1'),('analog-bass',1,24,67,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('fm-bass',1,24,72,'openmidi-midi-3_tone-15.1.22_presets-1'),('pluck-bass',1,28,72,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('warm-keys',1,24,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('electric-keys',1,24,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('organ',1,24,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('glass-keys',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('saw-lead',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('square-lead',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('fm-lead',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('soft-lead',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('warm-pad',1,24,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('air-pad',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('string-pad',1,24,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('choir-pad',1,36,96,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('muted-pluck',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('bright-pluck',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1'),
+  ('bell',1,48,108,'openmidi-midi-3_tone-15.1.22_presets-1'),('mallet',1,36,108,'openmidi-midi-3_tone-15.1.22_presets-1');
 
 insert into public.midi_library_presets(preset_id,version,family_code,display_name,sort_order) values
   ('drum-machine',1,'drums-percussion','Drum machine',1),
@@ -100,10 +100,12 @@ insert into public.midi_library_presets(preset_id,version,family_code,display_na
   ('bell',1,'plucks-bells-textures','Bell',23),('mallet',1,'plucks-bells-textures','Mallet',24);
 
 insert into public.discovery_state(singleton,version,updated_at)
-values(true,1,'2026-07-16T00:00:00Z');
+values(true,1,'2026-07-16T00:00:00Z')
+on conflict(singleton) do update
+set version=excluded.version,updated_at=excluded.updated_at;
 
 -- Reserved local/CI actor only. The .test TLD cannot receive real sign-ins.
 insert into private.signup_invitations(email_normalized,note)
-values('jam-session-e2e@example.test','local and CI browser test actor');
+values('openmidi-e2e@example.test','local and CI browser test actor');
 
 commit;

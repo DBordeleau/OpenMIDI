@@ -1,6 +1,6 @@
 # Delivery plan and verification
 
-Status: MIDI-only foundation, semantic visual diff, feedback, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, and BADGE-01 complete in repository; eight post-hosted migrations and Vercel deployment deferred
+Status: MIDI-only foundation through RELEASE-01 complete in repository; nine post-hosted migrations and Vercel deployment deferred
 
 ## Implemented foundation
 
@@ -21,17 +21,17 @@ The two-attempt ceiling applies to an unchanged environment blocker. A concrete 
 
 ## Post-pivot MVP sequence
 
-DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, and BADGE-01 are complete in the repository. RELEASE-01 is next.
+DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 are complete in the repository. RELEASE-02 is next.
 
 1. **Wave A — DIFF and FEEDBACK:** complete with landing-matched static semantic comparisons for authorized revision pairs plus authenticated beta feedback and a private administrator queue.
 2. **Wave B — LIB:** complete with rights-gated public pattern listing, commercially reusable and reference-only modes, All/mode Explore filtering, external credits, copyright reporting/moderation, bounded musical search/filtering, browser-local preview/export, any-two-version history diffs, private saved clips, and attributed reusable-only save/import/fork/editor actions.
 3. **Wave C — CHALLENGE:** complete with administrator-curated immutable versions, time-derived phases, authoritative eligibility, exact entries, private serialized voting, popularity-independent rotation, private reports, optimistic moderation, append-only permanent results/corrections, all favorite ties, and canonical featured discovery.
 4. **Wave D — BADGE:** complete with a versioned bounded catalog, transactional exact-current-result issuance, immutable correction evidence, serialized reconciliation, and safe profile cards linking to permanent result/entry context.
-5. **Wave E — RELEASE:** next; coordinate the OpenMIDI frontend/repository rename, seed useful beta content, harden critical paths, configure Vercel, and run production smoke checks.
+5. **Wave E — RELEASE:** RELEASE-01 identity reset is complete; next seed useful beta content and harden critical paths in RELEASE-02, then configure Vercel and run production smoke checks only in authorized RELEASE-03.
 
 DIFF and FEEDBACK are the only parallel-safe product programs by default. Library, challenge, badge, and release slices are dependency-ordered. RELEASE-01 is repository-only and must land before RELEASE-02; its one-time prelaunch identity reset may rewrite clean migration source, add a forward namespace-reconciliation migration, and invalidate local musical fixtures. RELEASE-02 prepares deterministic seed fixtures, operator tooling, and hardening evidence without mutating hosted production data. RELEASE-03 alone may delete existing hosted musical domain data, apply the namespace reconciliation and other reviewed pending migrations, change external OAuth/Supabase/Vercel configuration, seed hosted beta content, or deploy—and only after explicit authority. Research and checklist preparation may run in parallel, but shared application, metadata, migration, seed, generated-type, and release-runbook ownership stays sequential.
 
-The [post-BADGE milestone pulse](evidence/post-badge-milestone-pulse-check.md) records the current checkpoint and clean OpenMIDI namespace decision. The detailed ignored release plan is worker-ready for RELEASE-01.
+The [RELEASE-01 evidence](evidence/release-01-openmidi-identity-reset.md) records the current checkpoint, exact reconciliation migration, preservation boundary, and deferred hosted rollout. The detailed ignored release plan sequences RELEASE-02 next.
 
 See the tracked [roadmap](../ROADMAP.md) for slice outcomes, ordering, and release gates.
 

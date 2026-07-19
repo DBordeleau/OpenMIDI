@@ -26,7 +26,7 @@ export async function generateMetadata({
     ? discoverySearchParams(parsed.data).toString()
     : "";
   return {
-    title: "Explore projects · Jam Session",
+    title: "Explore projects",
     description: "Find public music projects ready for a fresh perspective.",
     alternates: { canonical: query ? `/explore?${query}` : "/explore" },
   };

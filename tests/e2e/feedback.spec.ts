@@ -55,7 +55,7 @@ function setViewerState(viewerId: string, isAdmin: boolean) {
     [
       "exec",
       "-i",
-      "supabase_db_jam-session",
+      "supabase_db_openmidi",
       "psql",
       "-U",
       "postgres",
