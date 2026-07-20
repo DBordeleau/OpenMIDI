@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
 import type { FeaturedChallenge } from "./types";
 
 export function FeaturedChallengeCard({
@@ -24,14 +24,14 @@ export function FeaturedChallengeCard({
         {featured?.challenge.prompt ??
           "Browse completed challenges while the next curated session is prepared."}
       </p>
-      <Link
+      <IntentPrefetchLink
         className="text-accent mt-4 inline-block font-semibold"
         href={
           featured ? `/challenges/${featured.challenge.slug}` : "/challenges"
         }
       >
         {featured ? "Open featured challenge" : "Browse challenges"} →
-      </Link>
+      </IntentPrefetchLink>
     </section>
   );
 }

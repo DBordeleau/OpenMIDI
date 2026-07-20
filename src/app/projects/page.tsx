@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { Container } from "@/components/layout/container";
+import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
@@ -54,7 +54,9 @@ export default async function ProjectsPage({
               something new.
             </p>
           </div>
-          <ButtonLink href="/projects/new">New project</ButtonLink>
+          <ButtonLink href="/projects/new" prefetch={false}>
+            New project
+          </ButtonLink>
         </Reveal>
 
         {query.deleted === "1" && (
@@ -125,12 +127,12 @@ export default async function ProjectsPage({
                     )}
                   </div>
                   <h3 className="mt-4 text-2xl font-semibold tracking-tight">
-                    <Link
+                    <IntentPrefetchLink
                       className="hover:text-accent transition-colors"
                       href={`/projects/${project.id}`}
                     >
                       {project.title}
-                    </Link>
+                    </IntentPrefetchLink>
                   </h3>
                   <p className="text-muted mt-3 line-clamp-3 leading-7">
                     {project.description ||
@@ -144,19 +146,19 @@ export default async function ProjectsPage({
                       </time>
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <Link
+                      <IntentPrefetchLink
                         className="border-strong hover:border-accent hover:text-accent inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors"
                         href={`/projects/${project.id}`}
                       >
                         Open project
-                      </Link>
+                      </IntentPrefetchLink>
                       {project.currentRevisionId || project.role === "owner" ? (
-                        <Link
+                        <IntentPrefetchLink
                           className="cta-gradient inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-transform duration-200 hover:-translate-y-px"
                           href={`/studio/${project.id}`}
                         >
                           Open in studio
-                        </Link>
+                        </IntentPrefetchLink>
                       ) : null}
                     </div>
                   </div>
@@ -168,6 +170,7 @@ export default async function ProjectsPage({
                 <ButtonLink
                   variant="secondary"
                   href={`/projects?scope=${scope}${review ? "&review=1" : ""}&after=${encodeURIComponent(nextCursor)}`}
+                  prefetch={false}
                 >
                   Next projects
                 </ButtonLink>
@@ -187,7 +190,7 @@ export default async function ProjectsPage({
               revision history, and pattern lineage together.
             </p>
             <div className="mt-6">
-              <ButtonLink href="/projects/new">
+              <ButtonLink href="/projects/new" prefetch={false}>
                 Create your first project
               </ButtonLink>
             </div>

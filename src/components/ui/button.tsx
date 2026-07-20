@@ -4,10 +4,12 @@ export function ButtonLink({
   href,
   children,
   variant = "primary",
+  prefetch,
 }: Readonly<{
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary";
+  prefetch?: false;
 }>) {
   const styles =
     variant === "primary"
@@ -16,6 +18,7 @@ export function ButtonLink({
   return (
     <Link
       href={href}
+      prefetch={prefetch}
       className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition motion-reduce:transform-none motion-reduce:transition-none ${styles}`}
     >
       {children}

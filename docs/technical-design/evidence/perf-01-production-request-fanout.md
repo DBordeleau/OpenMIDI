@@ -2,7 +2,7 @@
 
 Date: 2026-07-19
 
-Outcome: Global navigation no longer opts into Next.js viewport prefetch before user intent; post-merge production measurement remains required
+Outcome: Global navigation no longer opts into Next.js viewport prefetch before user intent; the post-merge controlled journey passed the Studio idle target but exposed remaining dashboard and project-index fanout for PERF-02
 
 ## Baseline and limitations
 
@@ -54,9 +54,11 @@ No copy, styling, route, active-state, proxy, Auth authorization, cache, databas
 
 ## Secondary-link audit
 
-No repeated project, library, challenge, contribution, or profile list component changed. Dynamic detail paths appeared in the contaminated baseline, but the sample did not prove that viewport exposure initiated them. Changing those components without a controlled request initiator would be speculative and would exceed PERF-01.
+No repeated project, library, challenge, contribution, or profile list component changed in PERF-01. Dynamic detail paths appeared in the contaminated baseline, but that sample did not yet prove that viewport exposure initiated them. Changing those components in PERF-01 would have been speculative.
 
-After deployment, if a controlled browser trace names an unsolicited dynamic route and proves a repeated component initiated it before intent, optimize only that owning component in a separate evidence-backed change.
+The controlled post-merge journey supplied the missing evidence. Production logs showed unsolicited requests for multiple visible project detail routes, their corresponding Studio routes, `/projects/new`, `/projects`, and dashboard challenge destinations even though the operator chose only one project. Some destinations appeared more than once through separate visible links and/or page/RSC prefetch paths. Exact project identifiers remain intentionally absent from tracked evidence.
+
+That evidence authorizes PERF-02 only for the authenticated dashboard and project index. It does not establish a defect in public discovery, library, challenge, contribution, or profile lists.
 
 ## Verification
 
@@ -79,13 +81,21 @@ Verification completed as follows:
 
 No database validation command was run because there is no database change. The corrected identity preflight attempted only the documented local reduced Auth stack; it did not reach a local reset or test execution and did not contact hosted Supabase.
 
-Studio runtime files were not semantically changed for PERF-01. Source inspection confirms autosave still schedules only after manifest edits, the shared footer remains absent on Studio routes, proxy coverage remains unchanged, playback stays in the browser-only MIDI runtime, and dirty/saving navigation continues through the existing lifecycle coordinator. A production 60-second idle trace remains part of the post-merge measurement because development mode does not reproduce automatic viewport prefetch.
+Studio runtime files were not semantically changed for PERF-01. Source inspection confirms autosave still schedules only after manifest edits, the shared footer remains absent on Studio routes, proxy coverage remains unchanged, playback stays in the browser-only MIDI runtime, and dirty/saving navigation continues through the existing lifecycle coordinator. The post-merge production trace confirmed zero OpenMIDI application requests during an untouched 60-second ready Studio period.
 
 ## Measured outcome and provisional targets
 
-No controlled after measurement is claimed before the automatic production deployment exists. Deterministic tests prove that rendering global chrome alone cannot opt its links into viewport prefetch, but they do not convert the contaminated baseline into a percentage reduction.
+The controlled journey ran against ready production deployment `dpl_4TKnzMgzTCD3PjDth1rxKbkL3Y5K` after PERF-01 merged:
 
-After merge, repeat one fresh sign-in â†’ Studio â†’ project-open journey and one 60-second untouched Studio idle period. The targets remain unchanged:
+| Measurement                                                   |     Result | Provisional target | Verdict |
+| ------------------------------------------------------------- | ---------: | -----------------: | ------- |
+| Sign in â†’ open project â†’ load Studio Edge Requests        |        141 |        at most 100 | Miss    |
+| Sign in â†’ open project â†’ load Studio Function Invocations |         82 |         at most 25 | Miss    |
+| Untouched ready Studio for 60 seconds                         | 0 requests |                  0 | Pass    |
+
+The zero-request idle result rules out an ongoing Studio polling, autosave, playback, or lifecycle request loop in the measured path. The journey totals missed the provisional budgets because the logs still contained unsolicited dashboard and repeated project-card destinations. PERF-02 therefore addresses only those production-proven owners rather than broadening PERF-01 after merge.
+
+After PERF-02 merges, repeat one fresh sign-in â†’ open project â†’ load Studio journey. The targets remain unchanged:
 
 - at least 70% fewer unsolicited navigation-attributable Function requests;
 - zero unrelated global destinations requested solely because the Studio header rendered;

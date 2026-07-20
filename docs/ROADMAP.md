@@ -1,7 +1,7 @@
 # OpenMIDI MVP roadmap
 
 Status: Post-pivot MVP deployed as an invite-only beta
-Current checkpoint: RELEASE-03 complete; PERF-01 request-fanout control complete
+Current checkpoint: RELEASE-03 complete; PERF-02 authenticated content-link request-fanout control complete
 Hosted state: all 16 migrations recorded; approved seed and production deployment live
 
 ## Release target
@@ -158,6 +158,12 @@ Status: Complete. The retained project ledger was reconciled to all 16 reviewed 
 Prevent shared-header and authenticated primary-navigation links from prefetching merely because they enter the viewport, then restore normal Next.js prefetch after pointer or keyboard intent. Keep the shared footer cold, preserve the signed-out-first Auth-independent shell, and leave authorization, Studio lifecycle, and data freshness unchanged.
 
 Status: Complete. Global header navigation now uses one typed intent-prefetch Link primitive, footer links explicitly disable prefetch, and focused tests cover mouse, pointer, keyboard, responsive navigation, Auth transitions, event forwarding, and anchor props. No repeated content-card link changed without causal evidence. The directional baseline, category boundaries, $0 post-merge measurement, expected traffic, and rollback are recorded in the [PERF-01 evidence](technical-design/evidence/perf-01-production-request-fanout.md).
+
+### PERF-02 â€” Bound authenticated content-link request fanout
+
+Use the controlled post-PERF-01 evidence to stop authenticated dashboard destinations and repeated project-index project/Studio links from prefetching merely because they render. Preserve normal navigation and restore the Next.js default after deliberate pointer or keyboard intent; do not broaden the repair to unproven public lists or Studio behavior.
+
+Status: Complete. Dashboard destinations and repeated `/projects` card links now use the established intent-prefetch primitive, while the affected page-level button actions explicitly disable viewport prefetch through a narrow opt-in `ButtonLink` override. Focused coverage preserves routes, empty states, conditional Studio access, accessibility, and intent warming. The causal boundary, verification, pending post-merge measurement, expected traffic, and application-only rollback are recorded in the [PERF-02 evidence](technical-design/evidence/perf-02-content-link-request-fanout.md).
 
 ## Release gates
 
