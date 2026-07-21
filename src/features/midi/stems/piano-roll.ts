@@ -73,10 +73,12 @@ export function pianoKeyLabel(pitch: number) {
 }
 
 export function pianoKeyFace(pitch: number) {
+  // Black faces anchor at the gutter's left edge and stop short, like a real
+  // keyboard seen from the side; white faces run the full gutter width.
   return isBlackPianoKey(pitch)
     ? {
-        x: PIANO_KEY_WIDTH * 0.36,
-        width: PIANO_KEY_WIDTH * 0.64,
+        x: 0,
+        width: PIANO_KEY_WIDTH * 0.72,
         insetY: 1,
       }
     : { x: 0, width: PIANO_KEY_WIDTH, insetY: 0 };
@@ -87,15 +89,16 @@ export function initialPianoScrollTop(input: {
   maxPitch: number;
   viewportHeight: number;
   targetPitch?: number;
+  rowHeight?: number;
 }) {
+  const rowHeight = input.rowHeight ?? PITCH_ROW_HEIGHT;
   const targetPitch = Math.max(
     input.minPitch,
     Math.min(input.maxPitch, input.targetPitch ?? MIDDLE_C_PITCH),
   );
   const rowCenter =
-    (input.maxPitch - targetPitch) * PITCH_ROW_HEIGHT + PITCH_ROW_HEIGHT / 2;
-  const contentHeight =
-    (input.maxPitch - input.minPitch + 1) * PITCH_ROW_HEIGHT;
+    (input.maxPitch - targetPitch) * rowHeight + rowHeight / 2;
+  const contentHeight = (input.maxPitch - input.minPitch + 1) * rowHeight;
   return Math.max(
     0,
     Math.min(

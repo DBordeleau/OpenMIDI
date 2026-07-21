@@ -89,6 +89,8 @@ beforeEach(() => {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
+    fill: vi.fn(),
+    roundRect: vi.fn(),
     fillText: vi.fn(),
     createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
   } as unknown as CanvasRenderingContext2D);
@@ -209,7 +211,7 @@ describe("MIDI editor piano interaction", () => {
       clientY: 205,
     });
     fireEvent.pointerUp(roll, { pointerId: 11, clientX: 185, clientY: 205 });
-    expect(screen.getByText(/draft payload/)).toHaveTextContent("2 selected");
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent("2 selected");
 
     fireEvent.pointerDown(roll, {
       button: 0,
@@ -225,10 +227,10 @@ describe("MIDI editor piano interaction", () => {
       shiftKey: true,
     });
     fireEvent.pointerUp(roll, { pointerId: 12, clientX: 132, clientY: 154 });
-    expect(screen.getByText(/draft payload/)).toHaveTextContent("1 selected");
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent("1 selected");
 
     fireEvent.keyDown(roll, { key: "Escape" });
-    expect(screen.getByText(/draft payload/)).toHaveTextContent("0 selected");
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent("0 selected");
   });
 
   it("moves and copy-drags a marquee selection as one undoable edit each", () => {
@@ -278,16 +280,16 @@ describe("MIDI editor piano interaction", () => {
       ctrlKey: true,
     });
     fireEvent.pointerUp(roll, { pointerId: 23, clientX: 159, clientY: 160 });
-    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent(
       "4 of 2,048 notes",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent(
       "2 of 2,048 notes",
     );
     fireEvent.click(screen.getByRole("button", { name: "Redo" }));
-    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent(
       "4 of 2,048 notes",
     );
   });
@@ -377,13 +379,13 @@ describe("MIDI editor piano interaction", () => {
 
     fireEvent.keyDown(roll, { key: "c", ctrlKey: true });
     fireEvent.keyDown(roll, { key: "v", ctrlKey: true });
-    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent(
       "3 of 2,048 notes",
     );
-    expect(screen.getByText(/draft payload/)).toHaveTextContent("1 selected");
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent("1 selected");
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(screen.getByText(/draft payload/)).toHaveTextContent(
+    expect(screen.getByText(/of 2,048 notes/)).toHaveTextContent(
       "2 of 2,048 notes",
     );
   });

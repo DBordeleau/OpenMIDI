@@ -51,8 +51,8 @@ describe("piano-roll key presentation", () => {
       insetY: 0,
     });
     expect(pianoKeyFace(61)).toEqual({
-      x: PIANO_KEY_WIDTH * 0.36,
-      width: PIANO_KEY_WIDTH * 0.64,
+      x: 0,
+      width: PIANO_KEY_WIDTH * 0.72,
       insetY: 1,
     });
   });

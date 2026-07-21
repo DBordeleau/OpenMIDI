@@ -29,10 +29,10 @@ describe("StudioRevisionSwitcher", () => {
       />,
     );
 
-    expect(screen.getByText("Your draft predates revision 2")).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Revision 2 (latest)" }),
-    );
+    expect(
+      screen.getByLabelText("Your draft predates revision 2"),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Revision 2" }));
     expect(requestNavigation).toHaveBeenCalledWith(
       `/studio/${projectId}?revision=${revisionId}`,
     );

@@ -376,8 +376,12 @@ export function StudioShell({
             </button>
           )}
 
+          {/* The project page portals its draft/revision source toggle here so
+              it lives in the top bar instead of a space-eating banner. */}
+          <div id="studio-source-slot" className="contents" />
+
           <span
-            className="text-muted ml-auto hidden pr-1 text-xs sm:inline"
+            className="text-muted ml-auto hidden pr-2 text-xs sm:inline"
             role="status"
           >
             {switchTarget
@@ -386,6 +390,14 @@ export function StudioShell({
                 ? "Project session"
                 : "Blank session"}
           </span>
+          <button
+            type="button"
+            onClick={() => requestNavigation("/dashboard")}
+            disabled={Boolean(switchTarget)}
+            className="border-strong hover:border-accent hover:text-accent inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            Exit Studio
+          </button>
         </header>
 
         {switchTarget && (

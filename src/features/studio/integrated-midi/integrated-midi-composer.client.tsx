@@ -215,7 +215,7 @@ export function IntegratedMidiComposer({
 
   return (
     <section
-      className="rounded-card border-accent bg-surface flex min-h-0 flex-1 flex-col gap-3 border p-4 sm:px-6 sm:py-4"
+      className="rounded-card border-accent/60 bg-surface/40 flex min-h-0 flex-1 flex-col gap-3 border p-4 backdrop-blur-md sm:px-6 sm:py-4"
       aria-labelledby="integrated-midi-heading"
     >
       <h2 id="integrated-midi-heading" className="sr-only">

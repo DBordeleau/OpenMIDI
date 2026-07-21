@@ -27,6 +27,7 @@ import {
   FiUpload,
   FiX,
 } from "react-icons/fi";
+import { midiPitchName } from "@/features/midi/stems/piano-roll";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
 import type { WorkspaceManifestV2, WorkspaceTrackV2 } from "../manifest/v2";
 import { type ArrangerSelection, moveSelection } from "./selection";
@@ -57,7 +58,7 @@ const TRACK_HUES = ["#ffc879", "#ff8d63", "#e77aa6", "#ffb08f", "#c6adb4"];
 const iconButton =
   "border-strong text-muted hover:border-accent hover:text-accent grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-40";
 const channelButton =
-  "border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-40";
+  "border-strong text-muted hover:border-accent hover:text-accent grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs transition-colors disabled:opacity-40";
 const AUTO_SCROLL_EDGE = 56;
 const AUTO_SCROLL_SPEED = 16;
 const button =
@@ -823,7 +824,7 @@ export function ArrangerWorkspace(props: Props) {
                           duration: reduce ? 0 : 0.3,
                           ease: [0.2, 0.8, 0.2, 1],
                         }}
-                        className={`border-subtle grid h-44 grid-cols-[17rem_1fr] border-b ${selected ? "bg-surface-soft" : ""} ${trackDrag?.targetIndex === trackIndex || clipDrag?.targetTrackId === track.trackId ? "ring-accent ring-2 ring-inset" : ""}`}
+                        className={`border-subtle grid h-30 grid-cols-[17rem_1fr] border-b ${selected ? "bg-surface-soft" : ""} ${trackDrag?.targetIndex === trackIndex || clipDrag?.targetTrackId === track.trackId ? "ring-accent ring-2 ring-inset" : ""}`}
                       >
                         <div className="border-subtle bg-surface/85 sticky left-0 z-20 border-r p-2.5 pl-4 backdrop-blur-md">
                           <span
@@ -848,11 +849,11 @@ export function ArrangerWorkspace(props: Props) {
                             <span className="block truncate text-sm font-semibold">
                               {track.name}
                             </span>
-                            <span className="text-muted block truncate text-[11px]">
-                              {track.instrument} · {track.creditName}
-                            </span>
-                            <span className="text-accent-2 mt-1 block text-[10px] font-semibold uppercase">
-                              Ready · note summary
+                            <span className="text-muted block truncate font-mono text-[10px]">
+                              {track.instrument} ·{" "}
+                              <span className="text-accent-2">
+                                {track.creditName}
+                              </span>
                             </span>
                           </button>
                           <div className="mt-1 grid grid-cols-2 gap-2">
@@ -893,7 +894,7 @@ export function ArrangerWorkspace(props: Props) {
                               />
                             </label>
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <div className="mt-1.5 flex items-center gap-1">
                             <MixerButton
                               label={`Mute ${track.name}`}
                               active={track.muted}
@@ -1016,7 +1017,7 @@ export function ArrangerWorkspace(props: Props) {
                                 type="button"
                                 key={clip.clipId}
                                 data-clip-id={clip.clipId}
-                                className="focus-visible:ring-accent absolute top-4 h-36 overflow-hidden rounded-xl border text-left shadow-[0_4px_16px_rgb(0_0_0/0.38)] transition-[filter] hover:brightness-110 focus-visible:ring-2"
+                                className="focus-visible:ring-accent absolute top-1.5 bottom-1.5 overflow-hidden rounded-xl border text-left shadow-[0_4px_16px_rgb(0_0_0/0.38)] transition-[filter] hover:brightness-110 focus-visible:ring-2"
                                 style={{
                                   left,
                                   width,
@@ -1238,77 +1239,134 @@ export function ArrangerWorkspace(props: Props) {
           </div>
         </div>
         <aside
-          className="border-subtle bg-surface-raised/40 hidden w-80 shrink-0 flex-col gap-2 overflow-y-auto border-l p-4 backdrop-blur-md xl:flex"
+          className="border-subtle bg-surface-raised/40 hidden w-80 shrink-0 flex-col gap-6 overflow-y-auto border-l p-5 backdrop-blur-md xl:flex"
           aria-label="Clip inspector"
         >
-          <p className="text-accent font-mono text-[10px] tracking-widest uppercase">
-            Clip
-          </p>
-          {selectedClip && selectedTrack && !contextMenu ? (
-            <ClipInspector
-              key={selectedClip.clipId}
-              clip={selectedClip}
-              track={selectedTrack}
-              editable={props.editable}
-              midiVersions={props.midiVersions}
-              onPatch={(patch, group) =>
-                props.onCommand(
-                  {
-                    type: "patchClip",
-                    trackId: selectedTrack.trackId,
-                    clipId: selectedClip.clipId,
-                    patch,
-                  },
-                  `${selectedClip.clipId}:${group}`,
-                )
-              }
-              onReplace={(versionId) =>
-                props.onReplaceVersion(
-                  selectedTrack.trackId,
-                  selectedClip.clipId,
-                  versionId,
-                )
-              }
-              onEdit={() =>
-                props.onEditMidiClip(selectedTrack.trackId, selectedClip.clipId)
-              }
-              canPaste={clipboard?.kind === selectedTrack.kind}
-              onCopy={() =>
-                setClipboard(
-                  copyArrangementClip(
-                    props.manifest,
-                    selectedTrack.trackId,
-                    selectedClip.clipId,
-                  ),
-                )
-              }
-              onPaste={() => {
-                if (!clipboard) return;
-                props.onCommand({
-                  type: "pasteClip",
-                  targetTrackId: selectedTrack.trackId,
-                  clipboard,
-                  newClipId: crypto.randomUUID(),
-                  startTick: props.playheadTick,
-                });
-              }}
-              onDelete={() => {
-                props.onCommand({
-                  type: "deleteMidiClip",
-                  trackId: selectedTrack.trackId,
-                  clipId: selectedClip.clipId,
-                });
-                setSelection({
-                  kind: "track",
-                  trackId: selectedTrack.trackId,
-                });
-              }}
-            />
-          ) : (
-            <p className="text-muted text-sm leading-6">
-              Select a clip on the timeline to inspect its exact start, length,
-              loop, and pattern version here.
+          <div>
+            <p className="text-accent mb-2 font-mono text-[10px] tracking-widest uppercase">
+              Clip
             </p>
+            {selectedClip && selectedTrack ? (
+              <>
+                <h3 className="truncate text-lg font-semibold">
+                  {selectedTrack.name} clip
+                </h3>
+                <p className="text-muted truncate font-mono text-[11px]">
+                  {selectedTrack.instrument ?? "No preset"} ·{" "}
+                  <span className="text-accent-2">
+                    {selectedClip.creditName}
+                  </span>
+                </p>
+                <dl className="mt-3">
+                  {(
+                    [
+                      [
+                        "Start",
+                        formatMusicalPosition(
+                          selectedClip.startTick,
+                          view.timeSignature,
+                        ),
+                      ],
+                      ["Length", formatBars(selectedClip, view.timeSignature)],
+                      ["Loop", selectedClip.loop ? "On" : "—"],
+                      ["Notes", String(selectedClip.notes.length)],
+                      ["Pitch range", formatPitchRange(selectedClip.notes)],
+                      ["Preset", selectedTrack.instrument ?? "—"],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="border-subtle flex items-center justify-between gap-3 border-b py-2"
+                    >
+                      <dt className="text-muted font-mono text-[10px] tracking-widest uppercase">
+                        {label}
+                      </dt>
+                      <dd className="m-0 truncate text-right font-mono text-xs tabular-nums">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {selectedTrack.kind === "midi" && (
+                  <button
+                    type="button"
+                    className="cta-gradient mt-4 min-h-11 w-full rounded-full text-sm font-semibold"
+                    onClick={() =>
+                      props.onEditMidiClip(
+                        selectedTrack.trackId,
+                        selectedClip.clipId,
+                      )
+                    }
+                  >
+                    Open in MIDI editor
+                  </button>
+                )}
+                <p className="text-muted mt-3 text-[11px] leading-5">
+                  Right-click the clip for exact tick, offset, and version
+                  controls.
+                </p>
+              </>
+            ) : (
+              <p className="text-muted text-sm leading-6">
+                Select a clip on the timeline to inspect its start, length,
+                loop, and pattern version here.
+              </p>
+            )}
+          </div>
+
+          {selectedTrack && (
+            <div>
+              <p className="text-accent mb-2 font-mono text-[10px] tracking-widest uppercase">
+                Track
+              </p>
+              <dl>
+                {(
+                  [
+                    ["Gain", `${selectedTrack.gainDb.toFixed(1)} dB`],
+                    ["Pan", formatPan(selectedTrack.pan)],
+                    ["Instrument", selectedTrack.instrument ?? "—"],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="border-subtle flex items-center justify-between gap-3 border-b py-2"
+                  >
+                    <dt className="text-muted font-mono text-[10px] tracking-widest uppercase">
+                      {label}
+                    </dt>
+                    <dd className="m-0 truncate text-right font-mono text-xs tabular-nums">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {view.tracks.length > 0 && (
+            <div className="border-subtle rounded-card border bg-linear-to-b from-[rgb(48_33_56/0.45)] to-[rgb(20_13_25/0.45)] p-4">
+              <h4 className="font-serif text-base font-medium italic">
+                Session credits
+              </h4>
+              <dl className="mt-2">
+                {view.tracks.map((track) => (
+                  <div
+                    key={track.trackId}
+                    className="border-subtle flex items-center justify-between gap-3 border-b py-1.5 last:border-b-0"
+                  >
+                    <dt className="text-muted truncate font-mono text-[10px] tracking-widest uppercase">
+                      {track.name}
+                    </dt>
+                    <dd className="text-accent-2 m-0 truncate font-mono text-[11px]">
+                      {track.creditName}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="border-strong text-muted mt-3 rounded-lg border border-dashed px-2 py-1 text-center font-mono text-[9px] tracking-[0.2em] uppercase">
+                Always attributed
+              </p>
+            </div>
           )}
         </aside>
       </div>
@@ -1453,7 +1511,7 @@ function MixerButton(props: {
       aria-pressed={props.active}
       disabled={props.disabled}
       onClick={props.onClick}
-      className={`grid h-8 w-8 place-items-center rounded-full border text-xs font-bold ${props.active ? "bg-accent text-accent-contrast border-transparent" : "border-strong text-muted"}`}
+      className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-bold ${props.active ? "bg-accent text-accent-contrast border-transparent" : "border-strong text-muted"}`}
     >
       {props.children}
     </button>
@@ -1481,7 +1539,7 @@ function MidiNotes({
   const low = Math.min(...pitches, 48);
   const high = Math.max(...pitches, 72);
   return (
-    <span aria-hidden className="absolute inset-x-0 top-6 bottom-0">
+    <span aria-hidden className="absolute inset-x-0 top-5 bottom-0.5">
       {notes.map((note) => (
         <span
           key={note.noteId}
@@ -1669,4 +1727,34 @@ function formatMusicalPosition(
   const beatTicks = (480 * 4) / signature.denominator;
   const beatIndex = Math.floor(tick / beatTicks);
   return `${Math.floor(beatIndex / signature.numerator) + 1}.${(beatIndex % signature.numerator) + 1}.${Math.round(tick % beatTicks)}`;
+}
+
+function formatBars(
+  clip: { durationTicks: number },
+  signature: { numerator: number; denominator: number },
+) {
+  const barTicks = ((480 * 4) / signature.denominator) * signature.numerator;
+  const bars = clip.durationTicks / barTicks;
+  const rounded = Number.isInteger(bars) ? String(bars) : bars.toFixed(1);
+  return `${rounded} ${rounded === "1" ? "bar" : "bars"}`;
+}
+
+function formatPitchRange(notes: readonly { pitch: number }[]) {
+  if (!notes.length) return "—";
+  let low = notes[0].pitch;
+  let high = notes[0].pitch;
+  for (const note of notes) {
+    if (note.pitch < low) low = note.pitch;
+    if (note.pitch > high) high = note.pitch;
+  }
+  return low === high
+    ? midiPitchName(low)
+    : `${midiPitchName(low)} – ${midiPitchName(high)}`;
+}
+
+function formatPan(pan: number) {
+  if (pan === 0) return "C";
+  return pan < 0
+    ? `L${Math.round(-pan * 100)}`
+    : `R${Math.round(pan * 100)}`;
 }
