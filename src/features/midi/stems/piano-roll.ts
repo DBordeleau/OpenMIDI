@@ -96,8 +96,7 @@ export function initialPianoScrollTop(input: {
     input.minPitch,
     Math.min(input.maxPitch, input.targetPitch ?? MIDDLE_C_PITCH),
   );
-  const rowCenter =
-    (input.maxPitch - targetPitch) * rowHeight + rowHeight / 2;
+  const rowCenter = (input.maxPitch - targetPitch) * rowHeight + rowHeight / 2;
   const contentHeight = (input.maxPitch - input.minPitch + 1) * rowHeight;
   return Math.max(
     0,
