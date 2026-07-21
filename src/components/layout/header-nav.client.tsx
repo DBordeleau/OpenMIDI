@@ -1,64 +1,33 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useViewerIdentity } from "@/features/auth/use-viewer-identity.client";
+import { AccountMenu } from "./account-menu.client";
+import { useHeaderPathname } from "./header-route.client";
 import { PrimaryNavigation } from "./primary-navigation.client";
 
 const sectionLinks = [
-  { href: "/explore", label: "Explore" },
   { href: "/library", label: "The MIDI Library" },
   { href: "/#versioning", label: "Versioning" },
   { href: "/challenges", label: "Challenges" },
 ] as const;
 
 /**
- * The header adapts to auth state: signed-out visitors get the marketing shell
- * (section links that smooth-scroll the landing page), while signed-in members
- * get the app's primary workspace navigation. Note the shared header is hidden
- * on the landing itself (it ships its own nav); these links matter when a
- * visitor jumps to a landing section from another route.
+ * The header adapts to auth state, but both states now share the landing nav's
+ * shape: quiet 13px links on the left of the action, one pill-or-avatar control
+ * on the right. Signed-out visitors get the marketing sections (these matter
+ * when a visitor jumps to a landing section from another route, since the
+ * landing ships its own nav); signed-in members get the workspace navigation
+ * plus the avatar account menu.
  */
 export function HeaderNav() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const pathname = usePathname();
+  const viewer = useViewerIdentity(useHeaderPathname());
 
-  useEffect(() => {
-    let active = true;
-    let supabase: ReturnType<typeof createSupabaseBrowserClient>;
-
-    try {
-      supabase = createSupabaseBrowserClient();
-    } catch {
-      return;
-    }
-
-    async function refreshClaims() {
-      const { data, error } = await supabase.auth.getClaims();
-      if (active) setIsSignedIn(!error && Boolean(data?.claims?.sub));
-    }
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      queueMicrotask(() => void refreshClaims());
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [pathname]);
-
-  if (isSignedIn) {
+  if (viewer.signedIn) {
     return (
       <>
         <PrimaryNavigation />
-        <IntentPrefetchLink
-          href="/settings/profile"
-          className="cta-gradient text-accent-contrast order-2 hidden min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition-transform hover:-translate-y-px sm:order-3 sm:inline-flex"
-        >
-          Account
-        </IntentPrefetchLink>
+        <AccountMenu viewer={viewer} />
       </>
     );
   }
@@ -67,13 +36,13 @@ export function HeaderNav() {
     <>
       <nav
         aria-label="Sections"
-        className="order-3 flex w-full min-w-0 items-center gap-1 overflow-x-auto text-sm sm:order-2 sm:w-auto"
+        className="order-3 flex w-full min-w-0 items-center gap-5 overflow-x-auto sm:order-2 sm:w-auto lg:gap-7"
       >
         {sectionLinks.map((link) => (
           <IntentPrefetchLink
             key={link.href}
             href={link.href}
-            className="text-muted hover:text-accent rounded-full px-3 py-2 font-medium whitespace-nowrap transition-colors"
+            className="text-muted hover:text-accent inline-flex min-h-11 items-center text-[13px] font-semibold tracking-[0.01em] whitespace-nowrap transition-colors"
           >
             {link.label}
           </IntentPrefetchLink>
@@ -81,7 +50,7 @@ export function HeaderNav() {
       </nav>
       <IntentPrefetchLink
         href="/sign-in"
-        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-semibold transition-colors sm:order-3 sm:px-5"
+        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-all hover:-translate-y-px sm:order-3"
       >
         Sign in
       </IntentPrefetchLink>

@@ -91,6 +91,13 @@ html {
   background: var(--color-canvas);
   color: var(--color-text);
   scroll-behavior: smooth;
+  /* Always reserve the scrollbar track. Without it, any route that stops
+     scrolling — most visibly the Studio, which locks body overflow below —
+     reclaims the scrollbar's width and shifts the centred content container
+     sideways. That snapped the header's avatar to the right in the middle of
+     the slide-away animation, and it jitters ordinary short↔tall navigations
+     too. Overlay-scrollbar platforms reserve nothing and are unaffected. */
+  scrollbar-gutter: stable;
 }
 body {
   min-width: 320px;
@@ -190,6 +197,73 @@ a {
    above does not apply. */
 html:has([data-studio-scale]) {
   font-size: clamp(14px, 0.5vw + 8.5px, 21px);
+
+  /* …but that scale must not reach the shared header on its way out.
+     `--content-width` is 76rem, so raising the root font size widens every
+     `Container` — and the header's nav and avatar are anchored to the right
+     edge of one, so they lurched up to ~190px rightward just before the header
+     animated away (worse on bigger displays, where the clamp lands higher).
+     Pinning the width to its unscaled equivalent costs nothing: the Studio is
+     full-bleed and never renders a `Container`, so while this rule is active
+     the exiting header is the only thing it can affect. */
+  --content-width: calc(76 * 16px);
+}
+
+/* The Studio is a fixed full-viewport window; the page behind it never
+   scrolls. Holding that here also keeps the shared header's slide-away
+   collapse (ConditionalHeader) from flashing a scrollbar while the last
+   pixels of its height are still in flow. */
+html:has([data-studio-scale]) body {
+  overflow: hidden;
+}
+
+/* Navigation dropdown sheet (Explore, account). The studio's glass treatment
+   carrying a whisper of the signature coral→gold gradient, so an open menu
+   reads as part of the same lit room as the header instead of a flat purple
+   block. The accent never becomes a fill — it is a corner bloom and a lit top
+   edge — so muted menu text keeps its AA contrast (§2 of docs/design/brand.md).
+   Position and radius are deliberately left to utilities; note that unlayered
+   rules here would otherwise beat them. */
+.nav-glass {
+  background:
+    radial-gradient(
+      22rem 13rem at 88% -12%,
+      color-mix(in srgb, var(--color-accent) 15%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      18rem 12rem at 4% 110%,
+      color-mix(in srgb, var(--color-accent-2) 10%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--color-surface-raised) 82%, transparent),
+      color-mix(in srgb, var(--color-surface-soft) 88%, transparent)
+    );
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  box-shadow:
+    0 1.75rem 4rem -1.5rem rgb(0 0 0 / 90%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+/* The signature gradient as a lit edge rather than a fill. */
+.nav-glass::before {
+  content: "";
+  position: absolute;
+  inset-inline: 1.25rem;
+  top: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    var(--color-accent-2),
+    transparent
+  );
+  opacity: 0.7;
 }
 
 .studio-glass {

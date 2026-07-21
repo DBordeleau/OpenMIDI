@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -25,36 +31,78 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+function openExplore() {
+  const nav = screen.getByRole("navigation", { name: "Primary" });
+  fireEvent.click(within(nav).getByRole("button", { name: "Explore" }));
+  return nav;
+}
+
 describe("PrimaryNavigation", () => {
   beforeEach(() => usePathname.mockReturnValue("/"));
   afterEach(cleanup);
 
-  it("exposes every implemented top-level workspace", () => {
+  it("keeps the workspace to four top-level destinations", () => {
     render(<PrimaryNavigation />);
 
-    for (const [name, href] of [
-      ["Dashboard", "/dashboard"],
-      ["Studio", "/studio"],
-      ["My projects", "/projects"],
-      ["New project", "/projects/new"],
-      ["Contributions", "/contributions"],
-    ] as const)
-      expect(
-        screen
-          .getAllByRole("link", { name })
-          .every((link) => link.getAttribute("href") === href),
-      ).toBe(true);
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(
+      within(nav).getByRole("link", { name: "Dashboard" }),
+    ).toHaveAttribute("href", "/dashboard");
+    expect(within(nav).getByRole("link", { name: "Studio" })).toHaveAttribute(
+      "href",
+      "/studio",
+    );
+    expect(within(nav).getAllByRole("link")).toHaveLength(2);
+    expect(
+      within(nav).getByRole("button", { name: "Explore" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    // Account destinations moved behind the avatar menu.
+    expect(screen.queryByRole("link", { name: "Contributions" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
     expect(screen.getByText("Menu")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Uploads" })).toBeNull();
+  });
+
+  it("groups discovery destinations behind Explore", () => {
+    render(<PrimaryNavigation />);
+    const nav = openExplore();
+
+    for (const [name, href] of [
+      ["MIDI Library", "/library"],
+      ["Projects", "/explore"],
+      ["Challenges", "/challenges"],
+    ] as const)
+      expect(within(nav).getByRole("link", { name })).toHaveAttribute(
+        "href",
+        href,
+      );
+    expect(
+      within(nav).getByRole("button", { name: "Explore" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("marks Explore current for any destination it owns", () => {
+    usePathname.mockReturnValue("/library/listing-id");
+    render(<PrimaryNavigation />);
+    const nav = openExplore();
+
+    expect(
+      within(nav).getByRole("link", { name: "MIDI Library" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(nav).getByRole("link", { name: "Projects" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(
+      within(nav).getByRole("link", { name: "Dashboard" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("prefetches desktop and mobile destinations only after intent", () => {
     render(<PrimaryNavigation />);
 
     const studioLinks = screen.getAllByRole("link", { name: "Studio" });
-    const accountLink = screen.getByRole("link", { name: "Account" });
     expect(
-      [...studioLinks, accountLink].every(
+      studioLinks.every(
         (link) => link.getAttribute("data-prefetch") === "false",
       ),
     ).toBe(true);
@@ -64,7 +112,7 @@ describe("PrimaryNavigation", () => {
     expect(studioLinks[1]).toHaveAttribute("data-prefetch", "false");
   });
 
-  it("marks Studio separately from project routes and project creation", () => {
+  it("marks Studio separately from project studio routes", () => {
     usePathname.mockReturnValue("/studio/project-id");
     const { rerender } = render(<PrimaryNavigation />);
     expect(
@@ -72,52 +120,12 @@ describe("PrimaryNavigation", () => {
         .getAllByRole("link", { name: "Studio" })
         .every((link) => link.getAttribute("aria-current") === "page"),
     ).toBe(true);
-    expect(
-      screen
-        .getAllByRole("link", { name: "My projects" })
-        .every((link) => !link.hasAttribute("aria-current")),
-    ).toBe(true);
 
     usePathname.mockReturnValue("/projects/project-id/studio");
     rerender(<PrimaryNavigation />);
     expect(
       screen
         .getAllByRole("link", { name: "Studio" })
-        .every((link) => !link.hasAttribute("aria-current")),
-    ).toBe(true);
-    expect(
-      screen
-        .getAllByRole("link", { name: "My projects" })
-        .every((link) => !link.hasAttribute("aria-current")),
-    ).toBe(true);
-
-    usePathname.mockReturnValue("/projects/new");
-    rerender(<PrimaryNavigation />);
-    expect(
-      screen
-        .getAllByRole("link", { name: "New project" })
-        .every((link) => link.getAttribute("aria-current") === "page"),
-    ).toBe(true);
-    expect(
-      screen
-        .getAllByRole("link", { name: "My projects" })
-        .every((link) => !link.hasAttribute("aria-current")),
-    ).toBe(true);
-  });
-
-  it("marks only Contributions current on nested contribution routes", () => {
-    usePathname.mockReturnValue(
-      "/projects/project-id/contributions/contribution-id",
-    );
-    render(<PrimaryNavigation />);
-    expect(
-      screen
-        .getAllByRole("link", { name: "Contributions" })
-        .every((link) => link.getAttribute("aria-current") === "page"),
-    ).toBe(true);
-    expect(
-      screen
-        .getAllByRole("link", { name: "My projects" })
         .every((link) => !link.hasAttribute("aria-current")),
     ).toBe(true);
   });

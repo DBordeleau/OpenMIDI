@@ -1,5 +1,6 @@
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -84,7 +85,7 @@ describe("SiteHeader", () => {
     ).toBe(true);
   });
 
-  it("keeps both signed-out and signed-in header links cold before intent", async () => {
+  it("swaps to the workspace nav and avatar account menu when signed in", async () => {
     getClaims.mockResolvedValue({
       data: { claims: { sub: "viewer-id" } },
       error: null,
@@ -98,10 +99,39 @@ describe("SiteHeader", () => {
 
     await waitFor(() =>
       expect(
-        screen
-          .getAllByRole("link", { name: "Account" })
-          .every((link) => link.getAttribute("data-prefetch") === "false"),
-      ).toBe(true),
+        screen.getByRole("button", { name: "Account menu" }),
+      ).toBeInTheDocument(),
     );
+    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+
+    // Navigation stays request-bounded: nothing prefetches before intent.
+    expect(
+      screen
+        .getAllByRole("link")
+        .every((link) => link.getAttribute("data-prefetch") === "false"),
+    ).toBe(true);
+  });
+
+  it("opens the account menu with the destinations moved out of the nav bar", async () => {
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: "viewer-id" } },
+      error: null,
+    });
+    render(<SiteHeader />);
+
+    const trigger = await screen.findByRole("button", { name: "Account menu" });
+    fireEvent.click(trigger);
+
+    for (const [name, href] of [
+      ["My projects", "/projects"],
+      ["Saved clips", "/library/saved"],
+      ["Contributions", "/contributions"],
+      ["Edit profile", "/settings/profile"],
+    ] as const)
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    expect(
+      screen.getByRole("button", { name: "Sign out" }),
+    ).toBeInTheDocument();
   });
 });

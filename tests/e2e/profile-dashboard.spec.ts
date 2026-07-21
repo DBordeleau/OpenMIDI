@@ -38,6 +38,15 @@ test.describe("profile dashboard navigation", () => {
     await expect(
       mobile.getByRole("link", { name: "Dashboard" }),
     ).toHaveAttribute("aria-current", "page");
-    await expect(mobile.getByRole("link", { name: "Account" })).toBeVisible();
+    await expect(
+      mobile.getByRole("link", { name: "MIDI Library" }),
+    ).toBeVisible();
+    // Account destinations live behind the avatar control, which stays visible
+    // at 320px instead of hiding inside the disclosure.
+    const account = page.getByRole("button", { name: "Account menu" });
+    await expect(account).toBeVisible();
+    await account.click();
+    await expect(page.getByRole("link", { name: "My projects" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   });
 });

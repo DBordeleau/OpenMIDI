@@ -231,13 +231,73 @@ a **bright** (`text-ink/90`) change summary. Fork nodes indent with a berry
 connector. The brightness split — muted author vs. bright summary — is intentional
 hierarchy; preserve it.
 
-**Header** — the logo is soft sans-bold with a coral→gold gradient dot; the logo
-and nav links hover to `text-accent`. The header is auth-aware
-([`HeaderNav`](../../src/components/layout/header-nav.client.tsx)): signed-out
-visitors get marketing section links (`/#how`, `/#console`, `/#credits`) that
-smooth-scroll the landing plus a single "Sign in" pill; signed-in members get the
-app workspace nav and an "Account" action. Never show the app nav to signed-out
-visitors.
+**Header** — the shared header and the landing nav are one design. Both use the
+[`BrandMark`](../../src/components/layout/brand-mark.tsx) three-bar logo beside
+the `Open` + muted `MIDI` wordmark, quiet `text-[13px]` semibold links in
+`text-muted` that hover to `text-accent`, and a single pill-or-avatar action on
+the right. Do not let the two drift apart again: a visitor should not be able to
+tell that signing in swapped the component.
+
+The header is auth-aware
+([`HeaderNav`](../../src/components/layout/header-nav.client.tsx)). Signed-out
+visitors get marketing section links (The MIDI Library, Versioning, Challenges)
+plus a ghost "Sign in" pill. Signed-in members get exactly **four** top-level
+items — Dashboard, Explore, Studio, and the avatar — because a flat list of every
+destination read as clutter. Discovery groups under **Explore** (MIDI Library,
+Projects, Challenges) and everything account-shaped groups under the **avatar**
+(My projects, Saved clips, Contributions, Edit profile, Sign out). Never show the
+app nav to signed-out visitors, and keep new destinations inside an existing
+group rather than adding a fifth top-level item.
+
+**Nav dropdown** — [`NavMenu`](../../src/components/layout/nav-menu.client.tsx)
+is the shared panel for both groups: a disclosure (button + `aria-expanded`,
+_not_ ARIA menu roles, so Tab order stays predictable over ordinary links) that
+closes on Escape, outside pointerdown, focus-out, and any completed navigation.
+Open-ness is stored as _the route it was opened on_, so navigating closes it
+without an effect chasing the pathname. The trigger chevron rotates 180° when
+open.
+
+The panel wears `.nav-glass` (`globals.css`), not a flat `bg-surface-raised`
+fill: the `.studio-glass` blur/saturate treatment plus a coral corner bloom, a
+gold bottom-left bloom, and a lit coral→gold hairline along the top edge. The
+signature gradient appears as **light on the sheet, never as a fill** — a
+gradient background would strand the muted menu text below AA (§2). Menu rows
+hover on `bg-ink/[0.07]`, a warm sheen that works on translucency, rather than an
+opaque surface token.
+
+**Account control** — the signed-in action is the viewer's own avatar
+([`AccountMenu`](../../src/components/layout/account-menu.client.tsx)), not a
+labelled "Account" button. Its identity comes from
+[`useViewerIdentity`](../../src/features/auth/use-viewer-identity.client.ts),
+which reads verified browser claims plus the safe `public_profiles` projection.
+That path is **display-only and never an authorization boundary**; an incomplete
+or unavailable profile falls back to initials rather than blocking the header.
+
+**Header enter/exit** — the shared header animates away when you enter the
+Studio ([`ConditionalHeader`](../../src/components/layout/conditional-header.client.tsx)):
+it slides up and collapses its height over 340ms so the reclaimed space is
+visibly handed to the timeline, and plays in reverse on the way out. That motion
+is the only thing that explains why the nav vanished, so keep it. Reduced motion
+gets a plain cross-fade. Sticky positioning lives on the animating wrapper, and
+clipping is applied _only_ mid-collapse so the dropdown panels can escape the
+header box at rest. The landing (`/`) still swaps instantly — it ships its own
+overlay nav, so there is nothing to reconcile.
+
+Two traps this animation already fell into, both of which showed up **only when
+entering** the Studio (on the way out the header mounts fresh, already correct):
+
+1. **The exiting subtree is still live.** It stays mounted for the full 340ms, so
+   anything inside reading `usePathname()` restyles itself mid-fade — the Studio
+   link lights up, the identity effect blanks the avatar, open panels slam shut.
+   Header components therefore read
+   [`useHeaderPathname`](../../src/components/layout/header-route.client.tsx),
+   whose value is captured by a provider _inside_ the animated element, so
+   `AnimatePresence` freezes it for free. Never reach for `usePathname()` inside
+   the header.
+2. **Losing the scrollbar shifts the layout.** The Studio locks `body` overflow,
+   which reclaims the scrollbar's width and slides the centred container
+   sideways — the avatar visibly snapped right mid-animation. `html` now sets
+   `scrollbar-gutter: stable` so the track is always reserved.
 
 **Sign-in modal** — [`SignInModal`](../../src/app/sign-in/_components/sign-in-modal.client.tsx)
 presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
@@ -307,7 +367,11 @@ pages, the create/edit form.
 
 - **Container**: `max-w-[var(--content-width)]` (76rem) via
   [`Container`](../../src/components/layout/container.tsx), which now accepts an
-  optional `id` for in-page section anchors.
+  optional `id` for in-page section anchors. The Studio is a full-bleed exception
+  and never renders one — which is why `globals.css` pins `--content-width` to
+  its unscaled pixel equivalent while `[data-studio-scale]` is active. That
+  fluid rem scale would otherwise widen the shared header's container by up to
+  ~190px in the middle of its slide-away, throwing the nav and avatar rightward.
 - **Radius**: `--radius-control` (0.75rem) for inputs/compact controls,
   `--radius-card` (1.25rem) for cards, `rounded-full` for CTAs.
 - **Section rhythm**: `py-20 sm:py-24` per section; hero uses more bottom room.
@@ -338,6 +402,11 @@ pages, the create/edit form.
 | Hero MIDI grid            | `src/app/(public)/_components/hero-midi-grid.tsx`                         |
 | Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`                    |
 | Header / nav              | `src/components/layout/header-nav.client.tsx`                             |
+| Workspace nav (4 items)   | `src/components/layout/primary-navigation.client.tsx`                     |
+| Nav dropdown panel        | `src/components/layout/nav-menu.client.tsx`                               |
+| Avatar account menu       | `src/components/layout/account-menu.client.tsx`                           |
+| Header enter/exit motion  | `src/components/layout/conditional-header.client.tsx`                     |
+| Brand mark (shared logo)  | `src/components/layout/brand-mark.tsx`                                    |
 | Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`                    |
 | MIDI Studio surface       | `src/features/studio/midi-adapter/midi-studio-surface.client.tsx`         |
 | Unified arranger          | `src/features/studio/arranger/arranger-workspace.tsx`                     |

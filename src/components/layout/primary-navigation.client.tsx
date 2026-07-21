@@ -1,76 +1,43 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { FiChevronDown } from "react-icons/fi";
 import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
+import { useHeaderPathname } from "./header-route.client";
+import { NavMenu, NavMenuLink } from "./nav-menu.client";
 
-const links = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    active: (pathname: string) => pathname === "/dashboard",
-  },
-  {
-    href: "/explore",
-    label: "Explore",
-    active: (pathname: string) => pathname === "/explore",
-  },
-  {
-    href: "/library",
-    label: "MIDI library",
-    active: (pathname: string) => pathname.startsWith("/library"),
-  },
-  {
-    href: "/challenges",
-    label: "Challenges",
-    active: (pathname: string) => pathname.startsWith("/challenges"),
-  },
-  {
-    href: "/studio",
-    label: "Studio",
-    active: (pathname: string) =>
-      pathname === "/studio" || pathname.startsWith("/studio/"),
-  },
-  {
-    href: "/projects",
-    label: "My projects",
-    active: (pathname: string) =>
-      pathname === "/projects" ||
-      (pathname.startsWith("/projects/") &&
-        pathname !== "/projects/new" &&
-        !pathname.endsWith("/studio") &&
-        !pathname.includes("/contributions")),
-  },
-  {
-    href: "/projects/new",
-    label: "New project",
-    active: (pathname: string) => pathname === "/projects/new",
-  },
-  {
-    href: "/contributions",
-    label: "Contributions",
-    active: (pathname: string) =>
-      pathname === "/contributions" ||
-      (pathname.startsWith("/projects/") &&
-        pathname.includes("/contributions")),
-  },
+/**
+ * Four top-level destinations, matching the landing nav's density and
+ * typography. Everything account-shaped lives behind the avatar control in
+ * `AccountMenu`; everything discovery-shaped groups under Explore.
+ */
+const exploreLinks = [
+  { href: "/library", label: "MIDI Library" },
+  { href: "/explore", label: "Projects" },
+  { href: "/challenges", label: "Challenges" },
 ] as const;
 
-export function PrimaryNavigation() {
-  const pathname = usePathname();
+function isExploreLinkCurrent(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
-  const items = links.map((link) => {
-    const current = link.active(pathname);
-    return (
-      <IntentPrefetchLink
-        key={link.href}
-        href={link.href}
-        aria-current={current ? "page" : undefined}
-        className={`rounded-full px-3 py-2 font-medium whitespace-nowrap transition-colors ${current ? "bg-surface-raised text-ink shadow-sm" : "text-muted hover:text-accent"}`}
-      >
-        {link.label}
-      </IntentPrefetchLink>
-    );
-  });
+function isExploreCurrent(pathname: string) {
+  return exploreLinks.some((link) => isExploreLinkCurrent(pathname, link.href));
+}
+
+function isStudioCurrent(pathname: string) {
+  return pathname === "/studio" || pathname.startsWith("/studio/");
+}
+
+function topLevelClassName(current: boolean) {
+  return `inline-flex min-h-11 items-center gap-1.5 text-[13px] font-semibold tracking-[0.01em] whitespace-nowrap transition-colors ${current ? "text-accent" : "text-muted hover:text-accent"}`;
+}
+
+export function PrimaryNavigation() {
+  const pathname = useHeaderPathname();
+  const dashboardCurrent = pathname === "/dashboard";
+  const exploreCurrent = isExploreCurrent(pathname);
+  const studioCurrent = isStudioCurrent(pathname);
+
   return (
     <>
       <details className="border-subtle bg-surface-soft order-3 w-full rounded-3xl border p-2 sm:hidden">
@@ -78,20 +45,80 @@ export function PrimaryNavigation() {
           Menu
         </summary>
         <nav aria-label="Primary mobile" className="mt-2 grid gap-1">
-          {items}
           <IntentPrefetchLink
-            href="/settings/profile"
-            className="text-muted rounded-full px-3 py-2 font-medium"
+            href="/dashboard"
+            aria-current={dashboardCurrent ? "page" : undefined}
+            className={`rounded-full px-4 py-2 font-medium ${dashboardCurrent ? "text-accent" : "text-muted"}`}
           >
-            Account
+            Dashboard
+          </IntentPrefetchLink>
+          <p className="text-muted px-4 pt-2 pb-1 font-mono text-[10.5px] tracking-[0.18em] uppercase">
+            Explore
+          </p>
+          {exploreLinks.map((link) => {
+            const current = isExploreLinkCurrent(pathname, link.href);
+            return (
+              <IntentPrefetchLink
+                key={link.href}
+                href={link.href}
+                aria-current={current ? "page" : undefined}
+                className={`rounded-full px-4 py-2 font-medium ${current ? "text-accent" : "text-muted"}`}
+              >
+                {link.label}
+              </IntentPrefetchLink>
+            );
+          })}
+          <IntentPrefetchLink
+            href="/studio"
+            aria-current={studioCurrent ? "page" : undefined}
+            className={`mt-1 rounded-full px-4 py-2 font-medium ${studioCurrent ? "text-accent" : "text-muted"}`}
+          >
+            Studio
           </IntentPrefetchLink>
         </nav>
       </details>
+
       <nav
         aria-label="Primary"
-        className="border-subtle bg-surface-soft order-3 hidden items-center gap-1 rounded-full border p-1 text-sm sm:order-2 sm:flex"
+        className="order-3 hidden items-center gap-6 text-sm sm:order-2 sm:flex lg:gap-7"
       >
-        {items}
+        <IntentPrefetchLink
+          href="/dashboard"
+          aria-current={dashboardCurrent ? "page" : undefined}
+          className={topLevelClassName(dashboardCurrent)}
+        >
+          Dashboard
+        </IntentPrefetchLink>
+        <NavMenu
+          label="Explore"
+          triggerClassName={topLevelClassName(exploreCurrent)}
+          triggerContent={({ open }) => (
+            <>
+              Explore
+              <FiChevronDown
+                aria-hidden="true"
+                className={`text-base transition-transform ${open ? "rotate-180" : ""}`}
+              />
+            </>
+          )}
+        >
+          {exploreLinks.map((link) => (
+            <NavMenuLink
+              key={link.href}
+              href={link.href}
+              current={isExploreLinkCurrent(pathname, link.href)}
+            >
+              {link.label}
+            </NavMenuLink>
+          ))}
+        </NavMenu>
+        <IntentPrefetchLink
+          href="/studio"
+          aria-current={studioCurrent ? "page" : undefined}
+          className={topLevelClassName(studioCurrent)}
+        >
+          Studio
+        </IntentPrefetchLink>
       </nav>
     </>
   );
