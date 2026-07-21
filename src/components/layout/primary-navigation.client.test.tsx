@@ -57,10 +57,17 @@ describe("PrimaryNavigation", () => {
       within(nav).getByRole("button", { name: "Explore" }),
     ).toHaveAttribute("aria-expanded", "false");
 
-    // Account destinations moved behind the avatar menu.
+    // Account destinations belong to the avatar menu, not the nav bar.
     expect(screen.queryByRole("link", { name: "Contributions" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
-    expect(screen.getByText("Menu")).toBeInTheDocument();
+  });
+
+  it("leaves the phone to the tab bar instead of duplicating a disclosure", () => {
+    render(<PrimaryNavigation />);
+
+    expect(screen.queryByText("Menu")).toBeNull();
+    expect(
+      screen.queryByRole("navigation", { name: "Primary mobile" }),
+    ).toBeNull();
   });
 
   it("groups discovery destinations behind Explore", () => {
@@ -97,36 +104,28 @@ describe("PrimaryNavigation", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("prefetches desktop and mobile destinations only after intent", () => {
+  it("prefetches destinations only after intent", () => {
     render(<PrimaryNavigation />);
 
-    const studioLinks = screen.getAllByRole("link", { name: "Studio" });
-    expect(
-      studioLinks.every(
-        (link) => link.getAttribute("data-prefetch") === "false",
-      ),
-    ).toBe(true);
+    const studio = screen.getByRole("link", { name: "Studio" });
+    expect(studio).toHaveAttribute("data-prefetch", "false");
 
-    fireEvent.focus(studioLinks[0]);
-    expect(studioLinks[0]).toHaveAttribute("data-prefetch", "default");
-    expect(studioLinks[1]).toHaveAttribute("data-prefetch", "false");
+    fireEvent.focus(studio);
+    expect(studio).toHaveAttribute("data-prefetch", "default");
   });
 
   it("marks Studio separately from project studio routes", () => {
     usePathname.mockReturnValue("/studio/project-id");
     const { rerender } = render(<PrimaryNavigation />);
-    expect(
-      screen
-        .getAllByRole("link", { name: "Studio" })
-        .every((link) => link.getAttribute("aria-current") === "page"),
-    ).toBe(true);
+    expect(screen.getByRole("link", { name: "Studio" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     usePathname.mockReturnValue("/projects/project-id/studio");
     rerender(<PrimaryNavigation />);
-    expect(
-      screen
-        .getAllByRole("link", { name: "Studio" })
-        .every((link) => !link.hasAttribute("aria-current")),
-    ).toBe(true);
+    expect(screen.getByRole("link", { name: "Studio" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });

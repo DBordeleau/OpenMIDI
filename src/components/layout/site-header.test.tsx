@@ -9,6 +9,16 @@ import {
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SiteHeader } from "./site-header";
+import { ViewerIdentityProvider } from "./viewer-identity-provider.client";
+
+/** Identity is resolved once above the shared navigation, not per bar. */
+function renderHeader() {
+  return render(
+    <ViewerIdentityProvider>
+      <SiteHeader />
+    </ViewerIdentityProvider>,
+  );
+}
 
 const getClaims = vi.fn();
 
@@ -52,7 +62,7 @@ describe("SiteHeader", () => {
   afterEach(cleanup);
 
   it("shows the marketing shell with landing section links when signed out", () => {
-    render(<SiteHeader />);
+    renderHeader();
 
     expect(screen.getByRole("link", { name: "OpenMIDI" })).toHaveAttribute(
       "href",
@@ -90,7 +100,7 @@ describe("SiteHeader", () => {
       data: { claims: { sub: "viewer-id" } },
       error: null,
     });
-    render(<SiteHeader />);
+    renderHeader();
 
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "data-prefetch",
@@ -118,7 +128,7 @@ describe("SiteHeader", () => {
       data: { claims: { sub: "viewer-id" } },
       error: null,
     });
-    render(<SiteHeader />);
+    renderHeader();
 
     const trigger = await screen.findByRole("button", { name: "Account menu" });
     fireEvent.click(trigger);

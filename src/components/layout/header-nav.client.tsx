@@ -1,10 +1,9 @@
 "use client";
 
 import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
-import { useViewerIdentity } from "@/features/auth/use-viewer-identity.client";
 import { AccountMenu } from "./account-menu.client";
-import { useHeaderPathname } from "./header-route.client";
 import { PrimaryNavigation } from "./primary-navigation.client";
+import { useViewer } from "./viewer-identity-provider.client";
 
 const sectionLinks = [
   { href: "/library", label: "The MIDI Library" },
@@ -13,15 +12,18 @@ const sectionLinks = [
 ] as const;
 
 /**
- * The header adapts to auth state, but both states now share the landing nav's
+ * The header adapts to auth state, and both states share the landing nav's
  * shape: quiet 13px links on the left of the action, one pill-or-avatar control
- * on the right. Signed-out visitors get the marketing sections (these matter
- * when a visitor jumps to a landing section from another route, since the
- * landing ships its own nav); signed-in members get the workspace navigation
- * plus the avatar account menu.
+ * on the right.
+ *
+ * On a phone the header steps back to identity and sign-in only — the tab bar
+ * carries navigation from the thumb zone, so the workspace nav and the account
+ * menu are pointer-only, and the marketing section links (which matter when a
+ * visitor jumps to a landing section from another route) hide rather than
+ * wrapping onto a second row.
  */
 export function HeaderNav() {
-  const viewer = useViewerIdentity(useHeaderPathname());
+  const viewer = useViewer();
 
   if (viewer.signedIn) {
     return (
@@ -36,7 +38,7 @@ export function HeaderNav() {
     <>
       <nav
         aria-label="Sections"
-        className="order-3 flex w-full min-w-0 items-center gap-5 overflow-x-auto sm:order-2 sm:w-auto lg:gap-7"
+        className="order-3 hidden min-w-0 items-center gap-5 sm:order-2 sm:flex lg:gap-7"
       >
         {sectionLinks.map((link) => (
           <IntentPrefetchLink
@@ -50,7 +52,7 @@ export function HeaderNav() {
       </nav>
       <IntentPrefetchLink
         href="/sign-in"
-        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-all hover:-translate-y-px sm:order-3"
+        className="border-strong text-ink hover:border-accent hover:text-accent order-2 inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-[13px] font-semibold transition-all hover:-translate-y-px sm:order-3 sm:min-h-11"
       >
         Sign in
       </IntentPrefetchLink>

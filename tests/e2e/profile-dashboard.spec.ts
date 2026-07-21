@@ -32,21 +32,32 @@ test.describe("profile dashboard navigation", () => {
     await expect(
       page.getByRole("heading", { name: "Owned projects" }),
     ).toBeVisible();
+    // At phone width the header steps back and the thumb-zone tab bar carries
+    // navigation; grouped destinations arrive in bottom sheets.
     await page.setViewportSize({ width: 320, height: 800 });
-    await page.getByText("Menu", { exact: true }).click();
     const mobile = page.getByRole("navigation", { name: "Primary mobile" });
+    await expect(mobile).toBeVisible();
     await expect(
       mobile.getByRole("link", { name: "Dashboard" }),
     ).toHaveAttribute("aria-current", "page");
     await expect(
-      mobile.getByRole("link", { name: "MIDI Library" }),
+      page.getByRole("button", { name: "Account menu" }),
+    ).toBeHidden();
+
+    await mobile.getByRole("button", { name: "Explore" }).click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "Explore" })
+        .getByRole("link", { name: "MIDI Library" }),
     ).toBeVisible();
-    // Account destinations live behind the avatar control, which stays visible
-    // at 320px instead of hiding inside the disclosure.
-    const account = page.getByRole("button", { name: "Account menu" });
-    await expect(account).toBeVisible();
-    await account.click();
-    await expect(page.getByRole("link", { name: "My projects" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+
+    await mobile.getByRole("button", { name: "Account" }).click();
+    const account = page.getByRole("dialog", { name: "Account" });
+    await expect(
+      account.getByRole("link", { name: "My projects" }),
+    ).toBeVisible();
+    await expect(
+      account.getByRole("button", { name: "Sign out" }),
+    ).toBeVisible();
   });
 });

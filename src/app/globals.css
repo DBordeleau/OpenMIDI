@@ -99,9 +99,20 @@ html {
      too. Overlay-scrollbar platforms reserve nothing and are unaffected. */
   scrollbar-gutter: stable;
 }
+/* Reserve the iOS home-indicator strip beneath fixed bottom chrome (the mobile
+   tab bar and the signed-out join dock). Declared in the utilities layer so
+   ordinary `pb-*` utilities still resolve against it by source order rather
+   than being silently outranked by an unlayered rule — see §2 of
+   docs/design/brand.md on cascade layers. */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 body {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   background:
     radial-gradient(

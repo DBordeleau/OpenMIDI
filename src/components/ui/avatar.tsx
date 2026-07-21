@@ -6,15 +6,17 @@ export function Avatar({
 }: {
   src: string | null;
   name: string;
-  size?: "sm" | "md" | "lg";
+  /** `xs` exists for the mobile tab bar, where the face sits above a label. */
+  size?: "xs" | "sm" | "md" | "lg";
   decorative?: boolean;
 }) {
   const sizes = {
+    xs: "size-5 text-[9px]",
     sm: "size-10 text-sm",
     md: "size-14 text-lg",
     lg: "size-24 text-3xl",
   };
-  const pixels = { sm: 40, md: 56, lg: 96 };
+  const pixels = { xs: 20, sm: 40, md: 56, lg: 96 };
   const className = `${sizes[size]} border-strong bg-surface-raised inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border font-bold`;
   return src ? (
     // Public avatar derivatives are already trusted, cropped, and immutable.

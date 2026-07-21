@@ -209,10 +209,6 @@ landing it is auth-aware (`AuthAwareLink`): signed-out → `/sign-in`, signed-in
 **Secondary CTA** — pill, `border-strong`, transparent fill, hover to accent border
 and accent text.
 
-**Floating CTA** — `FloatingCta` in `src/app/(public)/_components/floating-cta.client.tsx`:
-a persistent, blurred, bottom-right dock so the sign-up action follows the reader.
-Collapses to a full-width bottom bar under 600px. Slides in ~700ms after load.
-
 **Card** — `rounded-card`, `border-subtle`, `bg-surface-raised` (often a subtle
 160° gradient toward `surface-soft`), deep soft shadow
 (`shadow-[0_...px_-...px_#000]`).
@@ -248,6 +244,32 @@ Projects, Challenges) and everything account-shaped groups under the **avatar**
 (My projects, Saved clips, Contributions, Edit profile, Sign out). Never show the
 app nav to signed-out visitors, and keep new destinations inside an existing
 group rather than adding a fifth top-level item.
+
+**Mobile navigation** — below `sm` the header steps back to identity and one
+action (56px instead of 72px), and
+[`MobileTabBar`](../../src/components/layout/mobile-tab-bar.client.tsx) carries
+navigation from the thumb zone: four fixed tabs matching the desktop IA, with
+Explore and Account raising a bottom sheet in the `.nav-glass` treatment. Signed-out
+visitors get no tabs — a nav they cannot use is worse than none — so
+[`ConditionalMobileNav`](../../src/components/layout/conditional-mobile-nav.client.tsx)
+gives them a single "Join the beta" dock instead, and hides both on the landing,
+sign-in, onboarding and the Studio.
+
+Three rules hold this together:
+
+- **One IA, two renderers.** The link list and every active-route predicate live
+  in [`nav-items.ts`](../../src/components/layout/nav-items.ts). Add a
+  destination there, never to one bar. The desktop nav and the tab bar are
+  presentations, not separate navigations.
+- **One identity read.** [`ViewerIdentityProvider`](../../src/components/layout/viewer-identity-provider.client.tsx)
+  resolves the viewer once above both bars; a bar calling the hook itself would
+  double the claim check and profile read on every navigation.
+- **Reserve the home indicator.** Fixed bottom chrome uses the `pb-safe`
+  utility (`env(safe-area-inset-bottom)`), and full-height surfaces use `dvh`,
+  not `vh` — mobile browser chrome expands and collapses under the bar.
+
+The tab bar slides down on the way into the Studio exactly as the header slides
+up, and reads its route through the same frozen-pathname provider.
 
 **Nav dropdown** — [`NavMenu`](../../src/components/layout/nav-menu.client.tsx)
 is the shared panel for both groups: a disclosure (button + `aria-expanded`,
@@ -400,9 +422,12 @@ pages, the create/edit form.
 | Reveal (entrance anim)    | `src/components/ui/reveal.client.tsx`                                     |
 | Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout)        |
 | Hero MIDI grid            | `src/app/(public)/_components/hero-midi-grid.tsx`                         |
-| Floating CTA              | `src/app/(public)/_components/floating-cta.client.tsx`                    |
 | Header / nav              | `src/components/layout/header-nav.client.tsx`                             |
+| Shared nav IA             | `src/components/layout/nav-items.ts`                                      |
 | Workspace nav (4 items)   | `src/components/layout/primary-navigation.client.tsx`                     |
+| Mobile tab bar + sheets   | `src/components/layout/mobile-tab-bar.client.tsx`                         |
+| Mobile mount + join dock  | `src/components/layout/conditional-mobile-nav.client.tsx`                 |
+| Shared viewer identity    | `src/components/layout/viewer-identity-provider.client.tsx`               |
 | Nav dropdown panel        | `src/components/layout/nav-menu.client.tsx`                               |
 | Avatar account menu       | `src/components/layout/account-menu.client.tsx`                           |
 | Header enter/exit motion  | `src/components/layout/conditional-header.client.tsx`                     |
