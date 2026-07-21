@@ -64,7 +64,7 @@ function ArrangementPreview({ resume }: { resume: Resume }) {
           >
             {track.name}
           </span>
-          <span className="relative block h-5 rounded-md bg-white/3 sm:h-6">
+          <span className="relative block h-5 overflow-hidden rounded-md bg-white/3 sm:h-6">
             {track.clips.map((clip) => (
               <IntentPrefetchLink
                 key={clip.clipId}

@@ -24,14 +24,12 @@ test.describe("profile dashboard navigation", () => {
     }
     await page.goto("/dashboard");
     await expect(
-      page.getByRole("heading", { name: "Dashboard" }),
+      page.getByRole("heading", { name: "Start something" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /awaiting review/ }),
+      page.getByRole("navigation", { name: "Needs your attention" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Owned projects" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
     // At phone width the header steps back and the thumb-zone tab bar carries
     // navigation; grouped destinations arrive in bottom sheets.
     await page.setViewportSize({ width: 320, height: 800 });
@@ -43,6 +41,14 @@ test.describe("profile dashboard navigation", () => {
     await expect(
       page.getByRole("button", { name: "Account menu" }),
     ).toBeHidden();
+
+    const overflow = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+    expect(overflow.scrollWidth, JSON.stringify(overflow, null, 2)).toBe(
+      overflow.clientWidth,
+    );
 
     await mobile.getByRole("button", { name: "Explore" }).click();
     await expect(
