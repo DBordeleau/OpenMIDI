@@ -8,7 +8,10 @@ import {
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MobileTabBar } from "./mobile-tab-bar.client";
+import {
+  MobileTabBar,
+  shouldDismissMobileSheet,
+} from "./mobile-tab-bar.client";
 
 const usePathname = vi.fn();
 
@@ -75,6 +78,18 @@ describe("MobileTabBar", () => {
     expect(
       within(tabs()).getByRole("button", { name: "Explore" }),
     ).toHaveAttribute("aria-expanded", "true");
+    expect(sheet).toHaveClass("bottom-full");
+    expect(sheet.parentElement).toBe(tabs().parentElement);
+  });
+
+  it("turns the sheet handle into a working close control", () => {
+    render(<MobileTabBar />);
+    const explore = within(tabs()).getByRole("button", { name: "Explore" });
+    fireEvent.click(explore);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close Explore menu" }));
+
+    expect(explore).toHaveAttribute("aria-expanded", "false");
   });
 
   it("raises the account sheet and keeps sign out inside it", () => {
@@ -150,5 +165,18 @@ describe("MobileTabBar", () => {
         .getAllByRole("link")
         .every((link) => link.getAttribute("data-prefetch") === "false"),
     ).toBe(true);
+  });
+
+  it("dismisses only deliberate downward sheet gestures", () => {
+    expect(shouldDismissMobileSheet({ offsetY: 72, velocityY: 0 })).toBe(true);
+    expect(shouldDismissMobileSheet({ offsetY: 12, velocityY: 650 })).toBe(
+      true,
+    );
+    expect(shouldDismissMobileSheet({ offsetY: 48, velocityY: 300 })).toBe(
+      false,
+    );
+    expect(shouldDismissMobileSheet({ offsetY: -24, velocityY: -800 })).toBe(
+      false,
+    );
   });
 });

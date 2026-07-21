@@ -249,8 +249,13 @@ group rather than adding a fifth top-level item.
 action (56px instead of 72px), and
 [`MobileTabBar`](../../src/components/layout/mobile-tab-bar.client.tsx) carries
 navigation from the thumb zone: four fixed tabs matching the desktop IA, with
-Explore and Account raising a bottom sheet in the `.nav-glass` treatment. Signed-out
-visitors get no tabs — a nav they cannot use is worse than none — so
+Explore and Account raising a bottom sheet in the `.nav-glass` treatment. The
+sheet is anchored immediately above the persistent tab bar and slides out from
+behind its top edge; it must never cover the controls that opened it. Its visual
+handle is a real touch target: tapping closes the sheet, a deliberate downward
+drag dismisses it, and a short drag snaps it back without scrolling the page or
+triggering pull-to-refresh. Signed-out visitors get no tabs — a nav they cannot
+use is worse than none — so
 [`ConditionalMobileNav`](../../src/components/layout/conditional-mobile-nav.client.tsx)
 gives them a single "Join the beta" dock instead, and hides both on the landing,
 sign-in, onboarding and the Studio.
