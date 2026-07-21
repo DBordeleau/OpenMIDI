@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/layout/container";
-import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal.client";
 import { requireViewer } from "@/features/auth/guards";
 import { FeaturedChallengeCard } from "@/features/challenges/featured-challenge-card";
+import {
+  ArrowLink,
+  ClipRows,
+  ContributionRows,
+  ProjectRows,
+  SectionHeader,
+} from "@/features/dashboard/launcher-lists";
+import { ResumeBand } from "@/features/dashboard/resume-band";
+import { StateRail } from "@/features/dashboard/state-rail";
 import { AdminInviteForm } from "@/features/invitations/admin-invite-form.client";
 import { getViewerDashboard } from "@/server/repositories/dashboard";
 import { assertViewerAdmin } from "@/server/repositories/moderation";
@@ -12,28 +20,14 @@ import { getFeaturedChallenge } from "@/server/repositories/challenges";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-function Empty({
-  children,
-  href,
-  action,
-}: {
-  children: React.ReactNode;
-  href: string;
-  action: string;
-}) {
-  return (
-    <div className="border-subtle rounded-card mt-4 border border-dashed p-5">
-      <p className="text-muted">{children}</p>
-      <IntentPrefetchLink
-        className="text-accent mt-3 inline-block font-semibold"
-        href={href}
-      >
-        {action} →
-      </IntentPrefetchLink>
-    </div>
-  );
-}
+/** Short enough to scan without scrolling; "View all" carries the rest. */
+const LAUNCHER_ROWS = 5;
 
+/**
+ * The dashboard is a launcher, not a report: every row carries the action you
+ * came for. There is deliberately no "Dashboard" page heading — the navigation
+ * already says where you are, and that space belongs to the work you left open.
+ */
 export default async function DashboardPage() {
   await requireViewer("/dashboard");
   const [dashboard, isAdmin, featuredChallenge] = await Promise.all([
@@ -41,218 +35,136 @@ export default async function DashboardPage() {
     assertViewerAdmin(),
     getFeaturedChallenge(),
   ]);
+
+  // A clip cannot exist before a project and a track do, so there is no URL
+  // that opens the editor on nothing. The closest honest target is the
+  // arrangement already open, where adding a track is one tap.
+  const newClipHref = dashboard.resume
+    ? `/studio/${dashboard.resume.projectId}`
+    : "/studio";
+
   return (
     <main id="main-content">
-      <Container className="py-12 sm:py-16">
-        <Reveal className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="text-accent-2 font-mono text-xs font-semibold tracking-[0.18em] uppercase">
-              Your session
-            </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-[-0.02em] sm:text-5xl">
-              Dashboard
-            </h1>
-            <p className="text-muted mt-3 text-lg">
-              Pick up the work that needs you next.
-            </p>
-          </div>
-          <ButtonLink href="/projects/new" prefetch={false}>
-            New project
-          </ButtonLink>
+      <Container className="py-8 sm:py-10">
+        <Reveal>
+          <ResumeBand resume={dashboard.resume} />
         </Reveal>
-        <FeaturedChallengeCard featured={featuredChallenge} />
-        <Reveal
-          as="section"
-          delay={0.08}
-          className="rounded-card border-strong mt-10 border p-6"
-          style={{
-            background:
-              "radial-gradient(130% 140% at 0% 0%,rgba(255,141,99,0.14),transparent 55%),var(--color-surface-raised)",
-          }}
-          aria-labelledby="review-heading"
-        >
-          <p className="text-accent font-mono text-xs uppercase">
-            Review queue
-          </p>
-          <h2 id="review-heading" className="mt-2 text-2xl font-semibold">
-            {dashboard.review.hasMore ? "99+" : dashboard.review.count} awaiting
-            review
-          </h2>
-          <IntentPrefetchLink
-            className="text-accent mt-3 inline-block font-semibold"
-            href="/projects?scope=owned&review=1"
-          >
-            Open projects needing review →
-          </IntentPrefetchLink>
+
+        <Reveal delay={0.06} className="mt-4">
+          <StateRail review={dashboard.review} counts={dashboard.counts} />
         </Reveal>
-        <Reveal
-          as="section"
-          delay={0.1}
-          className="rounded-card border-subtle bg-surface mt-8 border p-6"
-          aria-labelledby="feedback-heading"
-        >
-          <p className="text-accent font-mono text-xs uppercase">
-            OpenMIDI beta
-          </p>
-          <h2 id="feedback-heading" className="mt-2 text-2xl font-semibold">
-            Help tune the next session
-          </h2>
-          <p className="text-muted mt-2">
-            Found a rough edge or have an idea? Send a private note to the beta
-            team.
-          </p>
-          <IntentPrefetchLink
-            className="text-accent mt-3 inline-block font-semibold"
-            href="/feedback?from=/dashboard"
-          >
-            Send feedback →
-          </IntentPrefetchLink>
-          {isAdmin && <span className="text-muted mx-3">·</span>}
-          {isAdmin && (
-            <IntentPrefetchLink
-              className="text-accent mt-3 inline-block font-semibold"
-              href="/admin/feedback"
-            >
-              Triage feedback →
-            </IntentPrefetchLink>
-          )}
-        </Reveal>
-        {isAdmin && (
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-12 lg:gap-6">
           <Reveal
             as="section"
             delay={0.1}
-            className="rounded-card border-subtle bg-surface-raised mt-8 border p-6 shadow-[0_24px_70px_-45px_#000] sm:p-7"
+            className="lg:col-span-7"
+            aria-labelledby="projects-heading"
+          >
+            <SectionHeader
+              id="projects-heading"
+              title="Projects"
+              count={dashboard.counts.projects.count}
+              viewAll={{ href: "/projects?scope=owned", label: "View all" }}
+            >
+              <ButtonLink href="/projects/new" prefetch={false}>
+                New project
+              </ButtonLink>
+            </SectionHeader>
+            <ProjectRows
+              projects={dashboard.ownedProjects.slice(0, LAUNCHER_ROWS)}
+            />
+          </Reveal>
+
+          <Reveal
+            as="section"
+            delay={0.14}
+            className="lg:col-span-5"
+            aria-labelledby="clips-heading"
+          >
+            <SectionHeader
+              id="clips-heading"
+              title="Your MIDI clips"
+              count={dashboard.counts.clips.count}
+              viewAll={{ href: "/library/manage", label: "View all" }}
+            >
+              <ButtonLink href={newClipHref} prefetch={false}>
+                New clip
+              </ButtonLink>
+            </SectionHeader>
+            <ClipRows clips={dashboard.recentClips.slice(0, LAUNCHER_ROWS)} />
+          </Reveal>
+        </div>
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-12 lg:gap-6">
+          <Reveal
+            as="section"
+            delay={0.18}
+            className="lg:col-span-5"
+            aria-labelledby="challenge-heading"
+          >
+            <SectionHeader
+              id="challenge-heading"
+              title="This week's challenge"
+            />
+            <FeaturedChallengeCard featured={featuredChallenge} />
+          </Reveal>
+
+          <Reveal
+            as="section"
+            delay={0.22}
+            className="lg:col-span-7"
+            aria-labelledby="contributions-heading"
+          >
+            <SectionHeader
+              id="contributions-heading"
+              title="Contributions"
+              count={dashboard.counts.pendingContributions.count}
+              viewAll={{ href: "/contributions", label: "View all" }}
+            />
+            <ContributionRows contributions={dashboard.pendingContributions} />
+          </Reveal>
+        </div>
+
+        <Reveal
+          as="section"
+          delay={0.3}
+          className="dash-card rounded-card mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4"
+          aria-labelledby="beta-heading"
+        >
+          <h2 id="beta-heading" className="font-semibold">
+            Help tune the next session
+          </h2>
+          <p className="text-muted min-w-0 flex-1 text-sm">
+            Found a rough edge or have an idea? Send a private note to the beta
+            team.
+          </p>
+          <ArrowLink href="/feedback?from=/dashboard">Send feedback</ArrowLink>
+          {isAdmin && (
+            <ArrowLink href="/admin/feedback">Triage feedback</ArrowLink>
+          )}
+        </Reveal>
+
+        {isAdmin && (
+          <Reveal
+            as="section"
+            delay={0.34}
+            className="dash-card rounded-card mt-4 p-6"
             aria-labelledby="beta-invite-heading"
           >
             <p className="text-accent font-mono text-[11px] tracking-[0.2em] uppercase">
               Beta access
             </p>
-            <h2
-              id="beta-invite-heading"
-              className="mt-2 text-2xl font-semibold"
-            >
+            <h2 id="beta-invite-heading" className="mt-2 text-xl font-bold">
               Invite a collaborator
             </h2>
-            <p className="text-muted mt-2 max-w-2xl">
+            <p className="text-muted mt-2 max-w-2xl text-sm">
               Add one musician to the beta list so they can join with their
               matching Google account.
             </p>
             <AdminInviteForm />
           </Reveal>
         )}
-        <Reveal delay={0.12} className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-card border-subtle bg-surface border p-6">
-            <div className="flex justify-between gap-4">
-              <h2 className="text-2xl font-semibold">Owned projects</h2>
-              <IntentPrefetchLink
-                className="text-accent"
-                href="/projects?scope=owned"
-              >
-                View all
-              </IntentPrefetchLink>
-            </div>
-            {dashboard.ownedProjects.length ? (
-              <ul className="divide-subtle mt-4 divide-y">
-                {dashboard.ownedProjects.map((item) => (
-                  <li className="py-4" key={item.projectId}>
-                    <IntentPrefetchLink
-                      className="hover:text-accent font-semibold"
-                      href={`/projects/${item.projectId}`}
-                    >
-                      {item.title}
-                    </IntentPrefetchLink>
-                    <p className="text-muted mt-1 text-sm capitalize">
-                      {item.status} · Updated{" "}
-                      <time dateTime={item.updatedAt}>
-                        {new Date(item.updatedAt).toLocaleDateString()}
-                      </time>
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty href="/projects/new" action="Create a project">
-                Start a project and publish your first revision.
-              </Empty>
-            )}
-          </section>
-          <section className="rounded-card border-subtle bg-surface border p-6">
-            <div className="flex justify-between gap-4">
-              <h2 className="text-2xl font-semibold">Active workspaces</h2>
-              <IntentPrefetchLink className="text-accent" href="/projects">
-                View projects
-              </IntentPrefetchLink>
-            </div>
-            {dashboard.activeWorkspaces.length ? (
-              <ul className="divide-subtle mt-4 divide-y">
-                {dashboard.activeWorkspaces.map((item) => (
-                  <li className="py-4" key={item.workspaceId}>
-                    <IntentPrefetchLink
-                      className="hover:text-accent font-semibold"
-                      href={
-                        item.contributionId
-                          ? `/projects/${item.projectId}/contributions/${item.contributionId}`
-                          : `/studio/${item.projectId}`
-                      }
-                    >
-                      {item.contributionTitle ?? item.projectTitle}
-                    </IntentPrefetchLink>
-                    <p className="text-muted mt-1 text-sm">
-                      {item.projectTitle} · Updated{" "}
-                      <time dateTime={item.updatedAt}>
-                        {new Date(item.updatedAt).toLocaleDateString()}
-                      </time>
-                    </p>
-                    {item.archiveWarning && (
-                      <p className="text-danger mt-2 text-sm font-semibold">
-                        This workspace archives on{" "}
-                        {new Date(item.archivesAt).toLocaleDateString()}. Save
-                        or publish to keep it active.
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty href="/projects" action="Open your projects">
-                A workspace appears after you begin arranging a project or
-                contribution.
-              </Empty>
-            )}
-          </section>
-          <section className="rounded-card border-subtle bg-surface border p-6 lg:col-span-2">
-            <div className="flex justify-between gap-4">
-              <h2 className="text-2xl font-semibold">Pending contributions</h2>
-              <IntentPrefetchLink className="text-accent" href="/contributions">
-                View all
-              </IntentPrefetchLink>
-            </div>
-            {dashboard.pendingContributions.length ? (
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                {dashboard.pendingContributions.map((item) => (
-                  <li
-                    className="rounded-control border-subtle border p-4"
-                    key={item.contributionId}
-                  >
-                    <IntentPrefetchLink
-                      className="hover:text-accent font-semibold"
-                      href={`/projects/${item.projectId}/contributions/${item.contributionId}`}
-                    >
-                      {item.title}
-                    </IntentPrefetchLink>
-                    <p className="text-muted mt-1 text-sm">
-                      {item.projectTitle} · {item.status.replaceAll("_", " ")}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty href="/explore" action="Explore open projects">
-                Your drafts and submitted proposals will appear here.
-              </Empty>
-            )}
-          </section>
-        </Reveal>
       </Container>
     </main>
   );

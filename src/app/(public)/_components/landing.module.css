@@ -29,7 +29,10 @@
   --grad: linear-gradient(120deg, var(--coral), var(--gold));
   --mono: var(--font-mono);
   --serif: var(--font-serif);
-  --page: var(--content-width);
+  /* Pinned, not inherited: the landing's hero, section rhythm and line lengths
+     were composed at 76rem. The app shell widened to 90rem for the dashboard
+     console; this page deliberately does not follow it. */
+  --page: 76rem;
   --ease: var(--ease-standard);
 
   position: relative;

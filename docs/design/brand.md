@@ -213,6 +213,28 @@ and accent text.
 160° gradient toward `surface-soft`), deep soft shadow
 (`shadow-[0_...px_-...px_#000]`).
 
+**Dashboard launcher** — `/dashboard` is a launcher, not a report: it has **no
+page heading** (the nav already says where you are) and every row carries the
+action you came for. Its cards use `.dash-card` in `globals.css` — the nav
+sheet's glass at card scale, with `.dash-card-lit` for the coral→gold top edge
+and `.dash-card-action` for the hover lift. Reach for that class rather than
+re-deriving the gradient in utilities; that is what keeps the surface from
+drifting between pages.
+
+Three rules the page depends on:
+
+- **One action per row.** The row is a stretched link to the thing itself and
+  the single button goes to the Studio or the editor. Four projects means four
+  buttons, not eight. `View all` is a quiet text link so it stops competing.
+- **Counts are state.** A zero drops the gradient and renders muted
+  ([`StateRail`](../../src/features/dashboard/state-rail.tsx)) so "nothing to do"
+  reads instantly instead of looking like a broken stat.
+- **Previews are real or they are not previews.** The resume band draws clip
+  positions from the workspace manifest, and each block deep-links to
+  `/studio/{projectId}?editClip={clipId}`. Clip rows show length and note count
+  rather than a piano roll, because the payload carries no note data — a drawn
+  roll would be decoration pretending to be information.
+
 **Console deck** — a mixer-style panel: track rows (`name · contributor`, compact
 note-timing summary, M/S chips). Chips light up coral (`M`) / gold (`S`) when active
 with a dark foreground.
@@ -392,13 +414,20 @@ pages, the create/edit form.
 
 ## 6. Layout & spacing
 
-- **Container**: `max-w-[var(--content-width)]` (76rem) via
+- **Container**: `max-w-[var(--content-width)]` (**90rem**) via
   [`Container`](../../src/components/layout/container.tsx), which now accepts an
-  optional `id` for in-page section anchors. The Studio is a full-bleed exception
-  and never renders one — which is why `globals.css` pins `--content-width` to
-  its unscaled pixel equivalent while `[data-studio-scale]` is active. That
-  fluid rem scale would otherwise widen the shared header's container by up to
-  ~190px in the middle of its slide-away, throwing the nav and avatar rightward.
+  optional `id` for in-page section anchors. This is a workspace width, not an
+  article width — the dashboard is a console, and the header has to share its
+  left edge, so it is one shared value rather than a per-route opt-out. Two
+  consequences to keep in step:
+  - The **landing pins its own 76rem** (`--page` in `landing.module.css`)
+    because its hero, section rhythm and line lengths were composed at that
+    measure. It deliberately does not follow the app shell.
+  - The Studio is a full-bleed exception and never renders a `Container` — which
+    is why `globals.css` pins `--content-width` to its unscaled pixel equivalent
+    (`calc(90 * 16px)`) while `[data-studio-scale]` is active. **That multiplier
+    must move with the token**; the fluid rem scale would otherwise widen the
+    header's container mid-slide-away and throw the nav rightward.
 - **Radius**: `--radius-control` (0.75rem) for inputs/compact controls,
   `--radius-card` (1.25rem) for cards, `rounded-full` for CTAs.
 - **Section rhythm**: `py-20 sm:py-24` per section; hero uses more bottom room.
@@ -428,6 +457,9 @@ pages, the create/edit form.
 | Ambient aurora (app-wide) | `src/components/layout/aurora.client.tsx` (mounted in root layout)        |
 | Hero MIDI grid            | `src/app/(public)/_components/hero-midi-grid.tsx`                         |
 | Header / nav              | `src/components/layout/header-nav.client.tsx`                             |
+| Dashboard launcher        | `src/app/dashboard/page.tsx`                                              |
+| Dashboard resume band     | `src/features/dashboard/resume-band.tsx`                                  |
+| Dashboard rows + headers  | `src/features/dashboard/launcher-lists.tsx`                               |
 | Shared nav IA             | `src/components/layout/nav-items.ts`                                      |
 | Workspace nav (4 items)   | `src/components/layout/primary-navigation.client.tsx`                     |
 | Mobile tab bar + sheets   | `src/components/layout/mobile-tab-bar.client.tsx`                         |

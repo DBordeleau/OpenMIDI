@@ -11,10 +11,14 @@ export function ButtonLink({
   variant?: "primary" | "secondary";
   prefetch?: false;
 }>) {
+  // The primary fill deliberately does not translate on hover: moving a
+  // gradient-filled rounded pill re-rasterises its corners and reads as a
+  // jitter. `.cta-gradient:hover` lifts it with shadow instead. The ghost
+  // variant has no fill to distort, so it keeps the 1px lift.
   const styles =
     variant === "primary"
-      ? "cta-gradient text-accent-contrast hover:-translate-y-px"
-      : "border border-strong bg-surface text-ink hover:border-accent hover:text-accent";
+      ? "cta-gradient text-accent-contrast"
+      : "border border-strong bg-surface text-ink hover:border-accent hover:text-accent hover:-translate-y-px";
   return (
     <Link
       href={href}
@@ -34,7 +38,7 @@ export function Button({
     <button
       type="button"
       onClick={onClick}
-      className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-px motion-reduce:transform-none motion-reduce:transition-none"
+      className="cta-gradient text-accent-contrast min-h-11 rounded-full px-5 py-3 text-sm font-semibold transition motion-reduce:transition-none"
     >
       {children}
     </button>
