@@ -1,98 +1,74 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { FiChevronDown } from "react-icons/fi";
 import { IntentPrefetchLink } from "@/components/navigation/intent-prefetch-link.client";
+import { useHeaderPathname } from "./header-route.client";
+import {
+  exploreLinks,
+  isDashboardCurrent,
+  isExploreCurrent,
+  isExploreLinkCurrent,
+  isStudioCurrent,
+} from "./nav-items";
+import { NavMenu, NavMenuLink } from "./nav-menu.client";
 
-const links = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    active: (pathname: string) => pathname === "/dashboard",
-  },
-  {
-    href: "/explore",
-    label: "Explore",
-    active: (pathname: string) => pathname === "/explore",
-  },
-  {
-    href: "/library",
-    label: "MIDI library",
-    active: (pathname: string) => pathname.startsWith("/library"),
-  },
-  {
-    href: "/challenges",
-    label: "Challenges",
-    active: (pathname: string) => pathname.startsWith("/challenges"),
-  },
-  {
-    href: "/studio",
-    label: "Studio",
-    active: (pathname: string) =>
-      pathname === "/studio" || pathname.startsWith("/studio/"),
-  },
-  {
-    href: "/projects",
-    label: "My projects",
-    active: (pathname: string) =>
-      pathname === "/projects" ||
-      (pathname.startsWith("/projects/") &&
-        pathname !== "/projects/new" &&
-        !pathname.endsWith("/studio") &&
-        !pathname.includes("/contributions")),
-  },
-  {
-    href: "/projects/new",
-    label: "New project",
-    active: (pathname: string) => pathname === "/projects/new",
-  },
-  {
-    href: "/contributions",
-    label: "Contributions",
-    active: (pathname: string) =>
-      pathname === "/contributions" ||
-      (pathname.startsWith("/projects/") &&
-        pathname.includes("/contributions")),
-  },
-] as const;
+function topLevelClassName(current: boolean) {
+  return `inline-flex min-h-11 items-center gap-1.5 text-[13px] font-semibold tracking-[0.01em] whitespace-nowrap transition-colors ${current ? "text-accent" : "text-muted hover:text-accent"}`;
+}
 
+/**
+ * The pointer-sized rendering of the shared navigation. Below `sm` the mobile
+ * tab bar carries the same destinations from the thumb zone, so this renders
+ * nothing rather than duplicating them into a disclosure.
+ */
 export function PrimaryNavigation() {
-  const pathname = usePathname();
+  const pathname = useHeaderPathname();
+  const dashboardCurrent = isDashboardCurrent(pathname);
+  const exploreCurrent = isExploreCurrent(pathname);
+  const studioCurrent = isStudioCurrent(pathname);
 
-  const items = links.map((link) => {
-    const current = link.active(pathname);
-    return (
-      <IntentPrefetchLink
-        key={link.href}
-        href={link.href}
-        aria-current={current ? "page" : undefined}
-        className={`rounded-full px-3 py-2 font-medium whitespace-nowrap transition-colors ${current ? "bg-surface-raised text-ink shadow-sm" : "text-muted hover:text-accent"}`}
-      >
-        {link.label}
-      </IntentPrefetchLink>
-    );
-  });
   return (
-    <>
-      <details className="border-subtle bg-surface-soft order-3 w-full rounded-3xl border p-2 sm:hidden">
-        <summary className="min-h-11 cursor-pointer rounded-full px-4 py-3 font-semibold">
-          Menu
-        </summary>
-        <nav aria-label="Primary mobile" className="mt-2 grid gap-1">
-          {items}
-          <IntentPrefetchLink
-            href="/settings/profile"
-            className="text-muted rounded-full px-3 py-2 font-medium"
-          >
-            Account
-          </IntentPrefetchLink>
-        </nav>
-      </details>
-      <nav
-        aria-label="Primary"
-        className="border-subtle bg-surface-soft order-3 hidden items-center gap-1 rounded-full border p-1 text-sm sm:order-2 sm:flex"
+    <nav
+      aria-label="Primary"
+      className="order-3 hidden items-center gap-6 text-sm sm:order-2 sm:flex lg:gap-7"
+    >
+      <IntentPrefetchLink
+        href="/dashboard"
+        aria-current={dashboardCurrent ? "page" : undefined}
+        className={topLevelClassName(dashboardCurrent)}
       >
-        {items}
-      </nav>
-    </>
+        Dashboard
+      </IntentPrefetchLink>
+      <NavMenu
+        label="Explore"
+        triggerClassName={topLevelClassName(exploreCurrent)}
+        triggerContent={({ open }) => (
+          <>
+            Explore
+            <FiChevronDown
+              aria-hidden="true"
+              className={`text-base transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </>
+        )}
+      >
+        {exploreLinks.map((link) => (
+          <NavMenuLink
+            key={link.href}
+            href={link.href}
+            current={isExploreLinkCurrent(pathname, link.href)}
+          >
+            {link.label}
+          </NavMenuLink>
+        ))}
+      </NavMenu>
+      <IntentPrefetchLink
+        href="/studio"
+        aria-current={studioCurrent ? "page" : undefined}
+        className={topLevelClassName(studioCurrent)}
+      >
+        Studio
+      </IntentPrefetchLink>
+    </nav>
   );
 }

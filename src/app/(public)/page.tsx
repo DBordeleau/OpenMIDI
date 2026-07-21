@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FiHeadphones, FiPlus } from "react-icons/fi";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { Reveal } from "@/components/ui/reveal.client";
 import { AuthAwareLink } from "@/features/auth/auth-aware-link.client";
 import { describeChallengeConstraintsV1 } from "@/features/challenges/constraint-v1";
@@ -92,45 +93,7 @@ export default async function Home() {
         <nav className={styles.nav} aria-label="Primary">
           <div className={`${styles.wrap} ${styles.navIn}`}>
             <a className={styles.brand} href="#top" aria-label="OpenMIDI home">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 22 22"
-                aria-hidden="true"
-              >
-                <defs>
-                  <linearGradient id="mk" x1="0" y1="1" x2="1" y2="0">
-                    <stop offset="0" stopColor="#ff8d63" />
-                    <stop offset="1" stopColor="#ffc879" />
-                  </linearGradient>
-                </defs>
-                <rect
-                  x="0"
-                  y="2"
-                  width="13"
-                  height="4"
-                  rx="1.6"
-                  fill="url(#mk)"
-                />
-                <rect
-                  x="4"
-                  y="9"
-                  width="18"
-                  height="4"
-                  rx="1.6"
-                  fill="url(#mk)"
-                  opacity="0.78"
-                />
-                <rect
-                  x="2"
-                  y="16"
-                  width="9"
-                  height="4"
-                  rx="1.6"
-                  fill="url(#mk)"
-                  opacity="0.5"
-                />
-              </svg>
+              <BrandMark gradientId="mk" />
               <span className={styles.brandWord}>
                 <b>Open</b>
                 <i>MIDI</i>

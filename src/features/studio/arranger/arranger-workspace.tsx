@@ -1754,7 +1754,5 @@ function formatPitchRange(notes: readonly { pitch: number }[]) {
 
 function formatPan(pan: number) {
   if (pan === 0) return "C";
-  return pan < 0
-    ? `L${Math.round(-pan * 100)}`
-    : `R${Math.round(pan * 100)}`;
+  return pan < 0 ? `L${Math.round(-pan * 100)}` : `R${Math.round(pan * 100)}`;
 }

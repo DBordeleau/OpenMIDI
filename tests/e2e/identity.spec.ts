@@ -99,10 +99,10 @@ test.describe("identity vertical slice", () => {
     await page.getByRole("button", { name: "Complete profile" }).click();
     await expect(page.getByText("Profile saved.")).toBeVisible();
 
-    await page
-      .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "New project" })
-      .click();
+    // Project destinations now live behind the header's avatar account menu.
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("link", { name: "My projects" }).click();
+    await page.getByRole("link", { name: "New project" }).first().click();
     await page.getByLabel("Title").fill("E2E collaboration draft");
     await page.getByLabel("Description").fill("A private project test.");
     await page.getByLabel("BPM").fill("118.5");

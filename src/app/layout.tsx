@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { Aurora } from "@/components/layout/aurora.client";
 import { ConditionalFooter } from "@/components/layout/conditional-footer.client";
 import { ConditionalHeader } from "@/components/layout/conditional-header.client";
+import { ConditionalMobileNav } from "@/components/layout/conditional-mobile-nav.client";
 import { SkipLink } from "@/components/layout/skip-link";
+import { ViewerIdentityProvider } from "@/components/layout/viewer-identity-provider.client";
 
 import "./globals.css";
 
@@ -21,14 +23,19 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className="min-h-screen">
+      {/* dvh, not vh: mobile browser chrome expands and collapses, and the
+          fixed tab bar has to sit against the real bottom of the viewport. */}
+      <body className="min-h-dvh">
         <Aurora />
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <SkipLink />
-          <ConditionalHeader />
-          <div className="flex-1">{children}</div>
-          <ConditionalFooter />
-        </div>
+        <ViewerIdentityProvider>
+          <div className="relative z-10 flex min-h-dvh flex-col">
+            <SkipLink />
+            <ConditionalHeader />
+            <div className="flex-1">{children}</div>
+            <ConditionalFooter />
+            <ConditionalMobileNav />
+          </div>
+        </ViewerIdentityProvider>
       </body>
     </html>
   );

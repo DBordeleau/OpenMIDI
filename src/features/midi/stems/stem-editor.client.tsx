@@ -221,9 +221,7 @@ function formatTickLength(ticks: number) {
   };
   if (named[ticks]) return named[ticks];
   const beats = ticks / MIDI_PPQ;
-  return beats >= 1
-    ? `${Number(beats.toFixed(2))} beats`
-    : `${ticks} ticks`;
+  return beats >= 1 ? `${Number(beats.toFixed(2))} beats` : `${ticks} ticks`;
 }
 
 function resizeHandleWidth(noteWidth: number) {
@@ -352,7 +350,6 @@ export function MidiStemEditor({
     (draft.durationTicks / MIDI_PPQ) * pixelsPerBeat,
   );
   const rollWidth = keyW + timelineWidth;
-
 
   useEffect(() => {
     saveStatusRef.current = saveState.status;
@@ -738,10 +735,7 @@ export function MidiStemEditor({
     context.fillStyle = base;
     context.fillRect(0, 0, viewport.width, viewport.height);
 
-    const firstRow = Math.max(
-      0,
-      Math.floor(viewport.scrollTop / rowH),
-    );
+    const firstRow = Math.max(0, Math.floor(viewport.scrollTop / rowH));
     const lastRow = Math.min(
       pitchCount,
       Math.ceil((viewport.scrollTop + viewport.height) / rowH),
@@ -817,12 +811,7 @@ export function MidiStemEditor({
         context.fill();
         context.shadowBlur = 0;
       } else {
-        const whiteKey = context.createLinearGradient(
-          0,
-          y,
-          keyW,
-          y,
-        );
+        const whiteKey = context.createLinearGradient(0, y, keyW, y);
         if (active) {
           whiteKey.addColorStop(0, accent2);
           whiteKey.addColorStop(1, "#ffe0b0");
@@ -844,11 +833,7 @@ export function MidiStemEditor({
       }
       context.fillStyle = active ? "#2a1310" : isBlack ? "#efe6dd" : "#6d5a52";
       context.textAlign = "right";
-      context.fillText(
-        pianoKeyLabel(pitch) ?? "",
-        keyW - 7,
-        y + rowH / 2,
-      );
+      context.fillText(pianoKeyLabel(pitch) ?? "", keyW - 7, y + rowH / 2);
       context.textAlign = "left";
     }
     context.fillStyle = strongBorder;
@@ -866,10 +851,7 @@ export function MidiStemEditor({
     const grid = QUANTIZATION_TICKS[quantization];
     const firstGrid = Math.floor(visibleStartTick / grid) * grid;
     for (let tick = firstGrid; tick <= visibleEndTick; tick += grid) {
-      const x =
-        keyW +
-        (tick / MIDI_PPQ) * pixelsPerBeat -
-        viewport.scrollLeft;
+      const x = keyW + (tick / MIDI_PPQ) * pixelsPerBeat - viewport.scrollLeft;
       const isBar = tick % (MIDI_PPQ * 4) === 0;
       const isBeat = tick % MIDI_PPQ === 0;
       context.strokeStyle = isBar
@@ -932,13 +914,7 @@ export function MidiStemEditor({
         context.strokeStyle = accent;
         context.lineWidth = 1.5;
         context.beginPath();
-        context.roundRect(
-          x - 0.75,
-          y - 0.75,
-          width + 1.5,
-          rowH - 4.5,
-          5,
-        );
+        context.roundRect(x - 0.75, y - 0.75, width + 1.5, rowH - 4.5, 5);
         context.stroke();
         context.lineWidth = 1;
       }
@@ -953,11 +929,8 @@ export function MidiStemEditor({
         keyW +
         (marquee.endTick / MIDI_PPQ) * pixelsPerBeat -
         viewport.scrollLeft;
-      const y =
-        (preset.maxNote - marquee.maxPitch) * rowH -
-        viewport.scrollTop;
-      const height =
-        (marquee.maxPitch - marquee.minPitch + 1) * rowH;
+      const y = (preset.maxNote - marquee.maxPitch) * rowH - viewport.scrollTop;
+      const height = (marquee.maxPitch - marquee.minPitch + 1) * rowH;
       context.fillStyle = accent2;
       context.globalAlpha = 0.18;
       context.fillRect(x, y, Math.max(1, endX - x), height);
@@ -1026,9 +999,7 @@ export function MidiStemEditor({
   function pitchAtPointer(clientY: number) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return preset.minNote;
-    const row = Math.floor(
-      (clientY - rect.top + viewport.scrollTop) / rowH,
-    );
+    const row = Math.floor((clientY - rect.top + viewport.scrollTop) / rowH);
     return Math.max(
       preset.minNote,
       Math.min(preset.maxNote, preset.maxNote - row),
@@ -1043,8 +1014,7 @@ export function MidiStemEditor({
       Math.min(
         draft.durationTicks,
         Math.round(
-          ((clientX - rect.left + viewport.scrollLeft - keyW) /
-            pixelsPerBeat) *
+          ((clientX - rect.left + viewport.scrollLeft - keyW) / pixelsPerBeat) *
             MIDI_PPQ,
         ),
       ),
@@ -1206,9 +1176,7 @@ export function MidiStemEditor({
     const deltaTicks = event.altKey
       ? rawDeltaTicks
       : Math.round(rawDeltaTicks / grid) * grid;
-    const deltaPitch = -Math.round(
-      (event.clientY - gesture.clientY) / rowH,
-    );
+    const deltaPitch = -Math.round((event.clientY - gesture.clientY) / rowH);
     try {
       const command: MidiStemCommand =
         gesture.mode === "resize"
@@ -1445,16 +1413,13 @@ export function MidiStemEditor({
     const grid = QUANTIZATION_TICKS[quantization];
     const rawTick =
       rect && clientX !== undefined
-        ? ((clientX - rect.left + viewport.scrollLeft - keyW) /
-            pixelsPerBeat) *
+        ? ((clientX - rect.left + viewport.scrollLeft - keyW) / pixelsPerBeat) *
           MIDI_PPQ
         : visiblePlayheadTick;
     const startTick = Math.max(0, Math.round(rawTick / grid) * grid);
     const rawRow =
       rect && clientY !== undefined
-        ? Math.floor(
-            (clientY - rect.top + viewport.scrollTop) / rowH,
-          )
+        ? Math.floor((clientY - rect.top + viewport.scrollTop) / rowH)
         : Math.floor(pitchCount / 2);
     const pitch = Math.max(
       preset.minNote,
@@ -2308,679 +2273,689 @@ export function MidiStemEditor({
         )}
 
         <div
-          className={`border-strong order-3 mt-2 flex min-h-0 flex-col overflow-hidden rounded-card border bg-[radial-gradient(120%_90%_at_85%_-10%,rgba(255,141,99,0.09),transparent_55%),radial-gradient(90%_80%_at_10%_110%,rgba(255,200,121,0.06),transparent_55%)] ${host ? "flex-1" : "h-[38rem]"}`}
+          className={`border-strong rounded-card order-3 mt-2 flex min-h-0 flex-col overflow-hidden border bg-[radial-gradient(120%_90%_at_85%_-10%,rgba(255,141,99,0.09),transparent_55%),radial-gradient(90%_80%_at_10%_110%,rgba(255,200,121,0.06),transparent_55%)] ${host ? "flex-1" : "h-[38rem]"}`}
         >
-        <div className="border-subtle bg-surface/35 grid items-center gap-3 border-b px-3 py-2 backdrop-blur-md lg:grid-cols-[1fr_auto_1fr]">
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              className="border-strong inline-flex rounded-full border p-1"
-              role="group"
-              aria-label="Piano-roll tool"
-            >
-              <button
-                type="button"
-                className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "pencil" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
-                aria-pressed={editorTool === "pencil"}
-                aria-keyshortcuts="P"
-                onClick={() => {
-                  setEditorTool("pencil");
-                  setNotice(
-                    "Pencil tool active. Double-click empty space to add a note.",
-                  );
-                }}
+          <div className="border-subtle bg-surface/35 grid items-center gap-3 border-b px-3 py-2 backdrop-blur-md lg:grid-cols-[1fr_auto_1fr]">
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="border-strong inline-flex rounded-full border p-1"
+                role="group"
+                aria-label="Piano-roll tool"
               >
-                <FiEdit3 aria-hidden /> Pencil
-              </button>
-              <button
-                type="button"
-                className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "select" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
-                aria-pressed={editorTool === "select"}
-                aria-keyshortcuts="V"
-                onClick={() => {
-                  setEditorTool("select");
-                  setNotice(
-                    "Select tool active. Drag empty space around a phrase.",
-                  );
-                }}
-              >
-                <FiMousePointer aria-hidden /> Select
-              </button>
-            </div>
-            <span aria-hidden className="mx-0.5 h-6 w-px bg-white/10" />
-            <button
-              type="button"
-              className={transportButton}
-              onClick={undo}
-              disabled={!history.past.length}
-              aria-label="Undo"
-              title="Undo (Ctrl+Z)"
-            >
-              <FiCornerUpLeft aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={transportButton}
-              onClick={redo}
-              disabled={!history.future.length}
-              aria-label="Redo"
-              title="Redo (Ctrl+Shift+Z)"
-            >
-              <FiCornerUpRight aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={transportButton}
-              onClick={deleteSelection}
-              disabled={!selectedIds.size}
-              aria-label="Delete selection"
-              title="Delete selection (Del)"
-            >
-              <FiTrash2 aria-hidden />
-            </button>
-            <span aria-hidden className="mx-0.5 h-6 w-px bg-white/10" />
-            <label className="text-muted inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase">
-              Grid
-              <select
-                className="border-strong bg-surface rounded-full ml-1 min-h-9 border px-2.5 text-xs font-semibold text-ink"
-                value={quantization}
-                onChange={(event) =>
-                  setQuantization(event.target.value as Quantization)
-                }
-              >
-                {Object.keys(QUANTIZATION_TICKS).map((division) => (
-                  <option key={division}>{division}</option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className={transportButton}
-              onClick={quantizeSelection}
-              disabled={!selectedIds.size}
-              aria-label="Quantize selection to grid"
-              title="Quantize selection to grid"
-            >
-              <FiZap aria-hidden />
-            </button>
-            <button
-              type="button"
-              className={`${transportButton} ${performOpen ? "border-accent text-accent" : ""}`}
-              aria-expanded={performOpen}
-              onClick={() => setPerformOpen((open) => !open)}
-              aria-label="Perform a take"
-              title="Perform a take"
-            >
-              <FiDisc
-                aria-hidden
-                className={
-                  performance.status === "idle" ? undefined : "text-danger"
-                }
-              />
-            </button>
-            <button
-              type="button"
-              className={transportButton}
-              onClick={() => setShowShortcuts((value) => !value)}
-              aria-label="Keyboard shortcuts"
-              title="Keyboard shortcuts"
-            >
-              <FiHelpCircle aria-hidden />
-            </button>
-          </div>
-
-          <div
-            className="flex items-center gap-1.5 justify-self-center"
-            aria-label="Transport"
-          >
-            <button
-              type="button"
-              className={transportButton}
-              aria-label="Move playhead to start"
-              title="Move playhead to start"
-              disabled={visiblePlayheadTick <= 0}
-              onClick={() => seekTo(0)}
-            >
-              <FiSkipBack />
-            </button>
-            <button
-              type="button"
-              className={transportButton}
-              aria-label="Move playhead back one bar. Hold to rewind."
-              title="Back one bar · hold to rewind"
-              onPointerDown={(event) => {
-                if (event.button !== 0) return;
-                event.currentTarget.setPointerCapture(event.pointerId);
-                beginSeekHold(-1);
-              }}
-              onPointerUp={stopSeekHold}
-              onPointerCancel={stopSeekHold}
-              onLostPointerCapture={stopSeekHold}
-              onClick={() => stepSeekBar(-1)}
-            >
-              <FiRewind />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (playing) {
-                  stopPlayback();
-                  stopAudition();
-                  performance.releaseActive();
-                } else void play();
-              }}
-              className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold"
-            >
-              {playing ? <FiSquare aria-hidden /> : <FiPlay aria-hidden />}
-              {playing ? "Stop" : "Play stem"}
-            </button>
-            <button
-              type="button"
-              className={transportButton}
-              aria-label="Move playhead forward one bar. Hold to fast-forward."
-              title="Forward one bar · hold to fast-forward"
-              onPointerDown={(event) => {
-                if (event.button !== 0) return;
-                event.currentTarget.setPointerCapture(event.pointerId);
-                beginSeekHold(1);
-              }}
-              onPointerUp={stopSeekHold}
-              onPointerCancel={stopSeekHold}
-              onLostPointerCapture={stopSeekHold}
-              onClick={() => stepSeekBar(1)}
-            >
-              <FiFastForward />
-            </button>
-            <div className="studio-lcd ml-1" aria-live="off">
-              <div className="studio-lcd-seg">
-                <span className="studio-lcd-val">
-                  {formatStemPosition(visiblePlayheadTick, beatsPerBar)}
-                </span>
-                <span className="studio-lcd-lbl" aria-hidden>
-                  Position
-                </span>
+                <button
+                  type="button"
+                  className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "pencil" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
+                  aria-pressed={editorTool === "pencil"}
+                  aria-keyshortcuts="P"
+                  onClick={() => {
+                    setEditorTool("pencil");
+                    setNotice(
+                      "Pencil tool active. Double-click empty space to add a note.",
+                    );
+                  }}
+                >
+                  <FiEdit3 aria-hidden /> Pencil
+                </button>
+                <button
+                  type="button"
+                  className={`inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm font-semibold ${editorTool === "select" ? "bg-accent text-canvas" : "text-muted hover:text-ink"}`}
+                  aria-pressed={editorTool === "select"}
+                  aria-keyshortcuts="V"
+                  onClick={() => {
+                    setEditorTool("select");
+                    setNotice(
+                      "Select tool active. Drag empty space around a phrase.",
+                    );
+                  }}
+                >
+                  <FiMousePointer aria-hidden /> Select
+                </button>
               </div>
+              <span aria-hidden className="mx-0.5 h-6 w-px bg-white/10" />
+              <button
+                type="button"
+                className={transportButton}
+                onClick={undo}
+                disabled={!history.past.length}
+                aria-label="Undo"
+                title="Undo (Ctrl+Z)"
+              >
+                <FiCornerUpLeft aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={transportButton}
+                onClick={redo}
+                disabled={!history.future.length}
+                aria-label="Redo"
+                title="Redo (Ctrl+Shift+Z)"
+              >
+                <FiCornerUpRight aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={transportButton}
+                onClick={deleteSelection}
+                disabled={!selectedIds.size}
+                aria-label="Delete selection"
+                title="Delete selection (Del)"
+              >
+                <FiTrash2 aria-hidden />
+              </button>
+              <span aria-hidden className="mx-0.5 h-6 w-px bg-white/10" />
+              <label className="text-muted inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase">
+                Grid
+                <select
+                  className="border-strong bg-surface text-ink ml-1 min-h-9 rounded-full border px-2.5 text-xs font-semibold"
+                  value={quantization}
+                  onChange={(event) =>
+                    setQuantization(event.target.value as Quantization)
+                  }
+                >
+                  {Object.keys(QUANTIZATION_TICKS).map((division) => (
+                    <option key={division}>{division}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className={transportButton}
+                onClick={quantizeSelection}
+                disabled={!selectedIds.size}
+                aria-label="Quantize selection to grid"
+                title="Quantize selection to grid"
+              >
+                <FiZap aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`${transportButton} ${performOpen ? "border-accent text-accent" : ""}`}
+                aria-expanded={performOpen}
+                onClick={() => setPerformOpen((open) => !open)}
+                aria-label="Perform a take"
+                title="Perform a take"
+              >
+                <FiDisc
+                  aria-hidden
+                  className={
+                    performance.status === "idle" ? undefined : "text-danger"
+                  }
+                />
+              </button>
+              <button
+                type="button"
+                className={transportButton}
+                onClick={() => setShowShortcuts((value) => !value)}
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts"
+              >
+                <FiHelpCircle aria-hidden />
+              </button>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 justify-self-end">
-            <span
-              role="status"
-              className={`text-xs ${
-                saveState.status === "error" || saveState.status === "conflict"
-                  ? "text-danger"
-                  : "text-muted"
-              }`}
+            <div
+              className="flex items-center gap-1.5 justify-self-center"
+              aria-label="Transport"
             >
-              {saveState.message}
-            </span>
-            {(saveState.status === "offline" ||
-              saveState.status === "error") && (
               <button
                 type="button"
-                className="text-accent text-xs font-semibold underline"
-                onClick={() => void performSave()}
+                className={transportButton}
+                aria-label="Move playhead to start"
+                title="Move playhead to start"
+                disabled={visiblePlayheadTick <= 0}
+                onClick={() => seekTo(0)}
               >
-                Retry
+                <FiSkipBack />
               </button>
-            )}
-            {saveState.status === "conflict" && (
               <button
                 type="button"
-                className="text-accent text-xs font-semibold underline"
-                onClick={() => window.location.reload()}
-              >
-                Reload draft
-              </button>
-            )}
-          </div>
-        </div>
-
-        {showShortcuts && (
-          <div className="border-subtle bg-surface-soft/70 border-b p-4 text-sm backdrop-blur-md">
-            <p className="font-semibold">Piano-roll keyboard controls</p>
-            <p className="text-muted mt-1">
-              Arrows move selected notes; Shift + Left/Right resizes; Delete
-              removes; P chooses Pencil; V chooses Select; Escape clears;
-              Ctrl/Cmd + C/V copies and pastes; Ctrl/Cmd + D duplicates;
-              Ctrl/Cmd + Z undoes; Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y redoes;
-              Ctrl/Cmd + A selects all. Select-tool drags make a marquee, Shift
-              toggles intersecting notes, Ctrl/Cmd-drag copies, and Alt-drag
-              bypasses the grid. Text fields keep their normal shortcuts.
-            </p>
-          </div>
-        )}
-
-        <div className="flex min-h-0 flex-1 overflow-hidden max-xl:flex-col">
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-3 pt-1.5">
-          <p className="text-muted font-mono text-[10px] tracking-widest uppercase">
-            Piano roll
-            <span className="ml-3 tracking-normal normal-case">
-              {history.notes.length.toLocaleString()} of 2,048 notes ·{" "}
-              {selectedIds.size} selected
-            </span>
-          </p>
-          <p
-            className="text-muted inline-flex items-center gap-2 text-xs"
-            aria-live="polite"
-          >
-            <FiMousePointer aria-hidden />
-            {notice ||
-              (editorTool === "select"
-                ? "Drag empty space to select a phrase; drag the selection to move it."
-                : "Double-click empty space to add; drag notes or their gripped edge.")}
-          </p>
-        </div>
-
-        <div
-          ref={rollRef}
-          className="bg-canvas min-h-0 flex-1 overflow-auto"
-          onScroll={(event) => {
-            const { scrollLeft, scrollTop } = event.currentTarget;
-            setViewport((current) => ({
-              ...current,
-              scrollLeft,
-              scrollTop,
-            }));
-          }}
-        >
-          <div
-            className="relative"
-            style={{ width: rollWidth, height: rollHeight }}
-          >
-            <canvas
-              ref={canvasRef}
-              className="sticky top-0 left-0 block touch-none"
-              style={{ width: viewport.width, height: viewport.height }}
-              role="application"
-              tabIndex={0}
-              aria-label={`Piano roll with ${history.notes.length} notes. Use the note inspector after the roll for complete keyboard editing.`}
-              data-tool={editorTool}
-              data-testid="midi-piano-roll"
-              data-middle-c-row={preset.maxNote - 60}
-              onDoubleClick={handleDoubleClick}
-              onContextMenu={handleContextMenu}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={finishPointerInteraction}
-              onPointerCancel={cancelPointerInteraction}
-              onLostPointerCapture={cancelPointerInteraction}
-              onPointerLeave={(event) => {
-                finishPianoGesture(event);
-                if (!gestureRef.current)
-                  event.currentTarget.style.cursor = "crosshair";
-              }}
-            />
-          </div>
-        </div>
-
-        <div
-          className="border-subtle relative h-24 shrink-0 overflow-hidden border-t bg-[linear-gradient(to_bottom,rgba(42,27,55,0.45),rgba(30,20,38,0.3))] backdrop-blur-md"
-          role="group"
-          aria-label="Velocity lane. Drag a stem or focus it and press the arrow keys to change that note's velocity."
-        >
-          <span className="text-muted absolute top-1.5 left-2 z-10 font-mono text-[9px] tracking-widest uppercase">
-            Velocity
-          </span>
-          <span
-            aria-hidden
-            className="bg-strong absolute inset-y-0 w-0.5"
-            style={{ left: keyW - 1 }}
-          />
-          {history.notes.map((note) => {
-            const x =
-              keyW +
-              (note.startTick / MIDI_PPQ) * pixelsPerBeat -
-              viewport.scrollLeft;
-            if (x < keyW - 2 || x > viewport.width + 24) return null;
-            const shownVelocity =
-              velocityDrag?.noteId === note.noteId
-                ? velocityDrag.velocity
-                : note.velocity;
-            const stemSelected = selectedIds.has(note.noteId);
-            return (
-              <button
-                key={note.noteId}
-                type="button"
-                role="slider"
-                aria-label={`Velocity of ${midiPitchName(note.pitch)} at tick ${note.startTick}`}
-                aria-valuemin={1}
-                aria-valuemax={127}
-                aria-valuenow={shownVelocity}
-                aria-orientation="vertical"
-                className="focus-visible:ring-accent absolute bottom-0 w-3 -translate-x-1/2 cursor-ns-resize touch-none focus-visible:ring-2"
-                style={{
-                  left: x,
-                  height: `${10 + (shownVelocity / 127) * 78}%`,
-                }}
+                className={transportButton}
+                aria-label="Move playhead back one bar. Hold to rewind."
+                title="Back one bar · hold to rewind"
                 onPointerDown={(event) => {
                   if (event.button !== 0) return;
                   event.currentTarget.setPointerCapture(event.pointerId);
-                  setSelectedIds(new Set([note.noteId]));
-                  setVelocityDrag({
-                    noteId: note.noteId,
-                    velocity: note.velocity,
-                  });
+                  beginSeekHold(-1);
                 }}
-                onPointerMove={(event) => {
-                  if (velocityDrag?.noteId !== note.noteId) return;
-                  const lane = event.currentTarget.parentElement;
-                  if (!lane) return;
-                  const rect = lane.getBoundingClientRect();
-                  const ratio =
-                    1 - (event.clientY - rect.top) / Math.max(1, rect.height);
-                  setVelocityDrag({
-                    noteId: note.noteId,
-                    velocity: Math.max(
-                      1,
-                      Math.min(127, Math.round(ratio * 127)),
-                    ),
-                  });
+                onPointerUp={stopSeekHold}
+                onPointerCancel={stopSeekHold}
+                onLostPointerCapture={stopSeekHold}
+                onClick={() => stepSeekBar(-1)}
+              >
+                <FiRewind />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (playing) {
+                    stopPlayback();
+                    stopAudition();
+                    performance.releaseActive();
+                  } else void play();
                 }}
-                onPointerUp={() => {
-                  if (velocityDrag?.noteId !== note.noteId) return;
-                  if (velocityDrag.velocity !== note.velocity)
-                    commitCommand(
-                      {
-                        type: "setVelocity",
-                        noteIds: [note.noteId],
-                        velocity: velocityDrag.velocity,
-                      },
-                      "Velocity updated from the velocity lane.",
-                    );
-                  setVelocityDrag(null);
+                className="cta-gradient text-accent-contrast inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold"
+              >
+                {playing ? <FiSquare aria-hidden /> : <FiPlay aria-hidden />}
+                {playing ? "Stop" : "Play stem"}
+              </button>
+              <button
+                type="button"
+                className={transportButton}
+                aria-label="Move playhead forward one bar. Hold to fast-forward."
+                title="Forward one bar · hold to fast-forward"
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  beginSeekHold(1);
                 }}
-                onPointerCancel={() => setVelocityDrag(null)}
-                onLostPointerCapture={() => setVelocityDrag(null)}
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowUp" && event.key !== "ArrowDown")
-                    return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const next = Math.max(
-                    1,
-                    Math.min(
-                      127,
-                      note.velocity + (event.key === "ArrowUp" ? 8 : -8),
-                    ),
-                  );
-                  if (next !== note.velocity)
-                    commitCommand(
-                      {
-                        type: "setVelocity",
-                        noteIds: [note.noteId],
-                        velocity: next,
-                      },
-                      "Velocity updated from the velocity lane.",
-                    );
+                onPointerUp={stopSeekHold}
+                onPointerCancel={stopSeekHold}
+                onLostPointerCapture={stopSeekHold}
+                onClick={() => stepSeekBar(1)}
+              >
+                <FiFastForward />
+              </button>
+              <div className="studio-lcd ml-1" aria-live="off">
+                <div className="studio-lcd-seg">
+                  <span className="studio-lcd-val">
+                    {formatStemPosition(visiblePlayheadTick, beatsPerBar)}
+                  </span>
+                  <span className="studio-lcd-lbl" aria-hidden>
+                    Position
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 justify-self-end">
+              <span
+                role="status"
+                className={`text-xs ${
+                  saveState.status === "error" ||
+                  saveState.status === "conflict"
+                    ? "text-danger"
+                    : "text-muted"
+                }`}
+              >
+                {saveState.message}
+              </span>
+              {(saveState.status === "offline" ||
+                saveState.status === "error") && (
+                <button
+                  type="button"
+                  className="text-accent text-xs font-semibold underline"
+                  onClick={() => void performSave()}
+                >
+                  Retry
+                </button>
+              )}
+              {saveState.status === "conflict" && (
+                <button
+                  type="button"
+                  className="text-accent text-xs font-semibold underline"
+                  onClick={() => window.location.reload()}
+                >
+                  Reload draft
+                </button>
+              )}
+            </div>
+          </div>
+
+          {showShortcuts && (
+            <div className="border-subtle bg-surface-soft/70 border-b p-4 text-sm backdrop-blur-md">
+              <p className="font-semibold">Piano-roll keyboard controls</p>
+              <p className="text-muted mt-1">
+                Arrows move selected notes; Shift + Left/Right resizes; Delete
+                removes; P chooses Pencil; V chooses Select; Escape clears;
+                Ctrl/Cmd + C/V copies and pastes; Ctrl/Cmd + D duplicates;
+                Ctrl/Cmd + Z undoes; Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y
+                redoes; Ctrl/Cmd + A selects all. Select-tool drags make a
+                marquee, Shift toggles intersecting notes, Ctrl/Cmd-drag copies,
+                and Alt-drag bypasses the grid. Text fields keep their normal
+                shortcuts.
+              </p>
+            </div>
+          )}
+
+          <div className="flex min-h-0 flex-1 overflow-hidden max-xl:flex-col">
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-3 pt-1.5">
+                <p className="text-muted font-mono text-[10px] tracking-widest uppercase">
+                  Piano roll
+                  <span className="ml-3 tracking-normal normal-case">
+                    {history.notes.length.toLocaleString()} of 2,048 notes ·{" "}
+                    {selectedIds.size} selected
+                  </span>
+                </p>
+                <p
+                  className="text-muted inline-flex items-center gap-2 text-xs"
+                  aria-live="polite"
+                >
+                  <FiMousePointer aria-hidden />
+                  {notice ||
+                    (editorTool === "select"
+                      ? "Drag empty space to select a phrase; drag the selection to move it."
+                      : "Double-click empty space to add; drag notes or their gripped edge.")}
+                </p>
+              </div>
+
+              <div
+                ref={rollRef}
+                className="bg-canvas min-h-0 flex-1 overflow-auto"
+                onScroll={(event) => {
+                  const { scrollLeft, scrollTop } = event.currentTarget;
+                  setViewport((current) => ({
+                    ...current,
+                    scrollLeft,
+                    scrollTop,
+                  }));
                 }}
               >
-                <span
-                  aria-hidden
-                  className={`absolute inset-x-1 top-0 bottom-0 rounded-t-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
-                  style={{ opacity: 0.5 + (shownVelocity / 127) * 0.5 }}
-                />
-                <span
-                  aria-hidden
-                  className={`absolute -top-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
-                />
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="border-subtle bg-surface-raised/80 absolute right-3 bottom-28 z-30 flex items-center gap-1 rounded-full border px-1.5 py-1 shadow-xl backdrop-blur-md">
-          <button
-            type="button"
-            className="border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 place-items-center rounded-full border transition-colors disabled:opacity-40"
-            aria-label="Zoom out timeline"
-            title="Zoom out timeline"
-            disabled={pixelsPerBeat <= MIN_PIXELS_PER_BEAT}
-            onClick={() =>
-              setPixelsPerBeat((value) =>
-                Math.max(MIN_PIXELS_PER_BEAT, value - 16),
-              )
-            }
-          >
-            <FiZoomOut aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 place-items-center rounded-full border transition-colors disabled:opacity-40"
-            aria-label="Zoom in timeline"
-            title="Zoom in timeline"
-            disabled={pixelsPerBeat >= MAX_PIXELS_PER_BEAT}
-            onClick={() =>
-              setPixelsPerBeat((value) =>
-                Math.min(MAX_PIXELS_PER_BEAT, value + 16),
-              )
-            }
-          >
-            <FiZoomIn aria-hidden />
-          </button>
-        </div>
-        </div>
-
-        <aside
-          className="border-subtle min-h-0 overflow-y-auto border-t bg-[linear-gradient(160deg,rgba(48,31,58,0.32),rgba(24,15,32,0.22))] backdrop-blur-md xl:w-88 xl:shrink-0 xl:border-t-0 xl:border-l"
-          aria-label="Note list and inspector"
-        >
-        <div className="flex flex-col gap-6 p-5">
-          <section aria-labelledby="note-inspector-heading">
-            <h2
-              id="note-inspector-heading"
-              className="text-accent mb-1 font-mono text-[10px] tracking-widest uppercase"
-            >
-              Note
-            </h2>
-            {!selectedNote ? (
-              <div>
-                <p className="text-xl font-semibold">
-                  {selectedIds.size > 1
-                    ? `${selectedIds.size} notes`
-                    : "No selection"}
-                </p>
-                <p className="text-muted mt-1 text-xs leading-5">
-                  {selectedIds.size > 1
-                    ? "Use velocity, quantize, duplicate, move, or delete on the selection. Choose one note for exact fields."
-                    : "Click a note on the roll to inspect and edit its exact values."}
-                </p>
-                {selectedIds.size > 1 && (
-                  <label className="mt-3 block text-left text-sm font-semibold">
-                    Velocity for selection
-                    <input
-                      className={inputClass}
-                      type="number"
-                      min={1}
-                      max={127}
-                      defaultValue={96}
-                      onBlur={(event) =>
-                        commitCommand(
-                          {
-                            type: "setVelocity",
-                            noteIds: [...selectedIds],
-                            velocity: event.currentTarget.valueAsNumber,
-                          },
-                          "Selection velocity updated from the inspector.",
-                        )
-                      }
-                    />
-                  </label>
-                )}
+                <div
+                  className="relative"
+                  style={{ width: rollWidth, height: rollHeight }}
+                >
+                  <canvas
+                    ref={canvasRef}
+                    className="sticky top-0 left-0 block touch-none"
+                    style={{ width: viewport.width, height: viewport.height }}
+                    role="application"
+                    tabIndex={0}
+                    aria-label={`Piano roll with ${history.notes.length} notes. Use the note inspector after the roll for complete keyboard editing.`}
+                    data-tool={editorTool}
+                    data-testid="midi-piano-roll"
+                    data-middle-c-row={preset.maxNote - 60}
+                    onDoubleClick={handleDoubleClick}
+                    onContextMenu={handleContextMenu}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={finishPointerInteraction}
+                    onPointerCancel={cancelPointerInteraction}
+                    onLostPointerCapture={cancelPointerInteraction}
+                    onPointerLeave={(event) => {
+                      finishPianoGesture(event);
+                      if (!gestureRef.current)
+                        event.currentTarget.style.cursor = "crosshair";
+                    }}
+                  />
+                </div>
               </div>
-            ) : (
-              <>
-                <p className="text-2xl font-semibold">
-                  {midiPitchName(selectedNote.pitch)}
-                </p>
-                <p className="text-muted font-mono text-[10px] tracking-widest uppercase">
-                  Selected note
-                </p>
-                <dl className="mt-3">
-                  <StepperRow
-                    label="Pitch"
-                    value={midiPitchName(selectedNote.pitch)}
-                    decrementLabel="Transpose down one semitone"
-                    incrementLabel="Transpose up one semitone"
-                    canDecrement={selectedNote.pitch > preset.minNote}
-                    canIncrement={selectedNote.pitch < preset.maxNote}
-                    onDecrement={() =>
-                      updateSelectedNote("pitch", selectedNote.pitch - 1)
-                    }
-                    onIncrement={() =>
-                      updateSelectedNote("pitch", selectedNote.pitch + 1)
-                    }
-                  />
-                  <StepperRow
-                    label="Start"
-                    value={formatTickPosition(
-                      selectedNote.startTick,
-                      beatsPerBar,
-                    )}
-                    decrementLabel="Move earlier by one grid step"
-                    incrementLabel="Move later by one grid step"
-                    canDecrement={selectedNote.startTick > 0}
-                    canIncrement={
-                      selectedNote.startTick + selectedNote.durationTicks <
-                      draft.durationTicks
-                    }
-                    onDecrement={() =>
-                      updateSelectedNote(
-                        "startTick",
-                        Math.max(
-                          0,
-                          selectedNote.startTick -
-                            QUANTIZATION_TICKS[quantization],
-                        ),
-                      )
-                    }
-                    onIncrement={() =>
-                      updateSelectedNote(
-                        "startTick",
-                        selectedNote.startTick +
-                          QUANTIZATION_TICKS[quantization],
-                      )
-                    }
-                  />
-                  <StepperRow
-                    label="Length"
-                    value={formatTickLength(selectedNote.durationTicks)}
-                    decrementLabel="Shorten by one grid step"
-                    incrementLabel="Lengthen by one grid step"
-                    canDecrement={
-                      selectedNote.durationTicks >
-                      QUANTIZATION_TICKS[quantization]
-                    }
-                    onDecrement={() =>
-                      updateSelectedNote(
-                        "durationTicks",
-                        Math.max(
-                          QUANTIZATION_TICKS[quantization],
-                          selectedNote.durationTicks -
-                            QUANTIZATION_TICKS[quantization],
-                        ),
-                      )
-                    }
-                    onIncrement={() =>
-                      updateSelectedNote(
-                        "durationTicks",
-                        selectedNote.durationTicks +
-                          QUANTIZATION_TICKS[quantization],
-                      )
-                    }
-                  />
-                  <StepperRow
-                    label="Velocity"
-                    value={String(selectedNote.velocity)}
-                    decrementLabel="Decrease velocity"
-                    incrementLabel="Increase velocity"
-                    canDecrement={selectedNote.velocity > 1}
-                    canIncrement={selectedNote.velocity < 127}
-                    onDecrement={() =>
-                      updateSelectedNote(
-                        "velocity",
-                        Math.max(1, selectedNote.velocity - 8),
-                      )
-                    }
-                    onIncrement={() =>
-                      updateSelectedNote(
-                        "velocity",
-                        Math.min(127, selectedNote.velocity + 8),
-                      )
-                    }
-                  />
-                </dl>
-              </>
-            )}
-          </section>
 
-          <section aria-label="Clip details">
-            <h2 className="text-accent mb-1 font-mono text-[10px] tracking-widest uppercase">
-              Clip
-            </h2>
-            <dl>
-              <KvRow label="Clip" value={name || "Untitled stem"} />
-              <KvRow
-                label="Length"
-                value={`${Number(
-                  (draft.durationTicks / barTicks).toFixed(2),
-                )} bars`}
-              />
-              <KvRow label="Notes" value={String(history.notes.length)} />
-              <KvRow label="Tempo" value={`${host?.tempoBpm ?? 120} BPM`} />
-              <KvRow label="Preset" value={preset.name} />
-            </dl>
-          </section>
+              <div
+                className="border-subtle relative h-24 shrink-0 overflow-hidden border-t bg-[linear-gradient(to_bottom,rgba(42,27,55,0.45),rgba(30,20,38,0.3))] backdrop-blur-md"
+                role="group"
+                aria-label="Velocity lane. Drag a stem or focus it and press the arrow keys to change that note's velocity."
+              >
+                <span className="text-muted absolute top-1.5 left-2 z-10 font-mono text-[9px] tracking-widest uppercase">
+                  Velocity
+                </span>
+                <span
+                  aria-hidden
+                  className="bg-strong absolute inset-y-0 w-0.5"
+                  style={{ left: keyW - 1 }}
+                />
+                {history.notes.map((note) => {
+                  const x =
+                    keyW +
+                    (note.startTick / MIDI_PPQ) * pixelsPerBeat -
+                    viewport.scrollLeft;
+                  if (x < keyW - 2 || x > viewport.width + 24) return null;
+                  const shownVelocity =
+                    velocityDrag?.noteId === note.noteId
+                      ? velocityDrag.velocity
+                      : note.velocity;
+                  const stemSelected = selectedIds.has(note.noteId);
+                  return (
+                    <button
+                      key={note.noteId}
+                      type="button"
+                      role="slider"
+                      aria-label={`Velocity of ${midiPitchName(note.pitch)} at tick ${note.startTick}`}
+                      aria-valuemin={1}
+                      aria-valuemax={127}
+                      aria-valuenow={shownVelocity}
+                      aria-orientation="vertical"
+                      className="focus-visible:ring-accent absolute bottom-0 w-3 -translate-x-1/2 cursor-ns-resize touch-none focus-visible:ring-2"
+                      style={{
+                        left: x,
+                        height: `${10 + (shownVelocity / 127) * 78}%`,
+                      }}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        setSelectedIds(new Set([note.noteId]));
+                        setVelocityDrag({
+                          noteId: note.noteId,
+                          velocity: note.velocity,
+                        });
+                      }}
+                      onPointerMove={(event) => {
+                        if (velocityDrag?.noteId !== note.noteId) return;
+                        const lane = event.currentTarget.parentElement;
+                        if (!lane) return;
+                        const rect = lane.getBoundingClientRect();
+                        const ratio =
+                          1 -
+                          (event.clientY - rect.top) / Math.max(1, rect.height);
+                        setVelocityDrag({
+                          noteId: note.noteId,
+                          velocity: Math.max(
+                            1,
+                            Math.min(127, Math.round(ratio * 127)),
+                          ),
+                        });
+                      }}
+                      onPointerUp={() => {
+                        if (velocityDrag?.noteId !== note.noteId) return;
+                        if (velocityDrag.velocity !== note.velocity)
+                          commitCommand(
+                            {
+                              type: "setVelocity",
+                              noteIds: [note.noteId],
+                              velocity: velocityDrag.velocity,
+                            },
+                            "Velocity updated from the velocity lane.",
+                          );
+                        setVelocityDrag(null);
+                      }}
+                      onPointerCancel={() => setVelocityDrag(null)}
+                      onLostPointerCapture={() => setVelocityDrag(null)}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key !== "ArrowUp" &&
+                          event.key !== "ArrowDown"
+                        )
+                          return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const next = Math.max(
+                          1,
+                          Math.min(
+                            127,
+                            note.velocity + (event.key === "ArrowUp" ? 8 : -8),
+                          ),
+                        );
+                        if (next !== note.velocity)
+                          commitCommand(
+                            {
+                              type: "setVelocity",
+                              noteIds: [note.noteId],
+                              velocity: next,
+                            },
+                            "Velocity updated from the velocity lane.",
+                          );
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className={`absolute inset-x-1 top-0 bottom-0 rounded-t-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
+                        style={{ opacity: 0.5 + (shownVelocity / 127) * 0.5 }}
+                      />
+                      <span
+                        aria-hidden
+                        className={`absolute -top-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full ${stemSelected ? "bg-accent-2" : "bg-accent"}`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
 
-          <details className="group">
-            <summary className="text-accent hover:text-accent-2 flex cursor-pointer list-none items-center gap-2 font-mono text-[10px] tracking-widest uppercase transition-colors">
-              <FiChevronDown
-                aria-hidden
-                className="transition-transform group-open:rotate-180"
-              />
-              Note list
-            </summary>
-            <select
-              multiple
-              size={7}
-              className="border-strong bg-surface-soft rounded-control mt-2 w-full min-w-0 border p-2 font-mono text-xs"
-              aria-label="Notes in stem"
-              value={[...selectedIds]}
-              onChange={(event) => setSelectedIds(selectedValues(event))}
+              <div className="border-subtle bg-surface-raised/80 absolute right-3 bottom-28 z-30 flex items-center gap-1 rounded-full border px-1.5 py-1 shadow-xl backdrop-blur-md">
+                <button
+                  type="button"
+                  className="border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 place-items-center rounded-full border transition-colors disabled:opacity-40"
+                  aria-label="Zoom out timeline"
+                  title="Zoom out timeline"
+                  disabled={pixelsPerBeat <= MIN_PIXELS_PER_BEAT}
+                  onClick={() =>
+                    setPixelsPerBeat((value) =>
+                      Math.max(MIN_PIXELS_PER_BEAT, value - 16),
+                    )
+                  }
+                >
+                  <FiZoomOut aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="border-strong text-muted hover:border-accent hover:text-accent grid h-8 w-8 place-items-center rounded-full border transition-colors disabled:opacity-40"
+                  aria-label="Zoom in timeline"
+                  title="Zoom in timeline"
+                  disabled={pixelsPerBeat >= MAX_PIXELS_PER_BEAT}
+                  onClick={() =>
+                    setPixelsPerBeat((value) =>
+                      Math.min(MAX_PIXELS_PER_BEAT, value + 16),
+                    )
+                  }
+                >
+                  <FiZoomIn aria-hidden />
+                </button>
+              </div>
+            </div>
+
+            <aside
+              className="border-subtle min-h-0 overflow-y-auto border-t bg-[linear-gradient(160deg,rgba(48,31,58,0.32),rgba(24,15,32,0.22))] backdrop-blur-md xl:w-88 xl:shrink-0 xl:border-t-0 xl:border-l"
+              aria-label="Note list and inspector"
             >
-              {history.notes.map((note, index) => (
-                <option key={note.noteId} value={note.noteId}>
-                  {index + 1}. {midiPitchName(note.pitch)} · tick{" "}
-                  {note.startTick} · {note.durationTicks} long · velocity{" "}
-                  {note.velocity}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={`${secondaryButton} mt-2 w-full`}
-              onClick={() =>
-                setSelectedIds(
-                  new Set(history.notes.map(({ noteId }) => noteId)),
-                )
-              }
-              disabled={!history.notes.length}
-            >
-              Select all notes
-            </button>
-          </details>
+              <div className="flex flex-col gap-6 p-5">
+                <section aria-labelledby="note-inspector-heading">
+                  <h2
+                    id="note-inspector-heading"
+                    className="text-accent mb-1 font-mono text-[10px] tracking-widest uppercase"
+                  >
+                    Note
+                  </h2>
+                  {!selectedNote ? (
+                    <div>
+                      <p className="text-xl font-semibold">
+                        {selectedIds.size > 1
+                          ? `${selectedIds.size} notes`
+                          : "No selection"}
+                      </p>
+                      <p className="text-muted mt-1 text-xs leading-5">
+                        {selectedIds.size > 1
+                          ? "Use velocity, quantize, duplicate, move, or delete on the selection. Choose one note for exact fields."
+                          : "Click a note on the roll to inspect and edit its exact values."}
+                      </p>
+                      {selectedIds.size > 1 && (
+                        <label className="mt-3 block text-left text-sm font-semibold">
+                          Velocity for selection
+                          <input
+                            className={inputClass}
+                            type="number"
+                            min={1}
+                            max={127}
+                            defaultValue={96}
+                            onBlur={(event) =>
+                              commitCommand(
+                                {
+                                  type: "setVelocity",
+                                  noteIds: [...selectedIds],
+                                  velocity: event.currentTarget.valueAsNumber,
+                                },
+                                "Selection velocity updated from the inspector.",
+                              )
+                            }
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-semibold">
+                        {midiPitchName(selectedNote.pitch)}
+                      </p>
+                      <p className="text-muted font-mono text-[10px] tracking-widest uppercase">
+                        Selected note
+                      </p>
+                      <dl className="mt-3">
+                        <StepperRow
+                          label="Pitch"
+                          value={midiPitchName(selectedNote.pitch)}
+                          decrementLabel="Transpose down one semitone"
+                          incrementLabel="Transpose up one semitone"
+                          canDecrement={selectedNote.pitch > preset.minNote}
+                          canIncrement={selectedNote.pitch < preset.maxNote}
+                          onDecrement={() =>
+                            updateSelectedNote("pitch", selectedNote.pitch - 1)
+                          }
+                          onIncrement={() =>
+                            updateSelectedNote("pitch", selectedNote.pitch + 1)
+                          }
+                        />
+                        <StepperRow
+                          label="Start"
+                          value={formatTickPosition(
+                            selectedNote.startTick,
+                            beatsPerBar,
+                          )}
+                          decrementLabel="Move earlier by one grid step"
+                          incrementLabel="Move later by one grid step"
+                          canDecrement={selectedNote.startTick > 0}
+                          canIncrement={
+                            selectedNote.startTick +
+                              selectedNote.durationTicks <
+                            draft.durationTicks
+                          }
+                          onDecrement={() =>
+                            updateSelectedNote(
+                              "startTick",
+                              Math.max(
+                                0,
+                                selectedNote.startTick -
+                                  QUANTIZATION_TICKS[quantization],
+                              ),
+                            )
+                          }
+                          onIncrement={() =>
+                            updateSelectedNote(
+                              "startTick",
+                              selectedNote.startTick +
+                                QUANTIZATION_TICKS[quantization],
+                            )
+                          }
+                        />
+                        <StepperRow
+                          label="Length"
+                          value={formatTickLength(selectedNote.durationTicks)}
+                          decrementLabel="Shorten by one grid step"
+                          incrementLabel="Lengthen by one grid step"
+                          canDecrement={
+                            selectedNote.durationTicks >
+                            QUANTIZATION_TICKS[quantization]
+                          }
+                          onDecrement={() =>
+                            updateSelectedNote(
+                              "durationTicks",
+                              Math.max(
+                                QUANTIZATION_TICKS[quantization],
+                                selectedNote.durationTicks -
+                                  QUANTIZATION_TICKS[quantization],
+                              ),
+                            )
+                          }
+                          onIncrement={() =>
+                            updateSelectedNote(
+                              "durationTicks",
+                              selectedNote.durationTicks +
+                                QUANTIZATION_TICKS[quantization],
+                            )
+                          }
+                        />
+                        <StepperRow
+                          label="Velocity"
+                          value={String(selectedNote.velocity)}
+                          decrementLabel="Decrease velocity"
+                          incrementLabel="Increase velocity"
+                          canDecrement={selectedNote.velocity > 1}
+                          canIncrement={selectedNote.velocity < 127}
+                          onDecrement={() =>
+                            updateSelectedNote(
+                              "velocity",
+                              Math.max(1, selectedNote.velocity - 8),
+                            )
+                          }
+                          onIncrement={() =>
+                            updateSelectedNote(
+                              "velocity",
+                              Math.min(127, selectedNote.velocity + 8),
+                            )
+                          }
+                        />
+                      </dl>
+                    </>
+                  )}
+                </section>
 
-          <p className="text-muted font-mono text-[10px] leading-relaxed">
-            <span className="text-ink">Pencil</span> click to draw ·{" "}
-            <span className="text-ink">Select</span> drag to move, edge to
-            resize · <span className="text-ink">Erase</span> click to remove ·{" "}
-            <span className="text-ink">←→↑↓</span> nudge ·{" "}
-            <span className="text-ink">Del</span> remove ·{" "}
-            <span className="text-ink">Space</span> play
-          </p>
-        </div>
-        </aside>
-        </div>
+                <section aria-label="Clip details">
+                  <h2 className="text-accent mb-1 font-mono text-[10px] tracking-widest uppercase">
+                    Clip
+                  </h2>
+                  <dl>
+                    <KvRow label="Clip" value={name || "Untitled stem"} />
+                    <KvRow
+                      label="Length"
+                      value={`${Number(
+                        (draft.durationTicks / barTicks).toFixed(2),
+                      )} bars`}
+                    />
+                    <KvRow label="Notes" value={String(history.notes.length)} />
+                    <KvRow
+                      label="Tempo"
+                      value={`${host?.tempoBpm ?? 120} BPM`}
+                    />
+                    <KvRow label="Preset" value={preset.name} />
+                  </dl>
+                </section>
+
+                <details className="group">
+                  <summary className="text-accent hover:text-accent-2 flex cursor-pointer list-none items-center gap-2 font-mono text-[10px] tracking-widest uppercase transition-colors">
+                    <FiChevronDown
+                      aria-hidden
+                      className="transition-transform group-open:rotate-180"
+                    />
+                    Note list
+                  </summary>
+                  <select
+                    multiple
+                    size={7}
+                    className="border-strong bg-surface-soft rounded-control mt-2 w-full min-w-0 border p-2 font-mono text-xs"
+                    aria-label="Notes in stem"
+                    value={[...selectedIds]}
+                    onChange={(event) => setSelectedIds(selectedValues(event))}
+                  >
+                    {history.notes.map((note, index) => (
+                      <option key={note.noteId} value={note.noteId}>
+                        {index + 1}. {midiPitchName(note.pitch)} · tick{" "}
+                        {note.startTick} · {note.durationTicks} long · velocity{" "}
+                        {note.velocity}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={`${secondaryButton} mt-2 w-full`}
+                    onClick={() =>
+                      setSelectedIds(
+                        new Set(history.notes.map(({ noteId }) => noteId)),
+                      )
+                    }
+                    disabled={!history.notes.length}
+                  >
+                    Select all notes
+                  </button>
+                </details>
+
+                <p className="text-muted font-mono text-[10px] leading-relaxed">
+                  <span className="text-ink">Pencil</span> click to draw ·{" "}
+                  <span className="text-ink">Select</span> drag to move, edge to
+                  resize · <span className="text-ink">Erase</span> click to
+                  remove · <span className="text-ink">←→↑↓</span> nudge ·{" "}
+                  <span className="text-ink">Del</span> remove ·{" "}
+                  <span className="text-ink">Space</span> play
+                </p>
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
     </section>
