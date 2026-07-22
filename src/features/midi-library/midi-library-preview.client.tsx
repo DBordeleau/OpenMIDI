@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FiLoader, FiPause, FiPlay } from "react-icons/fi";
+import { PatternRoll } from "./pattern-roll";
 import type { MidiLibraryNote } from "./types";
 import { PublicMidiPreviewRuntime } from "@/features/public-midi/preview-runtime.client";
 import type { PublicMidiEvent } from "@/features/public-midi/schedule";
@@ -10,7 +11,6 @@ import type { PublicMidiEvent } from "@/features/public-midi/schedule";
 export const MIDI_PREVIEW_PLAY_EVENT = "openmidi:public-midi-preview-play";
 type Status =
   "idle" | "loading" | "playing" | "paused" | "error" | "unavailable";
-const HEIGHTS = [38, 72, 52, 88, 46, 64, 92, 58, 76, 42, 84, 62];
 
 export function MidiLibraryPreview({
   listingId,
@@ -38,6 +38,10 @@ export function MidiLibraryPreview({
   const playhead = useRef(0);
   const startedAt = useRef(0);
   const playheadAtStart = useRef(0);
+  // The playhead position is a ref because playback reads it every frame, but
+  // the sweep animation needs it at render time — so the value each run starts
+  // from is mirrored into state rather than read out of the ref during render.
+  const [sweepFromMs, setSweepFromMs] = useState(0);
   const durationMs = Math.ceil((durationTicks * 1000) / 960);
   const clearTimer = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -115,6 +119,7 @@ export function MidiLibraryPreview({
     try {
       await prepare();
       if (playhead.current >= durationMs) playhead.current = 0;
+      setSweepFromMs(playhead.current);
       await runtime.current!.play(playhead.current / 1000);
       playheadAtStart.current = playhead.current;
       startedAt.current = performance.now();
@@ -139,7 +144,7 @@ export function MidiLibraryPreview({
     unavailable = status === "unavailable";
   return (
     <div
-      className="border-subtle bg-surface-soft rounded-card mt-5 border p-3"
+      className="border-subtle bg-surface-soft/60 rounded-card mt-4 border p-3"
       data-preview-listing={listingId}
     >
       <div className="flex items-center gap-3">
@@ -166,29 +171,27 @@ export function MidiLibraryPreview({
           )}
         </button>
         <div className="min-w-0 flex-1">
-          <div className="flex h-8 items-center gap-1" aria-hidden="true">
-            {HEIGHTS.map((height, index) => (
+          <div className="relative">
+            <PatternRoll
+              notes={notes}
+              durationTicks={durationTicks}
+              className="h-9"
+            />
+            {/* Linear, always: easing belongs in the music, not the playhead. */}
+            {playing && !reduceMotion && (
               <motion.span
-                key={index}
-                className={
-                  index % 3 === 0
-                    ? "bg-accent-2 flex-1 rounded-full"
-                    : "bg-accent flex-1 rounded-full"
-                }
-                style={{ height: `${height}%`, transformOrigin: "center" }}
-                animate={
-                  playing && !reduceMotion
-                    ? { scaleY: [0.45, 1, 0.6, 0.45] }
-                    : { scaleY: 0.72 }
-                }
+                aria-hidden="true"
+                className="bg-ink/90 absolute inset-y-0 w-px shadow-[0_0_8px_1px_rgb(247_239_233/0.5)]"
+                initial={{ left: `${(sweepFromMs / durationMs) * 100}%` }}
+                animate={{ left: "100%" }}
                 transition={{
-                  duration: 0.8 + (index % 4) * 0.1,
-                  repeat: playing && !reduceMotion ? Infinity : 0,
+                  duration: Math.max((durationMs - sweepFromMs) / 1000, 0.1),
+                  ease: "linear",
                 }}
               />
-            ))}
+            )}
           </div>
-          <p className="text-muted mt-1 text-xs">
+          <p className="text-muted mt-1.5 text-xs">
             {unavailable
               ? "Preview unavailable in this browser"
               : loading
