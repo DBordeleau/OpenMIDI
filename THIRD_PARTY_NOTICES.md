@@ -28,3 +28,39 @@ The upload-only browser worker uses these exactly pinned packages without modify
 - `@mediabunny/flac-encoder` 1.50.8
 
 Mediabunny and its FLAC encoder extension are Copyright (c) Vanilagy and contributors and are provided under the Mozilla Public License 2.0. Their npm distributions include the complete MPL-2.0 license and corresponding source form. The extension embeds a size-optimized WebAssembly build of Xiph.Org's `libFLAC`; the libFLAC libraries are distributed under the Xiph.Org BSD-like license (`COPYING.Xiph`) in the upstream [xiph/flac source](https://github.com/xiph/flac). OpenMIDI loads this code only through the dedicated browser upload worker and does not copy or modify its source files.
+
+## DiceBear core
+
+OpenMIDI uses `@dicebear/core` 10.3.0.
+
+MIT License
+
+Copyright (c) 2026 Florian Körner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Adventurer Neutral avatar artwork
+
+OpenMIDI uses the Adventurer Neutral definition distributed by
+`@dicebear/styles` 10.2.0. Adventurer Neutral is by
+[Lisa Wischofsky](https://www.instagram.com/lischi_art/) and is licensed under
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
+The [original source](https://www.figma.com/community/file/1184595184137881796)
+is identified in the bundled DiceBear style metadata. OpenMIDI renders the
+bundled definition locally and does not request avatars from DiceBear.

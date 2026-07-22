@@ -2351,6 +2351,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_config: Json | null
+          avatar_config_revision: number
           avatar_path: string | null
           avatar_updated_at: string | null
           avatar_version_id: string | null
@@ -2373,6 +2375,8 @@ export type Database = {
           username_normalized: string | null
         }
         Insert: {
+          avatar_config?: Json | null
+          avatar_config_revision?: number
           avatar_path?: string | null
           avatar_updated_at?: string | null
           avatar_version_id?: string | null
@@ -2395,6 +2399,8 @@ export type Database = {
           username_normalized?: string | null
         }
         Update: {
+          avatar_config?: Json | null
+          avatar_config_revision?: number
           avatar_path?: string | null
           avatar_updated_at?: string | null
           avatar_version_id?: string | null
@@ -3350,6 +3356,7 @@ export type Database = {
     Views: {
       public_profiles: {
         Row: {
+          avatar_config: Json | null
           avatar_path: string | null
           avatar_version_id: string | null
           bio: string | null
@@ -3362,6 +3369,7 @@ export type Database = {
           username_normalized: string | null
         }
         Insert: {
+          avatar_config?: Json | null
           avatar_path?: string | null
           avatar_version_id?: string | null
           bio?: string | null
@@ -3374,6 +3382,7 @@ export type Database = {
           username_normalized?: string | null
         }
         Update: {
+          avatar_config?: Json | null
           avatar_path?: string | null
           avatar_version_id?: string | null
           bio?: string | null
@@ -3633,6 +3642,7 @@ export type Database = {
         Args: { p_report_id: string }
         Returns: Json
       }
+      get_admin_retention_summary: { Args: never; Returns: Json }
       get_admin_storage_summary: { Args: never; Returns: Json }
       get_contribution_project_context: {
         Args: { p_contribution_id: string }
@@ -3689,6 +3699,11 @@ export type Database = {
       get_viewer_profile: {
         Args: never
         Returns: {
+          avatar_config: Json
+          avatar_config_revision: number
+          avatar_path: string
+          avatar_updated_at: string
+          avatar_version_id: string
           bio: string
           created_at: string
           credit_name: string
@@ -4085,6 +4100,14 @@ export type Database = {
           object_path: string
         }[]
       }
+      reset_own_avatar_config: {
+        Args: { p_expected_revision: number }
+        Returns: {
+          avatar_config: Json
+          avatar_config_revision: number
+          avatar_updated_at: string
+        }[]
+      }
       restore_own_account: { Args: never; Returns: Json }
       restore_own_contribution: {
         Args: { p_contribution_id: string }
@@ -4182,6 +4205,14 @@ export type Database = {
           manifest_sha256: string
           updated_at: string
           workspace_id: string
+        }[]
+      }
+      save_own_avatar_config: {
+        Args: { p_expected_revision: number; p_options: Json }
+        Returns: {
+          avatar_config: Json
+          avatar_config_revision: number
+          avatar_updated_at: string
         }[]
       }
       save_own_profile: {

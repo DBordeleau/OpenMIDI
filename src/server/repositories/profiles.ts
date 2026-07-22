@@ -19,6 +19,7 @@ import {
   publicProfileAwardSchema,
   type PublicProfileAward,
 } from "@/features/awards/contract";
+import { parseAvatarConfig } from "@/features/profiles/avatar/contract";
 
 const publicProjectSchema = z.object({
   projectId: z.string().uuid(),
@@ -43,12 +44,6 @@ export async function getViewerProfile(): Promise<ViewerProfile | null> {
   }
   const row = data[0];
   if (!row) throw new Error("viewer_profile_missing");
-  const { data: safeProfile, error: safeError } = await supabase
-    .from("public_profiles")
-    .select("avatar_path,avatar_version_id")
-    .eq("id", row.id)
-    .single();
-  if (safeError) throw new Error("viewer_profile_avatar_unavailable");
   return {
     id: row.id,
     username: row.username,
@@ -57,8 +52,10 @@ export async function getViewerProfile(): Promise<ViewerProfile | null> {
     bio: row.bio,
     status: row.status,
     profileCompletedAt: row.profile_completed_at,
-    avatarPath: safeProfile.avatar_path,
-    avatarVersionId: safeProfile.avatar_version_id,
+    avatarPath: row.avatar_path,
+    avatarVersionId: row.avatar_version_id,
+    avatarConfig: parseAvatarConfig(row.avatar_config),
+    avatarConfigRevision: row.avatar_config_revision,
   };
 }
 
@@ -103,7 +100,7 @@ export async function getPublicProfile(
   const { data, error } = await supabase
     .from("public_profiles")
     .select(
-      "id, username, display_name, credit_name, bio, avatar_path, avatar_version_id",
+      "id, username, display_name, credit_name, bio, avatar_path, avatar_version_id, avatar_config",
     )
     .eq("username_normalized", handle.toLowerCase())
     .maybeSingle();
@@ -124,6 +121,7 @@ export async function getPublicProfile(
     bio: data.bio,
     avatarPath: data.avatar_path,
     avatarVersionId: data.avatar_version_id,
+    avatarConfig: parseAvatarConfig(data.avatar_config),
   };
 }
 

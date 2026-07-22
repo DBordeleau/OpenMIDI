@@ -27,7 +27,7 @@ Local synthesized audio is ephemeral and downloadable; it is never uploaded, sha
 
 ### Identity and profiles
 
-Supabase Auth owns email and provider identity. A Before User Created hook checks private invitations. The Auth insert trigger creates an incomplete private profile. Username claiming and profile completion are authorized database commands. Public reads use the security-invoker `public_profiles` projection; lifecycle and activity fields remain private.
+Supabase Auth owns email and provider identity. A Before User Created hook checks private invitations. The Auth insert trigger creates an incomplete private profile. Username claiming and profile completion are authorized database commands. Public reads use the security-invoker `public_profiles` projection; lifecycle and activity fields remain private. AVATAR-01 adds an optional validated DiceBear Adventurer Neutral configuration rendered locally as a data URI, while retaining uploaded-avatar reads and operations until the later application cutover.
 
 The root route is the signed-out marketing entry. A verified active viewer who requests `/` is redirected to `/dashboard`; an incomplete active viewer is sent through `/onboarding`, and suspended or deleted viewers remain outside the application shell. OAuth callbacks always resume through that onboarding gate, so arbitrary protected-route `next` values cannot replace the dashboard as the normal post-sign-in destination. Completing onboarding redirects to `/dashboard`, while later profile edits continue returning to profile settings.
 
