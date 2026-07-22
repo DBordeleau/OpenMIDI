@@ -114,7 +114,7 @@ Clear the three process-scoped variables after the run and close the operator sh
 
 ## Rollback and disable procedures
 
-The hosted schema and linked ledger contain 17 reviewed migration versions through AVATAR-01. Before any later hosted migration, verify the exact target and compare local/remote history again. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
+The hosted schema and linked ledger contain 18 reviewed migration versions through AVATAR-03, with legacy avatar Storage and image-processing workers retired. Before any later hosted migration, verify the exact target and compare local/remote history again. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
 
 For a seed or application incident:
 

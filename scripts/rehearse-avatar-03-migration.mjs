@@ -114,6 +114,27 @@ try {
   psql(`delete from private.profile_avatar_cleanup_jobs
     where avatar_version_id='a3200000-0000-4000-8000-000000000001';`);
 
+  psql(`insert into private.retention_runs(
+      id,policy_version,mode,status,requested_at,completed_at
+    ) values
+      ('a3300000-0000-4000-8000-000000000001','retention-v2','execute',
+       'complete',statement_timestamp()-interval '2 minutes',
+       statement_timestamp()-interval '2 minutes'),
+      ('a3300000-0000-4000-8000-000000000002','retention-v2','execute',
+       'complete',statement_timestamp()-interval '1 minute',
+       statement_timestamp()-interval '1 minute');
+    insert into private.retention_cleanup_jobs(
+      id,run_id,policy_version,rule_code,subject_kind,subject_id,
+      status,eligible_at,completed_at
+    ) values (
+      'a3300000-0000-4000-8000-000000000003',
+      'a3300000-0000-4000-8000-000000000002','retention-v2',
+      'avatar_superseded','avatar',
+      'a3300000-0000-4000-8000-000000000004','complete',
+      statement_timestamp()-interval '1 minute',
+      statement_timestamp()-interval '1 minute'
+    );`);
+
   runSupabase(["migration", "up", "--local"]);
   psql(`do $$ begin
     if to_regclass('public.assets') is not null
@@ -121,6 +142,14 @@ try {
       or to_regclass('private.profile_image_processing_jobs') is not null
       or exists(select 1 from pg_policies where schemaname='storage')
     then raise exception 'avatar_03_postcondition_failed'; end if;
+    if not exists(
+      select 1 from private.retention_runs
+      where id='a3300000-0000-4000-8000-000000000001'
+    ) then raise exception 'avatar_03_unrelated_empty_run_removed'; end if;
+    if exists(
+      select 1 from private.retention_runs
+      where id='a3300000-0000-4000-8000-000000000002'
+    ) then raise exception 'avatar_03_avatar_only_run_preserved'; end if;
   end $$;`);
   console.log("AVATAR-03 guarded contraction rehearsal passed.");
 } catch (error) {

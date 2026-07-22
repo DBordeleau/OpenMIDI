@@ -139,12 +139,23 @@ revoke all on function public.request_account_deletion(uuid, text) from public;
 grant execute on function public.request_account_deletion(uuid, text) to authenticated;
 
 -- Reconcile obsolete operational rows only after the guard succeeds.
+create temporary table avatar_03_retention_run_ids (
+  run_id uuid primary key
+) on commit drop;
+
+insert into pg_temp.avatar_03_retention_run_ids(run_id)
+select distinct run_id
+from private.retention_cleanup_jobs
+where subject_kind = 'avatar';
+
 delete from private.retention_cleanup_objects o
 using private.retention_cleanup_jobs j
 where o.job_id = j.id and j.subject_kind = 'avatar';
 delete from private.retention_cleanup_jobs where subject_kind = 'avatar';
 delete from private.retention_runs r
-where not exists (select 1 from private.retention_cleanup_jobs j where j.run_id = r.id);
+using pg_temp.avatar_03_retention_run_ids removed
+where r.id = removed.run_id
+  and not exists (select 1 from private.retention_cleanup_jobs j where j.run_id = r.id);
 delete from private.content_holds where target_asset_id is not null;
 delete from private.moderation_actions
 where target_kind = 'asset' or action = 'reject_upload';

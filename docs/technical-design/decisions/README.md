@@ -158,11 +158,11 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 
 ### ADR-020: Retire uploaded avatars and avatar object storage
 
-- **Status:** Accepted and implemented by AVATAR-03; hosted execution remains behind the reviewed user-operated migration gate.
+- **Status:** Accepted and implemented by AVATAR-03.
 - **Decision:** OpenMIDI accepts no profile-image upload. Persist only optional versioned avatar configuration in Postgres, render with pinned local DiceBear packages, and use initials for `NULL`. Remove avatar asset/version tables, Storage admission, processing/cleanup workers, uploaded-avatar RPCs, asset holds, avatar retention branches, legacy profile pointers, the Edge Function, and its recovery secret.
 - **Why:** The generated-avatar path removes user-image privacy and moderation burden, object capacity and cleanup operations, worker recovery, and external renderer availability while preserving deterministic customization.
 - **Consequence:** Generic project/contribution/profile moderation, legal holds, deletion expiry, moderation-metadata retention, account deletion, and recovery remain authoritative. Historical bucket registrations may exist after clean replay, but no application policy, code path, or command can place objects in them.
-- **Validation:** The forward migration aborts on legacy objects, active avatar-asset holds, or live image/cleanup leases; clean replay and pgTAP prove the final schema and privileges; the static contract rejects active upload, remote rendering, and image-worker infrastructure.
+- **Validation:** The forward migration aborted on legacy objects, active avatar-asset holds, or live image/cleanup leases; the reviewed hosted interlock, postflight, and linked-ledger reconciliation completed before merge; clean replay and pgTAP prove the final schema and privileges; the static contract rejects active upload, remote rendering, and image-worker infrastructure.
 
 ## ADR template
 

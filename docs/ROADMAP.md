@@ -1,8 +1,8 @@
 # OpenMIDI MVP roadmap
 
 Status: Post-pivot MVP deployed as an invite-only beta
-Current checkpoint: RELEASE-03 and AVATAR-01 through AVATAR-03 complete in the repository; AVATAR-03 awaits the user-operated hosted migration gate
-Hosted state: 17 migrations through AVATAR-01 recorded; approved seed and generated-avatar production deployment live
+Current checkpoint: RELEASE-03 and AVATAR-01 through AVATAR-03 complete; legacy avatar Storage and image-processing workers retired
+Hosted state: 18 migrations through AVATAR-03 recorded; approved seed and generated-avatar production deployment live
 
 ## Release target
 
@@ -157,7 +157,7 @@ Status: Complete. The retained project ledger was reconciled to all 16 reviewed 
 
 Replace uploaded profile images with a validated version-1 DiceBear Adventurer Neutral configuration rendered from pinned local packages. AVATAR-01 added the Postgres contract, AVATAR-02 cut all active consumers to the local renderer and shipped the editor, and AVATAR-03 retires legacy admission, asset/version tables, workers, profile pointers, asset holds, and avatar retention while preserving generic moderation, deletion, recovery, and metadata retention.
 
-Status: Complete in the repository. The guarded AVATAR-03 migration and hosted object-deletion interlock remain user-operated before merge; no worker mutates hosted Storage, functions, secrets, or migration history.
+Status: Complete. The guarded AVATAR-03 migration, hosted object-deletion interlock, postflight, and linked-ledger reconciliation were completed before merge. Legacy avatar Storage admission, uploaded-avatar data structures, processing/cleanup workers, Edge Function, and recovery secret are retired; generic moderation, legal holds, deletion, recovery, and metadata retention remain active.
 
 ### PERF-01 â€” Bound production navigation request fanout
 

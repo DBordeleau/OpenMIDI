@@ -6,7 +6,7 @@ This file is the operating contract for coding agents working in this repository
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Users create versioned MIDI arrangements, edit them in browser workspaces, submit contributions, fork projects, and preserve pattern/revision lineage and attribution.
 
-The target MVP is a Next.js application backed by Supabase Auth/Postgres, with client-local generated avatars and a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined the retained hosted project, RELEASE-03 reconciled its linked ledger and deployed the invite-only beta, and AVATAR-01 added the seventeenth hosted migration before the generated-avatar cutover at `https://open-midi.vercel.app/`.
+The target MVP is a Next.js application backed by Supabase Auth/Postgres, with client-local generated avatars and a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined the retained hosted project, RELEASE-03 reconciled its linked ledger and deployed the invite-only beta, and AVATAR-01 through AVATAR-03 completed the generated-avatar cutover and retired legacy avatar Storage and workers at `https://open-midi.vercel.app/`.
 
 ## Read before changing code
 
@@ -29,7 +29,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PIVOT-01 through PIVOT-10, the administrator-invitation reconciliation, DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01 through RELEASE-03, and AVATAR-01 through AVATAR-02 are complete. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, semantic-comparison, beta-feedback, public-library, saved-clip, authorized-reuse, challenge, award, identity-reset, seeded-content, hosted-rollout, generated-avatar, hardening, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The retained hosted schema and ledger contain 17 reviewed repository versions; AVATAR-03 is the next user-operated migration gate. npm is the sole package manager and Node.js 24 LTS is required.
+PIVOT-01 through PIVOT-10, the administrator-invitation reconciliation, DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01 through RELEASE-03, and AVATAR-01 through AVATAR-03 are complete. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, semantic-comparison, beta-feedback, public-library, saved-clip, authorized-reuse, challenge, award, identity-reset, seeded-content, hosted-rollout, generated-avatar, hardening, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The retained hosted schema and ledger contain 18 reviewed repository versions through AVATAR-03, with legacy avatar Storage and image-processing workers retired. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
