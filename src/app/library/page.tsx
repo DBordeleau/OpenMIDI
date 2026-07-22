@@ -76,9 +76,14 @@ export default async function MidiLibraryPage({
                 MIDI library
               </p>
               <h1 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-balance sm:text-3xl">
-                Find a pattern. Hear the{" "}
+                Find a pattern.{" "}
                 <em className="text-accent font-serif font-medium">
-                  possibility.
+                  {/* Only one of these is ever displayed, so only one reaches
+                      assistive technology. */}
+                  <span className="sm:hidden">Hear it.</span>
+                  <span className="hidden sm:inline">
+                    Hear the possibility.
+                  </span>
                 </em>
               </h1>
             </div>

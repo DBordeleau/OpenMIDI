@@ -94,7 +94,14 @@ export function ListingCard({
         <Chip>
           {formatPitch(listing.minPitch)}–{formatPitch(listing.maxPitch)}
         </Chip>
-        <Chip>{listing.polyphony}</Chip>
+        {/* Abbreviated on a phone so the metric row stays one line — the
+            information is kept, not dropped. */}
+        <Chip>
+          <span className="sm:hidden">
+            {listing.polyphony === "monophonic" ? "mono" : "poly"}
+          </span>
+          <span className="hidden sm:inline">{listing.polyphony}</span>
+        </Chip>
       </div>
 
       {listing.description && (

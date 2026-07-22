@@ -97,7 +97,7 @@ export function LibraryFilters({
   return (
     <form
       action="/library"
-      className="dash-card rounded-card relative grid gap-2.5 p-3 sm:gap-3 sm:p-4"
+      className="dash-card rounded-card relative grid gap-2 p-2.5 sm:gap-3 sm:p-4"
     >
       <input type="hidden" name="rights" value={filters.rights} />
 
@@ -135,7 +135,13 @@ export function LibraryFilters({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <nav aria-label="Reuse permission" className="flex flex-wrap gap-1.5">
+        <nav
+          // No wrap on a phone so the chips and the disclosure share one row;
+          // wrapping returns from `sm` up so a narrow window cannot overflow
+          // the toolbar.
+          aria-label="Reuse permission"
+          className="flex shrink-0 gap-1.5 sm:flex-wrap"
+        >
           {RIGHTS_TABS.map((tab) => {
             const current = filters.rights === tab.value;
             return (
@@ -143,7 +149,7 @@ export function LibraryFilters({
                 key={tab.value}
                 prefetch={false}
                 aria-current={current ? "page" : undefined}
-                className={`min-h-9 rounded-full border px-3.5 text-sm font-semibold transition-colors ${current ? "border-accent bg-accent/12 text-accent" : "border-subtle text-muted hover:border-accent-2 hover:text-ink"} inline-flex items-center`}
+                className={`min-h-9 shrink-0 rounded-full border px-3 text-[13px] font-semibold whitespace-nowrap transition-colors sm:px-3.5 sm:text-sm ${current ? "border-accent bg-accent/12 text-accent" : "border-subtle text-muted hover:border-accent-2 hover:text-ink"} inline-flex items-center`}
                 href={rightsHref(filters, tab.value)}
               >
                 {tab.label}
@@ -168,8 +174,9 @@ export function LibraryFilters({
           open={active > 0}
           className={`group ${active > 0 ? "" : "ml-auto"}`}
         >
-          <summary className="border-subtle text-muted hover:border-accent-2 hover:text-ink inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold transition-colors">
-            More filters
+          <summary className="border-subtle text-muted hover:border-accent-2 hover:text-ink inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold whitespace-nowrap transition-colors sm:px-3.5 sm:text-sm">
+            <span className="sm:hidden">Filters</span>
+            <span className="hidden sm:inline">More filters</span>
             {active > 0 && (
               <span className="bg-accent/15 text-accent rounded-full px-1.5 font-mono text-[11px]">
                 {active}

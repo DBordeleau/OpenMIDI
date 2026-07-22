@@ -441,6 +441,30 @@ arriving quickly. Rights use the badge-length labels
 each card still states what is and is not granted beneath the preview, and the
 listing page carries the full statement.
 
+**Browsing pages share one shape.** `/library`, `/library/saved` and `/projects`
+are the same surface with different nouns, and changing one should mean changing
+all three: `py-6 sm:py-10`, an eyebrow plus a single-line heading with the page's
+one primary action beside it, an optional glass control bar, a muted count line,
+then a `md:grid-cols-2 xl:grid-cols-3` grid of `.dash-card` cards with a
+staggered `Reveal`. Each card is a stretched link to the thing itself with **one**
+explicit button — Studio, or the editor. Every one of them has a `loading.tsx`
+that mirrors that exact skeleton, so the swap to content is a fill rather than a
+relayout.
+
+On a phone these pages tighten with `sm:` variants rather than losing anything:
+control bars stay **one scrolling row** instead of wrapping into a tall block of
+empty glass, long headings swap to a shorter complete phrasing (two spans, one
+displayed — never a truncated sentence), and metric labels abbreviate
+(`monophonic` → `mono`) so the row stays a single line. Prefer abbreviating or
+scrolling over hiding: a chip a musician uses to choose a clip should not vanish
+at 390px.
+
+`/projects` also surfaces the `scope` and `review` filters
+([`ProjectScopeTabs`](../../src/features/projects/project-scope-tabs.tsx)) that
+`listProjectsForViewer` always supported but which were previously reachable only
+by hand-written URL. Its bar is shrink-wrapped — a full-bleed glass strip behind
+three short chips reads as an empty container.
+
 **Pattern previews are real note data.** [`PatternRoll`](../../src/features/midi-library/pattern-roll.tsx)
 draws the listing's actual notes — pitch on the vertical axis, tick position and
 length on the horizontal, velocity in the alpha — and the play button sweeps a

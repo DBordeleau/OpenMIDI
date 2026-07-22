@@ -86,7 +86,7 @@ export default async function DashboardPage() {
               id="clips-heading"
               title="Your MIDI clips"
               count={dashboard.counts.clips.count}
-              viewAll={{ href: "/library/manage", label: "View all" }}
+              viewAll={{ href: "/library/saved", label: "View all" }}
             >
               <ButtonLink href={newClipHref} prefetch={false}>
                 New clip

@@ -79,20 +79,23 @@ describe("project-index content-link prefetch", () => {
         .getAllByRole("link")
         .every((link) => link.getAttribute("data-prefetch") === "false"),
     ).toBe(true);
+    // The card title is the only link to the project now — the row itself is
+    // the destination, so a separate "Open project" button would be the same
+    // door twice.
     expect(
       screen
         .getAllByRole("link")
         .filter(
           (link) => link.getAttribute("href") === "/projects/owner-project",
         ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       screen
         .getAllByRole("link")
         .filter(
           (link) => link.getAttribute("href") === "/projects/viewer-project",
         ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       screen.getByRole("link", { name: "Open in studio" }),
     ).toHaveAttribute("href", "/studio/owner-project");
@@ -100,13 +103,11 @@ describe("project-index content-link prefetch", () => {
       screen.getAllByRole("link", { name: "Open in studio" }),
     ).toHaveLength(1);
 
-    const firstOpenProject = screen.getAllByRole("link", {
-      name: "Open project",
-    })[0];
-    fireEvent.pointerEnter(firstOpenProject);
-    expect(firstOpenProject).toHaveAttribute("data-prefetch", "default");
+    const ownerProject = screen.getByRole("link", { name: "Owner project" });
+    fireEvent.pointerEnter(ownerProject);
+    expect(ownerProject).toHaveAttribute("data-prefetch", "default");
     expect(
-      screen.getAllByRole("link", { name: "Open project" })[1],
+      screen.getByRole("link", { name: "Viewer project" }),
     ).toHaveAttribute("data-prefetch", "false");
   });
 
