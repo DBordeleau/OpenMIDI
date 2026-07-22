@@ -423,6 +423,31 @@ prelaunch identity**; do not reintroduce that wording. `npm run check:identity`
 fails the build if the old name returns anywhere in tracked text, which is also
 why this paragraph does not spell it.
 
+**MIDI library** — `/library` is a browsing surface, so the patterns come first.
+The header is an eyebrow and one line, and the nine filters collapse into a
+single `.dash-card` toolbar
+([`LibraryFilters`](../../src/features/midi-library/library-filters.tsx)):
+search, rights and sort stay visible, everything else lives behind a
+`<details>` that **opens itself when it holds an active filter**, so a shared
+URL never hides why the results look narrow. It is a plain disclosure inside the
+GET form — no client JavaScript. Before this, header plus filters ran ~900px and
+a 1080p visitor saw no cards at all; the first card now sits at ~380px with three
+fully visible.
+
+Cards are `.dash-card` with the hover lift, a stretched title link, and a
+staggered `Reveal` entrance capped at eight steps so a full page finishes
+arriving quickly. Rights use the badge-length labels
+(`MIDI_LIBRARY_RIGHTS_BADGES`) because the full sentence ate the card header —
+each card still states what is and is not granted beneath the preview, and the
+listing page carries the full statement.
+
+**Pattern previews are real note data.** [`PatternRoll`](../../src/features/midi-library/pattern-roll.tsx)
+draws the listing's actual notes — pitch on the vertical axis, tick position and
+length on the horizontal, velocity in the alpha — and the play button sweeps a
+linear playhead across it. It replaced a twelve-bar fake equaliser whose heights
+were a hard-coded array; §5 asks musical surfaces to show note timing rather
+than an invented waveform, and the note data was already on the listing.
+
 **Studio surface** — manifest-v3 sessions use the browser-only
 [`MidiStudioSurface`](../../src/features/studio/midi-adapter/midi-studio-surface.client.tsx)
 with the shared
@@ -540,6 +565,9 @@ pages, the create/edit form.
 | Header enter/exit motion  | `src/components/layout/conditional-header.client.tsx`                     |
 | Brand mark (shared logo)  | `src/components/layout/brand-mark.tsx`                                    |
 | Sign-in modal             | `src/app/sign-in/_components/sign-in-modal.client.tsx`                    |
+| Library toolbar           | `src/features/midi-library/library-filters.tsx`                           |
+| Library card              | `src/features/midi-library/listing-card.tsx`                              |
+| Pattern roll preview      | `src/features/midi-library/pattern-roll.tsx`                              |
 | MIDI Studio surface       | `src/features/studio/midi-adapter/midi-studio-surface.client.tsx`         |
 | Unified arranger          | `src/features/studio/arranger/arranger-workspace.tsx`                     |
 | Integrated MIDI composer  | `src/features/studio/integrated-midi/integrated-midi-composer.client.tsx` |

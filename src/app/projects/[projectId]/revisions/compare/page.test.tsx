@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getProjectRevisionComparison } from "@/server/repositories/project-revision-comparisons";
 import ProjectRevisionComparisonPage from "./page";
@@ -18,6 +18,8 @@ vi.mock("@/features/midi-diff/project-revision-comparison.client", () => ({
 const projectId = "61000000-0000-4000-8000-000000000001";
 const from = "62000000-0000-4000-8000-000000000001";
 const to = "62000000-0000-4000-8000-000000000002";
+
+afterEach(cleanup);
 
 describe("project revision comparison route", () => {
   beforeEach(() => vi.clearAllMocks());
