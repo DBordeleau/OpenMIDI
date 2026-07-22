@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(41);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
 values
@@ -33,6 +33,8 @@ select ok(exists(select 1 from storage.buckets where id='profile-images') and ex
 select has_function('public','reserve_profile_image_upload',array['uuid','integer','text','text'],'upload RPC remains during expand slice');
 select throws_ok($$update public.profiles set avatar_config=jsonb_build_object('version',2,'seed',id::text,'options',(select value from avatar_test_options)) where id='39000000-0000-4000-8000-000000000001'$$,'23514',null,'database constraint rejects unsupported config version');
 select throws_ok($$update public.profiles set avatar_config=jsonb_build_object('version',1,'seed','39000000-0000-4000-8000-000000000099','options',(select value from avatar_test_options)) where id='39000000-0000-4000-8000-000000000001'$$,'23514',null,'database constraint rejects a seed that differs from profile UUID');
+select throws_ok($$update public.profiles set avatar_config=jsonb_build_object('version',1,'seed',id::text,'options','{}'::jsonb) where id='39000000-0000-4000-8000-000000000001'$$,'23514',null,'database constraint rejects a full wrapper with empty options');
+select is(private.is_valid_avatar_config(jsonb_build_object('version',1,'seed','39000000-0000-4000-8000-000000000001','options','{}'::jsonb)),false,'private validator returns false rather than null for empty options');
 
 set local role anon;
 select throws_ok($$select * from public.save_own_avatar_config('{}'::jsonb,0)$$,'42501','permission denied for function save_own_avatar_config','anonymous cannot save avatar config');
@@ -41,6 +43,7 @@ reset role;
 
 set local role authenticated;
 set local request.jwt.claim.sub='39000000-0000-4000-8000-000000000001';
+select throws_ok($$select * from public.save_own_avatar_config('{}'::jsonb,0)$$,'PT400','avatar_config_invalid','owner save rejects empty options');
 select is((select avatar_config_revision from public.save_own_avatar_config((select value from avatar_test_options),0)),1,'owner saves valid options and increments revision');
 select is((select avatar_config->>'seed' from public.profiles where id='39000000-0000-4000-8000-000000000001'),'39000000-0000-4000-8000-000000000001','save derives seed from authenticated profile UUID');
 select is((select avatar_config->>'seed' from public.get_viewer_profile()),'39000000-0000-4000-8000-000000000001','viewer command returns generated avatar config without a second query');

@@ -14,7 +14,7 @@ begin
   if p_config is null then return true; end if;
   if jsonb_typeof(p_config) <> 'object'
     or (select array_agg(key order by key) from jsonb_object_keys(p_config) key)
-      <> array['options', 'seed', 'version']::text[]
+      is distinct from array['options', 'seed', 'version']::text[]
     or p_config->'version' <> '1'::jsonb
     or jsonb_typeof(p_config->'seed') <> 'string'
     or (p_config->>'seed') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
@@ -23,7 +23,7 @@ begin
 
   v_options := p_config->'options';
   if (select array_agg(key order by key) from jsonb_object_keys(v_options) key)
-      <> array['backgroundColor', 'eyebrowsVariant', 'eyesVariant', 'glassesProbability',
+      is distinct from array['backgroundColor', 'eyebrowsVariant', 'eyesVariant', 'glassesProbability',
         'glassesVariant', 'mouthVariant', 'rotate', 'scale']::text[]
     or jsonb_typeof(v_options->'eyebrowsVariant') <> 'string'
     or (v_options->>'eyebrowsVariant') !~ '^variant(0[1-9]|1[0-5])$'
@@ -43,10 +43,10 @@ begin
 
   v_scale := (v_options->>'scale')::numeric;
   v_rotate := (v_options->>'rotate')::numeric;
-  return v_scale between 0.8 and 1.6
+  return coalesce(v_scale between 0.8 and 1.6
     and mod(v_scale * 20, 1) = 0
     and v_rotate between -20 and 20
-    and v_rotate = trunc(v_rotate);
+    and v_rotate = trunc(v_rotate), false);
 exception when others then
   return false;
 end;
@@ -99,7 +99,7 @@ begin
   end if;
 
   v_config := jsonb_build_object('version', 1, 'seed', v_actor::text, 'options', p_options);
-  if not private.is_valid_avatar_config(v_config) then
+  if private.is_valid_avatar_config(v_config) is not true then
     raise sqlstate 'PT400' using message = 'avatar_config_invalid';
   end if;
 
