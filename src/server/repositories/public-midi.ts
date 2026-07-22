@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { z } from "zod";
 import {
   MIDI_V3_MAX_RESOLVED_NOTES,
   MIDI_V3_REUSE_LICENSE,
@@ -19,6 +21,11 @@ import {
   type ArrangementManifestV3,
 } from "@/features/studio/manifest/v3";
 import type { Database } from "@/lib/supabase/database.types";
+import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
+import {
+  PUBLIC_PROJECTS_CACHE_TAG,
+  publicProjectCacheTag,
+} from "@/lib/cache/public-projects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_PUBLIC_HISTORY_REVISIONS = 8;
@@ -40,6 +47,85 @@ export type PublicArrangementCard = {
     clipCount: number;
   }>;
 };
+
+const canonicalSilhouetteSchema = z
+  .string()
+  .length(88)
+  .regex(/^[A-Za-z0-9+/]{86}==$/);
+const publicProjectSilhouetteRowSchema = z
+  .object({
+    midi_pattern_version_id: z.string().uuid(),
+    silhouette: canonicalSilhouetteSchema.nullable(),
+    min_pitch: z.number().int().min(0).max(127).nullable(),
+    max_pitch: z.number().int().min(0).max(127).nullable(),
+  })
+  .superRefine((row, context) => {
+    const allNull =
+      row.silhouette === null &&
+      row.min_pitch === null &&
+      row.max_pitch === null;
+    const allPresent =
+      row.silhouette !== null &&
+      row.min_pitch !== null &&
+      row.max_pitch !== null &&
+      row.min_pitch <= row.max_pitch;
+    if (!allNull && !allPresent) {
+      context.addIssue({
+        code: "custom",
+        message: "Silhouette fields must be consistently null or present.",
+      });
+    }
+  });
+
+export type PublicProjectSilhouette =
+  | { silhouette: null; minPitch: null; maxPitch: null }
+  | { silhouette: string; minPitch: number; maxPitch: number };
+export type PublicProjectSilhouetteMap = Map<string, PublicProjectSilhouette>;
+
+/**
+ * Loads decoration-grade occupancy for each distinct pattern version in one
+ * immutable public revision. A silhouette covers the whole pattern; clip
+ * windowing and looping still come from the arrangement manifest.
+ */
+export async function getPublicProjectSilhouettes(
+  projectId: string,
+  revisionId: string,
+): Promise<PublicProjectSilhouetteMap> {
+  const load = unstable_cache(
+    async () => {
+      const db = createSupabaseAnonymousClient();
+      const { data, error } = await db.rpc("get_public_project_silhouettes", {
+        p_project_id: projectId,
+        p_revision_id: revisionId,
+      });
+      if (error) throw new Error("public_project_silhouettes_unavailable");
+      return z.array(publicProjectSilhouetteRowSchema).max(64).parse(data);
+    },
+    ["public-project-silhouettes-v1", projectId, revisionId],
+    {
+      tags: [PUBLIC_PROJECTS_CACHE_TAG, publicProjectCacheTag(projectId)],
+      revalidate: false,
+    },
+  );
+  const rows = await load();
+  const silhouettes: PublicProjectSilhouetteMap = new Map();
+  for (const row of rows) {
+    if (silhouettes.has(row.midi_pattern_version_id)) {
+      throw new Error("public_project_silhouettes_invalid");
+    }
+    silhouettes.set(
+      row.midi_pattern_version_id,
+      row.silhouette === null
+        ? { silhouette: null, minPitch: null, maxPitch: null }
+        : {
+            silhouette: row.silhouette,
+            minPitch: row.min_pitch!,
+            maxPitch: row.max_pitch!,
+          },
+    );
+  }
+  return silhouettes;
+}
 
 export type PublicRevisionHistoryItem = {
   id: string;

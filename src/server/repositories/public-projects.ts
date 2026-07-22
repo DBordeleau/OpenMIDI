@@ -16,7 +16,11 @@ import {
   getDiscoveryVersion,
   getPublicProfiles,
 } from "@/server/repositories/discovery";
-import { getPublicArrangementCards } from "@/server/repositories/public-midi";
+import {
+  getPublicArrangementCards,
+  getPublicProjectSilhouettes,
+  type PublicProjectSilhouetteMap,
+} from "@/server/repositories/public-midi";
 
 const taxonomySchema = z.object({
   id: z.string().uuid(),
@@ -50,7 +54,9 @@ const lineageSchema = z.object({
 
 export async function getPublicProject(
   projectId: string,
-): Promise<PublicProject | null> {
+): Promise<
+  (PublicProject & { patternSilhouettes: PublicProjectSilhouetteMap }) | null
+> {
   const discoveryVersion = await getDiscoveryVersion();
   const load = unstable_cache(
     async (version: number) => {
@@ -82,11 +88,12 @@ export async function getPublicProject(
     row.owner_id,
     ...attributions.map((attribution) => attribution.profileId),
   ];
-  const [profiles, arrangements] = await Promise.all([
+  const [profiles, arrangements, patternSilhouettes] = await Promise.all([
     getPublicProfiles(profileIds),
     getPublicArrangementCards([
       { projectId: row.project_id, revisionId: row.current_revision_id },
     ]),
+    getPublicProjectSilhouettes(row.project_id, row.current_revision_id),
   ]);
   const owner = profiles.get(row.owner_id);
   const arrangement = arrangements.get(row.current_revision_id);
@@ -124,6 +131,7 @@ export async function getPublicProject(
       ...attribution,
       profileUsername: profiles.get(attribution.profileId)?.username ?? null,
     })),
+    patternSilhouettes,
     trendingScore: Number(row.trending_score),
     discoveryVersion: Number(row.discovery_version),
   };
