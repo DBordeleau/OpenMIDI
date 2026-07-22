@@ -135,8 +135,21 @@ export const avatarConfigV1Schema = z
   })
   .strict();
 
+export const avatarSaveInputSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    options: avatarOptionsV1Schema,
+  })
+  .strict();
+
+export const avatarResetInputSchema = z
+  .object({ expectedRevision: z.number().int().nonnegative() })
+  .strict();
+
 export type AvatarOptionsV1 = z.infer<typeof avatarOptionsV1Schema>;
 export type AvatarConfigV1 = z.infer<typeof avatarConfigV1Schema>;
+export type AvatarSaveInput = z.infer<typeof avatarSaveInputSchema>;
+export type AvatarResetInput = z.infer<typeof avatarResetInputSchema>;
 
 export const DEFAULT_AVATAR_OPTIONS: AvatarOptionsV1 = Object.freeze({
   eyebrowsVariant: "variant01",
@@ -167,4 +180,14 @@ export function createAvatarConfig(
 
 export function normalizeAvatarColor(value: string): string {
   return value.trim().replace(/^#/, "").toLowerCase();
+}
+
+export function avatarConfigFingerprint(config: AvatarConfigV1): string {
+  const canonical = JSON.stringify(config);
+  let hash = 2_166_136_261;
+  for (let index = 0; index < canonical.length; index += 1) {
+    hash ^= canonical.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return `avatar-v1-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }

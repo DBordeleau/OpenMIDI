@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  avatarConfigFingerprint,
   AVATAR_EYEBROW_VARIANTS,
   AVATAR_EYE_VARIANTS,
   AVATAR_GLASSES_VARIANTS,
@@ -35,6 +36,22 @@ describe("avatar configuration v1", () => {
 
   it("normalizes editor color input without weakening stored parsing", () => {
     expect(normalizeAvatarColor(" #F8E4F8 ")).toBe("f8e4f8");
+  });
+
+  it("creates a compact stable fingerprint without exposing the configuration", () => {
+    const config = createAvatarConfig(PROFILE_ID, DEFAULT_AVATAR_OPTIONS);
+    expect(config).not.toBeNull();
+    if (!config) return;
+    expect(avatarConfigFingerprint(config)).toMatch(/^avatar-v1-[0-9a-f]{8}$/);
+    expect(avatarConfigFingerprint(config)).toBe(
+      avatarConfigFingerprint(config),
+    );
+    expect(
+      avatarConfigFingerprint({
+        ...config,
+        options: { ...config.options, rotate: 1 },
+      }),
+    ).not.toBe(avatarConfigFingerprint(config));
   });
 
   it("publishes the frozen catalog sizes and defaults", () => {

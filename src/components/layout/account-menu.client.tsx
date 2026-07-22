@@ -29,7 +29,12 @@ export function AccountMenu({ viewer }: { viewer: ViewerIdentity }) {
             <span
               className={`inline-flex rounded-full p-0.5 ring-1 transition-colors ${open ? "ring-accent" : "group-hover:ring-accent-2 ring-transparent"}`}
             >
-              <Avatar src={viewer.avatarUrl} name={name} size="sm" decorative />
+              <Avatar
+                avatarConfig={viewer.avatarConfig}
+                name={name}
+                size="sm"
+                decorative
+              />
             </span>
             <FiChevronDown
               aria-hidden="true"

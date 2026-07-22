@@ -21,6 +21,8 @@ function renderHeader() {
 }
 
 const getClaims = vi.fn();
+const select = vi.fn();
+const maybeSingle = vi.fn();
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.mock("next/link", () => ({
@@ -51,13 +53,22 @@ vi.mock("@/lib/supabase/browser", () => ({
         };
       },
     },
+    from: () => ({
+      select: (columns: string) => {
+        select(columns);
+        return { eq: () => ({ maybeSingle }) };
+      },
+    }),
   }),
 }));
 
 describe("SiteHeader", () => {
   beforeEach(() => {
     getClaims.mockReset();
+    select.mockReset();
+    maybeSingle.mockReset();
     getClaims.mockResolvedValue({ data: { claims: null }, error: null });
+    maybeSingle.mockResolvedValue({ data: null });
   });
   afterEach(cleanup);
 
@@ -143,5 +154,46 @@ describe("SiteHeader", () => {
     expect(
       screen.getByRole("button", { name: "Sign out" }),
     ).toBeInTheDocument();
+  });
+
+  it("hydrates a generated config without resolving a Storage URL", async () => {
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: "30000000-0000-4000-8000-000000000001" } },
+      error: null,
+    });
+    maybeSingle.mockResolvedValue({
+      data: {
+        username: "ada",
+        display_name: "Ada",
+        avatar_config: {
+          version: 1,
+          seed: "30000000-0000-4000-8000-000000000001",
+          options: {
+            eyebrowsVariant: "variant01",
+            eyesVariant: "variant01",
+            glassesVariant: "variant01",
+            glassesProbability: 0,
+            mouthVariant: "variant01",
+            backgroundColor: "f2d3b1",
+            scale: 1,
+            rotate: 0,
+          },
+        },
+      },
+    });
+
+    renderHeader();
+
+    await waitFor(() =>
+      expect(select).toHaveBeenCalledWith(
+        "username,display_name,avatar_config",
+      ),
+    );
+    const faces = await screen.findAllByRole("presentation");
+    expect(
+      faces.some((face) =>
+        face.getAttribute("src")?.startsWith("data:image/svg+xml"),
+      ),
+    ).toBe(true);
   });
 });

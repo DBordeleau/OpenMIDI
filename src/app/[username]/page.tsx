@@ -6,7 +6,6 @@ import Link from "next/link";
 import { AwardGallery } from "@/features/awards/award-gallery";
 import {
   getPublicProfile,
-  getPublicAvatarUrl,
   listPublicProfileContributions,
   listPublicProfileProjects,
   listPublicProfileAwards,
@@ -79,7 +78,7 @@ export default async function PublicProfilePage({
       <Container className="py-20">
         <article className="mx-auto max-w-3xl">
           <Avatar
-            src={getPublicAvatarUrl(profile.avatarPath)}
+            avatarConfig={profile.avatarConfig}
             name={profile.displayName}
             size="lg"
           />

@@ -5,17 +5,16 @@ import { Reveal } from "@/components/ui/reveal.client";
 import { signOut } from "@/features/auth/actions";
 import { requireViewer } from "@/features/auth/guards";
 import { ProfileForm } from "@/features/profiles/profile-form";
-import { AvatarUploader } from "@/features/profiles/avatar-uploader";
+import { Avatar } from "@/components/ui/avatar";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { listViewerAcceptedContributions } from "@/server/repositories/profiles";
-import { getPublicAvatarUrl } from "@/server/repositories/profiles";
 import { AccountDeletionForm } from "@/features/moderation/account-deletion-form";
 import { assertViewerAdmin } from "@/server/repositories/moderation";
 
 export default async function ProfileSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; avatar?: string }>;
 }) {
   const profile = await requireViewer("/settings/profile");
   if (!profile.profileCompletedAt) redirect("/onboarding");
@@ -26,7 +25,8 @@ export default async function ProfileSettingsPage({
       listViewerAcceptedContributions(profile.id),
       assertViewerAdmin(),
     ]);
-  const saved = (await searchParams).saved === "1";
+  const query = await searchParams;
+  const saved = query.saved === "1";
   return (
     <main id="main-content">
       <Container className="py-16">
@@ -69,13 +69,40 @@ export default async function ProfileSettingsPage({
               </Link>
             </p>
           )}
+          {(query.avatar === "saved" || query.avatar === "reset") && (
+            <p
+              role="status"
+              className="rounded-control border-accent/50 mt-6 border p-3 text-sm"
+            >
+              {query.avatar === "saved"
+                ? "Avatar saved across your profile."
+                : "Avatar reset to initials."}
+            </p>
+          )}
           <Reveal delay={0.08}>
-            <AvatarUploader
-              profileId={profile.id}
-              name={profile.displayName ?? "OpenMIDI member"}
-              avatarUrl={getPublicAvatarUrl(profile.avatarPath)}
-              avatarVersionId={profile.avatarVersionId}
-            />
+            <section className="dash-card dash-card-lit mt-8 flex flex-wrap items-center justify-between gap-5 p-5 sm:p-6">
+              <div className="flex min-w-0 items-center gap-4">
+                <Avatar
+                  avatarConfig={profile.avatarConfig}
+                  name={profile.displayName ?? "OpenMIDI member"}
+                  size="md"
+                />
+                <div className="min-w-0">
+                  <h2 className="text-xl font-bold">Your profile avatar</h2>
+                  <p className="text-muted mt-1 text-sm">
+                    {profile.avatarConfig
+                      ? "A locally generated face with no uploaded photo."
+                      : "Initials now; build a face whenever you like."}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/settings/avatar"
+                className="cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
+              >
+                Customize avatar
+              </Link>
+            </section>
           </Reveal>
           <Reveal delay={0.12}>
             <ProfileForm profile={profile} />
@@ -128,7 +155,7 @@ export default async function ProfileSettingsPage({
                   className="border-strong rounded-full border px-5 py-3 font-semibold"
                   href="/admin/operations"
                 >
-                  Storage operations
+                  Retention operations
                 </Link>
               </div>
             </Reveal>
@@ -146,10 +173,11 @@ export default async function ProfileSettingsPage({
               <p className="text-muted mt-3">
                 Your profile and owned projects disappear immediately. You can
                 recover for 30 days when moderation permits. Published credits
-                and fork lineage survive as unavailable history. Existing access
-                tokens and signed URLs can remain valid until their short
-                expiry, so OpenMIDI continues enforcing deleted-account checks
-                at every protected boundary.
+                and fork lineage survive as unavailable history. Your generated
+                avatar configuration is cleared immediately. Existing access
+                tokens can remain valid until their short expiry, so OpenMIDI
+                continues enforcing deleted-account checks at every protected
+                boundary.
               </p>
               <AccountDeletionForm username={profile.username} />
             </Reveal>

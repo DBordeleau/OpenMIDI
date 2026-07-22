@@ -11,7 +11,7 @@ const SIGNED_OUT: ViewerIdentity = {
   signedIn: false,
   displayName: null,
   username: null,
-  avatarUrl: null,
+  avatarConfig: null,
 };
 
 const ViewerIdentityContext = createContext<ViewerIdentity | null>(null);

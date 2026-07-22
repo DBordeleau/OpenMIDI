@@ -186,7 +186,7 @@ export function MobileTabBar() {
                 <>
                   <div className="flex items-center gap-3 px-4 pb-3">
                     <Avatar
-                      src={viewer.avatarUrl}
+                      avatarConfig={viewer.avatarConfig}
                       name={name}
                       size="sm"
                       decorative
@@ -282,7 +282,12 @@ export function MobileTabBar() {
               isAccountCurrent(pathname) || active === "account",
             )}
           >
-            <Avatar src={viewer.avatarUrl} name={name} size="xs" decorative />
+            <Avatar
+              avatarConfig={viewer.avatarConfig}
+              name={name}
+              size="xs"
+              decorative
+            />
             Account
           </button>
         </nav>

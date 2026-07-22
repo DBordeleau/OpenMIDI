@@ -19,7 +19,11 @@ import {
   publicProfileAwardSchema,
   type PublicProfileAward,
 } from "@/features/awards/contract";
-import { parseAvatarConfig } from "@/features/profiles/avatar/contract";
+import {
+  parseAvatarConfig,
+  type AvatarResetInput,
+  type AvatarSaveInput,
+} from "@/features/profiles/avatar/contract";
 
 const publicProjectSchema = z.object({
   projectId: z.string().uuid(),
@@ -52,8 +56,6 @@ export async function getViewerProfile(): Promise<ViewerProfile | null> {
     bio: row.bio,
     status: row.status,
     profileCompletedAt: row.profile_completed_at,
-    avatarPath: row.avatar_path,
-    avatarVersionId: row.avatar_version_id,
     avatarConfig: parseAvatarConfig(row.avatar_config),
     avatarConfigRevision: row.avatar_config_revision,
   };
@@ -93,15 +95,50 @@ export async function saveViewerProfile(input: ProfileInput) {
   });
 }
 
+export async function saveViewerAvatarConfig(input: AvatarSaveInput) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("save_own_avatar_config", {
+    p_options: input.options,
+    p_expected_revision: input.expectedRevision,
+  });
+  if (error) return { data: null, error };
+  const row = data[0];
+  const avatarConfig = parseAvatarConfig(row?.avatar_config);
+  if (!row || !avatarConfig) throw new Error("avatar_config_response_invalid");
+  return {
+    data: {
+      avatarConfig,
+      avatarConfigRevision: row.avatar_config_revision,
+    },
+    error: null,
+  };
+}
+
+export async function resetViewerAvatarConfig(input: AvatarResetInput) {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db.rpc("reset_own_avatar_config", {
+    p_expected_revision: input.expectedRevision,
+  });
+  if (error) return { data: null, error };
+  const row = data[0];
+  if (!row || row.avatar_config !== null)
+    throw new Error("avatar_reset_response_invalid");
+  return {
+    data: {
+      avatarConfig: null,
+      avatarConfigRevision: row.avatar_config_revision,
+    },
+    error: null,
+  };
+}
+
 export async function getPublicProfile(
   handle: string,
 ): Promise<PublicProfile | null> {
   const supabase = createSupabaseAnonymousClient();
   const { data, error } = await supabase
     .from("public_profiles")
-    .select(
-      "id, username, display_name, credit_name, bio, avatar_path, avatar_version_id, avatar_config",
-    )
+    .select("id, username, display_name, credit_name, bio, avatar_config")
     .eq("username_normalized", handle.toLowerCase())
     .maybeSingle();
   if (
@@ -119,17 +156,8 @@ export async function getPublicProfile(
     displayName: data.display_name,
     creditName: data.credit_name,
     bio: data.bio,
-    avatarPath: data.avatar_path,
-    avatarVersionId: data.avatar_version_id,
     avatarConfig: parseAvatarConfig(data.avatar_config),
   };
-}
-
-export function getPublicAvatarUrl(path: string | null) {
-  if (!path) return null;
-  const supabase = createSupabaseAnonymousClient();
-  return supabase.storage.from("public-avatars").getPublicUrl(path).data
-    .publicUrl;
 }
 
 function validProfileCursor(input: {

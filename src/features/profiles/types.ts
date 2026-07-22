@@ -10,8 +10,6 @@ export type ViewerProfile = {
   bio: string | null;
   status: AccountStatus;
   profileCompletedAt: string | null;
-  avatarPath: string | null;
-  avatarVersionId: string | null;
   avatarConfig: AvatarConfigV1 | null;
   avatarConfigRevision: number;
 };
@@ -22,8 +20,6 @@ export type PublicProfile = {
   displayName: string;
   creditName: string;
   bio: string | null;
-  avatarPath: string | null;
-  avatarVersionId: string | null;
   avatarConfig: AvatarConfigV1 | null;
 };
 

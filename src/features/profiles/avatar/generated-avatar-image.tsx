@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AvatarConfigV1 } from "./contract";
+import { avatarConfigFingerprint, type AvatarConfigV1 } from "./contract";
 import { renderAvatarDataUri } from "./renderer";
 
 export function GeneratedAvatarImage({
@@ -31,6 +31,7 @@ export function GeneratedAvatarImage({
       width={pixels}
       height={pixels}
       alt={alt}
+      data-avatar-fingerprint={avatarConfigFingerprint(config)}
     />
   );
 }

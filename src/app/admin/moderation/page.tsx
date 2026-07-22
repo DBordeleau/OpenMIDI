@@ -42,7 +42,7 @@ export default async function AdminModerationPage({
               className="border-strong rounded-full border px-5 py-3 font-semibold"
               href="/admin/operations"
             >
-              Storage operations
+              Retention operations
             </Link>
           </div>
         </div>

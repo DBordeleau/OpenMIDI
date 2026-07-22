@@ -10,15 +10,12 @@ const GeneratedAvatarImage = lazy(() =>
 );
 
 export function Avatar({
-  src,
   avatarConfig,
   name,
   size = "md",
   decorative = false,
 }: {
-  src: string | null;
-  /** Transitional AVATAR-01 compatibility; uploaded URLs remain supported until AVATAR-02. */
-  avatarConfig?: unknown;
+  avatarConfig: unknown;
   name: string;
   /** `xs` exists for the mobile tab bar, where the face sits above a label. */
   size?: "xs" | "sm" | "md" | "lg";
@@ -57,18 +54,5 @@ export function Avatar({
     );
   }
 
-  const resolvedSrc = src;
-  return resolvedSrc ? (
-    // Public avatar derivatives are already trusted, cropped, and immutable.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className={`${className} object-cover`}
-      src={resolvedSrc}
-      width={pixels[size]}
-      height={pixels[size]}
-      alt={decorative ? "" : `${name}'s avatar`}
-    />
-  ) : (
-    initial
-  );
+  return initial;
 }

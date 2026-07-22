@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  parseAvatarConfig,
+  type AvatarConfigV1,
+} from "@/features/profiles/avatar/contract";
 
 export type ViewerIdentity = {
   signedIn: boolean;
   displayName: string | null;
   username: string | null;
-  avatarUrl: string | null;
+  avatarConfig: AvatarConfigV1 | null;
 };
 
 const SIGNED_OUT: ViewerIdentity = {
   signedIn: false,
   displayName: null,
   username: null,
-  avatarUrl: null,
+  avatarConfig: null,
 };
 
 type Client = ReturnType<typeof createSupabaseBrowserClient>;
@@ -28,17 +32,14 @@ async function readPublicIdentity(supabase: Client, viewerId: string) {
   try {
     const { data } = await supabase
       .from("public_profiles")
-      .select("username,display_name,avatar_path")
+      .select("username,display_name,avatar_config")
       .eq("id", viewerId)
       .maybeSingle();
     if (!data) return null;
     return {
       displayName: data.display_name,
       username: data.username,
-      avatarUrl: data.avatar_path
-        ? supabase.storage.from("public-avatars").getPublicUrl(data.avatar_path)
-            .data.publicUrl
-        : null,
+      avatarConfig: parseAvatarConfig(data.avatar_config),
     };
   } catch {
     return null;
@@ -87,7 +88,8 @@ export function useViewerIdentity(revalidateOn: string): ViewerIdentity {
       const profile = await readPublicIdentity(supabase, viewerId);
       if (active && profile)
         setIdentity((current) =>
-          current.avatarUrl === profile.avatarUrl &&
+          JSON.stringify(current.avatarConfig) ===
+            JSON.stringify(profile.avatarConfig) &&
           current.username === profile.username &&
           current.displayName === profile.displayName
             ? current

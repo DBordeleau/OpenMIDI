@@ -9,15 +9,9 @@ const generatedConfig = {
   options: DEFAULT_AVATAR_OPTIONS,
 };
 
-describe("Avatar compatibility boundary", () => {
-  it("prefers a valid generated avatar", async () => {
-    render(
-      <Avatar
-        src="https://example.test/legacy.webp"
-        avatarConfig={generatedConfig}
-        name="Ada"
-      />,
-    );
+describe("Avatar", () => {
+  it("renders a valid generated avatar with descriptive accessibility", async () => {
+    render(<Avatar avatarConfig={generatedConfig} name="Ada" />);
     const image = await screen.findByRole("img", { name: "Ada's avatar" });
     expect(image).toHaveAttribute(
       "src",
@@ -25,16 +19,16 @@ describe("Avatar compatibility boundary", () => {
     );
   });
 
-  it("retains uploaded URL and initial fallbacks during AVATAR-01", () => {
-    const { rerender } = render(
-      <Avatar src="https://example.test/legacy.webp" name="Bea" />,
-    );
-    expect(screen.getByRole("img", { name: "Bea's avatar" })).toHaveAttribute(
-      "src",
-      "https://example.test/legacy.webp",
-    );
+  it("uses initials for missing or invalid configuration", () => {
+    const { rerender } = render(<Avatar avatarConfig={null} name="Bea" />);
+    expect(screen.getByLabelText("Bea's initials")).toHaveTextContent("B");
 
-    rerender(<Avatar src={null} avatarConfig={{ version: 2 }} name="Cara" />);
+    rerender(<Avatar avatarConfig={{ version: 2 }} name="Cara" />);
     expect(screen.getByLabelText("Cara's initials")).toHaveTextContent("C");
+  });
+
+  it("keeps decorative faces out of the accessible image tree", async () => {
+    render(<Avatar avatarConfig={generatedConfig} name="Ada" decorative />);
+    expect(await screen.findByRole("presentation")).toHaveAttribute("alt", "");
   });
 });

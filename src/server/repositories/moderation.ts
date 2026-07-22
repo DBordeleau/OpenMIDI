@@ -190,22 +190,7 @@ export async function releaseContentHold(input: {
   });
 }
 
-const storageSummarySchema = z.object({
-  thresholds: z.object({ warningBytes: z.number(), stopBytes: z.number() }),
-  total: z.object({
-    objectCount: z.number(),
-    bytes: z.number(),
-    unknownSizeCount: z.number(),
-  }),
-  buckets: z.array(
-    z.object({
-      bucket: z.string(),
-      object_count: z.number(),
-      bytes: z.number(),
-      unknown_size_count: z.number(),
-    }),
-  ),
-  untrackedObjectCount: z.number(),
+const retentionSummarySchema = z.object({
   dueCleanupCount: z.number(),
   lastRun: z
     .object({
@@ -221,9 +206,9 @@ const storageSummarySchema = z.object({
     .nullable(),
 });
 
-export async function getAdminStorageSummary() {
+export async function getAdminRetentionSummary() {
   const db = await createSupabaseServerClient();
-  const { data, error } = await db.rpc("get_admin_storage_summary");
-  if (error) throw new Error("storage_summary_unavailable");
-  return storageSummarySchema.parse(data);
+  const { data, error } = await db.rpc("get_admin_retention_summary");
+  if (error) throw new Error("retention_summary_unavailable");
+  return retentionSummarySchema.parse(data);
 }
