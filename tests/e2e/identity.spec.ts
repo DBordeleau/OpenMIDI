@@ -69,7 +69,7 @@ async function resetTestActorProfile() {
       "-v",
       "ON_ERROR_STOP=1",
       "-c",
-      `update public.profiles set username=null, username_normalized=null, display_name=null, credit_name=null, bio=null, profile_completed_at=null, avatar_config=null where id='${actor.id}'`,
+      `update public.profiles set username=null, username_normalized=null, display_name=null, credit_name=null, bio=null, profile_completed_at=null where id='${actor.id}'`,
     ],
     { encoding: "utf8" },
   );
@@ -84,17 +84,7 @@ test.describe("identity vertical slice", () => {
   test("onboards, creates a MIDI project, edits the profile, and signs out", async ({
     page,
   }) => {
-    test.setTimeout(180_000);
-    const avatarEgress: string[] = [];
-    page.on("request", (request) => {
-      const url = request.url();
-      if (
-        url.includes("dicebear") ||
-        url.includes("/storage/v1/") ||
-        url.includes("process-profile-image")
-      )
-        avatarEgress.push(url);
-    });
+    test.setTimeout(120_000);
     await resetTestActorProfile();
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
@@ -156,56 +146,6 @@ test.describe("identity vertical slice", () => {
     await page.getByLabel("Display name").fill("Edited Artist");
     await page.getByRole("button", { name: "Save profile" }).click();
     await expect(page.getByText("Profile saved.")).toBeVisible();
-
-    await page.getByRole("link", { name: "Customize avatar" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Build your avatar" }),
-    ).toBeVisible();
-    await page.getByRole("radio", { name: "Eyebrows 2" }).click();
-    await page.getByRole("radio", { name: "Lavender #f8e4f8" }).click();
-    const previewFingerprint = await page
-      .getByAltText("Edited Artist's avatar preview")
-      .getAttribute("data-avatar-fingerprint");
-    if (!previewFingerprint)
-      throw new Error("Avatar preview omitted its deterministic fingerprint.");
-    await page.getByRole("button", { name: "Save" }).click();
-    await expect(
-      page.getByText("Avatar saved across your profile."),
-    ).toBeVisible();
-    await expect
-      .poll(() =>
-        page
-          .locator("img[data-avatar-fingerprint]")
-          .evaluateAll((images) =>
-            images.map((image) =>
-              image.getAttribute("data-avatar-fingerprint"),
-            ),
-          ),
-      )
-      .toContain(previewFingerprint);
-
-    await page.goto("/@E2EArtist");
-    await page.reload();
-    await expect
-      .poll(() =>
-        page
-          .locator("img[data-avatar-fingerprint]")
-          .evaluateAll((images) =>
-            images.map((image) =>
-              image.getAttribute("data-avatar-fingerprint"),
-            ),
-          ),
-      )
-      .toContain(previewFingerprint);
-
-    await page.goto("/settings/avatar");
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Reset to initials" }).click();
-    await expect(page.getByText("Avatar reset to initials.")).toBeVisible();
-    await expect(
-      page.getByLabel("Edited Artist's initials").first(),
-    ).toBeVisible();
-    expect(avatarEgress).toEqual([]);
 
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/sign-in$/);

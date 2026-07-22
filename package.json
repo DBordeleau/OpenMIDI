@@ -20,6 +20,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:local": "node scripts/run-local-e2e.mjs",
+    "test:e2e:avatar": "node scripts/run-local-e2e.mjs tests/e2e/avatar-settings.spec.ts",
     "test:e2e:identity": "node scripts/run-local-e2e.mjs tests/e2e/identity.spec.ts",
     "test:e2e:studio": "node scripts/run-local-e2e.mjs tests/e2e/studio-startup.spec.ts",
     "midi:benchmark": "node scripts/benchmark-midi-feasibility.mjs",

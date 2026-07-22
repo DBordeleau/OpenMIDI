@@ -75,6 +75,7 @@ Keep this section exact and runnable from the repository root.
 | Check database type drift | `npm run db:types:check`         |
 | Prepare test Auth actor   | `npm run auth:e2e:setup`         |
 | Required MIDI E2E suite   | `npm run test:e2e:local`         |
+| Avatar E2E                | `npm run test:e2e:avatar`        |
 | Identity E2E              | `npm run test:e2e:identity`      |
 | Studio smoke E2E          | `npm run test:e2e:studio`        |
 | Process profile image     | `npm run avatars:process`        |

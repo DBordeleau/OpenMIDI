@@ -12,6 +12,7 @@ import {
   type AvatarConfigV1,
   type AvatarOptionsV1,
 } from "./contract";
+import { AvatarConfirmationDialog } from "./avatar-confirmation-dialog.client";
 import { AvatarEditor } from "./avatar-editor.client";
 
 const secondaryButton =
@@ -36,6 +37,9 @@ export function AvatarEditorShell({
   const [revision, setRevision] = useState(initialRevision);
   const [configured, setConfigured] = useState(Boolean(initialConfig));
   const [result, setResult] = useState<AvatarActionResult | null>(null);
+  const [confirmation, setConfirmation] = useState<"discard" | "reset" | null>(
+    null,
+  );
   const [pending, startTransition] = useTransition();
   const dirty = useMemo(
     () => JSON.stringify(options) !== JSON.stringify(savedOptions),
@@ -43,8 +47,10 @@ export function AvatarEditorShell({
   );
 
   function leaveEditor() {
-    if (dirty && !window.confirm("Discard your unsaved avatar changes?"))
+    if (dirty) {
+      setConfirmation("discard");
       return;
+    }
     router.push("/settings/profile");
   }
 
@@ -75,7 +81,7 @@ export function AvatarEditorShell({
   }
 
   function reset() {
-    if (!window.confirm("Reset your avatar to initials everywhere?")) return;
+    setConfirmation(null);
     setResult(null);
     startTransition(async () => {
       const next = await resetAvatarAction({ expectedRevision: revision });
@@ -94,7 +100,7 @@ export function AvatarEditorShell({
     <>
       <button
         type="button"
-        disabled={pending || !dirty}
+        disabled={pending || (configured && !dirty)}
         onClick={save}
         className="cta-gradient inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
       >
@@ -111,7 +117,7 @@ export function AvatarEditorShell({
       <button
         type="button"
         disabled={pending || (!configured && !dirty)}
-        onClick={reset}
+        onClick={() => setConfirmation("reset")}
         className={`${secondaryButton} hover:border-danger hover:text-danger`}
       >
         Reset to initials
@@ -150,6 +156,32 @@ export function AvatarEditorShell({
         disabled={pending}
         actions={actions}
       />
+      {confirmation && (
+        <AvatarConfirmationDialog
+          title={
+            confirmation === "discard"
+              ? "Discard your changes?"
+              : "Reset to initials?"
+          }
+          body={
+            confirmation === "discard"
+              ? "Your unsaved avatar choices will be lost."
+              : "Your generated avatar will be removed everywhere and your initials will return."
+          }
+          confirmLabel={
+            confirmation === "discard" ? "Discard changes" : "Reset avatar"
+          }
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => {
+            if (confirmation === "discard") {
+              setConfirmation(null);
+              router.push("/settings/profile");
+            } else {
+              reset();
+            }
+          }}
+        />
+      )}
     </>
   );
 }

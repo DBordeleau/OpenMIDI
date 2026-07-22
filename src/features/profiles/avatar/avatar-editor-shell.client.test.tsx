@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_AVATAR_OPTIONS, type AvatarConfigV1 } from "./contract";
@@ -39,58 +40,83 @@ describe("AvatarEditorShell", () => {
     router.refresh.mockReset();
     saveAvatarAction.mockReset();
     resetAvatarAction.mockReset();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
   });
 
-  it("starts defaults from initials without persisting and saves exact returned state", async () => {
-    const storedConfig = {
-      ...initialConfig,
-      options: {
-        ...DEFAULT_AVATAR_OPTIONS,
-        eyebrowsVariant: "variant02" as const,
-      },
-    };
+  it("starts defaults from initials without persisting and can save those exact defaults", async () => {
     saveAvatarAction.mockResolvedValue({
       ok: true,
-      avatarConfig: storedConfig,
+      avatarConfig: initialConfig,
       avatarConfigRevision: 5,
     });
     renderShell();
 
     expect(saveAvatarAction).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("radio", { name: "Eyebrows 2" }));
-    expect(screen.getByText("Unsaved changes")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(saveAvatarAction).toHaveBeenCalledWith({
         expectedRevision: 4,
-        options: storedConfig.options,
+        options: DEFAULT_AVATAR_OPTIONS,
       }),
     );
     expect(router.push).toHaveBeenCalledWith("/settings/profile?avatar=saved");
     expect(router.refresh).toHaveBeenCalled();
   });
 
-  it("bounds dirty Cancel and Back navigation with confirmation", () => {
-    const confirm = vi.mocked(window.confirm);
-    confirm.mockReturnValue(false);
-    renderShell();
-    fireEvent.click(screen.getByRole("radio", { name: "Eyes 2" }));
+  it("disables Save when an existing generated avatar is unchanged", () => {
+    renderShell(initialConfig);
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(router.push).not.toHaveBeenCalled();
-    confirm.mockReturnValue(true);
-    fireEvent.click(screen.getByRole("button", { name: "Back to profile" }));
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(saveAvatarAction).not.toHaveBeenCalled();
+  });
+
+  it("leaves without confirmation when defaults were only previewed", () => {
+    renderShell();
+
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    cancelButton.focus();
+    fireEvent.click(cancelButton);
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith("/settings/profile");
   });
 
-  it("resets a saved avatar to initials after confirmation", async () => {
+  it("bounds dirty Cancel and Back navigation with an accessible confirmation", async () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("radio", { name: "Eyes 2" }));
+    expect(screen.getByText("Unsaved changes")).toBeVisible();
+
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    cancelButton.focus();
+    fireEvent.click(cancelButton);
+    const cancelDialog = screen.getByRole("alertdialog", {
+      name: "Discard your changes?",
+    });
+    expect(
+      within(cancelDialog).getByRole("button", { name: "Keep editing" }),
+    ).toHaveFocus();
+    expect(router.push).not.toHaveBeenCalled();
+    fireEvent.keyDown(cancelDialog, { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(cancelButton).toHaveFocus());
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to profile" }));
+    const backDialog = screen.getByRole("alertdialog", {
+      name: "Discard your changes?",
+    });
+    fireEvent.click(
+      within(backDialog).getByRole("button", { name: "Discard changes" }),
+    );
+    expect(router.push).toHaveBeenCalledWith("/settings/profile");
+  });
+
+  it("resets a saved avatar to initials through the in-app confirmation", async () => {
     resetAvatarAction.mockResolvedValue({
       ok: true,
       avatarConfig: null,
@@ -100,8 +126,12 @@ describe("AvatarEditorShell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Reset to initials" }));
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      "Reset your avatar to initials everywhere?",
+    const dialog = screen.getByRole("alertdialog", {
+      name: "Reset to initials?",
+    });
+    expect(resetAvatarAction).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Reset avatar" }),
     );
     await waitFor(() =>
       expect(resetAvatarAction).toHaveBeenCalledWith({ expectedRevision: 4 }),
