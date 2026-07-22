@@ -58,10 +58,12 @@ Acceptance verifies the expected contribution version and current project revisi
 
 - Private moderation reports/actions and content holds are operational authority.
 - Private deletion requests and retention jobs preserve recovery and legal-hold semantics.
+- `profiles.avatar_config` stores the optional validated version-1 local DiceBear configuration; `NULL` means initials. The owner-private revision supports optimistic save/reset commands, while safe public reads expose only the configuration.
 - `assets` contains avatar originals only; ready rows are constrained to sanitized image metadata.
 - `profile_avatar_versions` links private originals to immutable public derivative paths.
 - Private upload/processing/cleanup jobs and the bounded operator commands own avatar lifecycle.
 - Storage contains exactly `profile-images` (private) and `public-avatars` (public derivatives), with one authenticated reservation policy for originals.
+- AVATAR-01 is an expand-only transition: the generated configuration and uploaded-avatar pointers coexist until the application cutover and separately gated Storage retirement.
 
 There are no musical upload, waveform, quota, processing, network-worker, or scheduled-job tables/functions/extensions in the baseline.
 

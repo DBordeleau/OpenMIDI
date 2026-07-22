@@ -1,10 +1,24 @@
+import { lazy, Suspense } from "react";
+import { parseAvatarConfig } from "@/features/profiles/avatar/contract";
+
+const GeneratedAvatarImage = lazy(() =>
+  import("@/features/profiles/avatar/generated-avatar-image").then(
+    (module) => ({
+      default: module.GeneratedAvatarImage,
+    }),
+  ),
+);
+
 export function Avatar({
   src,
+  avatarConfig,
   name,
   size = "md",
   decorative = false,
 }: {
   src: string | null;
+  /** Transitional AVATAR-01 compatibility; uploaded URLs remain supported until AVATAR-02. */
+  avatarConfig?: unknown;
   name: string;
   /** `xs` exists for the mobile tab bar, where the face sits above a label. */
   size?: "xs" | "sm" | "md" | "lg";
@@ -18,17 +32,8 @@ export function Avatar({
   };
   const pixels = { xs: 20, sm: 40, md: 56, lg: 96 };
   const className = `${sizes[size]} border-strong bg-surface-raised inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border font-bold`;
-  return src ? (
-    // Public avatar derivatives are already trusted, cropped, and immutable.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      className={`${className} object-cover`}
-      src={src}
-      width={pixels[size]}
-      height={pixels[size]}
-      alt={decorative ? "" : `${name}'s avatar`}
-    />
-  ) : (
+  const generatedConfig = parseAvatarConfig(avatarConfig);
+  const initial = (
     <span
       className={className}
       aria-hidden={decorative || undefined}
@@ -36,5 +41,34 @@ export function Avatar({
     >
       {name.trim().slice(0, 1).toUpperCase() || "J"}
     </span>
+  );
+
+  if (generatedConfig) {
+    return (
+      <Suspense fallback={initial}>
+        <GeneratedAvatarImage
+          config={generatedConfig}
+          className={className}
+          pixels={pixels[size]}
+          alt={decorative ? "" : `${name}'s avatar`}
+          fallback={initial}
+        />
+      </Suspense>
+    );
+  }
+
+  const resolvedSrc = src;
+  return resolvedSrc ? (
+    // Public avatar derivatives are already trusted, cropped, and immutable.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className={`${className} object-cover`}
+      src={resolvedSrc}
+      width={pixels[size]}
+      height={pixels[size]}
+      alt={decorative ? "" : `${name}'s avatar`}
+    />
+  ) : (
+    initial
   );
 }

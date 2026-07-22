@@ -1,3 +1,5 @@
+import type { AvatarConfigV1 } from "./avatar/contract";
+
 export type AccountStatus = "active" | "suspended" | "deleted";
 
 export type ViewerProfile = {
@@ -10,6 +12,8 @@ export type ViewerProfile = {
   profileCompletedAt: string | null;
   avatarPath: string | null;
   avatarVersionId: string | null;
+  avatarConfig: AvatarConfigV1 | null;
+  avatarConfigRevision: number;
 };
 
 export type PublicProfile = {
@@ -20,6 +24,7 @@ export type PublicProfile = {
   bio: string | null;
   avatarPath: string | null;
   avatarVersionId: string | null;
+  avatarConfig: AvatarConfigV1 | null;
 };
 
 export type PublicProfileHistory = {
