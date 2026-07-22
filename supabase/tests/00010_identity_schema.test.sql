@@ -30,7 +30,7 @@ select is(
 );
 select is(
   (select string_agg(column_name, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'public_profiles'),
-  'id,username,username_normalized,display_name,credit_name,bio,created_at,updated_at,avatar_path,avatar_version_id,avatar_config',
+  'id,username,username_normalized,display_name,credit_name,bio,created_at,updated_at,avatar_config',
   'public projection exposes exactly the safe columns'
 );
 select ok(not has_table_privilege('anon', 'public.profiles', 'INSERT,UPDATE,DELETE'), 'anon cannot mutate profiles');

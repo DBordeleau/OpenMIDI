@@ -377,6 +377,15 @@ which reads verified browser claims plus the safe `public_profiles` projection.
 That path is **display-only and never an authorization boundary**; an incomplete
 or unavailable profile falls back to initials rather than blocking the header.
 
+**Generated-avatar editor** — use visual tiles for eyebrows, eyes, glasses, and
+mouth choices; a dedicated **None** choice for glasses; curated color swatches
+with an accessible custom-color control; and labelled scale/rotation sliders.
+Keep the authoritative preview visible with Save, Cancel, Randomize, and Reset
+actions using the established pill controls. At 320px the controls must not
+create document overflow. Place DiceBear and Adventurer Neutral attribution in
+the editor's explanatory footer, not in every compact avatar instance. Rendering
+is local and deterministic; never display a loading state for a remote avatar.
+
 **Header enter/exit** — the shared header animates away when you enter the
 Studio ([`ConditionalHeader`](../../src/components/layout/conditional-header.client.tsx)):
 it slides up and collapses its height over 340ms so the reclaimed space is

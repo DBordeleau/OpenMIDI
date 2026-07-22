@@ -45,6 +45,45 @@ for (const dependency of [
   }
 }
 
+for (const script of [
+  "avatars:process",
+  "avatars:cleanup",
+  "avatars:cleanup:execute",
+  "supabase:start:storage",
+]) {
+  if (script in (packageJson.scripts ?? {})) {
+    violations.push(`package.json: forbidden retired avatar script ${script}`);
+  }
+}
+
+for (const retiredPath of [
+  "scripts/recover-profile-images.mjs",
+  "supabase/functions/process-profile-image",
+  "supabase/functions/_shared/profile-image.ts",
+]) {
+  if (filesUnder(retiredPath, [".mjs", ".ts", ".json"]).length > 0) {
+    violations.push(`${retiredPath}: retired avatar worker path exists`);
+  }
+}
+
+const avatarMigrationAllowlist = new Set([
+  "supabase/migrations/20260717000001_foundation_identity.sql",
+  "supabase/migrations/20260717000004_moderation_avatar_operations.sql",
+  "supabase/migrations/20260722174831_avatar_01_generated_avatar_contract.sql",
+  "supabase/migrations/20260722194242_avatar_03_retire_legacy_avatar_storage.sql",
+]);
+check(
+  filesUnder("supabase/migrations", [".sql"]).filter(
+    (file) => !avatarMigrationAllowlist.has(file.replaceAll("\\", "/")),
+  ),
+  [
+    [
+      "retired avatar upload/storage contract",
+      /profile[_-]?image|profile-images|public-avatars|avatar[_-]?cleanup|avatar_path|avatar_version_id/i,
+    ],
+  ],
+);
+
 check(filesUnder("supabase/migrations", [".sql"]), [
   [
     "legacy audio/storage schema",
@@ -88,6 +127,8 @@ const currentDocs = [
   "docs/technical-design/02-data-model.md",
   "docs/technical-design/03-delivery-plan.md",
   "docs/technical-design/decisions/README.md",
+  "docs/runbooks/beta-operations.md",
+  "docs/runbooks/moderation-retention.md",
 ];
 check(currentDocs, [
   [
@@ -106,6 +147,11 @@ check(currentDocs, [
     "obsolete audio worker/cron instruction",
     /deploy .*verification|schedule .*verification|verification cron/i,
   ],
+  [
+    "retired avatar upload/storage documentation",
+    /profile-images|public-avatars|supabase:start:storage|avatars:process|avatars:cleanup|process-profile-image|PROFILE_IMAGE_RECOVERY_SECRET/i,
+  ],
+  ["remote DiceBear renderer", /https?:\/\/(?:api\.)?dicebear\.com/i],
 ]);
 
 check(
@@ -141,7 +187,34 @@ check(filesUnder("supabase/functions", [".ts", ".js", ".sql", ".json"]), [
     "audio Edge Function",
     /source[_-]?audio|waveform|asset verification|audio bucket/i,
   ],
+  [
+    "avatar image-processing worker",
+    /profile[_-]?image|profile-images|public-avatars|process-profile-image/i,
+  ],
 ]);
+
+check(
+  [
+    ...filesUnder("src/app", [".ts", ".tsx"]),
+    ...filesUnder("src/server", [".ts", ".tsx"]),
+    ...filesUnder("src/features", [".ts", ".tsx"]).filter(
+      (file) => !file.includes(".test."),
+    ),
+    ...filesUnder("scripts", [".mjs", ".js", ".ts"]).filter(
+      (file) =>
+        !file.endsWith("rehearse-avatar-03-migration.mjs") &&
+        !file.endsWith("check-midi-only.mjs"),
+    ),
+    "supabase/config.toml",
+  ],
+  [
+    [
+      "retired avatar upload/storage runtime",
+      /process-profile-image|PROFILE_IMAGE_RECOVERY_SECRET|profile-images|public-avatars|reserve_profile_image_upload|complete_profile_image_upload/i,
+    ],
+    ["remote DiceBear renderer", /https?:\/\/(?:api\.)?dicebear\.com/i],
+  ],
+);
 
 if (violations.length > 0) {
   console.error("MIDI-only static contract violations:");

@@ -2,7 +2,7 @@
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Musicians build arrangements from reusable MIDI patterns, preserve immutable revision history, propose contributions with durable attribution, and fork projects with navigable lineage.
 
-> **Current status:** The post-pivot MVP through RELEASE-03 is deployed as an invite-only beta at [open-midi.vercel.app](https://open-midi.vercel.app/). The retained hosted Supabase schema and linked migration ledger both contain all 16 reviewed repository versions. The approved deterministic beta content is imported, the production OAuth/application origins are configured, and the production smoke path is recorded in the [RELEASE-03 evidence](docs/technical-design/evidence/release-03-hosted-rollout.md).
+> **Current status:** The post-pivot MVP and generated-avatar cutover are deployed as an invite-only beta at [open-midi.vercel.app](https://open-midi.vercel.app/). The retained hosted Supabase schema and linked migration ledger contain 18 reviewed repository versions through AVATAR-03, and legacy avatar Storage and image-processing workers are retired. The approved deterministic beta content is imported, the production OAuth/application origins are configured, and the production smoke path is recorded in the [RELEASE-03 evidence](docs/technical-design/evidence/release-03-hosted-rollout.md).
 
 ## Target MVP scope
 
@@ -23,7 +23,8 @@ The [product requirements](docs/PRD.md) describe the intended experience, the tr
 - [Next.js](https://nextjs.org/) App Router and TypeScript
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [Motion for React](https://motion.dev/docs/react) (formerly Framer Motion) for purposeful interaction animation
-- [Supabase](https://supabase.com/) for Postgres, invite-only Google Auth, and private avatar Storage
+- [Supabase](https://supabase.com/) for Postgres and invite-only Google Auth
+- pinned local DiceBear packages for deterministic generated avatars
 - [Tone.js](https://tonejs.github.io/) behind a client-only MIDI runtime and versioned bundled synthesis presets
 - [Vitest](https://vitest.dev/) and React Testing Library for unit/component tests
 - [Playwright](https://playwright.dev/) for browser tests
@@ -102,7 +103,7 @@ Open [http://localhost:3000](http://localhost:3000), and stop the server with `C
 
 Before debugging missing rows, RLS, Auth, RPCs, or Storage, check the host configured by `NEXT_PUBLIC_SUPABASE_URL` without exposing any keys. Use the logs and schema for that environment. Local containers and hosted Supabase are independent databases, so local logs cannot explain a request sent to the hosted URL, and locally applied migrations do not automatically update hosted Supabase.
 
-Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. The retained hosted schema and ledger currently match all 16 reviewed migrations. Before any later hosted migration, compare the exact linked ledger with the repository sequence; do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Every hosted mutation requires a target check and explicit authority, and merging code never applies it automatically.
+Do not overwrite an existing `.env.local` or apply migrations/repairs to hosted Supabase unless the task explicitly authorizes that change. The local stack remains the authority for clean migration resets, pgTAP/RLS tests, generated types, deterministic fixtures, and local browser flows. The retained hosted schema and ledger currently match 18 reviewed migrations through AVATAR-03. Before any later hosted migration, compare the exact linked ledger with the repository sequence; do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Every hosted mutation requires a target check and explicit authority, and merging code never applies it automatically.
 
 RELEASE-01 changed the local Supabase project ID to `openmidi`. If containers from a pre-RELEASE-01 checkout remain, identify their project ID from that checkout or Git history and run `npx supabase stop --project-id <obsolete-local-project-id>`. Add `--no-backup` only after confirming its local data is disposable. The current scripts do not stop or delete another local stack automatically.
 
@@ -115,7 +116,7 @@ npm run supabase:start
 npm run supabase:status
 ```
 
-The first start downloads the database image and can take a while. This command intentionally starts only Postgres for migration, pgTAP, and type-generation work. Use `npm run supabase:start:auth` for authentication and the default MIDI browser suite. Use `npm run supabase:start:storage` only for avatar-specific flows.
+The first start downloads the database image and can take a while. This command intentionally starts only Postgres for migration, pgTAP, and type-generation work. Use `npm run supabase:start:auth` for authentication and browser suites. Generated-avatar tests need no Storage service or Edge Runtime.
 
 Copy the example environment file without overwriting an existing local file:
 
@@ -149,39 +150,36 @@ The table reflects the executable MIDI-only repository.
 
 Run commands from the repository root:
 
-| Command                          | Purpose                                                         |
-| -------------------------------- | --------------------------------------------------------------- |
-| `npm ci`                         | Reproduce dependencies from the lockfile                        |
-| `npm run dev`                    | Start the local development server                              |
-| `npm run check`                  | Run formatting, lint, types, unit tests, and a production build |
-| `npm run check:midi-only`        | Enforce the zero-legacy-audio repository contract               |
-| `npm run format`                 | Format supported files                                          |
-| `npm run format:check`           | Check formatting without changing files                         |
-| `npm run lint`                   | Run ESLint with zero warnings allowed                           |
-| `npm run typecheck`              | Run strict TypeScript checking                                  |
-| `npm test`                       | Run unit and component tests once                               |
-| `npm run test:watch`             | Run unit tests while editing                                    |
-| `npm run test:coverage`          | Generate a local coverage report                                |
-| `npm run build`                  | Create a production Next.js build                               |
-| `npm run start`                  | Serve an existing production build                              |
-| `npm run test:e2e`               | Run Playwright browser tests                                    |
-| `npm run test:e2e:local`         | Run the required local MIDI browser suite                       |
-| `npm run test:e2e:identity`      | Run local onboarding and first-project creation                 |
-| `npm run test:e2e:studio`        | Run the fast fixture-backed studio startup smoke test           |
-| `npm run supabase:start`         | Start local Supabase Postgres only                              |
-| `npm run supabase:start:auth`    | Start the reduced local Auth stack                              |
-| `npm run supabase:start:storage` | Start the reduced avatar Storage stack                          |
-| `npm run supabase:stop`          | Stop local Supabase while preserving its database               |
-| `npm run supabase:status`        | Show local database state                                       |
-| `npm run db:reset`               | Recreate the local database and apply seed data                 |
-| `npm run db:test`                | Run pgTAP tests against local Postgres                          |
-| `npm run db:check`               | Lint/test the database and check generated-type drift           |
-| `npm run db:types`               | Atomically regenerate committed database types                  |
-| `npm run auth:e2e:setup`         | Prepare the gated local/CI test Auth actor                      |
-| `npm run avatars:process`        | Recover pending or expired profile-image processing jobs        |
-| `npm run avatars:cleanup`        | Dry-run cleanup of expired private avatar uploads               |
-| `npm run retention:preview`      | Preview bounded reference/hold-aware retention candidates       |
-| `npm run retention:execute`      | Execute bounded leased cleanup through the Storage API          |
+| Command                       | Purpose                                                         |
+| ----------------------------- | --------------------------------------------------------------- |
+| `npm ci`                      | Reproduce dependencies from the lockfile                        |
+| `npm run dev`                 | Start the local development server                              |
+| `npm run check`               | Run formatting, lint, types, unit tests, and a production build |
+| `npm run check:midi-only`     | Enforce the zero-legacy-audio repository contract               |
+| `npm run format`              | Format supported files                                          |
+| `npm run format:check`        | Check formatting without changing files                         |
+| `npm run lint`                | Run ESLint with zero warnings allowed                           |
+| `npm run typecheck`           | Run strict TypeScript checking                                  |
+| `npm test`                    | Run unit and component tests once                               |
+| `npm run test:watch`          | Run unit tests while editing                                    |
+| `npm run test:coverage`       | Generate a local coverage report                                |
+| `npm run build`               | Create a production Next.js build                               |
+| `npm run start`               | Serve an existing production build                              |
+| `npm run test:e2e`            | Run Playwright browser tests                                    |
+| `npm run test:e2e:local`      | Run the required local MIDI browser suite                       |
+| `npm run test:e2e:identity`   | Run local onboarding and first-project creation                 |
+| `npm run test:e2e:studio`     | Run the fast fixture-backed studio startup smoke test           |
+| `npm run supabase:start`      | Start local Supabase Postgres only                              |
+| `npm run supabase:start:auth` | Start the reduced local Auth stack                              |
+| `npm run supabase:stop`       | Stop local Supabase while preserving its database               |
+| `npm run supabase:status`     | Show local database state                                       |
+| `npm run db:reset`            | Recreate the local database and apply seed data                 |
+| `npm run db:test`             | Run pgTAP tests against local Postgres                          |
+| `npm run db:check`            | Lint/test the database and check generated-type drift           |
+| `npm run db:types`            | Atomically regenerate committed database types                  |
+| `npm run auth:e2e:setup`      | Prepare the gated local/CI test Auth actor                      |
+| `npm run retention:preview`   | Preview bounded reference/hold-aware retention candidates       |
+| `npm run retention:execute`   | Execute bounded leased metadata/deletion cleanup                |
 
 Before the first browser-test run, download Playwright's Chromium build once:
 
@@ -222,16 +220,16 @@ The `supabase/` directory contains forward-only migrations, local configuration,
 
 ## Core architecture vocabulary
 
-| Concept      | Meaning                                                              |
-| ------------ | -------------------------------------------------------------------- |
-| Project      | Long-lived song identity, metadata, visibility, and current revision |
-| Revision     | Immutable published wrapper around one exact arrangement version     |
-| Workspace    | Mutable private draft based on a revision                            |
-| Contribution | Review workflow containing an immutable proposed version             |
-| Fork         | New project that points back to an exact source project and revision |
-| Asset        | Private avatar original managed separately from the musical domain   |
+| Concept       | Meaning                                                                |
+| ------------- | ---------------------------------------------------------------------- |
+| Project       | Long-lived song identity, metadata, visibility, and current revision   |
+| Revision      | Immutable published wrapper around one exact arrangement version       |
+| Workspace     | Mutable private draft based on a revision                              |
+| Contribution  | Review workflow containing an immutable proposed version               |
+| Fork          | New project that points back to an exact source project and revision   |
+| Avatar config | Optional validated preferences rendered locally with initials fallback |
 
-The backend forms a Git-like revision graph in Postgres. Projects point to immutable revisions and arrangement versions; clips point to exact immutable MIDI pattern versions with durable creator lineage. Storage is used only for avatars. See the [system architecture](docs/technical-design/01-system-architecture.md) and [data model](docs/technical-design/02-data-model.md) for details.
+The backend forms a Git-like revision graph in Postgres. Projects point to immutable revisions and arrangement versions; clips point to exact immutable MIDI pattern versions with durable creator lineage. Optional avatar configuration also lives in Postgres and renders locally; the active product has no Storage dependency. See the [system architecture](docs/technical-design/01-system-architecture.md) and [data model](docs/technical-design/02-data-model.md) for details.
 
 ## Troubleshooting
 

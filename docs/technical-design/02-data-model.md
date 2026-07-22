@@ -54,16 +54,15 @@ Acceptance verifies the expected contribution version and current project revisi
 - `private.midi_library_reuses` snapshots the exact source listing/pattern/version, CC BY terms, creator credit, and external credits for import, explicit fork, and editor-copy commands. A narrow private reuse-access relation lets only the reuser load an exact imported source in Studio after the public listing projection closes.
 - `reuse_midi_library_pattern` validates source eligibility independently, uses the existing workspace lock for imports, and creates owned private pattern/version children before editor navigation. Inherited external credits are append-only rows attached to the child version. `get_midi_library_export` returns validated structured notes/attribution only; the browser creates the file.
 
-## Moderation, deletion, and avatar operations
+## Moderation, deletion, and generated avatars
 
 - Private moderation reports/actions and content holds are operational authority.
 - Private deletion requests and retention jobs preserve recovery and legal-hold semantics.
-- `profiles.avatar_config` stores the optional validated version-1 local DiceBear configuration; `NULL` means initials. The owner-private revision supports optimistic save/reset commands, while safe public reads expose only the configuration.
-- `assets` contains avatar originals only; ready rows are constrained to sanitized image metadata.
-- `profile_avatar_versions` links private originals to immutable public derivative paths.
-- Private upload/processing/cleanup jobs and the bounded operator commands own avatar lifecycle.
-- Storage contains exactly `profile-images` (private) and `public-avatars` (public derivatives), with one authenticated reservation policy for originals.
-- AVATAR-01 is an expand-only transition: the generated configuration and uploaded-avatar pointers coexist until the application cutover and separately gated Storage retirement.
+- `profiles.avatar_config` stores the optional validated version-1 DiceBear Adventurer Neutral configuration; `NULL` means initials. The UUID-derived seed, exact option keys/ranges, and package compatibility are durable constraints.
+- `profiles.avatar_config_revision` is owner-private optimistic-concurrency authority for save/reset. `avatar_updated_at` records the latest persisted preference change.
+- Safe public reads expose only `avatar_config`; lifecycle and revision state remain private. Generated SVG, image bytes, paths, and remote renderer URLs are never persisted.
+- Account deletion clears configuration and preserves the existing 30-day recovery model. Recovery does not restore a prior avatar preference.
+- AVATAR-03 retired avatar asset/version tables, upload/processing/cleanup jobs, legacy profile pointers, Storage admission, and asset hold/retention branches. Generic profile/project/contribution holds, deletion expiry, moderation metadata cleanup, and recovery remain active.
 
 There are no musical upload, waveform, quota, processing, network-worker, or scheduled-job tables/functions/extensions in the baseline.
 

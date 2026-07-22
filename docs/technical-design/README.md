@@ -8,7 +8,7 @@ This document set turns the [product requirements](../PRD.md) into implementatio
 | Document                                                              | Authority                                                                          |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | [01-system-architecture.md](01-system-architecture.md)                | Runtime boundaries, workflows, security, and local/hosted separation               |
-| [02-data-model.md](02-data-model.md)                                  | Clean baseline schema, RLS, immutable history, seed, and avatar Storage            |
+| [02-data-model.md](02-data-model.md)                                  | Clean baseline schema, RLS, immutable history, seed, and generated avatars         |
 | [03-delivery-plan.md](03-delivery-plan.md)                            | Verification gates, sequencing, and hosted cutover boundary                        |
 | [decisions/README.md](decisions/README.md)                            | Stable accepted and superseded architectural decisions                             |
 | [midi-only-pivot-contract.md](midi-only-pivot-contract.md)            | Manifest v3, patterns, arrangements, presets, attribution, and deferred extensions |
@@ -28,11 +28,11 @@ The MIDI-only foundation and post-pivot feature program through BADGE-01 are imp
 - exact contribution review/acceptance, attribution snapshots, and fork lineage;
 - public project discovery/history/preview and safe profile/dashboard navigation;
 - bounded semantic comparison for contribution versions and any two authorized same-project revisions, with a static accessible note overlay and mutually exclusive browser-local audition;
-- reporting, admin moderation, holds, recoverable deletion, retention, and avatar processing;
-- all 16 reviewed repository migrations through the corrected RELEASE-01 reconciliation, deterministic MIDI-only infrastructure seed, versioned RELEASE-02 beta definitions, current generated types, and pgTAP coverage; and
+- reporting, admin moderation, holds, recoverable deletion, retention, and generated-avatar preferences;
+- 18 hosted repository migrations through AVATAR-03, retired legacy avatar Storage and image-processing workers, deterministic MIDI-only infrastructure seed, versioned RELEASE-02 beta definitions, current generated types, and pgTAP coverage; and
 - an Auth/Postgres-only default browser suite plus enforceable zero-legacy-audio static checks.
 
-Supabase Storage contains only private avatar originals and public avatar derivatives. Musical state and recovery snapshots live in Postgres. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require an audio worker, scheduled job, musical bucket, or musical-media secret.
+Musical state, recovery snapshots, and optional generated-avatar configuration live in Postgres. Avatar SVG is rendered locally from pinned packages and is never persisted. Tone.js and browser audio APIs remain inside the client-only MIDI runtime. The repository does not require Storage, an image/audio worker, a scheduled job, or a media secret.
 
 ## Historical evidence
 
@@ -40,7 +40,7 @@ The PR 01–20, OPT-01–OPT-05, MIDI-01–MIDI-07, STUDIO-01–STUDIO-06, and U
 
 ## Hosted state and next work
 
-Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 through RELEASE-03 are complete. The retained hosted project records all 16 reviewed migration versions, and the approved rights-safe seed is live. The invite-only beta runs at `https://open-midi.vercel.app/` against the retained Supabase project with browser-only MIDI synthesis, avatar-only Storage, and no musical Edge Function or media pipeline. Later schema, data, provider, or deployment mutations continue to require an exact target check and explicit authority.
+Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01 through RELEASE-03, and AVATAR-01 through AVATAR-03 are complete. The invite-only beta runs at `https://open-midi.vercel.app/` against the retained Supabase project with browser-only MIDI synthesis and deterministic local generated avatars; its schema and ledger contain 18 reviewed migrations through AVATAR-03, with legacy avatar Storage and workers retired. Later schema, data, provider, or deployment mutations continue to require an exact target check and explicit authority.
 
 ## Global invariants
 
@@ -50,5 +50,5 @@ Wave A, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and 
 - Forks and reuse preserve exact source revision/pattern versions, creator snapshots, and CC BY 4.0 attribution. Reference-only library listings grant no reuse and cannot enter those command paths.
 - Public layouts are Auth-independent; authorization lives in verified identity, services, commands, and RLS.
 - Security-definer functions pin `search_path`, authorize the caller, and expose minimum execute grants.
-- Profile avatars are the only user-provided Storage media.
+- Profile avatars are optional validated configuration rendered locally; user-provided profile-image media is not accepted.
 - Hosted mutation requires explicit task authority.

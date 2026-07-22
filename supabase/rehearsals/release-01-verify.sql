@@ -21,8 +21,8 @@ begin
      or not exists(select 1 from private.app_admins where user_id='fa000000-0000-4000-8000-000000000001')
      or not exists(select 1 from private.signup_invitations where email_normalized='release-preserved@example.test')
      or not exists(select 1 from private.beta_feedback where id='fa010000-0000-4000-8000-000000000001')
-     or not exists(select 1 from public.assets where id='fa020000-0000-4000-8000-000000000001')
-     or not exists(select 1 from public.profile_avatar_versions where id='fa030000-0000-4000-8000-000000000001')
+     or to_regclass('public.assets') is not null
+     or to_regclass('public.profile_avatar_versions') is not null
   then
     raise exception 'release_01_preserved_state_missing';
   end if;

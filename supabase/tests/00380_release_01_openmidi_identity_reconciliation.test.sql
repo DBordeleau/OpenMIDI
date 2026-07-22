@@ -115,7 +115,7 @@ select is(
 );
 
 select has_table('public', 'profiles', 'profile authority remains present');
-select has_table('public', 'profile_avatar_versions', 'avatar authority remains present');
+select hasnt_table('public', 'profile_avatar_versions', 'uploaded-avatar authority is retired');
 
 select * from finish();
 rollback;

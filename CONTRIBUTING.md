@@ -24,7 +24,7 @@ Discuss changes that alter product scope, the data model, authorization, persist
 - Include screenshots or a short recording for visible UI changes, demonstrating consistency with the brand guide as well as the intended interaction.
 - Add tests at the layer that owns the behavior.
 - Do not reformat unrelated files or mix opportunistic refactors into feature work.
-- Preserve immutable history, RLS, private storage, and browser-studio boundaries described in the technical design.
+- Preserve immutable history, RLS, generated-avatar, and browser-studio boundaries described in the technical design.
 
 ## Validate your work
 
@@ -56,7 +56,7 @@ npm run db:reset
 npm run test:e2e:studio
 ```
 
-Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for Studio save/publish/preview behavior, `npm run test:e2e:identity` for onboarding and first-project behavior, and `npm run test:e2e:local` for the required cross-feature MIDI suite including contribution acceptance and fork lineage. The default runner uses the reduced Auth stack, configures the gated actor automatically, uses an isolated `.next-e2e` development build, and cleans up its server process tree; do not manually copy local keys into the shell. Start the Storage stack only for avatar-specific tests. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
+Choose the narrowest relevant runner during implementation: `npm run test:e2e:studio` for Studio save/publish/preview behavior, `npm run test:e2e:identity` for onboarding, generated-avatar identity, and first-project behavior, and `npm run test:e2e:local` for the required cross-feature MIDI suite including contribution acceptance and fork lineage. The default runner uses the reduced Auth stack, configures the gated actor automatically, uses an isolated `.next-e2e` development build, and cleans up its server process tree; do not manually copy local keys into the shell. Generated-avatar tests require no Storage service. The raw `npm run test:e2e` command assumes its environment is already configured and is primarily for CI.
 
 Report any check you could not run and why. Never claim a check passed without running it.
 

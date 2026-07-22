@@ -1,8 +1,8 @@
 # OpenMIDI MVP roadmap
 
 Status: Post-pivot MVP deployed as an invite-only beta
-Current checkpoint: RELEASE-03 complete; PERF-02 authenticated content-link request-fanout control complete
-Hosted state: all 16 migrations recorded; approved seed and production deployment live
+Current checkpoint: RELEASE-03 and AVATAR-01 through AVATAR-03 complete; legacy avatar Storage and image-processing workers retired
+Hosted state: 18 migrations through AVATAR-03 recorded; approved seed and generated-avatar production deployment live
 
 ## Release target
 
@@ -20,7 +20,7 @@ OpenMIDI is the sole prelaunch product and technical identity. RELEASE-01 remove
 | Copy-on-write project forking, lineage, and attribution            | Complete |
 | Public project discovery, preview, revision history, and profiles  | Complete |
 | Authorized semantic visual diffs and browser-local paired audition | Complete |
-| Invite-only Auth, moderation, deletion, and avatar operations      | Complete |
+| Invite-only Auth, moderation, deletion, and generated avatars      | Complete |
 | MIDI-only manifest v3, normalized schema, tests, and hosted reset  | Complete |
 
 These foundations remain active product behavior. Historical PR/OPT/MIDI/STUDIO/PIVOT plans explain how they were delivered but are not current sequencing authority.
@@ -147,11 +147,17 @@ Status: Complete. Three compact original projects, seven reviewed manifest-v3 pa
 
 ### RELEASE-03 — Vercel deployment and production smoke
 
-Verify the retained hosted schema against the repository and inspect the linked migration ledger. If SQL Editor executions are missing from history, reconcile the ledger through a separately reviewed, authorized, non-schema procedure before any later migration. Then configure Vercel against the retained hosted Supabase project, configure exact site/OAuth callback URLs and secrets, run the approved beta seed dry run/import, deploy the avatar function if required, and run the production smoke path. Do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Document rollback/disable procedures and verify that no musical Storage or source-audio infrastructure returns.
+Verify the retained hosted schema against the repository and inspect the linked migration ledger. If SQL Editor executions are missing from history, reconcile the ledger through a separately reviewed, authorized, non-schema procedure before any later migration. Then configure Vercel against the retained hosted Supabase project, configure exact site/OAuth callback URLs and secrets, run the approved beta seed dry run/import, and run the production smoke path. Do not blindly replay schema SQL or repeat the destructive RELEASE-01 cleanup. Document rollback/disable procedures and verify that no musical-media infrastructure returns.
 
 Status: Complete. The retained project ledger was reconciled to all 16 reviewed versions without replaying schema SQL, the existing Google OAuth client and exact production origins were configured, the approved RELEASE-02 seed imported as 7 patterns/3 projects/1 challenge and then resolved entirely as `REUSE`, and the invite-only beta was promoted to `https://open-midi.vercel.app/`. Production smoke, usage baseline, fixes, and rollback are recorded in the [RELEASE-03 evidence](technical-design/evidence/release-03-hosted-rollout.md). Merging later code still never changes hosted data or configuration automatically.
 
 ## Post-release interruptions
+
+### AVATAR-01 through AVATAR-03 — Deterministic generated avatars
+
+Replace uploaded profile images with a validated version-1 DiceBear Adventurer Neutral configuration rendered from pinned local packages. AVATAR-01 added the Postgres contract, AVATAR-02 cut all active consumers to the local renderer and shipped the editor, and AVATAR-03 retires legacy admission, asset/version tables, workers, profile pointers, asset holds, and avatar retention while preserving generic moderation, deletion, recovery, and metadata retention.
+
+Status: Complete. The guarded AVATAR-03 migration, hosted object-deletion interlock, postflight, and linked-ledger reconciliation were completed before merge. Legacy avatar Storage admission, uploaded-avatar data structures, processing/cleanup workers, Edge Function, and recovery secret are retired; generic moderation, legal holds, deletion, recovery, and metadata retention remain active.
 
 ### PERF-01 â€” Bound production navigation request fanout
 

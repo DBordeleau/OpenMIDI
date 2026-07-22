@@ -252,93 +252,6 @@ export type Database = {
           },
         ]
       }
-      assets: {
-        Row: {
-          bucket: string
-          byte_size: number | null
-          created_at: string
-          declared_media_type: string | null
-          deleted_at: string | null
-          failed_at: string | null
-          failure_code: string | null
-          frame_count: number | null
-          id: string
-          image_height: number | null
-          image_width: number | null
-          media_type: string | null
-          object_path: string
-          original_filename: string
-          owner_id: string
-          ready_at: string | null
-          reserved_byte_size: number
-          sha256: string | null
-          status: Database["public"]["Enums"]["asset_status"]
-          upload_completed_at: string | null
-          verification_version: string | null
-        }
-        Insert: {
-          bucket?: string
-          byte_size?: number | null
-          created_at?: string
-          declared_media_type?: string | null
-          deleted_at?: string | null
-          failed_at?: string | null
-          failure_code?: string | null
-          frame_count?: number | null
-          id?: string
-          image_height?: number | null
-          image_width?: number | null
-          media_type?: string | null
-          object_path: string
-          original_filename: string
-          owner_id: string
-          ready_at?: string | null
-          reserved_byte_size: number
-          sha256?: string | null
-          status?: Database["public"]["Enums"]["asset_status"]
-          upload_completed_at?: string | null
-          verification_version?: string | null
-        }
-        Update: {
-          bucket?: string
-          byte_size?: number | null
-          created_at?: string
-          declared_media_type?: string | null
-          deleted_at?: string | null
-          failed_at?: string | null
-          failure_code?: string | null
-          frame_count?: number | null
-          id?: string
-          image_height?: number | null
-          image_width?: number | null
-          media_type?: string | null
-          object_path?: string
-          original_filename?: string
-          owner_id?: string
-          ready_at?: string | null
-          reserved_byte_size?: number
-          sha256?: string | null
-          status?: Database["public"]["Enums"]["asset_status"]
-          upload_completed_at?: string | null
-          verification_version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assets_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assets_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       badge_definition_versions: {
         Row: {
           badge_definition_id: string
@@ -2108,79 +2021,6 @@ export type Database = {
           },
         ]
       }
-      profile_avatar_versions: {
-        Row: {
-          byte_size: number | null
-          cleaned_at: string | null
-          created_at: string
-          height: number | null
-          id: string
-          installed_at: string | null
-          media_type: string | null
-          profile_id: string
-          public_object_path: string
-          sha256: string | null
-          source_asset_id: string
-          status: Database["public"]["Enums"]["profile_avatar_status"]
-          superseded_at: string | null
-          width: number | null
-        }
-        Insert: {
-          byte_size?: number | null
-          cleaned_at?: string | null
-          created_at?: string
-          height?: number | null
-          id: string
-          installed_at?: string | null
-          media_type?: string | null
-          profile_id: string
-          public_object_path: string
-          sha256?: string | null
-          source_asset_id: string
-          status?: Database["public"]["Enums"]["profile_avatar_status"]
-          superseded_at?: string | null
-          width?: number | null
-        }
-        Update: {
-          byte_size?: number | null
-          cleaned_at?: string | null
-          created_at?: string
-          height?: number | null
-          id?: string
-          installed_at?: string | null
-          media_type?: string | null
-          profile_id?: string
-          public_object_path?: string
-          sha256?: string | null
-          source_asset_id?: string
-          status?: Database["public"]["Enums"]["profile_avatar_status"]
-          superseded_at?: string | null
-          width?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profile_avatar_versions_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profile_avatar_versions_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profile_avatar_versions_source_asset_id_fkey"
-            columns: ["source_asset_id"]
-            isOneToOne: true
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profile_awards: {
         Row: {
           award_basis: string
@@ -2353,9 +2193,7 @@ export type Database = {
         Row: {
           avatar_config: Json | null
           avatar_config_revision: number
-          avatar_path: string | null
           avatar_updated_at: string | null
-          avatar_version_id: string | null
           bio: string | null
           created_at: string
           credit_name: string | null
@@ -2377,9 +2215,7 @@ export type Database = {
         Insert: {
           avatar_config?: Json | null
           avatar_config_revision?: number
-          avatar_path?: string | null
           avatar_updated_at?: string | null
-          avatar_version_id?: string | null
           bio?: string | null
           created_at?: string
           credit_name?: string | null
@@ -2401,9 +2237,7 @@ export type Database = {
         Update: {
           avatar_config?: Json | null
           avatar_config_revision?: number
-          avatar_path?: string | null
           avatar_updated_at?: string | null
-          avatar_version_id?: string | null
           bio?: string | null
           created_at?: string
           credit_name?: string | null
@@ -2422,15 +2256,7 @@ export type Database = {
           username?: string | null
           username_normalized?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_avatar_version_fk"
-            columns: ["avatar_version_id"]
-            isOneToOne: false
-            referencedRelation: "profile_avatar_versions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_genres: {
         Row: {
@@ -3357,8 +3183,6 @@ export type Database = {
       public_profiles: {
         Row: {
           avatar_config: Json | null
-          avatar_path: string | null
-          avatar_version_id: string | null
           bio: string | null
           created_at: string | null
           credit_name: string | null
@@ -3370,8 +3194,6 @@ export type Database = {
         }
         Insert: {
           avatar_config?: Json | null
-          avatar_path?: string | null
-          avatar_version_id?: string | null
           bio?: string | null
           created_at?: string | null
           credit_name?: string | null
@@ -3383,8 +3205,6 @@ export type Database = {
         }
         Update: {
           avatar_config?: Json | null
-          avatar_path?: string | null
-          avatar_version_id?: string | null
           bio?: string | null
           created_at?: string | null
           credit_name?: string | null
@@ -3394,15 +3214,7 @@ export type Database = {
           username?: string | null
           username_normalized?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_avatar_version_fk"
-            columns: ["avatar_version_id"]
-            isOneToOne: false
-            referencedRelation: "profile_avatar_versions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -3465,10 +3277,6 @@ export type Database = {
       clear_featured_challenge: {
         Args: { p_expected_version: number; p_request_id: string }
         Returns: Json
-      }
-      complete_profile_image_upload: {
-        Args: { p_asset_id: string }
-        Returns: string
       }
       create_challenge_draft: {
         Args: {
@@ -3643,7 +3451,6 @@ export type Database = {
         Returns: Json
       }
       get_admin_retention_summary: { Args: never; Returns: Json }
-      get_admin_storage_summary: { Args: never; Returns: Json }
       get_contribution_project_context: {
         Args: { p_contribution_id: string }
         Returns: Json
@@ -3701,9 +3508,7 @@ export type Database = {
         Returns: {
           avatar_config: Json
           avatar_config_revision: number
-          avatar_path: string
           avatar_updated_at: string
-          avatar_version_id: string
           bio: string
           created_at: string
           credit_name: string
@@ -3912,63 +3717,13 @@ export type Database = {
         }
         Returns: Json
       }
-      operator_claim_profile_avatar_cleanup: {
-        Args: never
-        Returns: {
-          attempt_count: number
-          avatar_version_id: string
-          lease_token: string
-          private_object_path: string
-          profile_id: string
-          public_object_path: string
-          source_asset_id: string
-        }[]
-      }
-      operator_claim_profile_image: {
-        Args: { p_asset_id?: string; p_owner_id?: string }
-        Returns: {
-          asset_id: string
-          attempt_count: number
-          avatar_version_id: string
-          bucket: string
-          declared_media_type: string
-          lease_token: string
-          object_path: string
-          owner_id: string
-          public_object_path: string
-          reserved_byte_size: number
-        }[]
-      }
       operator_claim_retention_job: {
         Args: { p_run_id: string }
         Returns: Json
       }
-      operator_complete_profile_avatar_cleanup: {
-        Args: { p_avatar_version_id: string; p_lease_token: string }
-        Returns: undefined
-      }
-      operator_complete_profile_image: {
-        Args: {
-          p_asset_id: string
-          p_byte_size: number
-          p_frame_count: number
-          p_height: number
-          p_lease_token: string
-          p_media_type: string
-          p_output_byte_size: number
-          p_output_sha256: string
-          p_sha256: string
-          p_width: number
-        }
-        Returns: string
-      }
       operator_complete_retention_run: {
         Args: { p_run_id: string }
         Returns: Json
-      }
-      operator_count_due_profile_avatar_cleanup: {
-        Args: never
-        Returns: number
       }
       operator_finalize_retention_job: {
         Args: {
@@ -3980,22 +3735,6 @@ export type Database = {
         Returns: string
       }
       operator_retention_preview: { Args: { p_limit?: number }; Returns: Json }
-      operator_retry_profile_avatar_cleanup: {
-        Args: {
-          p_avatar_version_id: string
-          p_error_code: string
-          p_lease_token: string
-        }
-        Returns: string
-      }
-      operator_retry_profile_image: {
-        Args: {
-          p_asset_id: string
-          p_error_code: string
-          p_lease_token: string
-        }
-        Returns: string
-      }
       operator_retry_retention_job: {
         Args: { p_error_code: string; p_job_id: string; p_lease_token: string }
         Returns: string
@@ -4059,10 +3798,6 @@ export type Database = {
         Args: { p_hold_id: string; p_reason: string; p_request_id: string }
         Returns: string
       }
-      remove_own_avatar: {
-        Args: { p_expected_avatar_version_id: string }
-        Returns: undefined
-      }
       remove_saved_midi_library_pattern: {
         Args: { p_pattern_version_id: string; p_request_id: string }
         Returns: {
@@ -4084,21 +3819,6 @@ export type Database = {
       request_account_deletion: {
         Args: { p_request_id: string; p_username: string }
         Returns: Json
-      }
-      reserve_profile_image_upload: {
-        Args: {
-          p_declared_media_type: string
-          p_expected_byte_size: number
-          p_filename: string
-          p_request_id: string
-        }
-        Returns: {
-          asset_id: string
-          avatar_version_id: string
-          bucket: string
-          expires_at: string
-          object_path: string
-        }[]
       }
       reset_own_avatar_config: {
         Args: { p_expected_revision: number }
@@ -4496,13 +4216,6 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "suspended" | "deleted"
-      asset_status:
-        | "reserved"
-        | "uploading"
-        | "processing"
-        | "ready"
-        | "failed"
-        | "deleted"
       contribution_review_decision: "request_changes" | "reject" | "accept"
       contribution_review_reason: "owner_feedback" | "base_outdated"
       contribution_status:
@@ -4513,13 +4226,6 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       member_role: "owner" | "editor" | "viewer"
-      profile_avatar_status:
-        | "processing"
-        | "current"
-        | "superseded"
-        | "removed"
-        | "failed"
-        | "cleaned"
       project_status: "draft" | "active" | "archived" | "deleted"
       project_visibility: "private" | "unlisted" | "public"
       revision_attribution_kind: "publisher" | "accepted_contributor"
@@ -4651,14 +4357,6 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended", "deleted"],
-      asset_status: [
-        "reserved",
-        "uploading",
-        "processing",
-        "ready",
-        "failed",
-        "deleted",
-      ],
       contribution_review_decision: ["request_changes", "reject", "accept"],
       contribution_review_reason: ["owner_feedback", "base_outdated"],
       contribution_status: [
@@ -4670,14 +4368,6 @@ export const Constants = {
         "withdrawn",
       ],
       member_role: ["owner", "editor", "viewer"],
-      profile_avatar_status: [
-        "processing",
-        "current",
-        "superseded",
-        "removed",
-        "failed",
-        "cleaned",
-      ],
       project_status: ["draft", "active", "archived", "deleted"],
       project_visibility: ["private", "unlisted", "public"],
       revision_attribution_kind: ["publisher", "accepted_contributor"],

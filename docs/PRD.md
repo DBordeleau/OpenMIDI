@@ -420,6 +420,7 @@ Users can search/filter projects and library items by compatible structured meta
 
 Profiles include:
 
+- an optional deterministic generated avatar, edited locally from curated controls with initials as the valid fallback;
 - public MIDI projects and revisions;
 - accepted contributions and forks;
 - published library material;
@@ -596,7 +597,7 @@ The MIDI-only MVP is ready for invited public testing when all of the following 
 - The frontend, metadata, documentation, repository links, OAuth branding, deployment configuration, persisted engine identifiers, runtime namespaces, fixtures, and current migration source consistently use OpenMIDI, with no active dependency on the former prelaunch identity.
 - The beta launches with several useful public projects, a curated set of listed MIDI patterns, and one scheduled/open challenge so discovery is not empty.
 - Vercel is configured with reviewed environment-variable scopes and the existing hosted Supabase project.
-- Google OAuth callback/site URLs, the invitation hook, avatar processing, migrations, and application origins are verified against the production URL.
+- Google OAuth callback/site URLs, the invitation hook, generated-avatar save/reset, migrations, and application origins are verified against the production URL.
 - One production smoke path covers invited sign-in, onboarding, Studio creation/publication, library save/import, challenge preflight/submission, feedback intake, and administrator queues.
 - A documented rollback/disable path exists for deployment, challenge intake, and invitations without rewriting immutable musical history.
 
@@ -682,4 +683,4 @@ PIVOT-00 through PIVOT-10 resolved the repository strategy, reset posture, manif
 
 ## Remaining product decisions
 
-The [tracked roadmap](ROADMAP.md) records the completed path through semantic visual diffs, beta feedback, the public MIDI library, curated challenges, challenge awards, identity reset, seeded-beta hardening, and the authorized RELEASE-03 rollout. The retained hosted schema and linked ledger now match all 16 reviewed migrations, the deterministic beta seed is imported, and the invite-only application is deployed. A public copyright/contact channel remains required before any unrestricted launch.
+The [tracked roadmap](ROADMAP.md) records the completed path through semantic visual diffs, beta feedback, the public MIDI library, curated challenges, challenge awards, identity reset, seeded-beta hardening, the authorized RELEASE-03 rollout, and the generated-avatar cutover. The retained hosted schema and linked ledger match 18 reviewed migrations through AVATAR-03, legacy avatar Storage and image-processing workers are retired, the deterministic beta seed is imported, and the invite-only application is deployed. A public copyright/contact channel remains required before any unrestricted launch.

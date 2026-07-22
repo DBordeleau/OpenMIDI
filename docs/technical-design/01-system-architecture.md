@@ -5,7 +5,7 @@ Deployment state: retained Supabase project rebaselined and reconciled; Vercel n
 
 ## Runtime boundaries
 
-OpenMIDI is a Next.js App Router application backed by Supabase Auth and Postgres. Supabase Storage is used only for private avatar originals and sanitized public avatar derivatives. PIVOT-10 destructively rebaselined and verified the existing hosted project without changing its project reference or API keys. Vercel is the intended host, but no Vercel project or deployment exists yet. The `openmidi-*` manifest engine identifiers are the canonical post-RELEASE-01 persisted identifiers.
+OpenMIDI is a Next.js App Router application backed by Supabase Auth and Postgres. Optional profile avatars persist a validated configuration and render locally from pinned DiceBear packages; no avatar bytes or URLs are stored. PIVOT-10 destructively rebaselined and verified the existing hosted project without changing its project reference or API keys. The invite-only beta is deployed on Vercel. The `openmidi-*` manifest engine identifiers are the canonical post-RELEASE-01 persisted identifiers.
 
 The Studio is a lazy client boundary. Tone.js, Web MIDI, browser playback, MIDI import/export, and synthesized local audio export stay inside `src/features/studio/midi-adapter` and the focused instrument runtime. Server Components, actions, route handlers, repositories, and database code operate on validated structured MIDI and never import Tone.js or browser media APIs.
 
@@ -17,8 +17,8 @@ flowchart LR
   Studio["Lazy client-only MIDI Studio"] --> Runtime["Manifest v3 + Tone.js presets"]
   Studio --> Actions
   Runtime --> Downloads["Local .mid / synthesized audio downloads"]
-  Avatar["Avatar UI and operator"] --> Storage["Private originals / public derivatives"]
-  Avatar --> DB
+  Avatar["Generated avatar editor"] --> DB
+  Avatar --> Renderer["Pinned local DiceBear renderer"]
 ```
 
 Local synthesized audio is ephemeral and downloadable; it is never uploaded, shared, versioned, or authoritative.
@@ -27,7 +27,7 @@ Local synthesized audio is ephemeral and downloadable; it is never uploaded, sha
 
 ### Identity and profiles
 
-Supabase Auth owns email and provider identity. A Before User Created hook checks private invitations. The Auth insert trigger creates an incomplete private profile. Username claiming and profile completion are authorized database commands. Public reads use the security-invoker `public_profiles` projection; lifecycle and activity fields remain private. AVATAR-01 adds an optional validated DiceBear Adventurer Neutral configuration rendered locally as a data URI, while retaining uploaded-avatar reads and operations until the later application cutover.
+Supabase Auth owns email and provider identity. A Before User Created hook checks private invitations. The Auth insert trigger creates an incomplete private profile. Username claiming and profile completion are authorized database commands. Public reads use the security-invoker `public_profiles` projection; lifecycle, avatar revision, and activity fields remain private. Save/reset commands own the optional validated DiceBear Adventurer Neutral configuration; ordinary display renders it locally as a data URI, and `NULL` selects initials.
 
 The root route is the signed-out marketing entry. A verified active viewer who requests `/` is redirected to `/dashboard`; an incomplete active viewer is sent through `/onboarding`, and suspended or deleted viewers remain outside the application shell. OAuth callbacks always resume through that onboarding gate, so arbitrary protected-route `next` values cannot replace the dashboard as the normal post-sign-in destination. Completing onboarding redirects to `/dashboard`, while later profile edits continue returning to profile settings.
 
@@ -47,7 +47,7 @@ Public project pages, preview, history, attribution, and discovery read arrangem
 
 ### Moderation, deletion, and avatars
 
-Reports do not hide content. Admin actions change moderation state through security-definer commands with pinned `search_path`. Recoverable deletion preserves immutable references and honors content holds. Avatar originals use a private bucket; sanitized derivatives use a public bucket. The bounded retention operator can delete only proven avatar candidates.
+Reports do not hide content. Admin actions change moderation state through security-definer commands with pinned `search_path`. Recoverable deletion preserves immutable references and honors profile, project, and contribution holds. Account deletion clears generated-avatar configuration. The bounded retention operator owns deletion-expiry and moderation-metadata candidates only.
 
 ## Current and planned post-pivot workflow boundaries
 
@@ -62,7 +62,7 @@ Reports do not hide content. Admin actions change moderation state through secur
 ## Authority and security
 
 - Postgres relationships and commands are authoritative; JSON manifests are validated portable snapshots.
-- Normal application access is user-scoped and RLS-protected. Service role is limited to local fixtures and bounded avatar/retention operators.
+- Normal application access is user-scoped and RLS-protected. Service role is limited to local fixtures and the bounded metadata retention operator.
 - Published revisions, arrangement versions, pattern versions, contribution versions, attributions, and lineage are immutable.
 - Public layouts remain Auth-independent; verified claims/user calls provide identity where required.
 - Security-definer functions pin an empty `search_path`, authorize `auth.uid()`, and receive minimum grants.
@@ -70,4 +70,4 @@ Reports do not hide content. Admin actions change moderation state through secur
 
 ## Local validation architecture
 
-`npm run supabase:start` starts database-only validation. `npm run supabase:start:auth` supports the default local browser suite without Storage or Edge Runtime. `npm run supabase:start:storage` is reserved for avatar-specific flows. `npm run check:midi-only` statically prevents legacy musical-media infrastructure from returning.
+`npm run supabase:start` starts database-only validation. `npm run supabase:start:auth` supports browser suites without Storage or Edge Runtime. `npm run check:midi-only` statically prevents legacy musical media, avatar uploads, remote DiceBear rendering, and avatar image-processing infrastructure from returning.

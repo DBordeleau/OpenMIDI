@@ -33,7 +33,7 @@ Use `/admin/moderation` for general project, contribution, profile, and abuse re
 
 Use `/admin/library-moderation` for public-library originality and authorization reports. Confirm the exact listing/version and evidence before hiding, restoring, resolving, or dismissing. A hidden listing loses public/reuse authority but retains private audit and lineage evidence.
 
-Use the existing `/admin/operations` and [moderation/retention runbook](moderation-retention.md) for avatar-only retention. No musical object, preview, manifest, or MIDI file belongs in Storage.
+Use the existing `/admin/operations` and [moderation/retention runbook](moderation-retention.md) for deletion-expiry and moderation-metadata retention. Generated avatars create no stored objects.
 
 ## Copyright and contact reports
 
@@ -114,7 +114,7 @@ Clear the three process-scoped variables after the run and close the operator sh
 
 ## Rollback and disable procedures
 
-The hosted schema and linked ledger contain all 16 reviewed migration versions. Before any later hosted migration, verify the exact target and compare local/remote history again. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
+The hosted schema and linked ledger contain 18 reviewed migration versions through AVATAR-03, with legacy avatar Storage and image-processing workers retired. Before any later hosted migration, verify the exact target and compare local/remote history again. Do not reverse the current schema, blindly replay migration SQL, or repeat the destructive RELEASE-01 cleanup.
 
 For a seed or application incident:
 
@@ -130,7 +130,7 @@ There is intentionally no broad seed-delete command. Permanent seed cleanup requ
 
 ## Incident procedure
 
-Classify the incident first: availability, authorization/privacy, rights/moderation, identity/invitations, data integrity, browser MIDI, avatar Storage, or cost/usage.
+Classify the incident first: availability, authorization/privacy, rights/moderation, identity/invitations, data integrity, browser MIDI, generated-avatar configuration/rendering, or cost/usage.
 
 1. Record time, commit, deployment, target, affected route, and sanitized symptom.
 2. Contain with the narrow reversible action above; preserve immutable evidence.
@@ -150,5 +150,5 @@ Before invitations and after any incident, confirm:
 - browser-local Tone.js uses only the 24 bundled versioned presets;
 - there are no samples, soundfonts, remote synthesis assets, rendered previews, musical Edge Functions, or server-rendered synthesis;
 - challenge phases require no Cron/lifecycle worker;
-- Storage remains avatar-only and retention remains manual-first; and
+- generated avatars render locally from validated Postgres configuration and retention remains manual-first; and
 - the beta seed contains compact JSON only, so it creates no high-egress asset path.

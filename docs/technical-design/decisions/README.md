@@ -4,7 +4,7 @@ ADRs preserve decisions that coding agents must not silently revisit. A changed 
 
 ## Decision status
 
-ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through the completed PIVOT-10 hosted rebaseline. ADR-015's compatibility-preserving rename is superseded. ADR-016 adds the public-library rights gate, external-credit boundary, and copyright-report posture to ADR-013's single-license decision. ADR-017 fixes challenge versioning, time-derived phases, exact entry publication, and authoritative constraint/result boundaries. ADR-018 authorizes the one-time prelaunch clean OpenMIDI namespace and disposal of existing musical domain data; Git history preserves earlier wording. ADR-019 adopts deterministic local generated avatars and begins a compatibility-preserving transition away from avatar Storage.
+ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-history, portable-manifest, and copy-on-write foundations, except that ADR-020 supersedes ADR-002's bounded avatar-object storage clause. ADR-006 through ADR-009 are historical/superseded where they describe Waveform Playlist, manifest v1/v2, uploaded musical media, source admission, or the old OPT/MIDI/STUDIO sequence. ADR-010 through ADR-014 are the current MIDI-only authority and are implemented through the completed PIVOT-10 hosted rebaseline, with ADR-020 superseding later avatar-Storage consequences. ADR-015's compatibility-preserving rename is superseded. ADR-016 adds the public-library rights gate, external-credit boundary, and copyright-report posture to ADR-013's single-license decision. ADR-017 fixes challenge versioning, time-derived phases, exact entry publication, and authoritative constraint/result boundaries. ADR-018 authorizes the one-time prelaunch clean OpenMIDI namespace and disposal of existing musical domain data; Git history preserves earlier wording. ADR-019 adopts deterministic local generated avatars; ADR-020 completes the upload-system retirement.
 
 ## Accepted for initial implementation
 
@@ -16,7 +16,7 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 
 ### ADR-002: Supabase as identity, relational authority and bounded object storage
 
-- **Decision:** Use Supabase Auth and Postgres, with Storage retained only for the approved private-original/public-derived avatar boundary in the MIDI-only target. Apply RLS to all exposed public-schema tables.
+- **Decision:** Use Supabase Auth and Postgres and apply RLS to all exposed public-schema tables. The original bounded avatar-object storage clause is historical and superseded by ADR-020.
 - **Why:** It matches the MVP needs and avoids a bespoke service tier.
 - **Consequence:** Service-role access is exceptional; ordinary workflows remain user-scoped and policy-tested.
 
@@ -80,7 +80,7 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 ### ADR-010: MIDI-only product and removal of source-audio compatibility
 
 - **Status:** Accepted 2026-07-16.
-- **Decision:** OpenMIDI's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export and profile-avatar Storage.
+- **Decision:** OpenMIDI's target MVP accepts, stores, versions, previews, and collaborates on structured MIDI only. Remove uploaded source audio, legacy-audio compatibility, Waveform Playlist, source verification/admission, waveform peaks, audio quotas/retention, and server-stored audio previews through PIVOT-04–PIVOT-09. Retain browser-only synthesized playback/local audio export. The historical profile-avatar Storage exception is superseded by ADR-020.
 - **Why:** Repeated full-quality source retrieval exhausted an unsustainable share of the $0 prototype egress budget, while structured MIDI supports the newly accepted public creation/remix/challenge product more directly.
 - **Consequence:** The staged cutover and hosted rebaseline are complete through PIVOT-10. Historical audio evidence stays in Git/docs but is not current product authority. Any future uploaded-audio support requires a new PRD, cost model, and superseding ADR.
 - **Validation:** The clean baseline and rebaselined hosted project have no source-audio route, bucket, function, cron, quota, schema, dependency, fixture, or product promise; MIDI creation/collaboration remains complete.
@@ -153,8 +153,16 @@ ADR-001 through ADR-005 retain the platform, client-only runtime, immutable-hist
 - **Status:** Accepted 2026-07-22.
 - **Decision:** Represent optional profile avatars as a validated version-1 configuration for the bundled DiceBear Adventurer Neutral style. Pin `@dicebear/core` 10.3.0 and `@dicebear/styles` 10.2.0, derive the seed from the profile UUID, persist configuration only, render a data URI locally, and keep initials as the valid null state. AVATAR-01 expands the schema while uploaded avatars remain compatible; later reviewed slices cut application reads over and retire avatar Storage.
 - **Why:** A compact deterministic preference avoids photo processing, Storage capacity, public derivatives, runtime network requests, and external renderer drift while keeping avatar customization expressive and optional.
-- **Consequence:** Configuration version 1 freezes the supported option catalogs, ranges, palette, renderer packages, and style. Stored SVG, generated image bytes, remote DiceBear URLs, email-derived seeds, and silently normalized database values are prohibited. Package/style upgrades require a new compatibility decision and renderer fixtures. Existing uploads remain operational until the separately gated destructive cutover.
+- **Consequence:** Configuration version 1 freezes the supported option catalogs, ranges, palette, renderer packages, and style. Stored SVG, generated image bytes, remote DiceBear URLs, email-derived seeds, and silently normalized database values are prohibited. Package/style upgrades require a new compatibility decision and renderer fixtures. AVATAR-03 completed the separately gated destructive cutover.
 - **Validation:** Shared runtime and database validators reject unknown or out-of-range configuration, authorized commands derive the seed and enforce optimistic concurrency, representative output is fingerprinted, public reads expose no private revision/lifecycle state, and rendering requires no network or Storage access.
+
+### ADR-020: Retire uploaded avatars and avatar object storage
+
+- **Status:** Accepted and implemented by AVATAR-03.
+- **Decision:** OpenMIDI accepts no profile-image upload. Persist only optional versioned avatar configuration in Postgres, render with pinned local DiceBear packages, and use initials for `NULL`. Remove avatar asset/version tables, Storage admission, processing/cleanup workers, uploaded-avatar RPCs, asset holds, avatar retention branches, legacy profile pointers, the Edge Function, and its recovery secret.
+- **Why:** The generated-avatar path removes user-image privacy and moderation burden, object capacity and cleanup operations, worker recovery, and external renderer availability while preserving deterministic customization.
+- **Consequence:** Generic project/contribution/profile moderation, legal holds, deletion expiry, moderation-metadata retention, account deletion, and recovery remain authoritative. Historical bucket registrations may exist after clean replay, but no application policy, code path, or command can place objects in them.
+- **Validation:** The forward migration aborted on legacy objects, active avatar-asset holds, or live image/cleanup leases; the reviewed hosted interlock, postflight, and linked-ledger reconciliation completed before merge; clean replay and pgTAP prove the final schema and privileges; the static contract rejects active upload, remote rendering, and image-worker infrastructure.
 
 ## ADR template
 

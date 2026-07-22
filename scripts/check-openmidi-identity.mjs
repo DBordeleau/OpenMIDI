@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -22,7 +22,9 @@ function repositoryFiles(root) {
 }
 
 function readTrackedText(root, relativePath) {
-  const bytes = readFileSync(path.join(root, relativePath));
+  const absolutePath = path.join(root, relativePath);
+  if (!existsSync(absolutePath)) return null;
+  const bytes = readFileSync(absolutePath);
 
   // NUL bytes and invalid UTF-8 identify binary material that cannot contain
   // project-owned textual identity. No textual path or content allowlist exists.

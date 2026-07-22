@@ -47,13 +47,12 @@ select ok(not exists(
     and d.defaclobjtype in ('r','S')
     and r.rolname in ('anon','authenticated')
 ), 'postgres-created public tables and sequences grant no default privileges to application roles');
-select is((select count(*) from storage.buckets),2::bigint,'only two avatar buckets remain');
-select is((select array_agg(id order by id) from storage.buckets),
-  array['profile-images','public-avatars']::text[],'avatar buckets retain exact private/public boundary');
-select is((select count(*) from pg_policies where schemaname='storage'),1::bigint,
-  'only the reserved avatar-original Storage policy remains');
-select ok(exists(select 1 from pg_policies where schemaname='storage' and tablename='objects'
-  and policyname='reserved_profile_image_insert'),'avatar original insert policy remains');
+select is((select count(*) from storage.objects where bucket_id in ('profile-images','public-avatars')),0::bigint,
+  'legacy avatar buckets contain no objects after clean replay');
+select is((select count(*) from pg_policies where schemaname='storage'),0::bigint,
+  'OpenMIDI exposes no Storage object policy');
+select hasnt_table('public','assets','avatar-only asset metadata is removed');
+select hasnt_table('public','profile_avatar_versions','uploaded avatar versions are removed');
 select hasnt_extension('pg_cron','audio cron extension is removed');
 select hasnt_extension('pg_net','audio recovery network extension is removed');
 
@@ -62,19 +61,15 @@ select has_table('public','midi_pattern_versions','immutable MIDI patterns remai
 select has_table('public','workspaces','mutable MIDI workspaces remain');
 select has_table('private','workspace_snapshots','bounded Postgres workspace snapshots remain');
 select ok(not exists(select 1 from information_schema.columns where table_schema='public'
-  and table_name='assets' and column_name in ('kind','duration_ms','sample_rate_hz','channels',
-    'credits_confirmed_at')),'avatar asset metadata has no audio fields');
+  and table_name='assets'),'avatar asset metadata is absent');
 select ok(public.operator_retention_preview()::text !~
   'failed_upload|snapshot_30d|peak_expired|account_source','retention policy has no audio rules');
 select has_function('public','submit_moderation_report',
   array['uuid','text','uuid','text','text'],'moderation reporting remains');
 select has_function('public','delete_project',array['uuid','uuid','integer'],
   'project deletion remains');
-select ok(not has_function_privilege('anon',
-  'public.reserve_profile_image_upload(uuid,integer,text,text)','EXECUTE')
-  and has_function_privilege('authenticated',
-  'public.reserve_profile_image_upload(uuid,integer,text,text)','EXECUTE'),
-  'avatar reservation remains authenticated-only');
+select hasnt_function('public','reserve_profile_image_upload',array['uuid','integer','text','text'],
+  'avatar reservation command is removed');
 
 select * from finish();
 rollback;

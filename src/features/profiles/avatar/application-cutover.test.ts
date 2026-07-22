@@ -23,13 +23,15 @@ describe("generated-avatar application cutover", () => {
     expect(source).not.toContain("process-profile-image");
   });
 
-  it("keeps legacy database artifacts for the separately gated contraction", () => {
+  it("exposes only generated-avatar database contracts after contraction", () => {
     const generatedTypes = readFileSync(
       resolve(process.cwd(), "src/lib/supabase/database.types.ts"),
       "utf8",
     );
-    expect(generatedTypes).toContain("avatar_path");
-    expect(generatedTypes).toContain("avatar_version_id");
-    expect(generatedTypes).toContain("get_admin_storage_summary");
+    expect(generatedTypes).not.toContain("avatar_path");
+    expect(generatedTypes).not.toContain("avatar_version_id");
+    expect(generatedTypes).not.toContain("get_admin_storage_summary");
+    expect(generatedTypes).toContain("avatar_config");
+    expect(generatedTypes).toContain("get_admin_retention_summary");
   });
 });

@@ -6,7 +6,7 @@ This file is the operating contract for coding agents working in this repository
 
 OpenMIDI is a public MIDI creation, remix, reuse, and constraint-challenge platform for bedroom producers, casual musicians, and learners. Users create versioned MIDI arrangements, edit them in browser workspaces, submit contributions, fork projects, and preserve pattern/revision lineage and attribution.
 
-The target MVP is a Next.js application backed by Supabase Auth/Postgres and avatar-only Storage, with a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined the retained hosted project, and RELEASE-03 verified the current schema, reconciled its linked ledger to all 16 reviewed migrations, imported the approved seed, and deployed the invite-only beta to `https://open-midi.vercel.app/`.
+The target MVP is a Next.js application backed by Supabase Auth/Postgres, with client-local generated avatars and a client-only Tone.js MIDI runtime. PIVOT-10 rebaselined the retained hosted project, RELEASE-03 reconciled its linked ledger and deployed the invite-only beta, and AVATAR-01 through AVATAR-03 completed the generated-avatar cutover and retired legacy avatar Storage and workers at `https://open-midi.vercel.app/`.
 
 ## Read before changing code
 
@@ -29,7 +29,7 @@ If code, task instructions, and these documents disagree, stop and surface the c
 
 ## Current project state
 
-PIVOT-01 through PIVOT-10, the administrator-invitation reconciliation, DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, and RELEASE-01 through RELEASE-03 are complete. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, semantic-comparison, beta-feedback, public-library, saved-clip, authorized-reuse, challenge, award, identity-reset, seeded-content, hosted-rollout, hardening, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The retained hosted schema and ledger contain all 16 reviewed repository versions. npm is the sole package manager and Node.js 24 LTS is required.
+PIVOT-01 through PIVOT-10, the administrator-invitation reconciliation, DIFF-01 through DIFF-03, FEEDBACK-01, LIB-01 through LIB-03, CHALLENGE-01 through CHALLENGE-03, BADGE-01, RELEASE-01 through RELEASE-03, and AVATAR-01 through AVATAR-03 are complete. Their manifest-v3, presets/runtime, database, Studio, collaboration, public-read, cleanup, hosted-rebaseline, semantic-comparison, beta-feedback, public-library, saved-clip, authorized-reuse, challenge, award, identity-reset, seeded-content, hosted-rollout, generated-avatar, hardening, testing, and documentation contracts supersede the historical PR 19/20 and OPT/MIDI/STUDIO delivery sequence without erasing its evidence. The retained hosted schema and ledger contain 18 reviewed repository versions through AVATAR-03, with legacy avatar Storage and image-processing workers retired. npm is the sole package manager and Node.js 24 LTS is required.
 
 Before implementing a task:
 
@@ -54,38 +54,35 @@ Before implementing a task:
 
 Keep this section exact and runnable from the repository root.
 
-| Purpose                   | Command                          |
-| ------------------------- | -------------------------------- |
-| Install dependencies      | `npm ci`                         |
-| Development server        | `npm run dev`                    |
-| Full non-E2E check        | `npm run check`                  |
-| MIDI-only static contract | `npm run check:midi-only`        |
-| Lint                      | `npm run lint`                   |
-| Type check                | `npm run typecheck`              |
-| Unit tests                | `npm test`                       |
-| Start local Postgres      | `npm run supabase:start`         |
-| Start local Auth stack    | `npm run supabase:start:auth`    |
-| Start local Storage stack | `npm run supabase:start:storage` |
-| Stop local Supabase       | `npm run supabase:stop`          |
-| Show local Supabase state | `npm run supabase:status`        |
-| Reset/seed local database | `npm run db:reset`               |
-| Database lint/tests/types | `npm run db:check`               |
-| Database tests            | `npm run db:test`                |
-| Generate database types   | `npm run db:types`               |
-| Check database type drift | `npm run db:types:check`         |
-| Prepare test Auth actor   | `npm run auth:e2e:setup`         |
-| Required MIDI E2E suite   | `npm run test:e2e:local`         |
-| Avatar E2E                | `npm run test:e2e:avatar`        |
-| Identity E2E              | `npm run test:e2e:identity`      |
-| Studio smoke E2E          | `npm run test:e2e:studio`        |
-| Process profile image     | `npm run avatars:process`        |
-| Preview avatar cleanup    | `npm run avatars:cleanup`        |
-| Raw/CI end-to-end tests   | `npm run test:e2e`               |
-| Production build          | `npm run build`                  |
+| Purpose                   | Command                       |
+| ------------------------- | ----------------------------- |
+| Install dependencies      | `npm ci`                      |
+| Development server        | `npm run dev`                 |
+| Full non-E2E check        | `npm run check`               |
+| MIDI-only static contract | `npm run check:midi-only`     |
+| Lint                      | `npm run lint`                |
+| Type check                | `npm run typecheck`           |
+| Unit tests                | `npm test`                    |
+| Start local Postgres      | `npm run supabase:start`      |
+| Start local Auth stack    | `npm run supabase:start:auth` |
+| Stop local Supabase       | `npm run supabase:stop`       |
+| Show local Supabase state | `npm run supabase:status`     |
+| Reset/seed local database | `npm run db:reset`            |
+| Database lint/tests/types | `npm run db:check`            |
+| Database tests            | `npm run db:test`             |
+| Generate database types   | `npm run db:types`            |
+| Check database type drift | `npm run db:types:check`      |
+| Prepare test Auth actor   | `npm run auth:e2e:setup`      |
+| Required MIDI E2E suite   | `npm run test:e2e:local`      |
+| Avatar E2E                | `npm run test:e2e:avatar`     |
+| Identity E2E              | `npm run test:e2e:identity`   |
+| Studio smoke E2E          | `npm run test:e2e:studio`     |
+| Raw/CI end-to-end tests   | `npm run test:e2e`            |
+| Production build          | `npm run build`               |
 
 Never invent a command in a handoff. Read `package.json` and tool configuration, run the narrowest relevant checks during iteration, then run `npm run check` before completion. When routes or browser-visible flows change, run the narrowest applicable local E2E command; use `npm run test:e2e:local` for cross-feature changes. Chromium must be installed once with `npx playwright install chromium`. The raw `npm run test:e2e` command is for an already-configured environment such as CI.
 
-Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth stack for the default MIDI browser suite and the reduced Storage stack only for avatar flows. Reset the database before validating migrations, and stop it when finished. Local E2E reads process-scoped local keys automatically, prepares the gated actor, runs one worker to prevent shared-fixture races, and owns an isolated `.next-e2e` development server that it cleans up on completion or interruption. It requires neither Storage nor Edge Runtime for musical journeys. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. `npm run check` includes the enforceable MIDI-only static contract and remains independent of Docker.
+Database commands require a running Docker-compatible container engine. `npm run supabase:start` starts only local Postgres; use the reduced Auth stack for browser suites. Reset the database before validating migrations, and stop it when finished. Local E2E reads process-scoped local keys automatically, prepares the gated actor, runs one worker to prevent shared-fixture races, and owns an isolated `.next-e2e` development server that it cleans up on completion or interruption. Avatar and musical journeys require neither Storage nor Edge Runtime. `npm run db:types` atomically replaces the committed generated file; never edit that file manually. `npm run check` includes the enforceable MIDI-only and generated-avatar static contract and remains independent of Docker.
 
 The two-attempt ceiling applies when the same unresolved environment-dependent blocker repeats. A concrete correction to a selector, fixture, test query, or harness defect permits one validation run of the corrected path; do not count that as another attempt at the unchanged blocker, and do not continue looping if the corrected run exposes the same environmental condition.
 
@@ -104,8 +101,8 @@ Before diagnosing Auth, RPC, RLS, Storage, or missing-data behavior, identify th
 - Autosave updates a private workspace draft using optimistic concurrency; it does not mutate published history.
 - Accepting a contribution creates a new project revision in one transaction. Do not implement automatic musical merging for MVP.
 - Forks and reuse are copy-on-write references to immutable pattern and arrangement versions.
-- Postgres is the authority for domain relationships and authorization. Storage holds bytes, not business state.
-- Profile avatars are the target product's only Storage media. Keep private originals and sanitized public derivatives behind their existing authorization boundary.
+- Postgres is the authority for domain relationships, authorization, and optional generated-avatar configuration. The active product has no Storage media.
+- Profile avatars are rendered locally from a validated, versioned configuration. Never accept uploaded profile images, persist generated bytes, or call a remote avatar renderer.
 - All application-facing tables in exposed schemas have RLS enabled and policy tests. The service-role key is server-only and exceptional, not the normal application data path.
 - Email remains in Supabase Auth and must not be copied into publicly selectable profile data.
 - Provider metadata is untrusted for public identity; new Auth users begin with incomplete profiles that are not publicly visible.
@@ -201,12 +198,12 @@ For a PR containing a hosted migration, the worker must stop at the repository's
 
 For every RLS-sensitive feature, test at least: anonymous user, resource author, unrelated authenticated user, project owner/reviewer, and suspended user where applicable.
 
-## Storage and MIDI runtime rules
+## Generated-avatar and MIDI runtime rules
 
 - Do not add musical-file uploads, source-audio assets, samples, soundfonts, server-stored previews, or server-rendered audio.
 - MIDI import is parsed and validated as structured data; MIDI export and synthesized audio render remain browser-local downloads.
 - Presets are bundled, deterministic, versioned Tone.js synthesis definitions. Published arrangements pin exact preset versions.
-- Profile-avatar originals remain private and derivatives sanitized; signed URLs and object paths must never be logged.
+- Generated avatars persist configuration only and render through the pinned bundled DiceBear packages. Initials remain the null fallback; no avatar Storage, Edge Function, recovery secret, or image-processing worker is permitted.
 - Active musical routes, schema, workers, environment instructions, and current-behavior documentation must remain free of legacy audio infrastructure; `npm run check:midi-only` enforces this boundary.
 - Changes to Tone.js versions, preset definitions, or manifest schemas require deterministic round-trip/runtime fixtures for every supported persisted version.
 

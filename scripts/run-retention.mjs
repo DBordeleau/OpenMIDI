@@ -75,34 +75,14 @@ while (processed < limit) {
     throw new Error(`Retention claim failed: ${claimed.error.code}`);
   const claim = claimed.data;
   if (!claim) break;
-  const deleted = [];
-  const missing = [];
-  let failure = null;
-  for (const object of claim.objects) {
-    const result = await db.storage.from(object.bucket).remove([object.path]);
-    if (result.error) {
-      failure = "storage_delete_failed";
-      break;
-    }
-    if ((result.data ?? []).length === 0) missing.push(object.id);
-    else deleted.push(object.id);
-  }
-  if (failure) {
-    await db.rpc("operator_retry_retention_job", {
-      p_job_id: claim.jobId,
-      p_lease_token: claim.leaseToken,
-      p_error_code: failure,
-    });
-  } else {
-    const finalized = await db.rpc("operator_finalize_retention_job", {
-      p_job_id: claim.jobId,
-      p_lease_token: claim.leaseToken,
-      p_deleted_object_ids: deleted,
-      p_missing_object_ids: missing,
-    });
-    if (finalized.error)
-      throw new Error(`Retention finalization failed: ${finalized.error.code}`);
-  }
+  const finalized = await db.rpc("operator_finalize_retention_job", {
+    p_job_id: claim.jobId,
+    p_lease_token: claim.leaseToken,
+    p_deleted_object_ids: [],
+    p_missing_object_ids: [],
+  });
+  if (finalized.error)
+    throw new Error(`Retention finalization failed: ${finalized.error.code}`);
   processed += 1;
 }
 const completed = await db.rpc("operator_complete_retention_run", {
