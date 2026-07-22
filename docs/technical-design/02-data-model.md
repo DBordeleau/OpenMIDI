@@ -25,7 +25,7 @@ Workspace saves are transactional and conflict-safe. No workspace table or proje
 ## Reusable patterns and arrangements
 
 - `midi_patterns` owns reusable identity, owner, visibility, source pattern, and rights attestation.
-- `midi_pattern_versions` stores immutable creator snapshots, exact parent/source version lineage, canonical hash, duration, and CC BY 4.0 reuse terms.
+- `midi_pattern_versions` stores immutable creator snapshots, exact parent/source version lineage, canonical hash, duration, CC BY 4.0 reuse terms, and a derived optional `silhouette_v1`. The silhouette is canonical base64 for 64 time columns by eight pitch bands; it is computed after normalized note insertion, never replaces note authority, and remains all-null for note-free patterns.
 - `midi_pattern_notes` stores canonical normalized notes with stable note IDs.
 - `arrangement_versions` stores one immutable complete manifest-v3 snapshot and hash.
 - `arrangement_tracks` and `arrangement_clips` normalize the same exact arrangement.

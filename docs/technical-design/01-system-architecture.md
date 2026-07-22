@@ -43,7 +43,7 @@ An owner workspace remains a private mutable draft after acceptance. When its ba
 
 ### Public reads and discovery
 
-Public project pages, preview, history, attribution, and discovery read arrangement versions and exact MIDI pattern versions. Pattern creator snapshots and CC BY 4.0 lineage survive profile renames and deletion. Public pattern-library listing is explicit and separate from project publication; LIB-01 distinguishes commercially reusable CC BY 4.0 listings from reference-only/no-reuse listings through a bounded safe projection while direct pattern reads remain project/member/owner scoped.
+Public project pages, preview, history, attribution, and discovery read arrangement versions and exact MIDI pattern versions. Project-detail arrangement maps may read deduplicated, permanently cacheable pattern silhouettes through a bounded RPC that rechecks the safe public-project catalog plus current project and owner visibility; raw note rows are not part of that decoration path. Pattern creator snapshots and CC BY 4.0 lineage survive profile renames and deletion. Public pattern-library listing is explicit and separate from project publication; LIB-01 distinguishes commercially reusable CC BY 4.0 listings from reference-only/no-reuse listings through a bounded safe projection while direct pattern reads remain project/member/owner scoped.
 
 ### Moderation, deletion, and avatars
 

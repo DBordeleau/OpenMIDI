@@ -1870,6 +1870,9 @@ export type Database = {
           reuse_license_code: string | null
           reuse_license_url: string | null
           reuse_license_version: string | null
+          silhouette_max_pitch: number | null
+          silhouette_min_pitch: number | null
+          silhouette_v1: string | null
           source_pattern_version_id: string | null
           version_number: number
         }
@@ -1888,6 +1891,9 @@ export type Database = {
           reuse_license_code?: string | null
           reuse_license_url?: string | null
           reuse_license_version?: string | null
+          silhouette_max_pitch?: number | null
+          silhouette_min_pitch?: number | null
+          silhouette_v1?: string | null
           source_pattern_version_id?: string | null
           version_number: number
         }
@@ -1906,6 +1912,9 @@ export type Database = {
           reuse_license_code?: string | null
           reuse_license_url?: string | null
           reuse_license_version?: string | null
+          silhouette_max_pitch?: number | null
+          silhouette_min_pitch?: number | null
+          silhouette_v1?: string | null
           source_pattern_version_id?: string | null
           version_number?: number
         }
@@ -3501,6 +3510,15 @@ export type Database = {
       get_public_project_lineage: {
         Args: { p_project_id: string }
         Returns: Json
+      }
+      get_public_project_silhouettes: {
+        Args: { p_project_id: string; p_revision_id: string }
+        Returns: {
+          max_pitch: number
+          midi_pattern_version_id: string
+          min_pitch: number
+          silhouette: string
+        }[]
       }
       get_viewer_dashboard: { Args: never; Returns: Json }
       get_viewer_profile: {
