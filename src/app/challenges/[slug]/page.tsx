@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FiArrowLeft } from "react-icons/fi";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
+import { Reveal } from "@/components/ui/reveal.client";
+import {
+  ChallengeCountdown,
+  formatRemainingLong,
+  nextChallengeMilestone,
+} from "@/features/challenges/challenge-countdown";
 import { ChallengeRules } from "@/features/challenges/challenge-rules";
+import { ChallengeTimeline } from "@/features/challenges/challenge-timeline";
 import { ChallengeEntryPanel } from "@/features/challenges/challenge-entry-panel.client";
 import {
   publicChallengeAwardTargetQuerySchema,
   publicChallengeEntryCursorSchema,
 } from "@/features/challenges/entry-contract";
-import {
-  ChallengeReportControl,
-  ChallengeVoteControl,
-} from "@/features/challenges/challenge-community-controls.client";
+import { ChallengeVoteControl } from "@/features/challenges/challenge-community-controls.client";
 import { challengePhaseMessage } from "@/features/challenges/lifecycle";
 import { challengeEntryPageHref } from "@/features/challenges/rotation";
 import {
@@ -93,88 +98,104 @@ export default async function ChallengeDetailPage({
     votingOpensAt: challenge.votingOpensAt,
     votingClosesAt: challenge.votingClosesAt,
   });
+  const milestone = nextChallengeMilestone(challenge);
+  const opensIn = formatRemainingLong(challenge.opensAt);
+  const closedLabel =
+    challenge.state === "cancelled"
+      ? "Cancelled"
+      : challenge.phase === "completed"
+        ? "Results published"
+        : phase;
+
   return (
     <main id="main-content">
-      <Container className="py-12 sm:py-16">
-        <Link href="/challenges" className="text-accent underline">
-          ← All challenges
-        </Link>
-        <article className={`challenge-${challenge.presentationCode} mt-6`}>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="border-accent text-accent rounded-full border px-4 py-1 text-sm font-semibold tracking-wide uppercase">
-              {phase}
-            </span>
-            <span className="text-muted">
-              Constraint schema v1 · rules hash{" "}
-              {challenge.constraintsSha256.slice(0, 8)}
-            </span>
-          </div>
-          <h1 className="mt-6 max-w-4xl text-4xl font-bold sm:text-6xl">
-            {challenge.title}
-          </h1>
-          <p className="text-accent-2 mt-4 max-w-3xl text-xl font-semibold">
-            {challenge.prompt}
-          </p>
-          <p className="mt-6 max-w-3xl text-lg whitespace-pre-line">
-            {challenge.description}
-          </p>
-          {challenge.state === "cancelled" && (
-            <p className="border-danger text-danger rounded-control mt-6 border p-4">
-              This challenge was cancelled. {challenge.cancellationNote}
-            </p>
-          )}
-          <section
-            className="border-subtle bg-surface rounded-card mt-10 grid gap-5 border p-6 sm:grid-cols-2"
-            aria-labelledby="schedule-heading"
+      <Container className="py-6 sm:py-10">
+        <Reveal>
+          <Link
+            href="/challenges"
+            prefetch={false}
+            className="text-muted hover:text-accent group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors"
           >
-            <h2
-              id="schedule-heading"
-              className="text-2xl font-bold sm:col-span-2"
-            >
-              Frozen schedule
-            </h2>
-            {[
-              ["Opens", challenge.opensAt],
-              ["Submissions close", challenge.submissionsCloseAt],
-              ["Voting opens", challenge.votingOpensAt],
-              ["Voting closes", challenge.votingClosesAt],
-              ["Results expected", challenge.resultsExpectedAt],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <p className="text-muted text-sm">{label}</p>
-                <time dateTime={value} className="font-semibold">
-                  {new Date(value).toLocaleString()}
-                </time>
-              </div>
-            ))}
-          </section>
-          <div className="mt-10">
-            <ChallengeRules constraints={challenge.constraints} />
-          </div>
-          <section className="mt-10" aria-labelledby="credits-heading">
-            <h2 id="credits-heading" className="text-2xl font-bold">
-              Host and judges
-            </h2>
-            <ul className="mt-4 flex flex-wrap gap-3">
-              {challenge.judges.map((judge) => (
-                <li
-                  key={judge.position}
-                  className="border-subtle bg-surface rounded-full border px-5 py-3"
-                >
-                  <span className="text-muted mr-2 capitalize">
-                    {judge.role}
+            <FiArrowLeft
+              aria-hidden="true"
+              className="transition-transform group-hover:-translate-x-0.5"
+            />
+            All challenges
+          </Link>
+        </Reveal>
+
+        <article className={`challenge-${challenge.presentationCode}`}>
+          <Reveal delay={0.04} className="mt-4">
+            <header className="challenge-hero rounded-card relative overflow-hidden p-5 sm:p-8">
+              <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,16rem)] sm:items-start sm:gap-8">
+                <div>
+                  <span className="border-accent/45 bg-accent/12 text-accent inline-flex rounded-full border px-3 py-0.5 font-mono text-[10.5px] tracking-[0.18em] uppercase">
+                    {phase}
                   </span>
-                  {judge.creditName}
-                </li>
-              ))}
-            </ul>
-          </section>
+                  <h1 className="mt-4 text-3xl font-bold tracking-[-0.035em] text-balance sm:text-5xl">
+                    {challenge.title}
+                  </h1>
+                  <p className="text-accent-2 mt-3 text-lg font-semibold sm:text-xl">
+                    {challenge.prompt}
+                  </p>
+                  <p className="text-muted mt-5 max-w-2xl leading-relaxed whitespace-pre-line">
+                    {challenge.description}
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <ChallengeCountdown
+                    target={milestone}
+                    closedLabel={closedLabel}
+                  />
+                  <ul className="grid gap-1.5 text-sm">
+                    {challenge.judges.map((judge) => (
+                      <li key={judge.position}>
+                        <span className="text-muted font-mono text-[10.5px] tracking-[0.14em] uppercase">
+                          {judge.role === "host" ? "Hosted by" : "Judge"}
+                        </span>{" "}
+                        <span className="text-ink font-semibold">
+                          {judge.creditName}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <p className="border-subtle text-muted/80 mt-6 border-t pt-5 text-xs leading-relaxed whitespace-pre-line">
+                <span className="font-mono text-[10.5px] tracking-[0.14em] uppercase">
+                  Eligibility and use ·{" "}
+                </span>
+                {challenge.eligibilityTerms}
+              </p>
+
+              {challenge.state === "cancelled" && (
+                <p className="border-danger/50 bg-danger/10 text-danger rounded-control mt-5 border p-4">
+                  This challenge was cancelled. {challenge.cancellationNote}
+                </p>
+              )}
+            </header>
+          </Reveal>
+
+          <Reveal delay={0.08} className="mt-4">
+            <ChallengeTimeline challenge={challenge} />
+          </Reveal>
+
+          <Reveal delay={0.12} className="mt-8">
+            <ChallengeRules constraints={challenge.constraints} />
+          </Reveal>
+
           {challenge.starter && (
-            <section
-              className="border-subtle bg-surface rounded-card mt-10 border p-6"
+            <Reveal
+              as="section"
+              delay={0.2}
+              className="dash-card rounded-card mt-8 p-5 sm:p-6"
               aria-labelledby="starter-heading"
             >
-              <h2 id="starter-heading" className="text-2xl font-bold">
+              <h2
+                id="starter-heading"
+                className="text-muted font-mono text-[10.5px] tracking-[0.2em] uppercase"
+              >
                 Exact starter revision
               </h2>
               <p className="mt-3">
@@ -185,8 +206,9 @@ export default async function ChallengeDetailPage({
               </p>
               {challenge.starter.available ? (
                 <Link
+                  prefetch={false}
                   href={`/projects/${challenge.starter.projectId}`}
-                  className="border-strong mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                  className="border-strong hover:border-accent hover:text-accent mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold transition-colors"
                 >
                   Preview public starter
                 </Link>
@@ -196,23 +218,13 @@ export default async function ChallengeDetailPage({
                   currently available to open.
                 </p>
               )}
-            </section>
+            </Reveal>
           )}
-          <section className="border-subtle bg-surface-soft rounded-card mt-10 border p-6">
-            <h2 className="text-xl font-bold">Eligibility and use</h2>
-            <p className="mt-3 whitespace-pre-line">
-              {challenge.eligibilityTerms}
-            </p>
-          </section>
-          <ChallengeReportControl
-            challengeId={challenge.id}
-            slug={challenge.slug}
-          />
           {awardTarget && (
             <section
               id={`entry-${awardTarget.entryId}`}
               tabIndex={-1}
-              className="border-accent bg-surface-raised rounded-card mt-10 border p-6 sm:p-8"
+              className="dash-card dash-card-lit rounded-card relative mt-8 p-5 sm:p-6"
               aria-labelledby="award-source-entry-heading"
             >
               <p className="text-accent font-mono text-xs tracking-widest uppercase">
@@ -243,7 +255,7 @@ export default async function ChallengeDetailPage({
               )}
               <Link
                 href={`/challenges/${challenge.slug}/entries/${awardTarget.entryId}`}
-                className="border-strong mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                className="border-strong hover:border-accent hover:text-accent mt-5 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold transition-colors"
               >
                 Hear exact entry
               </Link>
@@ -258,18 +270,30 @@ export default async function ChallengeDetailPage({
               myEntry={myEntry}
             />
           ) : challenge.phase === "scheduled" ? (
-            <p className="border-subtle bg-surface-soft rounded-control mt-10 border p-5">
-              Preflight and exact entry submission open with the challenge.
+            <p className="challenge-cue rounded-card mx-auto mt-8 max-w-2xl p-5 text-center text-lg font-semibold sm:p-6 sm:text-xl">
+              {opensIn ? (
+                <>
+                  <span className="text-muted">Submissions open in </span>
+                  <span className="from-accent to-accent-2 bg-linear-to-r bg-clip-text leading-[1.3] text-transparent">
+                    {opensIn}
+                  </span>
+                </>
+              ) : (
+                <span className="text-accent">Submissions open shortly.</span>
+              )}
             </p>
           ) : null}
           {(challenge.phase === "voting" ||
             challenge.phase === "completed") && (
-            <section className="mt-10" aria-labelledby="public-entries-heading">
-              <h2 id="public-entries-heading" className="text-2xl font-bold">
+            <section className="mt-8" aria-labelledby="public-entries-heading">
+              <h2
+                id="public-entries-heading"
+                className="text-muted px-1 font-mono text-[10.5px] tracking-[0.2em] uppercase"
+              >
                 Challenge entries
               </h2>
               {publicEntries.length ? (
-                <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                <ul className="mt-3 grid gap-4 sm:grid-cols-2">
                   {publicEntries.map((entry) => (
                     <li
                       key={entry.entryId}
@@ -278,7 +302,7 @@ export default async function ChallengeDetailPage({
                           ? undefined
                           : `entry-${entry.entryId}`
                       }
-                      className="border-subtle bg-surface rounded-card border p-5"
+                      className="dash-card dash-card-action rounded-card p-5"
                     >
                       <p className="text-accent font-mono text-xs tracking-widest uppercase">
                         @{entry.entrantUsername} · revision{" "}
@@ -298,7 +322,7 @@ export default async function ChallengeDetailPage({
                       )}
                       <Link
                         href={`/challenges/${challenge.slug}/entries/${entry.entryId}`}
-                        className="border-strong mt-4 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold"
+                        className="border-strong hover:border-accent hover:text-accent mt-4 inline-flex min-h-11 items-center rounded-full border px-5 font-semibold transition-colors"
                       >
                         Hear exact entry
                       </Link>
@@ -336,11 +360,11 @@ export default async function ChallengeDetailPage({
           )}
           {challenge.result && (
             <section
-              className="border-accent bg-surface-raised rounded-card mt-10 border p-6 sm:p-8"
+              className="dash-card dash-card-lit rounded-card relative mt-8 p-5 sm:p-6"
               aria-labelledby="challenge-results-heading"
             >
               <p className="text-accent font-mono text-xs tracking-widest uppercase">
-                Permanent result Â· version {challenge.result.version}
+                Permanent result · version {challenge.result.version}
               </p>
               <h2
                 id="challenge-results-heading"
@@ -357,10 +381,10 @@ export default async function ChallengeDetailPage({
                   {challenge.result.placements.map((placement) => (
                     <li
                       key={placement.entryId}
-                      className="border-subtle rounded-control border p-4"
+                      className="border-subtle bg-surface-soft/50 rounded-control border p-4"
                     >
                       <strong>
-                        #{placement.place} Â· {placement.label}
+                        #{placement.place} · {placement.label}
                       </strong>{" "}
                       <span className="text-muted">
                         {placement.projectTitle} by @{placement.entrantUsername}
@@ -378,11 +402,11 @@ export default async function ChallengeDetailPage({
                 {challenge.result.communityFavorites.map((favorite) => (
                   <li
                     key={favorite.entryId}
-                    className="border-subtle rounded-control border p-4"
+                    className="border-subtle bg-surface-soft/50 rounded-control border p-4"
                   >
                     <strong>{favorite.projectTitle}</strong>{" "}
                     <span className="text-muted">
-                      by @{favorite.entrantUsername} Â· {favorite.voteTotal}{" "}
+                      by @{favorite.entrantUsername} · {favorite.voteTotal}{" "}
                       {favorite.voteTotal === 1 ? "vote" : "votes"}
                     </span>
                   </li>

@@ -527,6 +527,76 @@ with real accidentals ("F♯ minor", "E♭ major") or `formatMusicalKeyShort` fo
 compact badges ("F♯m"). Applies everywhere a key appears — cards, filters, project
 pages, the create/edit form.
 
+**Challenge pages** — a challenge detail page leads with a `.challenge-hero`
+glass header (defined in `globals.css`): the same raised-surface gradient as
+`.dash-card`, plus an accent bloom in the top-right and a hairline gradient
+seam along its top edge. Presentation codes (`.challenge-pulse`,
+`.challenge-nocturne`, `.challenge-sunrise`) only retint the hero's
+`--challenge-accent`; they must never draw a coloured bar or block of their own.
+
+The hero carries everything that frames the challenge — phase chip, title, prompt
+and description in the main column, the countdown pinned to the **top** right so
+the two columns start level, and a hairline-separated credits row with the
+host/judges above an "Eligibility and use" line. Legal and credit copy is
+supporting material: it belongs as small print inside the hero — plain text, not
+a disclosure a visitor has to open — never as its own full-width card competing
+with the rules. Nothing on the page exposes internal
+plumbing (constraint schema version, hash prefix) to visitors — that lives in
+admin.
+
+Phases read in plain language via `phaseLabels`: **Upcoming**, **Ongoing**,
+**Finished** — not the state-machine words `scheduled`/`open`/`completed`.
+
+Site-issued challenges are not reportable. `ChallengeReportControl` belongs on
+entries (user-submitted) only; offering "report this challenge" invites people to
+flag the site's own content.
+
+Two rules follow from what a visitor actually needs to know:
+
+- **One deadline, not five.** A challenge carries five frozen dates, but only
+  one answers "how long have I got?".
+  [`nextChallengeMilestone`](../../src/features/challenges/challenge-countdown.tsx)
+  picks it by phase and `ChallengeCountdown` renders it as a gradient numeral
+  plus unit ("2 days"), with the exact datetime beneath it in mono. Whole units
+  only — days above 48h, then hours, then minutes. Prose elsewhere on the page
+  uses `formatRemainingLong` ("3 days and 4 hours"): always say how long the
+  wait is, never just that a wait exists.
+- **The schedule is a track, not a table.**
+  [`ChallengeTimeline`](../../src/features/challenges/challenge-timeline.tsx)
+  draws four stops (Opens / Submissions close / Voting / Results) with a
+  gradient fill showing elapsed progress: vertical on mobile, horizontal from
+  `sm`. Voting collapses to a single node carrying its range.
+
+A challenge that has not opened yet has exactly one thing to say, so it says it
+in `.challenge-cue`: a centred accent card whose edge is lit by a conic gradient
+travelling around it (`--cue-angle`, animated via `@property`) over a static
+accent rim. Exactly one thing moves — the glow around it is fixed. An earlier
+version also pulsed the box-shadow's alpha and radius, and a card brightening and
+dimming under the reader looks like a rendering fault, not emphasis; if a surface
+needs attention, move one element steadily rather than modulating the whole
+thing. Reserve the cue for a page's single most important waiting-state line — it
+is loud on purpose, and a page with two of them has neither. The global
+`prefers-reduced-motion` rule parks the arc and leaves a legible accent card.
+
+The **index** (`/challenges`) sorts by what a visitor can act on — ongoing, then
+voting, then upcoming, then finished — because a reverse-chronological list buries
+the only challenge still taking entries. Each card answers what it is, whether you
+may still enter (phase chip plus a compact countdown), and its limits (the first
+three constraint chips plus a `+N more`), then hands off; the frozen dates belong
+to the detail page.
+
+Constraints are the point of a challenge, so they get the page's most deliberate
+treatment: `.dash-card` tiles two to a row with gradient ordinals — plain `1`,
+`2`, `3`, not zero-padded — never a stack of grey strips. `describeChallengeConstraintsV1` throws on non-canonical input —
+always call it inside `try`/`catch` and fall back to the "no extra constraints"
+empty state rather than 500ing the page.
+
+Gradient text uses `from-accent to-accent-2 bg-linear-to-r bg-clip-text
+text-transparent`, **not** `.cta-gradient` — that class is a button recipe and
+also sets `color` (unlayered, so it beats `text-transparent`) and a drop glow.
+Give clipped gradient text a line-height above `1`; `leading-none` makes the
+element box shorter than the glyphs and shears their tops off.
+
 **Labels** — see §3.
 
 ---

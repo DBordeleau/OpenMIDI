@@ -49,12 +49,17 @@ export function challengePhaseMessage(input: {
   return "Voting";
 }
 
+/**
+ * Plain-language phase names. Musicians read "Upcoming / Ongoing / Finished"
+ * without translating; "scheduled" and "open" are scheduling-system words that
+ * describe our state machine rather than what the visitor can do.
+ */
 export const phaseLabels: Record<ChallengePhase, string> = {
   draft: "Draft",
-  scheduled: "Scheduled",
-  open: "Open",
+  scheduled: "Upcoming",
+  open: "Ongoing",
   voting: "Voting",
-  completed: "Completed",
+  completed: "Finished",
   cancelled: "Cancelled",
 };
 

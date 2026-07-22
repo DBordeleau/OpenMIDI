@@ -148,14 +148,24 @@ test.describe("curated challenge lifecycle", () => {
       publicPage.getByRole("heading", { name: title }),
     ).toBeVisible();
     await expect(
-      publicPage.getByText("Scheduled", { exact: true }),
+      publicPage.getByText("Upcoming", { exact: true }),
     ).toBeVisible();
     await expect(publicPage.getByText("Use 4 tracks.")).toBeVisible();
     await expect(publicPage.getByText("Challenge E2E")).toBeVisible();
     await expect(publicPage.getByText(fixture.starterTitle)).toBeVisible();
+    // The presentation code only retints the hero — it must never draw the
+    // coloured left bar the design brief removed.
     const presentation = publicPage.locator("article.challenge-pulse");
-    await expect(presentation).toHaveCSS("border-left-width", "4px");
-    await expect(presentation).not.toHaveCSS("background-image", "none");
+    await expect(presentation).toHaveCSS("border-left-width", "0px");
+    await expect(publicPage.locator(".challenge-hero")).not.toHaveCSS(
+      "background-image",
+      "none",
+    );
+    // A site-issued challenge is not reportable user content.
+    await expect(publicPage.getByText("Report this challenge")).toHaveCount(0);
+    await expect(
+      publicPage.getByText(/Submissions open in \d+ (day|hour|minute)/),
+    ).toBeVisible();
     await expect(
       publicPage.getByRole("heading", { name: "Frozen schedule" }),
     ).toBeVisible();

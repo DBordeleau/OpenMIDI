@@ -400,27 +400,130 @@ html:has([data-studio-scale]) body {
 }
 
 /* Frozen challenge presentation choices alter only the public invitation's
-   visual treatment; lifecycle and authorization remain data-driven. */
-.challenge-pulse,
-.challenge-nocturne,
-.challenge-sunrise {
-  border-inline-start: 0.25rem solid var(--challenge-presentation-accent);
-  border-radius: var(--radius-card);
-  padding: clamp(1.25rem, 3vw, 2.5rem);
-  background: radial-gradient(
-    circle at 92% 4%,
-    color-mix(in srgb, var(--challenge-presentation-accent) 16%, transparent),
-    transparent 34%
-  );
-}
+   visual treatment; lifecycle and authorization remain data-driven.
+
+   These used to paint a 4px bar down the left edge of the whole article, which
+   read as a stray highlight rather than an identity. The code now only picks a
+   tint, and `.challenge-hero` spends it as a bloom inside the shared glass —
+   each session feels like its own without a second visual system. */
 .challenge-pulse {
-  --challenge-presentation-accent: var(--color-accent);
+  --challenge-accent: var(--color-accent);
 }
 .challenge-nocturne {
-  --challenge-presentation-accent: var(--color-berry);
+  --challenge-accent: var(--color-berry);
 }
 .challenge-sunrise {
-  --challenge-presentation-accent: var(--color-accent-2);
+  --challenge-accent: var(--color-accent-2);
+}
+
+.challenge-hero {
+  --challenge-accent: var(--color-accent);
+  background:
+    radial-gradient(
+      34rem 20rem at 88% -14%,
+      color-mix(in srgb, var(--challenge-accent) 22%, transparent),
+      transparent 66%
+    ),
+    radial-gradient(
+      24rem 16rem at 2% 110%,
+      color-mix(in srgb, var(--color-accent-2) 12%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      158deg,
+      color-mix(in srgb, var(--color-surface-raised) 88%, transparent),
+      color-mix(in srgb, var(--color-surface-soft) 94%, transparent)
+    );
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  box-shadow:
+    0 1.75rem 4rem -2rem rgb(0 0 0 / 88%),
+    inset 0 1px 0 rgb(255 255 255 / 7%);
+}
+/* The signature gradient as a lit edge, tinted by the session's own accent. */
+.challenge-hero::before {
+  content: "";
+  position: absolute;
+  inset-inline: 2rem;
+  top: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--challenge-accent),
+    var(--color-accent-2),
+    transparent
+  );
+  opacity: 0.85;
+}
+
+/* The one call to action on a challenge that has not opened yet. A muted line of
+   body copy loses to everything around it, so this card lights its own edge: one
+   gradient arc travels the border at a constant speed.
+
+   The glow is deliberately static. An earlier version also breathed the
+   box-shadow's alpha and radius on a 3.6s loop, and a whole card brightening and
+   dimming under you does not read as emphasis — it reads as a rendering bug. One
+   moving element, nothing else changing. The global reduced-motion rule below
+   parks the arc and leaves a legible accent card. */
+@property --cue-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.challenge-cue {
+  position: relative;
+  /* Own stacking context, so the two pseudo layers below sit above this
+     element's background but under its text without any z-index on the text. */
+  isolation: isolate;
+  box-shadow: 0 0 2.75rem -1rem rgb(255 141 99 / 60%);
+}
+/* Layer 1: the travelling arc, painted edge to edge. */
+.challenge-cue::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from var(--cue-angle),
+      transparent 0deg,
+      color-mix(in srgb, var(--color-accent) 55%, transparent) 30deg,
+      var(--color-accent) 60deg,
+      var(--color-accent-2) 100deg,
+      color-mix(in srgb, var(--color-accent-2) 45%, transparent) 130deg,
+      transparent 170deg,
+      transparent 360deg
+    ),
+    /* A base rim, so the parts of the edge the arc has left still read as a
+       border rather than a gap. */
+    color-mix(in srgb, var(--color-accent) 28%, transparent);
+  animation: challenge-cue-sweep 7s linear infinite;
+}
+/* Layer 2: the card surface, inset by a hairline so only the rim shows. */
+.challenge-cue::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      18rem 10rem at 50% -40%,
+      color-mix(in srgb, var(--color-accent) 20%, transparent),
+      transparent 70%
+    ),
+    var(--color-surface-raised);
+}
+@keyframes challenge-cue-sweep {
+  to {
+    --cue-angle: 360deg;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
