@@ -276,6 +276,34 @@ a **bright** (`text-ink/90`) change summary. Fork nodes indent with a berry
 connector. The brightness split — muted author vs. bright summary — is intentional
 hierarchy; preserve it.
 
+**Landing scroll** — the landing is its own snapping scroll port with
+`scroll-snap-type: y proximity`, driven by
+[`SectionScroller`](<../../src/app/(public)/_components/section-scroller.client.tsx>)
+so one wheel gesture glides to the next section. **On `pointer: coarse` that all
+switches off**: the page hands scrolling back to the document and drops snapping,
+because proximity snap resolves _after_ a thumb lifts, so a flick landing between
+two sections gets yanked to whichever edge is nearer. A wheel gesture is discrete
+enough for snapping to feel intentional; a swipe is not. The nested scroll port
+also blocks the mobile URL bar from collapsing.
+
+Two traps live in that rule, both load-bearing:
+
+- The mobile override needs `overflow-x: clip`, not `hidden`. When one axis is
+  `hidden` the other computes back to `auto`, which would silently leave the
+  element a scroll container and undo the whole thing.
+- `SectionScroller` bails unless the container's computed `overflow-y` is
+  `auto`/`scroll`. Without that it would drive `scrollTop` on a non-scrolling
+  element and read every wheel event as section 0.
+
+`tests/e2e/landing-mobile.spec.ts` pins the touch half and `home.spec.ts` pins
+the pointer half — change one and the other should fail loudly.
+
+**Landing gutters** — `.heroIn` carries both `.wrap` and its own `padding`
+shorthand, and the shorthand zeroes the wrap's inline padding. The 76rem
+container hides that on a wide screen; on a phone it put the headline and CTAs
+hard against the glass. The gutter is restored in the `max-width: 59.99rem`
+block only. Watch for this whenever a `.wrap` element also sets `padding`.
+
 **Header** — the shared header and the landing nav are one design. Both use the
 [`BrandMark`](../../src/components/layout/brand-mark.tsx) three-bar logo beside
 the `Open` + muted `MIDI` wordmark, quiet `text-[13px]` semibold links in
@@ -378,7 +406,22 @@ entering** the Studio (on the way out the header mounts fresh, already correct):
 **Sign-in modal** — [`SignInModal`](../../src/app/sign-in/_components/sign-in-modal.client.tsx)
 presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
 entrance and a fade-out on close (Escape, backdrop, or the icon button) that routes
-home. The Google button is a white pill with the 4-colour Google mark.
+home. It wears the shared `.dash-card` glass with the lit coral→gold top edge, so
+signing in looks like the room you are about to walk into. The Google button is a
+white pill with the 4-colour Google mark.
+
+Its composition is **type and space, not ornament**: the wordmark to anchor the
+modal when it is reached directly, one headline, one line of context, one
+button, a hairline, and the terms. An earlier pass put a decorative MIDI
+arrangement at the top of it — that was rejected, and rightly: a graphic on a
+one-action surface competes with the action instead of serving it. Keep this
+surface quiet.
+
+The current headline, "Open beta coming soon!", makes the invite-only state
+immediately clear. It replaced a line that greeted visitors into the **retired
+prelaunch identity**; do not reintroduce that wording. `npm run check:identity`
+fails the build if the old name returns anywhere in tracked text, which is also
+why this paragraph does not spell it.
 
 **Studio surface** — manifest-v3 sessions use the browser-only
 [`MidiStudioSurface`](../../src/features/studio/midi-adapter/midi-studio-surface.client.tsx)

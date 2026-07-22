@@ -1338,6 +1338,68 @@
   color: var(--coral);
 }
 
+/* ==================== TOUCH / SMALL SCREENS ====================
+   Scoped so the pointer experience is untouched. The scroll rework keys on
+   `pointer: coarse` rather than width, so a narrow desktop window keeps its
+   wheel-driven section snap; the layout fixes use max-width, and 60rem sits
+   below every min-width breakpoint in this file. */
+
+@media (pointer: coarse) {
+  .root {
+    /* Let the document scroll instead of a nested port. A nested overflow
+       container stops the mobile URL bar from collapsing and trades native
+       momentum for a stiffer inner scroll.
+
+       `clip`, not `hidden`, is load-bearing: when one axis is `hidden` the
+       other computes back to `auto`, which would quietly leave this element a
+       scroll container and undo the whole rule. `clip` is the one value that
+       lets the cross axis stay `visible`. */
+    height: auto;
+    overflow-x: clip;
+    overflow-y: visible;
+
+    /* Proximity snap resolves *after* a thumb lifts, so a flick that lands
+       between two sections gets pulled to whichever edge is nearer — which
+       reads as the page overriding you rather than helping. A wheel gesture is
+       discrete enough for snapping to feel intentional; a swipe is not. */
+    scroll-snap-type: none;
+  }
+  .hero,
+  .sec {
+    scroll-snap-align: none;
+  }
+  /* No sticky header on the landing, so the global 7rem anchor offset would
+     leave a strip of the previous section above the one you tapped toward. */
+  .root [id] {
+    scroll-margin-top: 0;
+  }
+}
+
+@media (max-width: 59.99rem) {
+  /* The cue is centred and the now-playing pill is right-aligned, so at narrow
+     widths they converge on the same 1.6rem baseline and overlap. Stack them
+     instead: pill above, cue below, both centred. */
+  .nowPlaying {
+    bottom: 5.1rem;
+    justify-content: center;
+  }
+  /* Centred section content must not run into the cue floating over its bottom
+     edge once the content is tall enough to reach it. */
+  .hero {
+    padding-bottom: 6rem;
+  }
+  /* `.heroIn` is also a `.wrap`, and its `padding` shorthand zeroes the wrap's
+     inline padding. On a wide screen the 76rem container keeps the content off
+     the glass anyway; on a phone it put the headline, lede and buttons hard
+     against the left edge. Restore the gutter here only. */
+  .heroIn {
+    padding: 6.5rem 1.5rem 3rem;
+  }
+  .sec {
+    padding-bottom: 7rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .root {
     scroll-behavior: auto;

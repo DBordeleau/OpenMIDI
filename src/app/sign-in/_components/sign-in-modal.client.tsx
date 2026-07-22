@@ -43,11 +43,9 @@ export function SignInModal({ children }: Readonly<{ children: ReactNode }>) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="signin-title"
-            className="rounded-card border-subtle shadow-raised relative w-full max-w-md border p-8 sm:p-10"
-            style={{
-              background:
-                "radial-gradient(120% 120% at 0% 0%,rgba(255,141,99,0.16),transparent 55%),radial-gradient(120% 120% at 100% 100%,rgba(231,122,166,0.12),transparent 55%),var(--color-surface-raised)",
-            }}
+            // The same glass the nav sheets and dashboard cards use, so signing
+            // in looks like the room you are about to walk into.
+            className="dash-card dash-card-lit rounded-card relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto p-7 sm:max-h-[calc(100dvh-3rem)] sm:p-9"
             initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={

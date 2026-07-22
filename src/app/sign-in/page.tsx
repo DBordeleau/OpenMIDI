@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { signInWithGoogle } from "@/features/auth/actions";
 import { sanitizeNextPath } from "@/features/auth/redirect";
+import { hasSupabasePublicEnvConfiguration } from "@/lib/env/public";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { SignInModal } from "./_components/sign-in-modal.client";
 
 function GoogleMark() {
@@ -33,27 +35,38 @@ export default async function SignInPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const next = sanitizeNextPath((await searchParams).next, "/onboarding");
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub) redirect("/onboarding");
+  if (hasSupabasePublicEnvConfiguration()) {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getClaims();
+    if (data?.claims?.sub) redirect("/onboarding");
+  }
 
   return (
     <main id="main-content">
       <SignInModal>
-        <p className="text-accent-2 font-mono text-[11px] font-semibold tracking-[0.24em] uppercase">
-          Invite-only preview
-        </p>
+        {/* The wordmark anchors the modal when it is reached directly rather
+            than from the landing. Everything else is type and space. */}
+        {/* The wordmark is one flex item, not three: a bare "Open" text node
+            beside the mark would become its own anonymous flex item and take
+            the container's gap between the two halves of the name. */}
+        <span className="text-ink inline-flex items-center gap-2.5 text-[15px] font-bold tracking-[-0.03em]">
+          <BrandMark size={20} gradientId="sign-in-mark" />
+          <span>
+            Open<span className="text-muted font-medium">MIDI</span>
+          </span>
+        </span>
+
         <h1
           id="signin-title"
-          className="mt-4 text-3xl font-bold tracking-[-0.02em]"
+          className="mt-7 text-[1.75rem] leading-[1.12] font-bold tracking-[-0.03em] sm:text-3xl"
         >
-          Welcome to the{" "}
-          <em className="text-accent font-serif font-medium">session</em>.
+          Open beta coming soon!
         </h1>
-        <p className="text-muted mt-3 leading-relaxed">
-          OpenMIDI is currently invite-only. Sign in with the Google account
-          tied to your invitation to start collaborating.
+        <p className="text-muted mt-3.5 leading-relaxed">
+          OpenMIDI is invite-only while we are in beta. Sign in with the Google
+          account tied to your invitation.
         </p>
+
         <form action={signInWithGoogle} className="mt-8">
           <input type="hidden" name="next" value={next} />
           <button
@@ -64,7 +77,9 @@ export default async function SignInPage({
             Continue with Google
           </button>
         </form>
-        <p className="text-muted mt-6 text-xs leading-relaxed">
+
+        <hr className="border-subtle mt-8 border-t" />
+        <p className="text-muted mt-4 text-xs leading-relaxed">
           By continuing you agree to keep the community rules — only publish
           work you have the rights to share.
         </p>

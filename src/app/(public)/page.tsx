@@ -161,7 +161,7 @@ export default async function Home() {
           </Reveal>
         </div>
 
-        <div className={`${styles.wrap} ${styles.nowPlaying}`}>
+        <div className={`${styles.wrap} ${styles.nowPlaying}`} data-now-playing>
           <span className={styles.np}>
             <span className={styles.pulse} />
             <b>nocturne · v3 · @nova</b>

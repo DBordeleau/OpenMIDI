@@ -21,6 +21,13 @@ export function SectionScroller() {
     if (!container) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    // On touch the landing hands scrolling back to the document, so this
+    // element is no longer the scroll port. Driving `scrollTop` on it would do
+    // nothing except make every wheel event read section 0. Bail unless it is
+    // genuinely scrollable.
+    const overflowY = window.getComputedStyle(container).overflowY;
+    if (overflowY !== "auto" && overflowY !== "scroll") return;
+
     const sections = Array.from(
       container.querySelectorAll<HTMLElement>("[data-snap]"),
     );
