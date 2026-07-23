@@ -87,11 +87,6 @@ export function TrophyCase({
         >
           Trophy Case
         </h2>
-        {awards.length > 0 && (
-          <span className="text-muted font-mono text-[10px] tracking-wider uppercase">
-            {awards.length} earned
-          </span>
-        )}
       </div>
 
       {awards.length > 0 ? (

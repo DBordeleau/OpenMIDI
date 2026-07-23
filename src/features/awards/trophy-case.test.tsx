@@ -78,6 +78,9 @@ describe("TrophyCase", () => {
       "href",
       "/@beatmaker?awardsAfter=next",
     );
+    expect(
+      screen.queryByText(`${awards.length} earned`),
+    ).not.toBeInTheDocument();
   });
 
   it("discloses every award beyond the compact first set", () => {
