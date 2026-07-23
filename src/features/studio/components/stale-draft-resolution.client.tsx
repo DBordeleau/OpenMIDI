@@ -189,6 +189,7 @@ export function StaleDraftResolution({
                 : "Preserve this draft as a fork"
           }
           descriptionId={`${projectId}-stale-draft-description`}
+          focusStep={step}
           pending={pending}
           onClose={close}
         >
@@ -331,12 +332,14 @@ export function StaleDraftResolution({
 function ResolutionDialog({
   title,
   descriptionId,
+  focusStep,
   pending,
   onClose,
   children,
 }: {
   title: string;
   descriptionId: string;
+  focusStep: Step;
   pending: boolean;
   onClose(): void;
   children: React.ReactNode;
@@ -351,12 +354,15 @@ function ResolutionDialog({
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
+    return () => returnFocus.current?.focus();
+  }, []);
+
+  useEffect(() => {
     const initial =
       dialogRef.current?.querySelector<HTMLElement>("[data-autofocus]") ??
       dialogRef.current;
     initial?.focus();
-    return () => returnFocus.current?.focus();
-  }, []);
+  }, [focusStep]);
 
   function containFocus(event: ReactKeyboardEvent<HTMLElement>) {
     if (event.key === "Escape" && !pending) {

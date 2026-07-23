@@ -125,6 +125,43 @@ describe("StaleDraftResolution", () => {
     expect(props.onDecisionOpenChange).toHaveBeenLastCalledWith(false);
   });
 
+  it("moves focus with each resolution step and returns it to the Resolve trigger", async () => {
+    const user = userEvent.setup();
+    renderResolution();
+    const trigger = screen.getByRole("button", {
+      name: /Draft based on revision 1.*Resolve/,
+    });
+    trigger.focus();
+    await user.click(trigger);
+
+    await user.click(
+      screen.getByRole("button", { name: "Preserve draft as a fork" }),
+    );
+    expect(screen.getByLabelText("Private fork title")).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(
+      screen.getByRole("button", { name: "Continue from revision 2" }),
+    ).toHaveFocus();
+
+    await user.click(
+      screen.getByRole("button", { name: "Continue from revision 2" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Start from revision 2" }),
+    ).toHaveFocus();
+
+    await user.click(
+      screen.getByRole("button", { name: "Preserve as a fork instead" }),
+    );
+    expect(screen.getByLabelText("Private fork title")).toHaveFocus();
+
+    await user.click(
+      screen.getByRole("button", { name: "Close draft resolution" }),
+    );
+    expect(trigger).toHaveFocus();
+  });
+
   it("requires a second confirmation before restarting from current authority", async () => {
     const user = userEvent.setup();
     const resolveAction = vi.fn().mockResolvedValue({
