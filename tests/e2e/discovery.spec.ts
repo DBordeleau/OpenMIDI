@@ -83,10 +83,17 @@ test.describe("anonymous public discovery", () => {
 
     await page.goto("/explore");
     await page.getByLabel("Search projects").fill("midnight signal");
-    await page.getByLabel("Electronic").check();
+    await page.getByText("Shape the sound", { exact: true }).click();
+    await page
+      .getByRole("group", { name: "Genres" })
+      .getByText("Electronic", { exact: true })
+      .click();
     await page.getByLabel("Minimum BPM").fill("120");
     await page.getByLabel("Maximum BPM").fill("130");
-    await page.getByLabel("Open to contributions").check();
+    await page
+      .getByRole("group", { name: "Musical details" })
+      .getByText("Open to contributions", { exact: true })
+      .click();
     await page.getByRole("button", { name: "Find projects" }).click();
     await expect(page).toHaveURL(/q=midnight\+signal.*genre=electronic/);
     await expect(
