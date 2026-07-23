@@ -23,7 +23,7 @@ test.describe("MIDI-only Studio v3", () => {
 
     await page.goto("/test-auth");
     await page.getByRole("button", { name: "Sign in test actor" }).click();
-    await expect(page).toHaveURL(/\/settings\/profile$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto("/studio");
 
     const title = `MIDI v3 ${randomUUID().slice(0, 8)}`;
@@ -36,6 +36,7 @@ test.describe("MIDI-only Studio v3", () => {
     await page.getByRole("button", { name: "Add a track" }).click();
     await page.getByLabel("Pending track name").fill("Warm keys");
     await page.getByRole("button", { name: "Open piano roll" }).click();
+    await page.getByRole("button", { name: "Perform a take" }).click();
     await page.getByLabel("One-bar count-in").uncheck();
     await page.getByLabel("Metronome").uncheck();
     await page.getByRole("button", { name: "Record", exact: true }).click();

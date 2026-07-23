@@ -486,7 +486,13 @@ than an invented waveform, and the note data was already on the listing.
 with the shared
 [`ArrangerWorkspace`](../../src/features/studio/arranger/arranger-workspace.tsx):
 gold MIDI note summaries sit in dark plum lanes with fixed compact channel strips,
-exact-value inspection, and react-icon transport/zoom/follow actions.
+musical bar/beat inspection, and react-icon transport/zoom/follow actions. Clip
+duration is presented in bars with one-beat adjustments; persistence ticks remain
+an internal implementation detail. Repeating clips show source-pass boundaries and
+a repeat count, expose a visible options action as well as right-click, and use a
+keyboard-accessible right-edge handle for trimming or extension. Extending past one
+source pass enables repeat, while turning repeat off safely trims the arrangement
+clip to the remaining immutable source span.
 The studio is a deliberate **full-bleed exception** to the 76rem `Container` in §6:
 `/studio` routes render edge-to-edge with tight gutters, drop the marketing footer
 (via [`ConditionalFooter`](../../src/components/layout/conditional-footer.client.tsx)),

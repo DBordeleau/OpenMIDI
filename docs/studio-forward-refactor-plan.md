@@ -484,6 +484,13 @@ Scope:
 - vertical drag reorder plus keyboard up/down commands;
 - clip selection, horizontal move, grid snapping with a modifier/explicit no-snap path, and inspector fallback;
 - MIDI track duplication plus clip copy, paste, delete, trim/source offset, duration, and loop interactions with stable new IDs;
+- bar/beat-first clip duration controls in the inspector and options panel,
+  visible repeat-pass boundaries, a discoverable options affordance, and a
+  keyboard-accessible right-edge resize handle; raw persistence ticks are not
+  musician-facing controls;
+- extending a clip beyond its remaining immutable MIDI source span enables
+  repeat, while disabling repeat on a longer clip trims the arrangement
+  reference to that source span without mutating the pattern version;
 - audio move/trim and duplicate/split only within the same immutable source-asset track and only after projection round-trip fixtures pass;
 - an explicit compatible-target rule for cross-track operations; do not silently change source ownership or MIDI preset semantics;
 - selected-clip-only MIDI version replacement by default, with any “replace all references” command separately confirmed;

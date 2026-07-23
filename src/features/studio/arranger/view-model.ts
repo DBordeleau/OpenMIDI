@@ -23,6 +23,7 @@ export type ArrangerClip = {
   startMs: number;
   durationMs: number;
   sourceStartTick: number | null;
+  sourceDurationTicks: number | null;
   loop: boolean;
   versionId: string;
   versionNumber: number | null;
@@ -75,6 +76,7 @@ export function buildArrangerViewModel(input: {
           input.manifest.tempoBpm,
         ),
         sourceStartTick: clip.sourceStartTick,
+        sourceDurationTicks: version?.durationTicks ?? null,
         loop: clip.loop,
         versionId: clip.midiStemVersionId,
         versionNumber: version?.version ?? null,

@@ -101,6 +101,7 @@ describe("arranger view model", () => {
     expect(view.tracks[0]?.clips[1]).toMatchObject({
       startTick: 960,
       durationTicks: 240,
+      sourceDurationTicks: 480,
     });
     expect(view.tracks[0]?.clips[1]?.notes[0]).toMatchObject({
       startTick: 980,

@@ -17,10 +17,12 @@ import {
   FiCrosshair,
   FiLayers,
   FiMinus,
+  FiMoreHorizontal,
   FiMove,
   FiPause,
   FiPlay,
   FiPlus,
+  FiRepeat,
   FiRotateCcw,
   FiRotateCw,
   FiTrash2,
@@ -29,7 +31,13 @@ import {
 } from "react-icons/fi";
 import { midiPitchName } from "@/features/midi/stems/piano-roll";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
-import type { WorkspaceManifestV2, WorkspaceTrackV2 } from "../manifest/v2";
+import {
+  MAX_PROJECT_MINUTES,
+  MIDI_PPQ,
+  type WorkspaceManifestV2,
+  type WorkspaceTrackV2,
+} from "../manifest/v2";
+import { ClipDurationControl } from "./clip-duration-control";
 import { type ArrangerSelection, moveSelection } from "./selection";
 import {
   clampZoom,
@@ -38,6 +46,13 @@ import {
   ticksToMilliseconds,
   ticksToPixels,
 } from "./timeline";
+import {
+  formatMusicalDuration,
+  formatMusicalPosition,
+  getBarTicks,
+  getBeatTicks,
+  type MusicalTimeSignature,
+} from "./musical-time";
 import { buildArrangerViewModel } from "./view-model";
 import {
   copyArrangementClip,
@@ -166,6 +181,17 @@ export function ArrangerWorkspace(props: Props) {
     previewTick: number;
     targetTrackId: string;
     copy: boolean;
+  } | null>(null);
+  const [clipResize, setClipResize] = useState<{
+    trackId: string;
+    clipId: string;
+    pointerId: number;
+    originX: number;
+    originScrollLeft: number;
+    durationTicks: number;
+    previewDurationTicks: number;
+    maxDurationTicks: number;
+    sourceSpanTicks: number | null;
   } | null>(null);
   const [trackDrag, setTrackDrag] = useState<{
     trackId: string;
@@ -435,6 +461,159 @@ export function ArrangerWorkspace(props: Props) {
       });
     }
     setClipDrag(null);
+  }
+
+  function clipResizeDuration(
+    clientX: number,
+    altKey: boolean,
+    resize: {
+      originX: number;
+      originScrollLeft: number;
+      durationTicks: number;
+      maxDurationTicks: number;
+    },
+  ) {
+    const scrollLeft = scrollRef.current?.scrollLeft ?? resize.originScrollLeft;
+    const movedPixels =
+      clientX - resize.originX + (scrollLeft - resize.originScrollLeft);
+    const unsnapped = Math.max(
+      1,
+      resize.durationTicks + pixelsToTicks(movedPixels, scale),
+    );
+    const grid = altKey ? null : snapTicks;
+    const minimum = grid ?? 1;
+    return Math.min(
+      resize.maxDurationTicks,
+      Math.max(minimum, snapArrangementTick(unsnapped, grid)),
+    );
+  }
+
+  function beginClipResize(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    trackId: string,
+    clipId: string,
+    startTick: number,
+    durationTicks: number,
+    sourceStartTick: number | null,
+    sourceDurationTicks: number | null,
+  ) {
+    event.stopPropagation();
+    if (!props.editable || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setSelection({ kind: "clip", trackId, clipId });
+    const track = view.tracks.find(
+      (candidate) => candidate.trackId === trackId,
+    );
+    const nextClipStart = track?.clips
+      .filter(
+        (candidate) =>
+          candidate.clipId !== clipId && candidate.startTick > startTick,
+      )
+      .reduce<number | null>(
+        (closest, candidate) =>
+          closest === null
+            ? candidate.startTick
+            : Math.min(closest, candidate.startTick),
+        null,
+      );
+    const projectLimit =
+      Math.floor(MAX_PROJECT_MINUTES * 60 * view.tempoBpm * MIDI_PPQ) -
+      startTick;
+    const maxDurationTicks = Math.max(
+      1,
+      Math.min(
+        projectLimit,
+        nextClipStart === null || nextClipStart === undefined
+          ? Number.MAX_SAFE_INTEGER
+          : nextClipStart - startTick,
+      ),
+    );
+    setClipResize({
+      trackId,
+      clipId,
+      pointerId: event.pointerId,
+      originX: event.clientX,
+      originScrollLeft: scrollRef.current?.scrollLeft ?? 0,
+      durationTicks,
+      previewDurationTicks: durationTicks,
+      maxDurationTicks,
+      sourceSpanTicks:
+        sourceDurationTicks === null
+          ? null
+          : Math.max(1, sourceDurationTicks - (sourceStartTick ?? 0)),
+    });
+  }
+
+  function previewClipResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!clipResize || clipResize.pointerId !== event.pointerId) return;
+    setClipResize({
+      ...clipResize,
+      previewDurationTicks: clipResizeDuration(
+        event.clientX,
+        event.altKey,
+        clipResize,
+      ),
+    });
+  }
+
+  function commitClipResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!clipResize || clipResize.pointerId !== event.pointerId) return;
+    const durationTicks = clipResizeDuration(
+      event.clientX,
+      event.altKey,
+      clipResize,
+    );
+    const patch: Record<string, number | boolean> = { durationTicks };
+    if (
+      clipResize.sourceSpanTicks !== null &&
+      durationTicks > clipResize.sourceSpanTicks
+    )
+      patch.loop = true;
+    props.onCommand(
+      {
+        type: "patchClip",
+        trackId: clipResize.trackId,
+        clipId: clipResize.clipId,
+        patch,
+      },
+      `${clipResize.clipId}:duration`,
+    );
+    setClipResize(null);
+  }
+
+  function cancelClipResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (clipResize?.pointerId === event.pointerId) setClipResize(null);
+  }
+
+  function resizeClipFromKeyboard(
+    trackId: string,
+    clipId: string,
+    durationTicks: number,
+    sourceStartTick: number | null,
+    sourceDurationTicks: number | null,
+    direction: -1 | 1,
+  ) {
+    const step = snapTicks ?? getBeatTicks(view.timeSignature);
+    const nextDuration = Math.max(1, durationTicks + direction * step);
+    const sourceSpan =
+      sourceDurationTicks === null
+        ? null
+        : Math.max(1, sourceDurationTicks - (sourceStartTick ?? 0));
+    props.onCommand(
+      {
+        type: "patchClip",
+        trackId,
+        clipId,
+        patch:
+          sourceSpan !== null && nextDuration > sourceSpan
+            ? { durationTicks: nextDuration, loop: true }
+            : { durationTicks: nextDuration },
+      },
+      `${clipId}:duration`,
+    );
   }
 
   function findTargetTrackId(event: ReactPointerEvent<HTMLElement>) {
@@ -1002,84 +1181,202 @@ export function ArrangerWorkspace(props: Props) {
                               clipDrag?.clipId === clip.clipId
                                 ? clipDrag.previewTick
                                 : clip.startTick;
+                            const previewDuration =
+                              clipResize?.clipId === clip.clipId
+                                ? clipResize.previewDurationTicks
+                                : clip.durationTicks;
                             const left = ticksToPixels(previewTick, scale);
                             const width = Math.max(
                               12,
-                              ticksToPixels(clip.durationTicks, scale),
+                              ticksToPixels(previewDuration, scale),
                             );
                             const hue =
                               TRACK_HUES[trackIndex % TRACK_HUES.length];
                             const clipSelected =
                               selection?.kind === "clip" &&
                               selection.clipId === clip.clipId;
+                            const sourceSpan =
+                              clip.sourceDurationTicks === null
+                                ? null
+                                : Math.max(
+                                    1,
+                                    clip.sourceDurationTicks -
+                                      (clip.sourceStartTick ?? 0),
+                                  );
+                            const repeats =
+                              sourceSpan === null
+                                ? null
+                                : previewDuration / sourceSpan;
                             return (
-                              <button
-                                type="button"
+                              <div
                                 key={clip.clipId}
-                                data-clip-id={clip.clipId}
-                                className="focus-visible:ring-accent absolute top-1.5 bottom-1.5 overflow-hidden rounded-xl border text-left shadow-[0_4px_16px_rgb(0_0_0/0.38)] transition-[filter] hover:brightness-110 focus-visible:ring-2"
+                                className="group absolute top-1.5 bottom-1.5 rounded-xl shadow-[0_4px_16px_rgb(0_0_0/0.38)]"
                                 style={{
                                   left,
                                   width,
-                                  borderColor: hue,
-                                  background:
-                                    "linear-gradient(170deg, rgb(48 33 56 / 0.96), rgb(32 22 39 / 0.96))",
                                   boxShadow: clipSelected
                                     ? `0 0 0 1.5px ${hue}, 0 4px 18px rgb(0 0 0 / 0.48)`
                                     : undefined,
                                 }}
-                                aria-label={`MIDI clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${clip.durationTicks} ticks, credited to ${clip.creditName}.`}
-                                onClick={() =>
-                                  setSelection({
-                                    kind: "clip",
-                                    trackId: track.trackId,
-                                    clipId: clip.clipId,
-                                  })
-                                }
-                                onContextMenu={(event) => {
-                                  event.preventDefault();
-                                  setSelection({
-                                    kind: "clip",
-                                    trackId: track.trackId,
-                                    clipId: clip.clipId,
-                                  });
-                                  setContextMenu({
-                                    x: event.clientX,
-                                    y: event.clientY,
-                                  });
-                                }}
-                                onDoubleClick={() => {
-                                  props.onEditMidiClip(
-                                    track.trackId,
-                                    clip.clipId,
-                                  );
-                                }}
-                                onPointerDown={(event) =>
-                                  beginClipDrag(
-                                    event,
-                                    track.trackId,
-                                    clip.clipId,
-                                    clip.startTick,
-                                  )
-                                }
-                                onPointerMove={previewClipDrag}
-                                onPointerUp={commitClipDrag}
-                                onPointerCancel={cancelClipDrag}
-                                onLostPointerCapture={cancelClipDrag}
                               >
-                                <span
-                                  className="absolute top-1.5 left-2.5 z-10 max-w-[calc(100%-1rem)] truncate font-mono text-[9px] font-semibold tracking-widest uppercase"
-                                  style={{ color: hue }}
+                                <button
+                                  type="button"
+                                  data-clip-id={clip.clipId}
+                                  className="focus-visible:ring-accent absolute inset-0 overflow-hidden rounded-xl border text-left transition-[filter] hover:brightness-110 focus-visible:ring-2"
+                                  style={{
+                                    borderColor: hue,
+                                    background:
+                                      "linear-gradient(170deg, rgb(48 33 56 / 0.96), rgb(32 22 39 / 0.96))",
+                                  }}
+                                  aria-label={`MIDI clip on ${track.name}, ${formatMusicalPosition(clip.startTick, view.timeSignature)}, duration ${formatMusicalDuration(clip.durationTicks, view.timeSignature)}${clip.loop ? ", repeating" : ""}, credited to ${clip.creditName}.`}
+                                  title="Drag to move · drag the right edge to resize · right-click for options"
+                                  onClick={() =>
+                                    setSelection({
+                                      kind: "clip",
+                                      trackId: track.trackId,
+                                      clipId: clip.clipId,
+                                    })
+                                  }
+                                  onContextMenu={(event) => {
+                                    event.preventDefault();
+                                    setSelection({
+                                      kind: "clip",
+                                      trackId: track.trackId,
+                                      clipId: clip.clipId,
+                                    });
+                                    setContextMenu({
+                                      x: event.clientX,
+                                      y: event.clientY,
+                                    });
+                                  }}
+                                  onDoubleClick={() => {
+                                    props.onEditMidiClip(
+                                      track.trackId,
+                                      clip.clipId,
+                                    );
+                                  }}
+                                  onPointerDown={(event) =>
+                                    beginClipDrag(
+                                      event,
+                                      track.trackId,
+                                      clip.clipId,
+                                      clip.startTick,
+                                    )
+                                  }
+                                  onPointerMove={previewClipDrag}
+                                  onPointerUp={commitClipDrag}
+                                  onPointerCancel={cancelClipDrag}
+                                  onLostPointerCapture={cancelClipDrag}
                                 >
-                                  {track.name}
-                                </span>
-                                <MidiNotes
-                                  notes={clip.notes}
-                                  clipStart={clip.startTick}
-                                  clipDuration={clip.durationTicks}
-                                  hue={hue}
-                                />
-                              </button>
+                                  <span
+                                    className="absolute top-1.5 left-2.5 z-10 max-w-[calc(100%-3.75rem)] truncate font-mono text-[9px] font-semibold tracking-widest uppercase"
+                                    style={{ color: hue }}
+                                  >
+                                    {track.name}
+                                  </span>
+                                  {repeats !== null && repeats > 1 && (
+                                    <span
+                                      aria-hidden
+                                      className="absolute top-1 right-8 z-10 inline-flex items-center gap-0.5 rounded-full bg-black/35 px-1.5 py-0.5 font-mono text-[8px] font-semibold"
+                                      style={{ color: hue }}
+                                    >
+                                      <FiRepeat />
+                                      {formatRepeatBadge(repeats)}
+                                    </span>
+                                  )}
+                                  {sourceSpan !== null &&
+                                    previewDuration > sourceSpan &&
+                                    Array.from(
+                                      {
+                                        length: Math.min(
+                                          31,
+                                          Math.ceil(
+                                            previewDuration / sourceSpan,
+                                          ) - 1,
+                                        ),
+                                      },
+                                      (_, index) => (
+                                        <span
+                                          aria-hidden
+                                          key={index}
+                                          className="absolute inset-y-0 border-l border-dashed opacity-35"
+                                          style={{
+                                            left: `${(((index + 1) * sourceSpan) / previewDuration) * 100}%`,
+                                            borderColor: hue,
+                                          }}
+                                        />
+                                      ),
+                                    )}
+                                  <MidiNotes
+                                    notes={clip.notes}
+                                    clipStart={clip.startTick}
+                                    clipDuration={previewDuration}
+                                    hue={hue}
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="border-strong bg-surface-raised/90 hover:border-accent hover:text-accent absolute top-1 right-1 z-20 grid h-7 w-7 place-items-center rounded-full border text-xs opacity-80 shadow-lg transition-[opacity,border-color,color] group-focus-within:opacity-100 group-hover:opacity-100"
+                                  aria-label={`Open options for ${track.name} clip`}
+                                  title="Clip options · you can also right-click"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    const rect =
+                                      event.currentTarget.getBoundingClientRect();
+                                    setSelection({
+                                      kind: "clip",
+                                      trackId: track.trackId,
+                                      clipId: clip.clipId,
+                                    });
+                                    setContextMenu({
+                                      x: rect.right,
+                                      y: rect.bottom + 4,
+                                    });
+                                  }}
+                                >
+                                  <FiMoreHorizontal aria-hidden />
+                                </button>
+                                {props.editable && (
+                                  <button
+                                    type="button"
+                                    className="focus-visible:ring-accent absolute top-0 right-0 bottom-0 z-30 w-3 cursor-ew-resize rounded-r-xl border-r-2 opacity-60 transition-opacity hover:opacity-100 focus-visible:ring-2"
+                                    style={{ borderColor: hue }}
+                                    aria-label={`Resize ${track.name} clip`}
+                                    title="Drag to trim or extend. Arrow keys adjust by the snap grid."
+                                    onPointerDown={(event) =>
+                                      beginClipResize(
+                                        event,
+                                        track.trackId,
+                                        clip.clipId,
+                                        clip.startTick,
+                                        clip.durationTicks,
+                                        clip.sourceStartTick,
+                                        clip.sourceDurationTicks,
+                                      )
+                                    }
+                                    onPointerMove={previewClipResize}
+                                    onPointerUp={commitClipResize}
+                                    onPointerCancel={cancelClipResize}
+                                    onLostPointerCapture={cancelClipResize}
+                                    onKeyDown={(event) => {
+                                      if (
+                                        event.key !== "ArrowLeft" &&
+                                        event.key !== "ArrowRight"
+                                      )
+                                        return;
+                                      event.preventDefault();
+                                      resizeClipFromKeyboard(
+                                        track.trackId,
+                                        clip.clipId,
+                                        clip.durationTicks,
+                                        clip.sourceStartTick,
+                                        clip.sourceDurationTicks,
+                                        event.key === "ArrowLeft" ? -1 : 1,
+                                      );
+                                    }}
+                                  />
+                                )}
+                              </div>
                             );
                           })}
                         </div>
@@ -1267,8 +1564,6 @@ export function ArrangerWorkspace(props: Props) {
                           view.timeSignature,
                         ),
                       ],
-                      ["Length", formatBars(selectedClip, view.timeSignature)],
-                      ["Loop", selectedClip.loop ? "On" : "—"],
                       ["Notes", String(selectedClip.notes.length)],
                       ["Pitch range", formatPitchRange(selectedClip.notes)],
                       ["Preset", selectedTrack.instrument ?? "—"],
@@ -1287,6 +1582,24 @@ export function ArrangerWorkspace(props: Props) {
                     </div>
                   ))}
                 </dl>
+                <div className="mt-4">
+                  <ClipDurationControl
+                    clip={selectedClip}
+                    signature={view.timeSignature}
+                    editable={props.editable}
+                    onPatch={(patch, group) =>
+                      props.onCommand(
+                        {
+                          type: "patchClip",
+                          trackId: selectedTrack.trackId,
+                          clipId: selectedClip.clipId,
+                          patch,
+                        },
+                        `${selectedClip.clipId}:${group}`,
+                      )
+                    }
+                  />
+                </div>
                 {selectedTrack.kind === "midi" && (
                   <button
                     type="button"
@@ -1302,8 +1615,8 @@ export function ArrangerWorkspace(props: Props) {
                   </button>
                 )}
                 <p className="text-muted mt-3 text-[11px] leading-5">
-                  Right-click the clip for exact tick, offset, and version
-                  controls.
+                  Drag the clip&apos;s right edge to trim or extend it. Use the
+                  options button or right-click for source and version controls.
                 </p>
               </>
             ) : (
@@ -1420,6 +1733,7 @@ export function ArrangerWorkspace(props: Props) {
                   track={selectedTrack}
                   editable={props.editable}
                   midiVersions={props.midiVersions}
+                  signature={view.timeSignature}
                   onPatch={(patch, group) =>
                     props.onCommand(
                       {
@@ -1563,6 +1877,7 @@ function ClipInspector({
   track,
   editable,
   midiVersions,
+  signature,
   onPatch,
   onReplace,
   onEdit,
@@ -1577,6 +1892,7 @@ function ClipInspector({
   track: ReturnType<typeof buildArrangerViewModel>["tracks"][number];
   editable: boolean;
   midiVersions: readonly MidiStemVersion[];
+  signature: MusicalTimeSignature;
   onPatch: (patch: Record<string, number | boolean>, group: string) => void;
   onReplace: (versionId: string) => void;
   onEdit: () => void;
@@ -1589,7 +1905,8 @@ function ClipInspector({
     <div className="mt-3 space-y-3">
       <h3 className="truncate font-semibold">{track.name} clip</h3>
       <p className="text-muted text-xs">
-        {clip.creditName} · {clip.durationTicks} ticks
+        {clip.creditName} ·{" "}
+        {formatMusicalDuration(clip.durationTicks, signature)}
       </p>
       {editable && (
         <div className="flex flex-wrap gap-2" aria-label="Clip commands">
@@ -1653,90 +1970,106 @@ function ClipInspector({
             ))}
           </select>
         </label>
-        <ExactNumber
-          label="Start tick"
+        <MusicalPositionControl
+          label="Clip starts at"
           value={clip.startTick}
+          signature={signature}
           editable={editable}
-          min={0}
+          fieldPrefix="Start"
           onChange={(startTick) => onPatch({ startTick }, "start")}
         />
-        <ExactNumber
-          label="Source offset ticks"
+        <MusicalPositionControl
+          label="Source begins at"
           value={clip.sourceStartTick ?? 0}
+          signature={signature}
           editable={editable}
-          min={0}
+          fieldPrefix="Source"
           onChange={(sourceStartTick) =>
             onPatch({ sourceStartTick }, "source-offset")
           }
         />
-        <ExactNumber
-          label="Length ticks"
-          value={clip.durationTicks}
+        <ClipDurationControl
+          clip={clip}
+          signature={signature}
           editable={editable}
-          min={1}
-          onChange={(durationTicks) => onPatch({ durationTicks }, "duration")}
+          onPatch={onPatch}
         />
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={clip.loop}
-            disabled={!editable}
-            onChange={(event) =>
-              onPatch({ loop: event.target.checked }, "loop")
-            }
-          />
-          Loop
-        </label>
       </>
     </div>
   );
 }
 
-function ExactNumber({
+function MusicalPositionControl({
   label,
   value,
+  signature,
   editable,
-  min,
+  fieldPrefix,
   onChange,
 }: {
   label: string;
   value: number;
+  signature: MusicalTimeSignature;
   editable: boolean;
-  min: number;
+  fieldPrefix: string;
   onChange: (value: number) => void;
 }) {
+  const barTicks = getBarTicks(signature);
+  const beatTicks = getBeatTicks(signature);
+  const bar = Math.floor(value / barTicks) + 1;
+  const withinBar = value % barTicks;
+  const beat = Number((withinBar / beatTicks + 1).toFixed(4));
+
   return (
-    <label className="block text-xs font-semibold">
-      {label}
-      <input
-        className={`${field} mt-1`}
-        type="number"
-        min={min}
-        disabled={!editable}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
+    <fieldset className="border-subtle rounded-control border p-3">
+      <legend className="text-muted px-1 font-mono text-[10px] tracking-widest uppercase">
+        {label}
+      </legend>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold">
+          Bar
+          <input
+            className={`${field} mt-1`}
+            aria-label={`${fieldPrefix} bar`}
+            type="number"
+            min={1}
+            step={1}
+            disabled={!editable}
+            value={bar}
+            onChange={(event) => {
+              const nextBar = Number(event.target.value);
+              if (Number.isInteger(nextBar) && nextBar >= 1)
+                onChange((nextBar - 1) * barTicks + withinBar);
+            }}
+          />
+        </label>
+        <label className="text-xs font-semibold">
+          Beat
+          <input
+            className={`${field} mt-1`}
+            aria-label={`${fieldPrefix} beat`}
+            type="number"
+            min={1}
+            max={signature.numerator}
+            step={0.25}
+            disabled={!editable}
+            value={beat}
+            onChange={(event) => {
+              const nextBeat = Number(event.target.value);
+              if (
+                Number.isFinite(nextBeat) &&
+                nextBeat >= 1 &&
+                nextBeat <= signature.numerator
+              )
+                onChange(
+                  (bar - 1) * barTicks + Math.round((nextBeat - 1) * beatTicks),
+                );
+            }}
+          />
+        </label>
+      </div>
+    </fieldset>
   );
-}
-
-function formatMusicalPosition(
-  tick: number,
-  signature: { numerator: number; denominator: number },
-) {
-  const beatTicks = (480 * 4) / signature.denominator;
-  const beatIndex = Math.floor(tick / beatTicks);
-  return `${Math.floor(beatIndex / signature.numerator) + 1}.${(beatIndex % signature.numerator) + 1}.${Math.round(tick % beatTicks)}`;
-}
-
-function formatBars(
-  clip: { durationTicks: number },
-  signature: { numerator: number; denominator: number },
-) {
-  const barTicks = ((480 * 4) / signature.denominator) * signature.numerator;
-  const bars = clip.durationTicks / barTicks;
-  const rounded = Number.isInteger(bars) ? String(bars) : bars.toFixed(1);
-  return `${rounded} ${rounded === "1" ? "bar" : "bars"}`;
 }
 
 function formatPitchRange(notes: readonly { pitch: number }[]) {
@@ -1750,6 +2083,12 @@ function formatPitchRange(notes: readonly { pitch: number }[]) {
   return low === high
     ? midiPitchName(low)
     : `${midiPitchName(low)} – ${midiPitchName(high)}`;
+}
+
+function formatRepeatBadge(repeats: number) {
+  return Number.isInteger(repeats)
+    ? `${repeats}×`
+    : `${repeats.toFixed(1).replace(/\.0$/, "")}×`;
 }
 
 function formatPan(pan: number) {

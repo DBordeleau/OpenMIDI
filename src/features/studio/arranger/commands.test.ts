@@ -340,7 +340,7 @@ describe("arrangement commands", () => {
     ).toThrow(/ten-minute duration/);
   });
 
-  it("trims and loops MIDI only within the immutable version bounds", () => {
+  it("trims, repeats, and safely returns MIDI clips to one source pass", () => {
     let manifest = applyArrangementCommand(
       fixture(),
       {
@@ -380,6 +380,20 @@ describe("arrangement commands", () => {
     expect(manifest.tracks[0]?.clips[0]).toMatchObject({
       loop: true,
       durationTicks: 1_440,
+    });
+    manifest = applyArrangementCommand(
+      manifest,
+      {
+        type: "patchClip",
+        trackId: uuid(2),
+        clipId: uuid(3),
+        patch: { loop: false },
+      },
+      context,
+    );
+    expect(manifest.tracks[0]?.clips[0]).toMatchObject({
+      loop: false,
+      durationTicks: 720,
     });
   });
 

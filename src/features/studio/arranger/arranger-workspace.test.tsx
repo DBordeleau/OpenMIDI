@@ -202,7 +202,8 @@ describe("ArrangerWorkspace", () => {
     expect(
       screen.getByRole("dialog", { name: "Clip options" }),
     ).toHaveTextContent("Keys clip");
-    expect(screen.getByLabelText("Start tick")).toHaveValue(960);
+    expect(screen.getByLabelText("Start bar")).toHaveValue(1);
+    expect(screen.getByLabelText("Start beat")).toHaveValue(3);
     expect(screen.getByRole("button", { name: "Mute Keys" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Move Keys down" }),
@@ -239,9 +240,9 @@ describe("ArrangerWorkspace", () => {
               clipId: uuid(3),
               midiStemVersionId: versionId,
               startTick: 0,
-              durationTicks: 480,
+              durationTicks: 960,
               sourceStartTick: 0,
-              loop: false,
+              loop: true,
             },
           ],
         },
@@ -307,6 +308,63 @@ describe("ArrangerWorkspace", () => {
     );
     const clip = scoped.getByRole("button", { name: /MIDI clip on Keys/ });
     fireEvent.click(clip);
+    fireEvent.click(
+      scoped.getByRole("button", { name: "Open options for Keys clip" }),
+    );
+    const options = screen.getByRole("dialog", { name: "Clip options" });
+    expect(options).not.toHaveTextContent(/\bticks?\b/i);
+    fireEvent.change(within(options).getByLabelText("Length in bars"), {
+      target: { value: "2" },
+    });
+    expect(onCommand).toHaveBeenCalledWith(
+      {
+        type: "patchClip",
+        trackId: uuid(2),
+        clipId: uuid(3),
+        patch: { durationTicks: 3_840, loop: true },
+      },
+      `${uuid(3)}:duration`,
+    );
+    fireEvent.click(
+      within(options).getByRole("checkbox", {
+        name: /Repeat source to fill clip/,
+      }),
+    );
+    expect(onCommand).toHaveBeenCalledWith(
+      {
+        type: "patchClip",
+        trackId: uuid(2),
+        clipId: uuid(3),
+        patch: { loop: false },
+      },
+      `${uuid(3)}:loop`,
+    );
+    const resize = scoped.getByRole("button", {
+      name: "Resize Keys clip",
+    });
+    Object.defineProperty(resize, "setPointerCapture", { value: vi.fn() });
+    fireEvent.pointerDown(resize, {
+      button: 0,
+      pointerId: 17,
+      clientX: 100,
+    });
+    fireEvent.pointerMove(resize, {
+      pointerId: 17,
+      clientX: 196,
+    });
+    fireEvent.pointerUp(resize, {
+      pointerId: 17,
+      clientX: 196,
+    });
+    expect(onCommand).toHaveBeenCalledWith(
+      {
+        type: "patchClip",
+        trackId: uuid(2),
+        clipId: uuid(3),
+        patch: { durationTicks: 1_440, loop: true },
+      },
+      `${uuid(3)}:duration`,
+    );
     fireEvent.keyDown(
       scoped.getByRole("region", { name: "Arrangement workspace" }),
       { key: "Enter" },

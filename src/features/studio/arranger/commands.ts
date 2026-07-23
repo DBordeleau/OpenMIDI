@@ -137,10 +137,23 @@ export function applyArrangementCommand(
       break;
     }
     case "patchClip":
-      next = mapClip(manifest, command.trackId, command.clipId, (clip) => ({
-        ...clip,
-        ...command.patch,
-      }));
+      next = mapClip(manifest, command.trackId, command.clipId, (clip) => {
+        const patched = { ...clip, ...command.patch };
+        const sourceDuration = context.midiVersionDurations.get(
+          patched.midiStemVersionId,
+        );
+        if (command.patch.loop !== false || sourceDuration === undefined)
+          return patched;
+        const availableSourceDuration =
+          sourceDuration - patched.sourceStartTick;
+        return {
+          ...patched,
+          durationTicks: Math.min(
+            patched.durationTicks,
+            Math.max(1, availableSourceDuration),
+          ),
+        };
+      });
       break;
     case "moveClip": {
       if (!Number.isInteger(command.startTick) || command.startTick < 0)
