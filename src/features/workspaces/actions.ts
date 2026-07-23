@@ -5,9 +5,15 @@ import { redirect } from "next/navigation";
 import {
   createWorkspaceSchema,
   publishWorkspaceSchema,
+  resolveStaleOwnerWorkspaceSchema,
   saveMidiWorkspaceV3Schema,
 } from "./schema";
-import { createProjectWorkspace } from "@/server/repositories/workspaces";
+import {
+  createProjectWorkspace,
+  resolveStaleOwnerWorkspace,
+  StaleDraftResolutionRepositoryError,
+  type StaleDraftResolutionFailure,
+} from "@/server/repositories/workspaces";
 import {
   publishMidiWorkspaceRevisionV3,
   saveMidiWorkspaceV3,
@@ -100,6 +106,55 @@ export async function publishMidiWorkspaceV3Action(
         : message.includes("conflict")
           ? ("conflict" as const)
           : ("unavailable" as const),
+    };
+  }
+}
+
+export type ResolveStaleDraftResult =
+  | {
+      ok: true;
+      resolution: "restart_latest" | "preserve_as_fork";
+      targetProjectId: string;
+      targetWorkspaceId: string;
+      targetBaseRevisionId: string;
+      targetLockVersion: number;
+    }
+  | {
+      ok: false;
+      code: StaleDraftResolutionFailure;
+    };
+
+export async function resolveStaleOwnerDraftAction(
+  input: unknown,
+): Promise<ResolveStaleDraftResult> {
+  const parsed = resolveStaleOwnerWorkspaceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, code: "invalid_request" };
+
+  try {
+    const resolved = await resolveStaleOwnerWorkspace(parsed.data);
+    revalidatePath("/dashboard");
+    revalidatePath("/projects");
+    revalidatePath("/studio", "layout");
+    revalidatePath(`/projects/${resolved.source_project_id}`);
+    revalidatePath(`/studio/${resolved.source_project_id}`);
+    revalidatePath(`/projects/${resolved.target_project_id}`);
+    revalidatePath(`/studio/${resolved.target_project_id}`);
+
+    return {
+      ok: true,
+      resolution: resolved.resolution,
+      targetProjectId: resolved.target_project_id,
+      targetWorkspaceId: resolved.target_workspace_id,
+      targetBaseRevisionId: resolved.target_base_revision_id,
+      targetLockVersion: resolved.target_workspace_lock_version,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      code:
+        error instanceof StaleDraftResolutionRepositoryError
+          ? error.reason
+          : "unavailable",
     };
   }
 }

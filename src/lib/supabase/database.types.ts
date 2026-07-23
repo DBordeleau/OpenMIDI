@@ -3846,6 +3846,27 @@ export type Database = {
           avatar_updated_at: string
         }[]
       }
+      resolve_stale_owner_workspace_v3: {
+        Args: {
+          p_expected_base_revision_id: string
+          p_expected_current_revision_id: string
+          p_expected_workspace_lock_version: number
+          p_fork_title?: string
+          p_request_id: string
+          p_resolution: string
+          p_workspace_id: string
+        }
+        Returns: {
+          created_at: string
+          resolution: string
+          source_project_id: string
+          source_workspace_id: string
+          target_base_revision_id: string
+          target_project_id: string
+          target_workspace_id: string
+          target_workspace_lock_version: number
+        }[]
+      }
       restore_own_account: { Args: never; Returns: Json }
       restore_own_contribution: {
         Args: { p_contribution_id: string }

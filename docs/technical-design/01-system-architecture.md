@@ -39,7 +39,7 @@ The client edits a canonical manifest-v3 workspace. `save_midi_workspace_v3` val
 
 A contribution workspace begins from an exact base project revision. Submission freezes one immutable arrangement version. Acceptance is stale-base aware and appends a project revision pointing to that exact accepted arrangement; it does not merge automatically. Forking copies project metadata and arrangement projections while retaining exact source project/revision and pattern-version lineage.
 
-An owner workspace remains a private mutable draft after acceptance. When its base predates the project's current revision, Studio identifies the stale base and offers an explicit read-only view of the latest immutable revision; switching views never replaces or silently merges the private draft.
+An owner workspace remains a private mutable draft after acceptance. When its base predates the project's current revision, Studio disables publication and requires an explicit resolution after pending edits receive server acknowledgement. **Continue from latest** atomically archives the stale workspace and creates a fresh active owner workspace from the exact current revision. **Preserve as private fork** creates a private direct fork rooted at the exact stale base, keeps fork revision 1 equal to that base, carries the acknowledged stale draft into the fork's active workspace, and archives the source workspace. Both paths are idempotent database commands; neither silently rebases, automatically merges MIDI, changes the accepted revision, or publishes the recovered draft.
 
 ### Public reads and discovery
 

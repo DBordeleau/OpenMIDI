@@ -22,6 +22,8 @@ The clean baseline is intentionally split into four ordered migrations: foundati
 
 Workspace saves are transactional and conflict-safe. No workspace table or projection contains a Storage object reference or a musical-media compatibility union.
 
+`private.stale_owner_workspace_resolutions` stores owner/request-scoped idempotency receipts for stale-draft recovery and has no direct application access. `resolve_stale_owner_workspace_v3` validates exact workspace lock, stale base, and current-revision authority before performing one transaction. Restart archives the stale source only when a current-revision replacement workspace, normalized projections, snapshot, and receipt all succeed. Preserve creates a private direct fork whose source lineage points to the stale base, copies that base into immutable fork revision 1 without duplicating pattern notes, places the acknowledged stale manifest in the fork's active workspace after authority-field rewriting, then archives the old workspace. A failure rolls back the target and source archive together.
+
 ## Reusable patterns and arrangements
 
 - `midi_patterns` owns reusable identity, owner, visibility, source pattern, and rights attestation.

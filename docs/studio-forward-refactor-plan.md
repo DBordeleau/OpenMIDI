@@ -603,6 +603,7 @@ Pitch shift, coupled varispeed, and pitch-preserving time stretch remain separat
 - prevent publish/submit from silently omitting an open unapplied draft;
 - retain standalone My stems/editor deep links and recovery;
 - submit/review/accept/fork multi-clip state;
+- after project history advances, disable stale owner publication and preserve the acknowledged draft through an explicit restart-latest or private-fork decision;
 - expired signed URL during a long session;
 - Firefox navigation regression with no route-level loading boundary; and
 - MIDI and legacy-audio regression journeys.
@@ -650,6 +651,7 @@ Measure separately:
 8. Studio is the primary MIDI creation surface; standalone My stems/editor routes remain supported alternate/library surfaces built from the same components.
 9. Mutable stem drafts remain outside manifests. Draft autosave cannot change a project until an explicit immutable finalize-and-apply command succeeds.
 10. MIDI-07 prepares the source-admission capability but does not enable the lock. STUDIO-06 owns the final Studio-native parity decision and enablement.
+11. An owner workspace whose exact base predates current project authority is never silently rebased. Studio requires a server-acknowledged choice: archive it and restart from latest, or preserve it as an unpublished private direct fork rooted at the old base.
 
 ## Explicit non-goals for this refactor
 

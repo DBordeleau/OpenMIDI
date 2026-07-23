@@ -26,6 +26,52 @@ export const publishWorkspaceSchema = z
   })
   .strict();
 
+const staleDraftResolutionAuthoritySchema = z
+  .object({
+    workspaceId: z.uuid(),
+    requestId: z.uuid(),
+    expectedWorkspaceLockVersion: z.number().int().positive(),
+    expectedBaseRevisionId: z.uuid(),
+    expectedCurrentRevisionId: z.uuid(),
+  })
+  .strict();
+
+export const staleDraftForkTitleSchema = z.string().trim().min(1).max(120);
+
+export const resolveStaleOwnerWorkspaceSchema = z.discriminatedUnion(
+  "resolution",
+  [
+    staleDraftResolutionAuthoritySchema.extend({
+      resolution: z.literal("restart_latest"),
+      forkTitle: z.null(),
+    }),
+    staleDraftResolutionAuthoritySchema.extend({
+      resolution: z.literal("preserve_as_fork"),
+      forkTitle: staleDraftForkTitleSchema,
+    }),
+  ],
+);
+
+export const staleOwnerWorkspaceResolutionRowSchema = z
+  .object({
+    resolution: z.enum(["restart_latest", "preserve_as_fork"]),
+    source_project_id: z.uuid(),
+    source_workspace_id: z.uuid(),
+    target_project_id: z.uuid(),
+    target_workspace_id: z.uuid(),
+    target_base_revision_id: z.uuid(),
+    target_workspace_lock_version: z.number().int().positive(),
+    created_at: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+
+export type ResolveStaleOwnerWorkspaceInput = z.infer<
+  typeof resolveStaleOwnerWorkspaceSchema
+>;
+export type StaleOwnerWorkspaceResolutionRow = z.infer<
+  typeof staleOwnerWorkspaceResolutionRowSchema
+>;
+
 export const midiLocalRecoveryEnvelopeSchema = z
   .object({
     version: z.literal(2),

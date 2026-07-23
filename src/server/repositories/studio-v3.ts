@@ -35,6 +35,23 @@ export type StudioRevisionV3 = {
   durationMs: number;
 };
 
+export async function getStudioRevisionNumberV3(input: {
+  projectId: string;
+  revisionId: string;
+}): Promise<number | null> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("project_revisions")
+    .select("revision_number")
+    .eq("project_id", input.projectId)
+    .eq("id", input.revisionId)
+    .eq("manifest_version", 3)
+    .not("arrangement_version_id", "is", null)
+    .maybeSingle();
+  if (error) throw new Error("studio_revision_unavailable");
+  return data?.revision_number ?? null;
+}
+
 export async function getStudioWorkspaceV3(
   projectId: string,
 ): Promise<StudioWorkspaceV3 | null> {

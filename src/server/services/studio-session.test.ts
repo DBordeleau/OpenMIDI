@@ -3,6 +3,7 @@ import type { WorkspaceManifestV3 } from "@/features/studio/manifest/v3";
 import { getProjectForViewer } from "@/server/repositories/projects";
 import { getPublicProject } from "@/server/repositories/public-projects";
 import {
+  getStudioRevisionNumberV3,
   getStudioRevisionV3,
   getStudioWorkspaceV3,
 } from "@/server/repositories/studio-v3";
@@ -15,6 +16,7 @@ vi.mock("@/server/repositories/public-projects", () => ({
   getPublicProject: vi.fn(),
 }));
 vi.mock("@/server/repositories/studio-v3", () => ({
+  getStudioRevisionNumberV3: vi.fn(),
   getStudioRevisionV3: vi.fn(),
   getStudioWorkspaceV3: vi.fn(),
 }));
@@ -124,13 +126,45 @@ describe("resolveStudioSession", () => {
   });
 
   it("keeps an owner workspace as the default when its base is stale", async () => {
+    const staleBaseRevisionId = "80000000-0000-4000-8000-000000000123";
     vi.mocked(getProjectForViewer).mockResolvedValue(project as never);
     vi.mocked(getStudioWorkspaceV3).mockResolvedValue({
       id: workspaceId,
       projectId,
       ownerId: viewerId,
       contributionId: null,
-      baseRevisionId: "80000000-0000-4000-8000-000000000123",
+      baseRevisionId: staleBaseRevisionId,
+      lockVersion: 3,
+      manifest,
+      manifestSha256: "a".repeat(64),
+      updatedAt: "2026-07-19T00:00:00.000Z",
+    });
+    vi.mocked(getStudioRevisionV3).mockResolvedValue(revision);
+    vi.mocked(getStudioRevisionNumberV3).mockResolvedValue(1);
+
+    const session = await resolveStudioSession(projectId, viewerId);
+
+    expect(session?.descriptor?.mode).toBe("ownerWorkspace");
+    expect(session?.descriptor?.capabilities.canEdit).toBe(true);
+    expect(session?.descriptor?.capabilities.canPublish).toBe(false);
+    if (session?.descriptor?.mode !== "ownerWorkspace")
+      throw new Error("Expected owner workspace");
+    expect(session.descriptor.authority.staleDraft).toEqual({
+      baseRevisionId: staleBaseRevisionId,
+      baseRevisionNumber: 1,
+      currentRevisionId: revisionId,
+      currentRevisionNumber: 2,
+    });
+  });
+
+  it("keeps a current owner workspace publishable", async () => {
+    vi.mocked(getProjectForViewer).mockResolvedValue(project as never);
+    vi.mocked(getStudioWorkspaceV3).mockResolvedValue({
+      id: workspaceId,
+      projectId,
+      ownerId: viewerId,
+      contributionId: null,
+      baseRevisionId: revisionId,
       lockVersion: 3,
       manifest,
       manifestSha256: "a".repeat(64),
@@ -140,8 +174,11 @@ describe("resolveStudioSession", () => {
 
     const session = await resolveStudioSession(projectId, viewerId);
 
-    expect(session?.descriptor?.mode).toBe("ownerWorkspace");
-    expect(session?.descriptor?.capabilities.canEdit).toBe(true);
+    expect(session?.descriptor?.capabilities.canPublish).toBe(true);
+    if (session?.descriptor?.mode !== "ownerWorkspace")
+      throw new Error("Expected owner workspace");
+    expect(session.descriptor.authority.staleDraft).toBeNull();
+    expect(getStudioRevisionNumberV3).not.toHaveBeenCalled();
   });
 
   it("opens the latest immutable revision without replacing an owner workspace", async () => {
@@ -158,6 +195,7 @@ describe("resolveStudioSession", () => {
       updatedAt: "2026-07-19T00:00:00.000Z",
     });
     vi.mocked(getStudioRevisionV3).mockResolvedValue(revision);
+    vi.mocked(getStudioRevisionNumberV3).mockResolvedValue(1);
 
     const session = await resolveStudioSession(projectId, viewerId, {
       revisionId,

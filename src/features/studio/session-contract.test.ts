@@ -28,6 +28,7 @@ describe("route-neutral Studio session descriptor", () => {
         workspaceId: "10000000-0000-4000-8000-000000000124",
         baseRevisionId: null,
         lockVersion: 0,
+        staleDraft: null,
       },
       capabilities,
       canonicalLinks: {

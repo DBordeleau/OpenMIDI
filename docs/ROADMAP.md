@@ -159,6 +159,12 @@ Replace uploaded profile images with a validated version-1 DiceBear Adventurer N
 
 Status: Complete. The guarded AVATAR-03 migration, hosted object-deletion interlock, postflight, and linked-ledger reconciliation were completed before merge. Legacy avatar Storage admission, uploaded-avatar data structures, processing/cleanup workers, Edge Function, and recovery secret are retired; generic moderation, legal holds, deletion, recovery, and metadata retention remain active.
 
+### DRAFT-01 - Stale owner draft resolution
+
+Replace the post-acceptance stale-workspace reload loop with an explicit owner decision. Continue-from-latest archives the stale workspace and starts from exact current authority; preserve-as-fork keeps the acknowledged stale draft in a new private direct fork rooted at its exact old base. Publication remains stale-base rejecting, and neither path rebases, merges, or publishes unfinished work.
+
+Status: Complete. Studio derives stale authority on the server, disables Publish, flushes pending edits before recovery, and preserves device-local recovery on failure or a publication race. One authenticated idempotent transaction owns both resolution paths, with pgTAP, action/component, recovery, and focused local browser coverage protecting lineage and rollback.
+
 ### PERF-01 â€” Bound production navigation request fanout
 
 Prevent shared-header and authenticated primary-navigation links from prefetching merely because they enter the viewport, then restore normal Next.js prefetch after pointer or keyboard intent. Keep the shared footer cold, preserve the signed-out-first Auth-independent shell, and leave authorization, Studio lifecycle, and data freshness unchanged.

@@ -228,6 +228,8 @@ Users can:
 
 Projects should default to private while empty or unpublished. Publishing makes the selected immutable revision discoverable unless moderation has hidden it.
 
+If an accepted contribution or another publication advances a project while its owner still has a saved draft based on an older revision, Studio must make that conflict explicit and disable publication. The owner chooses either to archive the stale workspace and continue from the exact latest revision, or to preserve the acknowledged stale draft in a new private direct fork rooted at its exact old base. Neither choice automatically merges MIDI, silently rebases the draft, or publishes unfinished recovery work.
+
 #### Semantic revision summaries
 
 Every published revision and submitted contribution must have a deterministic structured change summary relative to its parent/base version. It should report applicable changes such as:

@@ -31,6 +31,15 @@ const projectSchema = z
   })
   .strict();
 
+export const staleOwnerDraftSchema = z
+  .object({
+    baseRevisionId: z.uuid(),
+    baseRevisionNumber: z.number().int().positive(),
+    currentRevisionId: z.uuid(),
+    currentRevisionNumber: z.number().int().positive(),
+  })
+  .strict();
+
 const commonSessionSchema = {
   viewerId: z.uuid().nullable(),
   project: projectSchema,
@@ -50,6 +59,7 @@ export const studioSessionDescriptorSchema = z.discriminatedUnion("mode", [
           workspaceId: z.uuid(),
           baseRevisionId: z.uuid().nullable(),
           lockVersion: z.number().int().nonnegative(),
+          staleDraft: staleOwnerDraftSchema.nullable(),
         })
         .strict(),
     })

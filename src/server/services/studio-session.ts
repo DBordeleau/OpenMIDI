@@ -8,6 +8,7 @@ import { getProjectForViewer } from "@/server/repositories/projects";
 import { getPublicProject } from "@/server/repositories/public-projects";
 import {
   getStudioRevisionV3,
+  getStudioRevisionNumberV3,
   getStudioWorkspaceV3,
 } from "@/server/repositories/studio-v3";
 
@@ -64,6 +65,30 @@ export async function resolveStudioSession(
   const owner = project.ownerId === viewerId;
   const workspaceOwner = workspace?.ownerId === viewerId;
   const viewingRevision = Boolean(options.revisionId);
+  const ownerWorkspaceStale = Boolean(
+    workspace &&
+    !workspace.contributionId &&
+    workspace.baseRevisionId !== project.currentRevisionId,
+  );
+  const staleBaseRevisionNumber =
+    ownerWorkspaceStale && workspace?.baseRevisionId
+      ? await getStudioRevisionNumberV3({
+          projectId,
+          revisionId: workspace.baseRevisionId,
+        })
+      : null;
+  const staleDraft =
+    ownerWorkspaceStale &&
+    workspace?.baseRevisionId &&
+    staleBaseRevisionNumber &&
+    revision
+      ? {
+          baseRevisionId: workspace.baseRevisionId,
+          baseRevisionNumber: staleBaseRevisionNumber,
+          currentRevisionId: revision.revisionId,
+          currentRevisionNumber: revision.revisionNumber,
+        }
+      : null;
   const common = {
     viewerId,
     project: {
@@ -75,7 +100,11 @@ export async function resolveStudioSession(
     capabilities: {
       canEdit: Boolean(!viewingRevision && workspace && workspaceOwner),
       canPublish: Boolean(
-        !viewingRevision && workspace && owner && !workspace.contributionId,
+        !viewingRevision &&
+        workspace &&
+        owner &&
+        !workspace.contributionId &&
+        !ownerWorkspaceStale,
       ),
       canSubmit: Boolean(!viewingRevision && workspace?.contributionId),
       canStartContribution: Boolean(
@@ -124,6 +153,7 @@ export async function resolveStudioSession(
         workspaceId: workspace.id,
         baseRevisionId: workspace.baseRevisionId,
         lockVersion: workspace.lockVersion,
+        staleDraft,
       },
     });
   } else {

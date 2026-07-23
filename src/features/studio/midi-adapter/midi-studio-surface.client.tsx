@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiChevronDown,
@@ -10,6 +11,7 @@ import {
   FiMusic,
 } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
+import { StaleDraftResolution } from "../components/stale-draft-resolution.client";
 import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
 import {
   MIDI_PPQ,
@@ -39,6 +41,7 @@ import {
 import {
   clearMidiLocalRecovery,
   readMidiLocalRecovery,
+  readStudioResolutionAnnouncement,
   writeMidiLocalRecovery,
 } from "@/features/workspaces/midi-local-recovery.client";
 import type { MidiLocalRecoveryEnvelope } from "@/features/workspaces/schema";
@@ -75,6 +78,7 @@ const toolbarButton =
   "border-strong text-muted hover:border-accent hover:text-accent inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors disabled:opacity-40";
 
 export function MidiStudioSurface(props: Props) {
+  const router = useRouter();
   const reduce = useReducedMotion();
   const [importMenuOpen, setImportMenuOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -114,7 +118,10 @@ export function MidiStudioSurface(props: Props) {
   );
   const baseRevisionIdRef = useRef(editable?.baseRevisionId ?? null);
   const [status, setStatus] = useState<SaveStatus>("saved");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(() =>
+    readStudioResolutionAnnouncement(props.projectId),
+  );
+  const [resolutionBlocked, setResolutionBlocked] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState(
     midiVersions[0]?.stemVersionId ?? "",
   );
@@ -168,6 +175,7 @@ export function MidiStudioSurface(props: Props) {
         recoveryAvailable: false,
       }),
   );
+  const editingAllowed = Boolean(editable) && !resolutionBlocked;
   const stemVersions = useMemo(
     () =>
       new Map(midiVersions.map((version) => [version.stemVersionId, version])),
@@ -329,7 +337,7 @@ export function MidiStudioSurface(props: Props) {
     command: ArrangementCommand,
     group: string | null = null,
   ) {
-    if (!editable) return false;
+    if (!editingAllowed) return false;
     try {
       changeManifest(
         applyArrangementCommand(
@@ -566,7 +574,7 @@ export function MidiStudioSurface(props: Props) {
   }
 
   function openMidiClipEditor(trackId: string, clipId: string) {
-    if (!editable) return;
+    if (!editingAllowed) return;
     const track = manifestRef.current.tracks.find(
       (candidate) => candidate.trackId === trackId && candidate.kind === "midi",
     );
@@ -910,6 +918,7 @@ export function MidiStudioSurface(props: Props) {
   async function publish() {
     if (
       props.mode !== "workspace" ||
+      props.staleDraft !== null ||
       status !== "saved" ||
       manifest.tracks.length === 0 ||
       composerTarget !== null
@@ -924,8 +933,16 @@ export function MidiStudioSurface(props: Props) {
       message: null,
     });
     if (!result.ok) {
+      if (result.code === "conflict") {
+        await cacheRecovery(manifestRef.current);
+        setMessage(
+          "Project history changed while publishing. Refreshing the current Studio authority...",
+        );
+        router.refresh();
+        return;
+      }
       setMessage(
-        "The revision could not be published. Reload if the project changed.",
+        "The revision could not be published. Your draft remains saved.",
       );
       return;
     }
@@ -991,9 +1008,58 @@ export function MidiStudioSurface(props: Props) {
   });
   useStudioLifecycleRegistration(lifecycle, { editable: Boolean(editable) });
 
+  async function prepareStaleResolution() {
+    if (
+      props.mode !== "workspace" ||
+      !editable ||
+      recovery ||
+      composerTarget ||
+      integratedDraftActive
+    ) {
+      return null;
+    }
+    const before = lifecycle.getSnapshot();
+    if (
+      before.status === "saved" &&
+      before.acknowledgedGeneration >= before.generation
+    ) {
+      return lockVersionRef.current;
+    }
+    const saved = await persistRef.current(manifestRef.current);
+    const after = lifecycle.getSnapshot();
+    return saved &&
+      after.status === "saved" &&
+      after.acknowledgedGeneration >= after.generation
+      ? lockVersionRef.current
+      : null;
+  }
+
+  const staleResolution =
+    props.mode === "workspace" && props.staleDraft ? (
+      <StaleDraftResolution
+        projectId={props.projectId}
+        projectTitle={props.projectTitle}
+        viewerId={props.viewerId}
+        workspaceId={props.workspaceId}
+        staleDraft={props.staleDraft}
+        prepareResolution={prepareStaleResolution}
+        onDecisionOpenChange={setResolutionBlocked}
+        onFailure={setMessage}
+        onAuthorityConflict={() => {
+          void cacheRecovery(manifestRef.current).finally(() =>
+            router.refresh(),
+          );
+        }}
+        onResolved={() => {
+          setRecovery(null);
+        }}
+      />
+    ) : null;
+
   if (manifest.manifestVersion === 2)
     return (
       <section className="flex min-h-0 flex-1 flex-col gap-4">
+        {staleResolution}
         {recovery && editable && (
           <div role="alert" className="rounded-card border-accent border p-5">
             <h2 className="font-bold">
@@ -1068,7 +1134,11 @@ export function MidiStudioSurface(props: Props) {
             )}
           </div>
         )}
-        <div ref={stageRef} className="relative flex min-h-0 flex-1 flex-col">
+        <div
+          ref={stageRef}
+          className="relative flex min-h-0 flex-1 flex-col"
+          inert={resolutionBlocked ? true : undefined}
+        >
           <motion.div
             className="flex min-h-0 flex-1 flex-col"
             animate={{
@@ -1089,7 +1159,7 @@ export function MidiStudioSurface(props: Props) {
               manifest={manifest}
               midiVersions={midiVersions}
               trackCredits={props.tracks}
-              editable={Boolean(editable)}
+              editable={editingAllowed}
               playing={playing}
               playheadTick={seekTick}
               onTogglePlayback={() => void togglePlayback()}
@@ -1311,18 +1381,36 @@ export function MidiStudioSurface(props: Props) {
                     </button>
                   )}
                   {props.mode === "workspace" && (
-                    <button
-                      className="cta-gradient min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-50"
-                      type="button"
-                      disabled={
-                        status !== "saved" ||
-                        manifest.tracks.length === 0 ||
-                        composerTarget !== null
-                      }
-                      onClick={() => void publish()}
-                    >
-                      Publish immutable revision
-                    </button>
+                    <>
+                      {props.staleDraft && (
+                        <span
+                          id="stale-draft-publish-description"
+                          className="sr-only"
+                        >
+                          This draft is based on revision{" "}
+                          {props.staleDraft.baseRevisionNumber} and must be
+                          resolved before it can be published.
+                        </span>
+                      )}
+                      <button
+                        className="cta-gradient min-h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-50"
+                        type="button"
+                        aria-describedby={
+                          props.staleDraft
+                            ? "stale-draft-publish-description"
+                            : undefined
+                        }
+                        disabled={
+                          props.staleDraft !== null ||
+                          status !== "saved" ||
+                          manifest.tracks.length === 0 ||
+                          composerTarget !== null
+                        }
+                        onClick={() => void publish()}
+                      >
+                        Publish immutable revision
+                      </button>
+                    </>
                   )}
                   <span
                     className={
@@ -1395,6 +1483,7 @@ export function MidiStudioSurface(props: Props) {
 
   return (
     <section className="rounded-card border-strong bg-surface space-y-6 border p-5 sm:p-7">
+      {staleResolution}
       {recovery && editable && (
         <div role="alert" className="rounded-card border-accent border p-5">
           <h2 className="font-bold">
@@ -1624,7 +1713,7 @@ export function MidiStudioSurface(props: Props) {
                     Preset
                     <select
                       className={`${input} mt-1 w-full`}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       value={`${track.presetId}:${track.presetVersion}`}
                       onChange={(event) => {
                         const [presetId, presetVersion] =
@@ -1653,7 +1742,7 @@ export function MidiStudioSurface(props: Props) {
                       min={-60}
                       max={6}
                       step={0.5}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       value={track.gainDb}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
@@ -1670,7 +1759,7 @@ export function MidiStudioSurface(props: Props) {
                       min={-1}
                       max={1}
                       step={0.1}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       value={track.pan}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
@@ -1685,7 +1774,7 @@ export function MidiStudioSurface(props: Props) {
                       className={`${input} mt-1 w-full`}
                       type="number"
                       min={0}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       value={clip.startTick}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
@@ -1702,7 +1791,7 @@ export function MidiStudioSurface(props: Props) {
                       className={`${input} mt-1 w-full`}
                       type="number"
                       min={1}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       value={clip.durationTicks}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
@@ -1720,7 +1809,7 @@ export function MidiStudioSurface(props: Props) {
                     <input
                       type="checkbox"
                       checked={track.muted}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
                           muted: event.target.checked,
@@ -1733,7 +1822,7 @@ export function MidiStudioSurface(props: Props) {
                     <input
                       type="checkbox"
                       checked={track.soloed}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
                           soloed: event.target.checked,
@@ -1746,7 +1835,7 @@ export function MidiStudioSurface(props: Props) {
                     <input
                       type="checkbox"
                       checked={clip.loop}
-                      disabled={!editable}
+                      disabled={!editingAllowed}
                       onChange={(event) =>
                         updateTrack(track.trackId, {
                           clips: [{ ...clip, loop: event.target.checked }],
@@ -1782,14 +1871,35 @@ export function MidiStudioSurface(props: Props) {
             {status === "saving" ? "Saving…" : "Save arrangement"}
           </button>
           {props.mode === "workspace" && (
-            <button
-              className="cta-gradient min-h-11 rounded-full px-5 text-sm font-semibold disabled:opacity-50"
-              type="button"
-              disabled={status !== "saved" || manifest.tracks.length === 0}
-              onClick={() => void publish()}
-            >
-              Publish immutable revision
-            </button>
+            <>
+              {props.staleDraft && (
+                <span
+                  id="legacy-stale-draft-publish-description"
+                  className="sr-only"
+                >
+                  This draft is based on revision{" "}
+                  {props.staleDraft.baseRevisionNumber} and must be resolved
+                  before it can be published.
+                </span>
+              )}
+              <button
+                className="cta-gradient min-h-11 rounded-full px-5 text-sm font-semibold disabled:opacity-50"
+                type="button"
+                aria-describedby={
+                  props.staleDraft
+                    ? "legacy-stale-draft-publish-description"
+                    : undefined
+                }
+                disabled={
+                  props.staleDraft !== null ||
+                  status !== "saved" ||
+                  manifest.tracks.length === 0
+                }
+                onClick={() => void publish()}
+              >
+                Publish immutable revision
+              </button>
+            </>
           )}
           <span className="text-muted text-sm" role="status">
             {status === "saved"

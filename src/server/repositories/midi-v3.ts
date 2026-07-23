@@ -200,7 +200,15 @@ export async function publishMidiWorkspaceRevisionV3(input: {
     p_expected_base_revision_id: input.expectedBaseRevisionId,
     p_message: input.message,
   } as unknown as Database["public"]["Functions"]["publish_midi_workspace_revision_v3"]["Args"]);
-  return firstRpcRow(data, error, "midi_workspace_publish_failed");
+  if (error) {
+    throw new Error(
+      error.code === "PT409"
+        ? "midi_workspace_publish_conflict"
+        : "midi_workspace_publish_failed",
+    );
+  }
+  if (!data?.[0]) throw new Error("midi_workspace_publish_failed");
+  return data[0];
 }
 
 export async function createContributionWorkspaceV3(input: {

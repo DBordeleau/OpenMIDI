@@ -29,9 +29,10 @@ describe("StudioRevisionSwitcher", () => {
       />,
     );
 
-    expect(
-      screen.getByLabelText("Your draft predates revision 2"),
-    ).toBeVisible();
+    expect(screen.getByLabelText("Studio project source")).toHaveAttribute(
+      "title",
+      expect.stringContaining("latest revision 2"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Revision 2" }));
     expect(requestNavigation).toHaveBeenCalledWith(
       `/studio/${projectId}?revision=${revisionId}`,

@@ -65,6 +65,10 @@ export default async function StudioProjectPage({
       )
     : 0;
   const launcherKey = descriptor ? sessionAuthorityKey(descriptor) : projectId;
+  const staleDraft =
+    descriptor?.mode === "ownerWorkspace"
+      ? descriptor.authority.staleDraft
+      : null;
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
@@ -74,9 +78,7 @@ export default async function StudioProjectPage({
           revisionId={project.currentRevisionId ?? revision.revisionId}
           revisionNumber={revision.revisionNumber}
           selected={viewingRevision ? "revision" : "draft"}
-          staleDraft={
-            workspace.baseRevisionId !== (project.currentRevisionId ?? null)
-          }
+          staleDraft={staleDraft !== null}
         />
       ) : null}
       {workspace && contribution ? (
@@ -121,6 +123,7 @@ export default async function StudioProjectPage({
           lockVersion={workspace.lockVersion}
           manifestSha256={workspace.manifestSha256}
           updatedAt={workspace.updatedAt}
+          staleDraft={staleDraft}
           manifest={workspace.manifest}
           projectTimeSignature={project.timeSignature}
           durationMs={workspaceDurationMs}

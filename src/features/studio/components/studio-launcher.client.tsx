@@ -2,8 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import type { z } from "zod";
 import type { MidiStemVersion } from "@/features/midi/stems/types";
 import type { ManifestV3 } from "../manifest/v3";
+import { staleOwnerDraftSchema } from "../session-contract";
 import type { StudioPatternVersion } from "../midi-adapter/manifest-v3-editor";
 import { StudioSkeleton } from "./studio-skeleton";
 
@@ -32,6 +34,8 @@ type CommonProps = {
   initialEditorClipId?: string;
 };
 
+export type StaleOwnerDraft = z.infer<typeof staleOwnerDraftSchema>;
+
 export type StudioLauncherProps = CommonProps &
   (
     | { mode: "revision"; revisionId: string; revisionNumber: number }
@@ -50,6 +54,7 @@ export type StudioLauncherProps = CommonProps &
         lockVersion: number;
         manifestSha256: string;
         updatedAt: string;
+        staleDraft: StaleOwnerDraft | null;
       }
     | {
         mode: "contribution";
