@@ -6,6 +6,12 @@ import type {
   PublicProject,
   PublicProjectLineage,
 } from "@/features/discovery/types";
+import type { ArrangementMapTrack } from "@/features/projects/arrangement-map";
+import {
+  INSTRUMENT_FAMILIES,
+  resolveSynthPreset,
+  type InstrumentFamily,
+} from "@/features/midi/presets";
 import { musicalKeys } from "@/features/projects/schema";
 import { createSupabaseAnonymousClient } from "@/lib/supabase/anonymous";
 import {
@@ -52,11 +58,23 @@ const lineageSchema = z.object({
   hasMoreDirectForks: z.boolean(),
 });
 
+/**
+ * The project page's own view of a public project: the catalog row plus the two
+ * things only the detail page draws — clip placement for the arrangement map and
+ * the silhouettes that fill those clips.
+ *
+ * Deliberately *not* folded into `PublicProject`. Discovery search returns up to
+ * a page of projects at a time, and clip arrays on every card would multiply the
+ * search payload for data no card renders.
+ */
+export type PublicProjectDetail = PublicProject & {
+  patternSilhouettes: PublicProjectSilhouetteMap;
+  arrangementTracks: ArrangementMapTrack[];
+};
+
 export async function getPublicProject(
   projectId: string,
-): Promise<
-  (PublicProject & { patternSilhouettes: PublicProjectSilhouetteMap }) | null
-> {
+): Promise<PublicProjectDetail | null> {
   const discoveryVersion = await getDiscoveryVersion();
   const load = unstable_cache(
     async (version: number) => {
@@ -127,6 +145,22 @@ export async function getPublicProject(
     genres,
     tags,
     tracks: arrangement.tracks,
+    // Straight off the manifest this function already loaded — no extra read.
+    arrangementTracks: arrangement.manifest.tracks
+      .map((track) => ({
+        id: track.trackId,
+        name: track.name,
+        sortOrder: track.sortOrder,
+        ...presentTrackPreset(track.presetId, track.presetVersion),
+        clips: track.clips.map((clip) => ({
+          clipId: clip.clipId,
+          midiPatternVersionId: clip.midiPatternVersionId,
+          startTick: clip.startTick,
+          durationTicks: clip.durationTicks,
+          loop: clip.loop,
+        })),
+      }))
+      .sort((left, right) => left.sortOrder - right.sortOrder),
     attributions: attributions.map((attribution) => ({
       ...attribution,
       profileUsername: profiles.get(attribution.profileId)?.username ?? null,
@@ -134,6 +168,32 @@ export async function getPublicProject(
     patternSilhouettes,
     trendingScore: Number(row.trending_score),
     discoveryVersion: Number(row.discovery_version),
+  };
+}
+
+/**
+ * A public project may hold any historical manifest, including presets from the
+ * legacy catalog whose `family` predates the six instrument families. Resolution
+ * never throws here: an unknown preset costs the map one hue, not the page.
+ */
+function presentTrackPreset(
+  presetId: string,
+  presetVersion: number,
+): { presetName: string; family: InstrumentFamily } {
+  let preset: { name: string; family: string } | null = null;
+  try {
+    preset = resolveSynthPreset(presetId, presetVersion);
+  } catch {
+    preset = null;
+  }
+  const family = preset?.family;
+  return {
+    presetName: preset?.name ?? "Unknown preset",
+    family: (INSTRUMENT_FAMILIES as readonly string[]).includes(family ?? "")
+      ? (family as InstrumentFamily)
+      : family === "drums"
+        ? "drums-percussion"
+        : "keys",
   };
 }
 

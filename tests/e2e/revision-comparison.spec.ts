@@ -128,7 +128,7 @@ test.describe("anonymous public revision comparison", () => {
     seedRevisionComparisonFixture();
     await page.goto(`/projects/${projectId}`);
     await expect(
-      page.getByRole("heading", { name: "How this arrangement evolved" }),
+      page.getByRole("heading", { name: /immutable revisions?/ }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Compare revisions" }).click();
 
@@ -203,7 +203,7 @@ test.describe("anonymous public revision comparison", () => {
       .click();
     await expect(page).toHaveURL(`/projects/${projectId}#semantic-history`);
     await expect(
-      page.getByRole("heading", { name: "How this arrangement evolved" }),
+      page.getByRole("heading", { name: /immutable revisions?/ }),
     ).toBeVisible();
   });
 });

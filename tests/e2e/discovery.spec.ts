@@ -111,10 +111,10 @@ test.describe("anonymous public discovery", () => {
       page.getByText("Warm keys pulse", { exact: false }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Arrangement attribution" }),
+      page.getByRole("heading", { name: "Who you would be crediting" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "How this arrangement evolved" }),
+      page.getByRole("heading", { name: /immutable revisions?/ }),
     ).toBeVisible();
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("link", { name: "Export MIDI + attribution" }).click();

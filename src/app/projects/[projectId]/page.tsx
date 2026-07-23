@@ -118,25 +118,29 @@ export default async function ProjectPage({
                 projectId={project.id}
                 lockVersion={project.lockVersion}
                 visibility={project.visibility}
+                bare
               />
               <CollaborationSettingForm
                 projectId={project.id}
                 lockVersion={project.lockVersion}
                 open={project.openToContributions}
                 eligible={project.license.code === "cc-by-4.0"}
+                bare
               />
-              <Link
-                className="mt-4 mr-5 inline-flex underline"
-                href={`/projects/${project.id}/edit`}
-              >
-                Edit project
-              </Link>
-              <Link
-                className="mt-4 inline-flex underline"
-                href={`/projects/${project.id}/contributions`}
-              >
-                View submitted contributions
-              </Link>
+              <div className="flex flex-wrap gap-2.5 sm:col-span-2">
+                <Link
+                  className="border-strong hover:border-accent hover:text-accent inline-flex min-h-11 items-center rounded-full border px-5 font-semibold transition-colors"
+                  href={`/projects/${project.id}/edit`}
+                >
+                  Edit project details
+                </Link>
+                <Link
+                  className="border-strong hover:border-accent hover:text-accent inline-flex min-h-11 items-center rounded-full border px-5 font-semibold transition-colors"
+                  href={`/projects/${project.id}/contributions`}
+                >
+                  View submitted contributions
+                </Link>
+              </div>
             </>
           ) : null
         }
