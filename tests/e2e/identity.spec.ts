@@ -107,6 +107,11 @@ test.describe("identity vertical slice", () => {
     await accountTrigger.click();
     const accountPanelId = await accountTrigger.getAttribute("aria-controls");
     if (!accountPanelId) throw new Error("Account menu panel did not open.");
+    await expect(
+      page
+        .locator(`[id="${accountPanelId}"]`)
+        .getByRole("link", { name: "View profile" }),
+    ).toHaveAttribute("href", "/@E2EArtist");
     await page
       .locator(`[id="${accountPanelId}"]`)
       .getByRole("link", { name: "My projects" })
@@ -141,6 +146,9 @@ test.describe("identity vertical slice", () => {
       page.getByRole("heading", { name: "E2E Artist" }),
     ).toBeVisible();
     await expect(page.getByText("A safe public test biography.")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Edit profile" }),
+    ).toHaveAttribute("href", "/settings/profile");
 
     await page.goto("/settings/profile");
     await page.getByLabel("Display name").fill("Edited Artist");

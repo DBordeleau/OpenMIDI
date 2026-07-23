@@ -17,17 +17,17 @@ const presentations: Record<
   trophy: {
     Icon: FiAward,
     iconClassName: "text-accent-2",
-    frameClassName: "border-accent-2 bg-surface-raised",
+    frameClassName: "border-accent-2/50",
   },
   favorite: {
     Icon: FiHeart,
     iconClassName: "text-accent",
-    frameClassName: "border-accent bg-surface-raised",
+    frameClassName: "border-accent/50",
   },
   placement: {
     Icon: FiStar,
     iconClassName: "text-accent-2",
-    frameClassName: "border-subtle bg-surface-soft",
+    frameClassName: "border-subtle",
   },
 };
 

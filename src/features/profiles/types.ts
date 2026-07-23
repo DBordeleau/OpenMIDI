@@ -34,6 +34,14 @@ export type PublicProfileHistory = {
 
 export type PublicProfilePage<T> = { items: T[]; nextCursor: string | null };
 
+export type PublicProfileProject = {
+  projectId: string;
+  title: string;
+  publishedAt: string;
+  currentRevisionId: string;
+  durationMs: number;
+};
+
 export type AcceptedContributionHistoryItem = {
   revisionId: string;
   revisionNumber: number;

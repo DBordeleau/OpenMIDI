@@ -7,6 +7,7 @@ import type {
   AcceptedContributionHistoryItem,
   PublicProfile,
   PublicProfilePage,
+  PublicProfileProject,
   ViewerProfile,
 } from "@/features/profiles/types";
 import {
@@ -29,6 +30,11 @@ const publicProjectSchema = z.object({
   projectId: z.string().uuid(),
   title: z.string(),
   publishedAt: z.string(),
+});
+const publicProjectDescriptorSchema = z.object({
+  project_id: z.string().uuid(),
+  current_revision_id: z.string().uuid(),
+  duration_ms: z.number().int().nonnegative(),
 });
 const acceptedContributionSchema = z.object({
   projectId: z.string().uuid(),
@@ -218,7 +224,7 @@ export async function listPublicProfileAwards(
 export async function listPublicProfileProjects(
   profileId: string,
   after?: string,
-): Promise<PublicProfilePage<z.infer<typeof publicProjectSchema>>> {
+): Promise<PublicProfilePage<PublicProfileProject>> {
   const discoveryVersion = await getDiscoveryVersion();
   const cursor = validProfileCursor({
     value: after,
@@ -240,8 +246,34 @@ export async function listPublicProfileProjects(
         : "public_profile_history_unavailable",
     );
   const rows = z.array(publicProjectSchema).parse(data);
-  const items = rows.slice(0, 12);
-  const last = rows.length > 12 ? items.at(-1) : null;
+  const pageRows = rows.slice(0, 12);
+  const projectIds = pageRows.map(({ projectId }) => projectId);
+  const { data: descriptors, error: descriptorError } = projectIds.length
+    ? await supabase
+        .from("public_project_catalog")
+        .select("project_id,current_revision_id,duration_ms")
+        .in("project_id", projectIds)
+    : { data: [], error: null };
+  if (descriptorError) throw new Error("public_profile_history_unavailable");
+  const descriptorsByProject = new Map(
+    z
+      .array(publicProjectDescriptorSchema)
+      .parse(descriptors)
+      .map((descriptor) => [descriptor.project_id, descriptor] as const),
+  );
+  const items = pageRows.flatMap((project) => {
+    const descriptor = descriptorsByProject.get(project.projectId);
+    return descriptor
+      ? [
+          {
+            ...project,
+            currentRevisionId: descriptor.current_revision_id,
+            durationMs: descriptor.duration_ms,
+          },
+        ]
+      : [];
+  });
+  const last = rows.length > 12 ? pageRows.at(-1) : null;
   return {
     items,
     nextCursor: last

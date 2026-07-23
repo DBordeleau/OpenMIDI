@@ -139,11 +139,21 @@ describe("SiteHeader", () => {
       data: { claims: { sub: "viewer-id" } },
       error: null,
     });
+    maybeSingle.mockResolvedValue({
+      data: {
+        username: "NightSignal",
+        display_name: "Night Signal",
+        avatar_config: null,
+      },
+    });
     renderHeader();
 
     const trigger = await screen.findByRole("button", { name: "Account menu" });
     fireEvent.click(trigger);
 
+    expect(
+      await screen.findByRole("link", { name: "View profile" }),
+    ).toHaveAttribute("href", "/@NightSignal");
     for (const [name, href] of [
       ["My projects", "/projects"],
       ["Saved clips", "/library/saved"],
@@ -154,6 +164,19 @@ describe("SiteHeader", () => {
     expect(
       screen.getByRole("button", { name: "Sign out" }),
     ).toBeInTheDocument();
+  });
+
+  it("does not expose a broken profile link for an incomplete viewer", async () => {
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: "viewer-id" } },
+      error: null,
+    });
+    renderHeader();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Account menu" }),
+    );
+    expect(screen.queryByRole("link", { name: "View profile" })).toBeNull();
   });
 
   it("hydrates a generated config without resolving a Storage URL", async () => {

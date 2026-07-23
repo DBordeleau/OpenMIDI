@@ -26,6 +26,15 @@ export const accountLinks: readonly NavLink[] = [
   { href: "/settings/profile", label: "Edit profile" },
 ];
 
+export function accountLinksForViewer(username: string | null) {
+  return username
+    ? ([
+        { href: `/@${username}`, label: "View profile" },
+        ...accountLinks,
+      ] as const)
+    : accountLinks;
+}
+
 export function isDashboardCurrent(pathname: string) {
   return pathname === "/dashboard";
 }
@@ -68,6 +77,9 @@ export function isAccountLinkCurrent(pathname: string, href: string) {
   }
 }
 
-export function isAccountCurrent(pathname: string) {
-  return accountLinks.some((link) => isAccountLinkCurrent(pathname, link.href));
+export function isAccountCurrent(
+  pathname: string,
+  links: readonly NavLink[] = accountLinks,
+) {
+  return links.some((link) => isAccountLinkCurrent(pathname, link.href));
 }

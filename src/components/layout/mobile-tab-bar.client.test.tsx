@@ -14,6 +14,12 @@ import {
 } from "./mobile-tab-bar.client";
 
 const usePathname = vi.fn();
+const viewer = vi.hoisted(() => ({
+  signedIn: true,
+  username: null as string | null,
+  displayName: "Your account" as string | null,
+  avatarConfig: null,
+}));
 
 vi.mock("next/navigation", () => ({ usePathname: () => usePathname() }));
 vi.mock("next/link", () => ({
@@ -34,13 +40,20 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("@/features/auth/actions", () => ({ signOut: vi.fn() }));
+vi.mock("./viewer-identity-provider.client", () => ({
+  useViewer: () => viewer,
+}));
 
 function tabs() {
   return screen.getByRole("navigation", { name: "Primary mobile" });
 }
 
 describe("MobileTabBar", () => {
-  beforeEach(() => usePathname.mockReturnValue("/dashboard"));
+  beforeEach(() => {
+    usePathname.mockReturnValue("/dashboard");
+    viewer.username = null;
+    viewer.displayName = "Your account";
+  });
   afterEach(cleanup);
 
   it("offers the same four top-level destinations as the desktop header", () => {
@@ -93,11 +106,14 @@ describe("MobileTabBar", () => {
   });
 
   it("raises the account sheet and keeps sign out inside it", () => {
+    viewer.username = "NightSignal";
+    viewer.displayName = "Night Signal";
     render(<MobileTabBar />);
     fireEvent.click(within(tabs()).getByRole("button", { name: "Account" }));
 
     const sheet = screen.getByRole("dialog", { name: "Account" });
     for (const [name, href] of [
+      ["View profile", "/@NightSignal"],
       ["My projects", "/projects"],
       ["Saved clips", "/library/saved"],
       ["Contributions", "/contributions"],
@@ -110,6 +126,18 @@ describe("MobileTabBar", () => {
     expect(
       within(sheet).getByRole("button", { name: "Sign out" }),
     ).toBeInTheDocument();
+  });
+
+  it("omits View profile while the verified profile is incomplete", () => {
+    render(<MobileTabBar />);
+    fireEvent.click(within(tabs()).getByRole("button", { name: "Account" }));
+
+    expect(
+      within(screen.getByRole("dialog", { name: "Account" })).queryByRole(
+        "link",
+        { name: "View profile" },
+      ),
+    ).toBeNull();
   });
 
   it("swaps sheet contents in place rather than stacking two dialogs", () => {

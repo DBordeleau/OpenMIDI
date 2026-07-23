@@ -14,7 +14,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/features/auth/actions";
 import { useHeaderPathname } from "./header-route.client";
 import {
-  accountLinks,
+  accountLinksForViewer,
   exploreLinks,
   isAccountCurrent,
   isAccountLinkCurrent,
@@ -86,6 +86,7 @@ export function MobileTabBar() {
   }, [active, close]);
 
   const name = viewer.displayName ?? viewer.username ?? "Your account";
+  const viewerLinks = accountLinksForViewer(viewer.username);
 
   return (
     <>
@@ -205,7 +206,7 @@ export function MobileTabBar() {
                   <hr className="border-subtle border-t" />
                   <nav aria-label="Account" className="pt-1.5">
                     <ul className="grid gap-0.5">
-                      {accountLinks.map((link) => {
+                      {viewerLinks.map((link) => {
                         const current = isAccountLinkCurrent(
                           pathname,
                           link.href,
@@ -279,7 +280,7 @@ export function MobileTabBar() {
             onClick={() => toggle("account")}
             aria-expanded={active === "account"}
             className={tabClass(
-              isAccountCurrent(pathname) || active === "account",
+              isAccountCurrent(pathname, viewerLinks) || active === "account",
             )}
           >
             <Avatar

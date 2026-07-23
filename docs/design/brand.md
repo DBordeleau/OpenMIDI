@@ -318,9 +318,12 @@ plus a ghost "Sign in" pill. Signed-in members get exactly **four** top-level
 items — Dashboard, Explore, Studio, and the avatar — because a flat list of every
 destination read as clutter. Discovery groups under **Explore** (MIDI Library,
 Projects, Challenges) and everything account-shaped groups under the **avatar**
-(My projects, Saved clips, Contributions, Edit profile, Sign out). Never show the
-app nav to signed-out visitors, and keep new destinations inside an existing
-group rather than adding a fifth top-level item.
+(View profile, My projects, Saved clips, Contributions, Edit profile, Sign out).
+View profile appears only after the verified browser identity resolves a
+completed public username; onboarding and unavailable-profile states never
+receive a broken public link. Never show the app nav to signed-out visitors, and
+keep new destinations inside an existing group rather than adding a fifth
+top-level item.
 
 **Mobile navigation** — below `sm` the header steps back to identity and one
 action (56px instead of 72px), and

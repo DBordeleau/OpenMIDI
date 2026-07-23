@@ -256,7 +256,7 @@ test.describe("challenge profile awards", () => {
     const page = await anonymous.newPage();
 
     await page.goto(`/@${fixture.actorUsername}`);
-    const actorAwards = page.getByRole("region", { name: "Awards" });
+    const actorAwards = page.getByRole("region", { name: "Trophy Case" });
     await expect(actorAwards.getByRole("article")).toHaveCount(2);
     await expect(
       actorAwards.getByRole("heading", { name: "Challenge Winner" }),
@@ -289,7 +289,7 @@ test.describe("challenge profile awards", () => {
     ).toHaveCount(0);
 
     await page.goto(`/@${fixture.secondUsername}`);
-    const secondAwards = page.getByRole("region", { name: "Awards" });
+    const secondAwards = page.getByRole("region", { name: "Trophy Case" });
     await expect(secondAwards.getByRole("article")).toHaveCount(2);
     await expect(
       secondAwards.getByRole("heading", { name: "Top Placement" }),
@@ -310,7 +310,9 @@ commit;`);
     expect(correctedResultId).not.toBe(fixture.firstResultId);
 
     await page.goto(`/@${fixture.actorUsername}`);
-    const correctedActorAwards = page.getByRole("region", { name: "Awards" });
+    const correctedActorAwards = page.getByRole("region", {
+      name: "Trophy Case",
+    });
     await expect(correctedActorAwards.getByRole("article")).toHaveCount(2);
     await expect(
       correctedActorAwards.getByRole("heading", { name: "Top Placement" }),
@@ -333,7 +335,9 @@ commit;`);
     expect(staleResponse?.status()).toBe(404);
 
     await page.goto(`/@${fixture.secondUsername}`);
-    const correctedSecondAwards = page.getByRole("region", { name: "Awards" });
+    const correctedSecondAwards = page.getByRole("region", {
+      name: "Trophy Case",
+    });
     await expect(correctedSecondAwards.getByRole("article")).toHaveCount(2);
     await expect(
       correctedSecondAwards.getByRole("heading", { name: "Challenge Winner" }),
@@ -365,7 +369,7 @@ commit;`);
 
     await page.goto(`/@${fixture.username}`);
     const awardLink = page
-      .getByRole("region", { name: "Awards" })
+      .getByRole("region", { name: "Trophy Case" })
       .getByRole("link", { name: /Community Favorite/ });
     await expect(awardLink).toHaveAttribute(
       "href",

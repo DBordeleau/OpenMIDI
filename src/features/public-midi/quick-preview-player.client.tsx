@@ -22,6 +22,7 @@ export function PublicMidiQuickPreview({
   title,
   durationMs,
   compact = false,
+  inline = false,
   previewEndpoint,
 }: {
   projectId?: string;
@@ -29,6 +30,7 @@ export function PublicMidiQuickPreview({
   title: string;
   durationMs: number;
   compact?: boolean;
+  inline?: boolean;
   previewEndpoint?: string;
 }) {
   const instanceId = useId();
@@ -155,6 +157,73 @@ export function PublicMidiQuickPreview({
 
   const isPlaying = status === "playing";
   const isLoading = status === "loading";
+  const buttonLabel =
+    status === "error"
+      ? `Retry ${title}`
+      : isPlaying
+        ? `Pause ${title}`
+        : `Play ${title}`;
+  const statusLabel = isLoading
+    ? "Loading MIDI…"
+    : isPlaying
+      ? "Now playing"
+      : status === "paused"
+        ? "Paused"
+        : status === "error"
+          ? "Try again"
+          : inline
+            ? "Play preview"
+            : "MIDI arrangement";
+
+  if (inline) {
+    return (
+      <div className="min-w-0" data-preview-status={status}>
+        <div
+          className={`border-subtle bg-surface-soft flex min-h-12 w-full min-w-44 items-center gap-2 rounded-full border p-1.5 pr-3 transition-colors sm:w-auto ${isPlaying ? "border-accent/60 bg-accent/8" : ""}`}
+        >
+          <button
+            type="button"
+            className="cta-gradient text-accent-contrast inline-flex size-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform hover:-translate-y-px disabled:cursor-wait disabled:opacity-70"
+            onClick={() => (isPlaying ? pause() : void play())}
+            disabled={isLoading}
+            aria-label={buttonLabel}
+            aria-pressed={isPlaying}
+            title={
+              status === "error"
+                ? "Retry MIDI preview"
+                : isPlaying
+                  ? "Pause preview"
+                  : "Play MIDI arrangement"
+            }
+          >
+            {isLoading ? (
+              <FiLoader className="animate-spin" aria-hidden="true" />
+            ) : isPlaying ? (
+              <FiPause aria-hidden="true" />
+            ) : (
+              <FiPlay className="ml-0.5" aria-hidden="true" />
+            )}
+          </button>
+          <span className="min-w-0 leading-tight">
+            <span
+              className={`block truncate text-sm font-semibold ${isPlaying ? "text-accent" : "text-ink"}`}
+            >
+              {statusLabel}
+            </span>
+            <span className="text-muted mt-0.5 block font-mono text-[10px] tracking-wider uppercase">
+              {formatDuration(durationMs)}
+            </span>
+          </span>
+        </div>
+        {message && (
+          <p className="text-danger mt-1.5 max-w-52 text-xs" role="alert">
+            Preview unavailable. Press retry to try again.
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`border-subtle bg-surface-soft rounded-card border ${compact ? "mt-5 p-3" : "mt-6 p-4 sm:p-5"}`}
@@ -165,7 +234,7 @@ export function PublicMidiQuickPreview({
           className="cta-gradient text-accent-contrast inline-flex size-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform hover:-translate-y-px disabled:cursor-wait disabled:opacity-70"
           onClick={() => (isPlaying ? pause() : void play())}
           disabled={isLoading}
-          aria-label={isPlaying ? `Pause ${title}` : `Play ${title}`}
+          aria-label={buttonLabel}
           title={isPlaying ? "Pause preview" : "Play MIDI arrangement"}
         >
           {isLoading ? (

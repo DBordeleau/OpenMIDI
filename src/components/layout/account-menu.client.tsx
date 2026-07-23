@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { signOut } from "@/features/auth/actions";
 import type { ViewerIdentity } from "@/features/auth/use-viewer-identity.client";
 import { useHeaderPathname } from "./header-route.client";
-import { accountLinks, isAccountLinkCurrent } from "./nav-items";
+import { accountLinksForViewer, isAccountLinkCurrent } from "./nav-items";
 import { NavMenu, NavMenuLink, NavMenuSeparator } from "./nav-menu.client";
 
 /**
@@ -17,6 +17,7 @@ import { NavMenu, NavMenuLink, NavMenuSeparator } from "./nav-menu.client";
 export function AccountMenu({ viewer }: { viewer: ViewerIdentity }) {
   const pathname = useHeaderPathname();
   const name = viewer.displayName ?? viewer.username ?? "Your account";
+  const viewerLinks = accountLinksForViewer(viewer.username);
 
   return (
     <div className="order-2 hidden shrink-0 sm:order-3 sm:block">
@@ -52,7 +53,7 @@ export function AccountMenu({ viewer }: { viewer: ViewerIdentity }) {
           )}
         </div>
         <NavMenuSeparator />
-        {accountLinks.map((link) => (
+        {viewerLinks.map((link) => (
           <NavMenuLink
             key={link.href}
             href={link.href}
