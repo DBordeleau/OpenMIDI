@@ -140,6 +140,7 @@ export type PublicRevisionHistoryItem = {
   algorithmVersion: string | null;
   patternLineage: Array<{
     midiPatternVersionId: string;
+    patternName: string | null;
     creatorCreditName: string;
     parentMidiPatternVersionId: string | null;
     sourceMidiPatternVersionId: string | null;
@@ -213,6 +214,19 @@ async function loadPatternVersions(db: Db, ids: string[], maxNotes: number) {
   return versions.data.map((version) =>
     mapPatternVersion(version, notesByVersion.get(version.id) ?? []),
   );
+}
+
+async function loadPatternNames(db: Db, patternIds: string[]) {
+  const uniqueIds = [...new Set(patternIds)];
+  if (uniqueIds.length === 0) return new Map<string, string>();
+  if (uniqueIds.length > 512) throw new Error("public_midi_pattern_limit");
+  const { data, error } = await db
+    .from("midi_patterns")
+    .select("id,name")
+    .in("id", uniqueIds)
+    .limit(512);
+  if (error) throw new Error("public_midi_pattern_names_unavailable");
+  return new Map(data.map((pattern) => [pattern.id, pattern.name]));
 }
 
 export async function getPublicArrangementCards(
@@ -396,6 +410,10 @@ export async function getPublicRevisionHistory(
   const patternsById = new Map(
     patternVersions.map((pattern) => [pattern.midiPatternVersionId, pattern]),
   );
+  const patternNames = await loadPatternNames(
+    db,
+    patternVersions.map((pattern) => pattern.midiPatternId),
+  );
   const revisionById = new Map(
     revisions.map((revision) => [revision.id, revision]),
   );
@@ -469,6 +487,7 @@ export async function getPublicRevisionHistory(
       algorithmVersion,
       patternLineage: patterns.map((pattern) => ({
         midiPatternVersionId: pattern.midiPatternVersionId,
+        patternName: patternNames.get(pattern.midiPatternId) ?? null,
         creatorCreditName: pattern.creatorCreditName,
         parentMidiPatternVersionId: pattern.parentMidiPatternVersionId,
         sourceMidiPatternVersionId: pattern.sourceMidiPatternVersionId,

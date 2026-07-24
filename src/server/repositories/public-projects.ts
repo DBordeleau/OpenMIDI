@@ -18,10 +18,8 @@ import {
   PUBLIC_PROJECTS_CACHE_TAG,
   publicProjectCacheTag,
 } from "@/lib/cache/public-projects";
-import {
-  getDiscoveryVersion,
-  getPublicProfiles,
-} from "@/server/repositories/discovery";
+import { getDiscoveryVersion } from "@/server/repositories/discovery";
+import { getPublicProjectProfiles } from "@/server/repositories/public-project-profiles";
 import {
   getPublicArrangementCards,
   getPublicProjectSilhouettes,
@@ -67,7 +65,11 @@ const lineageSchema = z.object({
  * a page of projects at a time, and clip arrays on every card would multiply the
  * search payload for data no card renders.
  */
-export type PublicProjectDetail = PublicProject & {
+export type PublicProjectDetail = Omit<PublicProject, "attributions"> & {
+  ownerAvatarConfig: unknown;
+  attributions: Array<
+    PublicProject["attributions"][number] & { avatarConfig: unknown }
+  >;
   patternSilhouettes: PublicProjectSilhouetteMap;
   arrangementTracks: ArrangementMapTrack[];
 };
@@ -107,7 +109,7 @@ export async function getPublicProject(
     ...attributions.map((attribution) => attribution.profileId),
   ];
   const [profiles, arrangements, patternSilhouettes] = await Promise.all([
-    getPublicProfiles(profileIds),
+    getPublicProjectProfiles(profileIds),
     getPublicArrangementCards([
       { projectId: row.project_id, revisionId: row.current_revision_id },
     ]),
@@ -121,6 +123,7 @@ export async function getPublicProject(
     ownerId: row.owner_id,
     ownerUsername: owner.username,
     ownerDisplayName: owner.displayName,
+    ownerAvatarConfig: owner.avatarConfig,
     title: row.title,
     description: row.description,
     bpm: arrangement.manifest.tempoBpm,
@@ -164,6 +167,7 @@ export async function getPublicProject(
     attributions: attributions.map((attribution) => ({
       ...attribution,
       profileUsername: profiles.get(attribution.profileId)?.username ?? null,
+      avatarConfig: profiles.get(attribution.profileId)?.avatarConfig ?? null,
     })),
     patternSilhouettes,
     trendingScore: Number(row.trending_score),

@@ -1,13 +1,14 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(71);
+select plan(81);
 
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000001','authenticated','authenticated','pivot-owner@example.test','','{}','{}',now(),now()),
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000002','authenticated','authenticated','pivot-contributor@example.test','','{}','{}',now(),now()),
 ('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000003','authenticated','authenticated','pivot-stranger@example.test','','{}','{}',now(),now()),
-('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000004','authenticated','authenticated','pivot-suspended@example.test','','{}','{}',now(),now());
+('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000004','authenticated','authenticated','pivot-suspended@example.test','','{}','{}',now(),now()),
+('00000000-0000-0000-0000-000000000000','f3000000-0000-4000-8000-000000000005','authenticated','authenticated','pivot-incomplete@example.test','','{}','{}',now(),now());
 update public.profiles set username='PivotOwner',username_normalized='pivotowner',display_name='Pivot Owner',credit_name='Pivot Owner',profile_completed_at=now() where id='f3000000-0000-4000-8000-000000000001';
 update public.profiles set username='PivotContributor',username_normalized='pivotcontributor',display_name='Pivot Contributor',credit_name='Pivot Contributor',profile_completed_at=now() where id='f3000000-0000-4000-8000-000000000002';
 update public.profiles set username='PivotStranger',username_normalized='pivotstranger',display_name='Pivot Stranger',credit_name='Pivot Stranger',profile_completed_at=now() where id='f3000000-0000-4000-8000-000000000003';
@@ -205,10 +206,98 @@ select ok(not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pron
   'authenticated receives only the explicit MIDI v3 command surface');
 
 update public.projects set visibility='public' where owner_id='f3000000-0000-4000-8000-000000000001';
+insert into public.midi_patterns(id,owner_id,name,visibility,create_request_id,deleted_at) values
+('f30b0000-0000-4000-8000-000000000001','f3000000-0000-4000-8000-000000000001','Owner sketch','private','f30c0000-0000-4000-8000-000000000001',null),
+('f30b0000-0000-4000-8000-000000000002','f3000000-0000-4000-8000-000000000001','Deleted sketch','private','f30c0000-0000-4000-8000-000000000002',statement_timestamp()),
+('f30b0000-0000-4000-8000-000000000003','f3000000-0000-4000-8000-000000000004','Suspended sketch','private','f30c0000-0000-4000-8000-000000000003',null),
+('f30b0000-0000-4000-8000-000000000004','f3000000-0000-4000-8000-000000000005','Incomplete sketch','private','f30c0000-0000-4000-8000-000000000004',null);
+create temp table pattern_identity_rls_fixture as
+select id as public_pattern_id
+from public.midi_patterns
+where name='Main phrase';
+grant select on pattern_identity_rls_fixture to anon,authenticated;
+select is((
+  select count(*)
+  from pg_policies
+  where schemaname='public' and tablename='midi_patterns' and cmd='SELECT'
+    and permissive='PERMISSIVE' and 'anon'=any(roles)
+),1::bigint,'pattern identities have one permissive anonymous SELECT policy');
+select is((
+  select count(*)
+  from pg_policies
+  where schemaname='public' and tablename='midi_patterns' and cmd='SELECT'
+    and permissive='PERMISSIVE' and 'authenticated'=any(roles)
+),1::bigint,'pattern identities have one permissive authenticated SELECT policy');
 set local role anon;
 select is((select count(*) from public.arrangement_versions),1::bigint,'anonymous reads a visible public arrangement');
 select is((select count(*) from public.project_revisions),1::bigint,'anonymous resolves a visible public revision wrapper');
 select is((select count(*) from public.revision_attributions),1::bigint,'anonymous reads immutable credit for a visible public revision');
+select is((
+  select name
+  from public.midi_patterns
+  where id=(select public_pattern_id from pattern_identity_rls_fixture)
+),'Main phrase','anonymous reads the name of a pattern in an authorized public arrangement');
+select is((
+  select count(*)
+  from public.midi_patterns
+  where id in (
+    'f30b0000-0000-4000-8000-000000000001',
+    'f30b0000-0000-4000-8000-000000000002',
+    'f30b0000-0000-4000-8000-000000000003',
+    'f30b0000-0000-4000-8000-000000000004'
+  )
+),0::bigint,'anonymous cannot read unreferenced private or deleted pattern identities');
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000003';
+select is((
+  select name
+  from public.midi_patterns
+  where id=(select public_pattern_id from pattern_identity_rls_fixture)
+),'Main phrase','an unrelated active actor reads the public-arrangement pattern name');
+select is((
+  select count(*)
+  from public.midi_patterns
+  where id in (
+    'f30b0000-0000-4000-8000-000000000001',
+    'f30b0000-0000-4000-8000-000000000002',
+    'f30b0000-0000-4000-8000-000000000003',
+    'f30b0000-0000-4000-8000-000000000004'
+  )
+),0::bigint,'an unrelated active actor cannot read private or deleted pattern identities');
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000001';
+select is((select name from public.midi_patterns where id='f30b0000-0000-4000-8000-000000000001'),'Owner sketch',
+  'an active owner reads an otherwise-unreferenced pattern identity');
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000004';
+select ok(
+  not exists(select 1 from public.midi_patterns where id='f30b0000-0000-4000-8000-000000000003')
+  and exists(
+    select 1
+    from public.midi_patterns
+    where id=(select public_pattern_id from pattern_identity_rls_fixture)
+  ),
+  'a suspended owner cannot use the owner branch while public-arrangement visibility remains readable'
+);
+set local request.jwt.claim.sub='f3000000-0000-4000-8000-000000000005';
+select ok(
+  not exists(select 1 from public.midi_patterns where id='f30b0000-0000-4000-8000-000000000004')
+  and exists(
+    select 1
+    from public.midi_patterns
+    where id=(select public_pattern_id from pattern_identity_rls_fixture)
+  ),
+  'an incomplete owner cannot use the owner branch while public-arrangement visibility remains readable'
+);
+reset role;
+update public.midi_patterns
+set deleted_at=statement_timestamp()
+where id=(select public_pattern_id from pattern_identity_rls_fixture);
+set local role anon;
+select is((
+  select count(*)
+  from public.midi_patterns
+  where id=(select public_pattern_id from pattern_identity_rls_fixture)
+),0::bigint,'anonymous cannot read a deleted identity even through an authorized public arrangement');
 reset role;
 update public.projects set moderation_state='hidden' where owner_id='f3000000-0000-4000-8000-000000000001';
 set local role anon;

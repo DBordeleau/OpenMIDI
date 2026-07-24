@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FiArrowRight, FiDownload, FiGitBranch, FiPlus } from "react-icons/fi";
 import { Container } from "@/components/layout/container";
+import { Avatar } from "@/components/ui/avatar";
 import { Reveal } from "@/components/ui/reveal.client";
 import type { PublicProjectLineage } from "@/features/discovery/types";
 import { formatMusicalKey } from "@/features/projects/musical-key";
@@ -12,37 +13,9 @@ import { projectRevisionComparisonUrl } from "@/features/midi-diff/project-revis
 import type { PublicProjectDetail } from "@/server/repositories/public-projects";
 import type { PublicRevisionHistoryItem } from "@/server/repositories/public-midi";
 
-function initials(name: string) {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
-}
-
 function formatDuration(durationMs: number) {
   const seconds = Math.max(0, Math.round(durationMs / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-function Avatar({
-  name,
-  className = "",
-}: {
-  name: string;
-  className?: string;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`from-accent to-accent-2 text-accent-contrast grid shrink-0 place-items-center rounded-full bg-linear-to-br font-bold ${className}`}
-    >
-      {initials(name)}
-    </span>
-  );
 }
 
 function Fact({ label, value }: { label: string; value: ReactNode }) {
@@ -131,8 +104,10 @@ export function PublicProjectPage({
 
                 <div className="mt-4 flex items-center gap-2.5">
                   <Avatar
+                    avatarConfig={project.ownerAvatarConfig}
                     name={project.ownerDisplayName}
-                    className="size-9 text-[13px]"
+                    size="sm"
+                    decorative
                   />
                   <span className="text-sm">
                     <Link
@@ -329,8 +304,10 @@ export function PublicProjectPage({
                       className="flex items-center gap-3"
                     >
                       <Avatar
+                        avatarConfig={attribution.avatarConfig}
                         name={attribution.creditName}
-                        className="size-8 text-[11px]"
+                        size="sm"
+                        decorative
                       />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold">
@@ -660,11 +637,11 @@ export function SemanticHistory({
                   <ul className="border-subtle mt-2 grid gap-2.5 border-l pl-3">
                     {revision.patternLineage.map((pattern) => (
                       <li key={pattern.midiPatternVersionId}>
-                        <span className="block text-xs font-semibold">
-                          {pattern.creatorCreditName}
+                        <span className="block text-sm font-semibold">
+                          {pattern.patternName ?? "Unavailable pattern"}
                         </span>
-                        <span className="text-muted block font-mono text-[10px] break-all">
-                          {pattern.midiPatternVersionId}
+                        <span className="text-muted block text-xs">
+                          Created by {pattern.creatorCreditName}
                         </span>
                       </li>
                     ))}

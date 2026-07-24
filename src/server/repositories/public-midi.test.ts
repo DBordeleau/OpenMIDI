@@ -7,6 +7,7 @@ import {
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   limits: [] as Array<{ table: string; limit: number }>,
+  patternRows: [] as Array<{ id: string; name: string }>,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -74,7 +75,12 @@ describe("public MIDI revision history", () => {
         pitch: note.pitch,
         velocity: note.velocity,
       })),
+      midi_patterns: mocks.patternRows,
     };
+    mocks.patternRows.splice(0, mocks.patternRows.length, {
+      id: pattern.midiPatternId,
+      name: "Readable pulse",
+    });
     mocks.from.mockImplementation((table: keyof typeof rows) => {
       const query = {
         select: () => query,
@@ -106,5 +112,22 @@ describe("public MIDI revision history", () => {
       table: "project_revisions",
       limit: 9,
     });
+    expect(history[0]?.patternLineage[0]).toMatchObject({
+      patternName: "Readable pulse",
+      creatorCreditName: V3_PATTERN_VERSION_1.creatorCreditName,
+    });
+    expect(
+      mocks.limits.filter(({ table }) => table === "midi_patterns"),
+    ).toEqual([{ table: "midi_patterns", limit: 512 }]);
+  });
+
+  it("keeps a neutral fallback when an exact pattern name is no longer visible", async () => {
+    mocks.patternRows.length = 0;
+
+    const history = await getPublicRevisionHistory(
+      V3_MANIFEST_BEFORE.projectId,
+    );
+
+    expect(history[0]?.patternLineage[0]?.patternName).toBeNull();
   });
 });

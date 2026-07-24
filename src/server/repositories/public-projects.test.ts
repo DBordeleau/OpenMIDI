@@ -4,7 +4,7 @@ import { V3_MANIFEST_BEFORE } from "@/features/studio/manifest/v3.fixtures";
 const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
   getDiscoveryVersion: vi.fn(),
-  getPublicProfiles: vi.fn(),
+  getPublicProjectProfiles: vi.fn(),
   getPublicArrangementCards: vi.fn(),
   getPublicProjectSilhouettes: vi.fn(),
 }));
@@ -25,7 +25,9 @@ vi.mock("@/lib/supabase/anonymous", () => ({
 }));
 vi.mock("@/server/repositories/discovery", () => ({
   getDiscoveryVersion: mocks.getDiscoveryVersion,
-  getPublicProfiles: mocks.getPublicProfiles,
+}));
+vi.mock("@/server/repositories/public-project-profiles", () => ({
+  getPublicProjectProfiles: mocks.getPublicProjectProfiles,
 }));
 vi.mock("@/server/repositories/public-midi", () => ({
   getPublicArrangementCards: mocks.getPublicArrangementCards,
@@ -73,8 +75,17 @@ describe("public project detail data", () => {
       },
       error: null,
     });
-    mocks.getPublicProfiles.mockResolvedValue(
-      new Map([[ownerId, { username: "MapMaker", displayName: "Map Maker" }]]),
+    mocks.getPublicProjectProfiles.mockResolvedValue(
+      new Map([
+        [
+          ownerId,
+          {
+            username: "MapMaker",
+            displayName: "Map Maker",
+            avatarConfig: { version: 1 },
+          },
+        ],
+      ]),
     );
     mocks.getPublicArrangementCards.mockResolvedValue(
       new Map([
@@ -112,5 +123,6 @@ describe("public project detail data", () => {
         ],
       ]),
     );
+    expect(project?.ownerAvatarConfig).toEqual({ version: 1 });
   });
 });
