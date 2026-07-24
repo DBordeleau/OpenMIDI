@@ -181,7 +181,7 @@ Status: Complete. The responsive **Add from clips** Studio drawer lazy-loads own
 
 Unify the full private collection and Studio source model. **My clips** presents one active owned pattern identity at its latest immutable version, while **Saved clips** preserves each exact bookmarked library version. Keep older owned versions as immutable history, deduplicate only the same exact latest owned-and-saved version with owner authority, and retain an explicitly saved older owned version as its own bookmark.
 
-Status: Complete in the repository. Canonical `/library/collection` uses URL-backed owned/saved sources and bounded search, reads only selected-source metadata without note arrays, loads browser-local preview detail on demand, retains saved reuse/export/editor/fork/import controls, and shares semantics with Studio. `/library/saved` is a compatibility redirect to the saved source.
+Status: Complete in the repository. Canonical `/library/collection` uses URL-backed owned/saved sources and bounded search, reads only selected-source metadata without note arrays, loads exact detail when a card approaches the viewport, and reuses the public-library piano-roll preview so notes are visible before playback with the same moving playhead. It retains saved reuse/export/editor/fork/import controls and shares source semantics with Studio. `/library/saved` is a compatibility redirect to the saved source.
 
 ### PERF-01 â€” Bound production navigation request fanout
 

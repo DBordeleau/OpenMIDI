@@ -136,7 +136,9 @@ commit;`;
 
   return {
     ownedTitle,
+    ownedVersionId: ids.ownedV2,
     savedTitle,
+    savedListingId: ids.savedListing,
     hiddenTitle,
     projectId: ids.project,
   };
@@ -179,15 +181,25 @@ test.describe("unified clip collection", () => {
     await expect(ownedCard).toHaveCount(1);
     await expect(ownedCard.getByText("v2")).toBeVisible();
     await expect(ownedCard.getByText("2 versions")).toBeVisible();
-    expect(serverActions).toEqual([]);
+    const ownedPreview = ownedCard.locator(
+      `[data-preview-listing="${fixture.ownedVersionId}"]`,
+    );
+    await expect(ownedPreview).toBeVisible();
+    await expect(
+      ownedPreview.getByRole("button", {
+        name: `Play ${fixture.ownedTitle}`,
+      }),
+    ).toBeVisible();
+    expect(serverActions.length).toBeGreaterThanOrEqual(1);
+    const detailActionsBeforePlayback = serverActions.length;
 
-    await ownedCard
-      .getByRole("button", { name: `Preview ${fixture.ownedTitle}` })
+    await ownedPreview
+      .getByRole("button", { name: `Play ${fixture.ownedTitle}` })
       .click();
     await expect(
-      ownedCard.getByRole("button", { name: `Pause ${fixture.ownedTitle}` }),
+      ownedPreview.getByRole("button", { name: `Pause ${fixture.ownedTitle}` }),
     ).toBeVisible();
-    expect(serverActions).toHaveLength(1);
+    expect(serverActions).toHaveLength(detailActionsBeforePlayback);
 
     await page.getByRole("link", { name: "Saved clips" }).click();
     await expect(page).toHaveURL(/source=saved/);
@@ -197,6 +209,9 @@ test.describe("unified clip collection", () => {
     await expect(savedCard).toBeVisible();
     await expect(savedCard.getByText("Exact bookmark")).toBeVisible();
     await expect(
+      savedCard.locator(`[data-preview-listing="${fixture.savedListingId}"]`),
+    ).toBeVisible();
+    await expect(
       savedCard.getByRole("button", { name: "Import exact version" }),
     ).toBeEnabled();
     const hiddenCard = page
@@ -204,11 +219,7 @@ test.describe("unified clip collection", () => {
       .filter({ hasText: fixture.hiddenTitle });
     await expect(hiddenCard).toBeVisible();
     await expect(hiddenCard.getByText(/under review/i)).toBeVisible();
-    await expect(
-      hiddenCard.getByRole("button", {
-        name: `Preview ${fixture.hiddenTitle}`,
-      }),
-    ).toBeDisabled();
+    await expect(hiddenCard.locator("[data-preview-listing]")).toHaveCount(0);
     await expect(
       hiddenCard.getByRole("button", { name: "Import exact version" }),
     ).toHaveCount(0);

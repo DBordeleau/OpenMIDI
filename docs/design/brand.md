@@ -530,9 +530,10 @@ import returns focus to the new arrangement clip.
 The full **Clip collection** uses the same nouns and metadata contract: My clips is
 one latest version per owned pattern identity, Saved clips is exact bookmarks, and
 neither list carries note arrays. Its source and bounded search live in the URL;
-preview loads real MIDI detail only after activation and stays exclusive. At phone
-widths the source/search glass remains a horizontally scrolling row, never document
-overflow.
+cards load real MIDI detail as they approach the viewport, then reuse the MIDI
+Library's visible piano roll, exclusive playback, and linear moving playhead. At
+phone widths the source switcher and search controls stack within the glass instead
+of creating document or control-row overflow.
 The shared MIDI editor piano uses full white faces, shorter gradient black faces,
 warm semantic dividers, and accent/gold held-note feedback. Melodic gutters label
 only C rows while drum presets retain their mapped names; performance keys expose

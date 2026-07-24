@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ComponentProps, ElementType, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getStudioClipDetailAction } from "@/features/studio/clip-collection/actions";
@@ -14,27 +8,20 @@ import type {
 } from "@/features/studio/clip-collection/schema";
 import { ClipCollectionGrid } from "./collection-grid.client";
 
-const runtime = vi.hoisted(() => ({
-  prepare: vi.fn(),
-  play: vi.fn(),
-  pause: vi.fn(),
-  dispose: vi.fn(),
-}));
-
 vi.mock("@/features/studio/clip-collection/actions", () => ({
   getStudioClipDetailAction: vi.fn(),
 }));
-vi.mock("@/features/public-midi/preview-runtime.client", () => ({
-  PublicMidiPreviewRuntime: class {
-    prepare = runtime.prepare;
-    play = runtime.play;
-    pause = runtime.pause;
-    dispose = runtime.dispose;
-  },
-}));
-vi.mock("@/features/midi-library/pattern-roll", () => ({
-  PatternRoll: ({ notes }: { notes: unknown[] }) => (
-    <div data-testid="pattern-roll">{notes.length} notes loaded</div>
+vi.mock("@/features/midi-library/midi-library-preview.client", () => ({
+  MidiLibraryPreview: ({
+    title,
+    notes,
+  }: {
+    title: string;
+    notes: unknown[];
+  }) => (
+    <div data-testid="library-preview" data-preview-title={title}>
+      {notes.length} notes visible before playback
+    </div>
   ),
 }));
 vi.mock("@/features/midi-library/reuse-controls.client", () => ({
@@ -130,25 +117,24 @@ function detail(metadata: StudioClipCollection["items"][number]) {
   } satisfies StudioClipDetail;
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("clip collection grid", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    runtime.prepare.mockResolvedValue(undefined);
-    runtime.play.mockResolvedValue(undefined);
-    Object.defineProperty(window, "AudioContext", {
-      configurable: true,
-      value: vi.fn(),
-    });
+    vi.stubGlobal("IntersectionObserver", undefined);
   });
 
-  it("does not load notes until Preview is deliberately pressed", async () => {
+  it("loads visible detail and reuses the library note-roll preview before playback", async () => {
     const owned = item("01");
     vi.mocked(getStudioClipDetailAction).mockResolvedValue({
       ok: true,
       detail: detail(owned),
     });
+
     render(
       <ClipCollectionGrid
         items={[owned]}
@@ -157,51 +143,61 @@ describe("clip collection grid", () => {
       />,
     );
 
-    expect(getStudioClipDetailAction).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("pattern-roll")).toBeNull();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: `Preview ${owned.patternName}` }),
+    expect(await screen.findByTestId("library-preview")).toHaveTextContent(
+      "1 notes visible before playback",
     );
-    expect(await screen.findByTestId("pattern-roll")).toHaveTextContent(
-      "1 notes loaded",
+    expect(screen.getByTestId("library-preview")).toHaveAttribute(
+      "data-preview-title",
+      owned.patternName,
     );
     expect(getStudioClipDetailAction).toHaveBeenCalledOnce();
-    expect(runtime.play).toHaveBeenCalledOnce();
   });
 
-  it("keeps playback exclusive while moving between cards", async () => {
-    const first = item("01");
-    const second = item("02");
-    vi.mocked(getStudioClipDetailAction).mockImplementation(async () => ({
+  it("waits until a card approaches the viewport before loading its notes", async () => {
+    const owned = item("01");
+    let onIntersection:
+      ((entries: Array<{ isIntersecting: boolean }>) => void) | undefined;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          callback: (entries: Array<{ isIntersecting: boolean }>) => void,
+          options?: { rootMargin?: string },
+        ) {
+          onIntersection = callback;
+          expect(options?.rootMargin).toBe("240px 0px");
+        }
+        observe = observe;
+        disconnect = disconnect;
+      },
+    );
+    vi.mocked(getStudioClipDetailAction).mockResolvedValue({
       ok: true,
-      detail:
-        vi.mocked(getStudioClipDetailAction).mock.calls.length === 1
-          ? detail(first)
-          : detail(second),
-    }));
+      detail: detail(owned),
+    });
+
     render(
       <ClipCollectionGrid
-        items={[first, second]}
+        items={[owned]}
         selectedSource="owned"
         workspaces={[]}
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: `Preview ${first.patternName}` }),
-    );
-    await screen.findByRole("button", { name: `Pause ${first.patternName}` });
-    fireEvent.click(
-      screen.getByRole("button", { name: `Preview ${second.patternName}` }),
-    );
-    await screen.findByRole("button", { name: `Pause ${second.patternName}` });
+    expect(observe).toHaveBeenCalledOnce();
+    expect(getStudioClipDetailAction).not.toHaveBeenCalled();
 
-    expect(runtime.play).toHaveBeenCalledTimes(2);
-    expect(runtime.pause).toHaveBeenCalled();
+    await act(async () => {
+      onIntersection?.([{ isIntersecting: true }]);
+    });
+
+    expect(await screen.findByTestId("library-preview")).toBeInTheDocument();
+    expect(disconnect).toHaveBeenCalled();
   });
 
-  it("ignores a stale detail response after a newer preview wins", async () => {
+  it("ignores stale detail after the collection changes", async () => {
     const first = item("01");
     const second = item("02");
     let resolveFirst:
@@ -216,31 +212,36 @@ describe("clip collection grid", () => {
       .mockReturnValueOnce(firstResponse)
       .mockResolvedValueOnce({ ok: true, detail: detail(second) });
 
-    render(
+    const view = render(
       <ClipCollectionGrid
-        items={[first, second]}
+        items={[first]}
         selectedSource="owned"
         workspaces={[]}
       />,
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: `Preview ${first.patternName}` }),
+    view.rerender(
+      <ClipCollectionGrid
+        items={[second]}
+        selectedSource="owned"
+        workspaces={[]}
+      />,
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: `Preview ${second.patternName}` }),
-    );
-    await screen.findByRole("button", { name: `Pause ${second.patternName}` });
 
-    resolveFirst?.({ ok: true, detail: detail(first) });
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: `Pause ${second.patternName}` }),
-      ).toBeInTheDocument(),
+    expect(await screen.findByTestId("library-preview")).toHaveAttribute(
+      "data-preview-title",
+      second.patternName,
     );
-    expect(runtime.play).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      resolveFirst?.({ ok: true, detail: detail(first) });
+    });
+    expect(screen.getByTestId("library-preview")).toHaveAttribute(
+      "data-preview-title",
+      second.patternName,
+    );
   });
 
-  it("keeps an unavailable saved bookmark visible with reuse disabled", () => {
+  it("keeps an unavailable saved bookmark visible without loading private notes", () => {
     const saved = item("03", {
       source: "saved",
       isOwned: false,
@@ -258,6 +259,7 @@ describe("clip collection grid", () => {
         url: "https://creativecommons.org/licenses/by/4.0/",
       },
     });
+
     render(
       <ClipCollectionGrid
         items={[saved]}
@@ -266,10 +268,8 @@ describe("clip collection grid", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: `Preview ${saved.patternName}` }),
-    ).toBeDisabled();
-    expect(screen.getByText(/under review/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("library-preview")).toBeNull();
+    expect(screen.getAllByText(/under review/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId("reuse-controls")).toHaveAttribute(
       "data-can-reuse",
       "false",
