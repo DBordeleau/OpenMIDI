@@ -24,6 +24,8 @@ Workspace saves are transactional and conflict-safe. No workspace table or proje
 
 `private.stale_owner_workspace_resolutions` stores owner/request-scoped idempotency receipts for stale-draft recovery and has no direct application access. `resolve_stale_owner_workspace_v3` validates exact workspace lock, stale base, and current-revision authority before performing one transaction. Restart archives the stale source only when a current-revision replacement workspace, normalized projections, snapshot, and receipt all succeed. Preserve creates a private direct fork whose source lineage points to the stale base, copies that base into immutable fork revision 1 without duplicating pattern notes, places the acknowledged stale manifest in the fork's active workspace after authority-field rewriting, then archives the old workspace. A failure rolls back the target and source archive together.
 
+`private.studio_clip_import_receipts` is the narrow actor/request-scoped CLIP-IMPORT-01 replay authority. A provisional row serializes identical concurrent requests and is rolled back with any source, lifecycle, lock, or capacity failure. The completed receipt retains the exact owner/saved source version, saved listing/license/external-credit provenance when applicable, destination workspace/contribution, new track/clip IDs, resulting lock/hash, and bounded canonical response. It has no application table grants and is not a new public domain model.
+
 ## Reusable patterns and arrangements
 
 - `midi_patterns` owns reusable identity, owner, visibility, source pattern, and rights attestation.
@@ -55,6 +57,7 @@ Acceptance verifies the expected contribution version and current project revisi
 - `saved_midi_patterns` is an RLS-protected private bookmark keyed by user and exact immutable pattern version. It references the listing edition used to save and copies no notes or ownership.
 - `private.midi_library_reuses` snapshots the exact source listing/pattern/version, CC BY terms, creator credit, and external credits for import, explicit fork, and editor-copy commands. A narrow private reuse-access relation lets only the reuser load an exact imported source in Studio after the public listing projection closes.
 - `reuse_midi_library_pattern` validates source eligibility independently, uses the existing workspace lock for imports, and creates owned private pattern/version children before editor navigation. Inherited external credits are append-only rows attached to the child version. `get_midi_library_export` returns validated structured notes/attribution only; the browser creates the file.
+- `list_studio_clip_collection` returns at most 100 deduplicated metadata rows for actor-owned and explicitly saved exact versions without returning notes. `get_studio_clip_detail` rechecks the chosen authority before returning one bounded note payload. `import_studio_clip` supports owner and saved-library authority across owner and editable contribution workspaces, preserves exact immutable lineage/attribution, and updates manifest, normalized projection, snapshot, receipt, and lock in one transaction.
 
 ## Moderation, deletion, and generated avatars
 
