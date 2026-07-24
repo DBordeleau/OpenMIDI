@@ -44,6 +44,7 @@ export const studioClipMetadataSchema = z
     noteCount: z.number().int().min(0).max(2_048),
     createdAt: z.iso.datetime({ offset: true }),
     hasLineage: z.boolean(),
+    versionCount: z.number().int().positive().max(2_147_483_647).optional(),
     source: studioClipSourceSchema,
     isOwned: z.boolean(),
     isSaved: z.boolean(),

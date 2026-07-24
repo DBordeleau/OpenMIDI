@@ -59,6 +59,7 @@ export async function saveMidiLibraryPatternAction(
     revalidatePath("/library");
     revalidatePath(`/library/${parsed.data.listingId}`);
     revalidatePath("/library/saved");
+    revalidatePath("/library/collection");
     return { ok: true, message: "Saved to your private clips." };
   } catch (error) {
     return failure(error);
@@ -83,6 +84,7 @@ export async function removeSavedMidiLibraryPatternAction(
     revalidatePath("/library");
     revalidatePath(`/library/${parsed.data.listingId}`);
     revalidatePath("/library/saved");
+    revalidatePath("/library/collection");
     return { ok: true, message: "Removed from your saved clips." };
   } catch (error) {
     return failure(error);
@@ -102,6 +104,7 @@ export async function reuseMidiLibraryPatternAction(
   try {
     const row = await reuseMidiLibraryPattern(parsed.data);
     revalidatePath("/library/saved");
+    revalidatePath("/library/collection");
     if (row.project_id) revalidatePath(`/studio/${row.project_id}`);
     if (parsed.data.operation === "import")
       return {

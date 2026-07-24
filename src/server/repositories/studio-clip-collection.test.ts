@@ -47,6 +47,7 @@ const metadata = {
   noteCount: 1,
   createdAt: "2026-07-24T12:00:00.000Z",
   hasLineage: false,
+  versionCount: 8,
   source: "owned",
   isOwned: true,
   isSaved: false,

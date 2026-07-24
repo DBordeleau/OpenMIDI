@@ -159,7 +159,7 @@ describe("SiteHeader", () => {
     ).toHaveAttribute("href", "/@NightSignal");
     for (const [name, href] of [
       ["My projects", "/projects"],
-      ["Saved clips", "/library/saved"],
+      ["Clip collection", "/library/collection"],
       ["Contributions", "/contributions"],
       ["Edit profile", "/settings/profile"],
     ] as const)

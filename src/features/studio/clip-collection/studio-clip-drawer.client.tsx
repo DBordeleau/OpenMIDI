@@ -651,17 +651,17 @@ export function StudioClipDrawer({
                   <FiMusic aria-hidden className="text-accent-2 text-2xl" />
                   <h3 className="mt-3 font-semibold">
                     {appliedQuery
-                      ? "No clips match that search"
+                      ? `No ${source === "owned" ? "owned" : "saved"} clips match that search`
                       : source === "owned"
-                        ? "No owned clips yet"
+                        ? "No clips made yet"
                         : "No saved clips yet"}
                   </h3>
                   <p className="text-muted mt-1 max-w-[34ch] text-sm leading-5">
                     {appliedQuery
                       ? "Try a title or creator with fewer words."
                       : source === "owned"
-                        ? "Freeze a MIDI pattern in any of your projects and it will appear here."
-                        : "Save a reusable exact version from the MIDI library first."}
+                        ? "Start in Studio and apply your first MIDI pattern."
+                        : "Bookmark a commercially reusable version from the MIDI Library."}
                   </p>
                 </div>
               ) : (
@@ -784,6 +784,12 @@ function ClipCollectionItem({
             </span>
             <span>{item.noteCount} notes</span>
             {item.preset && <span>{item.preset.name}</span>}
+            {item.versionCount && (
+              <span>
+                {item.versionCount} version
+                {item.versionCount === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
           <p className="text-muted mt-1.5 flex items-center gap-1.5 text-[11px]">
             {item.source === "owned" ? (

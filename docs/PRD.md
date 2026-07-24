@@ -25,7 +25,7 @@ The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute
 | Copy-on-write project forks and lineage                          | Complete                 |
 | Public project discovery, preview, history, profiles, moderation | Complete                 |
 | Visual project/contribution/pattern comparison                   | Complete                 |
-| Public MIDI library and saved clip collection                    | Complete                 |
+| Public MIDI library and unified clip collection                  | Complete: COLLECTION-01  |
 | In-Studio clip collection/import authority                       | Complete: CLIP-IMPORT-01 |
 | In-Studio clip drawer/menu                                       | Complete: CLIP-IMPORT-02 |
 | Curated challenges, validation, voting, and results              | Complete                 |
@@ -204,7 +204,7 @@ Users can:
 - Import and export the supported Standard MIDI File subset.
 - Render a local synthesized audio download without uploading it to OpenMIDI.
 
-The in-Studio clip collection has two explicit sources: **My clips** contains non-deleted exact pattern versions owned by the actor, while **Saved clips** contains only exact public-library versions the actor explicitly bookmarked. An exact version qualifying for both is represented once with owner authority taking precedence. Collection metadata is bounded and excludes note arrays; exact preview detail is loaded only on demand. Import rechecks current source and editable-workspace authority, creates one exact-version clip on a new MIDI track at the caller's playhead tick, and advances the workspace through its existing optimistic lock. CLIP-IMPORT-01 provides this data/command contract; CLIP-IMPORT-02 consumes it through the responsive **Add from clips** Studio drawer.
+The private clip collection has two explicit sources. **My clips** presents one active `midi_patterns` identity owned by the actor and selects exactly its latest immutable version; older versions remain unchanged history rather than ordinary browse cards. **Saved clips** contains exact public-library versions the actor explicitly bookmarked and never implies ownership. The same exact latest owned-and-saved version is represented once with owner authority, while an explicitly saved older owned version remains a distinct exact bookmark. `/library/collection` is the canonical full-page surface, `/library/saved` redirects to its saved source, and Studio's responsive **Add from clips** drawer uses the same source definitions. Collection metadata is bounded and excludes note arrays; exact preview detail loads as a card approaches the viewport so the shared library piano roll is visible before playback without broadening the collection RPC. Import rechecks current source and editable-workspace authority, creates one exact-version clip on a new MIDI track at the caller's playhead tick, and advances the workspace through its existing optimistic lock.
 
 Integrated piano-roll edits autosave into one validated, bounded device-local
 draft per exact workspace clip or pending track. That draft survives closing,

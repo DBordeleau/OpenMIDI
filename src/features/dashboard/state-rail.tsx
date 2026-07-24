@@ -97,11 +97,11 @@ export function StateRail({
         tone="accent"
       />
       <Tile
-        label="Saved from library"
+        label="Clip collection"
         value={counts.savedClips}
-        unit="clips"
-        action="Open saved clips"
-        href="/library/saved"
+        unit="saved"
+        action="Open clip collection"
+        href="/library/collection?source=saved"
         tone="accent"
       />
       <Tile

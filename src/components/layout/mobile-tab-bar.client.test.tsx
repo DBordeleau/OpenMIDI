@@ -115,7 +115,7 @@ describe("MobileTabBar", () => {
     for (const [name, href] of [
       ["View profile", "/@NightSignal"],
       ["My projects", "/projects"],
-      ["Saved clips", "/library/saved"],
+      ["Clip collection", "/library/collection"],
       ["Contributions", "/contributions"],
       ["Edit profile", "/settings/profile"],
     ] as const)

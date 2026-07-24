@@ -318,7 +318,7 @@ plus a ghost "Sign in" pill. Signed-in members get exactly **four** top-level
 items — Dashboard, Explore, Studio, and the avatar — because a flat list of every
 destination read as clutter. Discovery groups under **Explore** (MIDI Library,
 Projects, Challenges) and everything account-shaped groups under the **avatar**
-(View profile, My projects, Saved clips, Contributions, Edit profile, Sign out).
+(View profile, My projects, Clip collection, Contributions, Edit profile, Sign out).
 View profile appears only after the verified browser identity resolves a
 completed public username; onboarding and unavailable-profile states never
 receive a broken public link. Never show the app nav to signed-out visitors, and
@@ -462,7 +462,7 @@ arriving quickly. Rights use the badge-length labels
 each card still states what is and is not granted beneath the preview, and the
 listing page carries the full statement.
 
-**Browsing pages share one shape.** `/library`, `/library/saved` and `/projects`
+**Browsing pages share one shape.** `/library`, `/library/collection` and `/projects`
 are the same surface with different nouns, and changing one should mean changing
 all three: `py-6 sm:py-10`, an eyebrow plus a single-line heading with the page's
 one primary action beside it, an optional glass control bar, a muted count line,
@@ -527,6 +527,13 @@ cards carry exact-version, creator, timing, preset, lineage, and availability
 context without turning the drawer into a detached library page. Preview and import
 are deliberate actions, unavailable saved versions remain legible, and a successful
 import returns focus to the new arrangement clip.
+The full **Clip collection** uses the same nouns and metadata contract: My clips is
+one latest version per owned pattern identity, Saved clips is exact bookmarks, and
+neither list carries note arrays. Its source and bounded search live in the URL;
+cards load real MIDI detail as they approach the viewport, then reuse the MIDI
+Library's visible piano roll, exclusive playback, and linear moving playhead. At
+phone widths the source switcher and search controls stack within the glass instead
+of creating document or control-row overflow.
 The shared MIDI editor piano uses full white faces, shorter gradient black faces,
 warm semantic dividers, and accent/gold held-note feedback. Melodic gutters label
 only C rows while drum presets retain their mapped names; performance keys expose
