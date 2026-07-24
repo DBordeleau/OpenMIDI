@@ -4,12 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  FiChevronDown,
-  FiDownload,
-  FiFolderPlus,
-  FiMusic,
-} from "react-icons/fi";
+import { FiDownload, FiFolderPlus } from "react-icons/fi";
 import type { StudioLauncherProps } from "../components/studio-launcher.client";
 import { StaleDraftResolution } from "../components/stale-draft-resolution.client";
 import { useStudioLifecycleRegistration } from "../components/studio-shell.client";
@@ -65,6 +60,9 @@ import {
 import { freezeStudioPatternAction } from "../integrated-midi/actions";
 import type { FinalizePatternInput } from "../integrated-midi/integrated-midi-composer.client";
 import type { MidiDraftSaveStatus } from "@/features/midi/stems/draft-autosave";
+import { StudioClipDrawer } from "../clip-collection/studio-clip-drawer.client";
+import type { StudioClipFailureCode } from "../clip-collection/actions";
+import type { ImportStudioClipResult } from "../clip-collection/schema";
 
 type Props = StudioLauncherProps;
 type SaveStatus =
@@ -80,7 +78,8 @@ const toolbarButton =
 export function MidiStudioSurface(props: Props) {
   const router = useRouter();
   const reduce = useReducedMotion();
-  const [importMenuOpen, setImportMenuOpen] = useState(false);
+  const [clipDrawerOpen, setClipDrawerOpen] = useState(false);
+  const clipDrawerTriggerRef = useRef<HTMLButtonElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   // Point the arranger↔editor morph originates from, as a `transform-origin`
   // string. Set to the clicked clip so the editor appears to bloom out of it.
@@ -113,6 +112,7 @@ export function MidiStudioSurface(props: Props) {
   });
   const [lockVersion, setLockVersion] = useState(editable?.lockVersion ?? 0);
   const lockVersionRef = useRef(editable?.lockVersion ?? 0);
+  const manifestSha256Ref = useRef(editable?.manifestSha256 ?? "");
   const [baseRevisionId, setBaseRevisionId] = useState(
     editable?.baseRevisionId ?? null,
   );
@@ -139,6 +139,7 @@ export function MidiStudioSurface(props: Props) {
     clipId: string;
     token: number;
   } | null>(null);
+  const finalizedClipTokenRef = useRef(0);
   const [draftSaveStatus, setDraftSaveStatus] =
     useState<MidiDraftSaveStatus>("saved");
   const [integratedDraftActive, setIntegratedDraftActive] = useState(false);
@@ -217,23 +218,6 @@ export function MidiStudioSurface(props: Props) {
     });
     setDraftSaveStatus("saved");
   }, [editable, props.initialEditorClipId, stemVersions]);
-
-  useEffect(() => {
-    if (!importMenuOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!(event.target as Element | null)?.closest("[data-import-menu]"))
-        setImportMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setImportMenuOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [importMenuOpen]);
 
   useEffect(() => {
     const next = new BrowserMidiRuntime();
@@ -462,6 +446,7 @@ export function MidiStudioSurface(props: Props) {
     }
     lockVersionRef.current = result.lockVersion;
     setLockVersion(result.lockVersion);
+    manifestSha256Ref.current = result.manifestSha256;
     acknowledgedGeneration.current = Math.max(
       acknowledgedGeneration.current,
       saveGeneration,
@@ -536,6 +521,132 @@ export function MidiStudioSurface(props: Props) {
     });
     changeManifest(next);
     await persist(next);
+  }
+
+  async function prepareClipImport() {
+    if (!editable || resolutionBlocked || composerTarget || pendingMidiLane) {
+      return {
+        ok: false as const,
+        message:
+          "Finish the current Studio edit before adding a reusable clip.",
+      };
+    }
+    if (saveInFlight.current || status === "saving") {
+      return {
+        ok: false as const,
+        message: "Let the current arrangement finish saving, then try again.",
+      };
+    }
+    if (status === "conflict") {
+      return {
+        ok: false as const,
+        message:
+          "This workspace changed elsewhere. Preserve your local work, then reload before adding a clip.",
+      };
+    }
+    if (
+      status !== "saved" ||
+      generation.current > acknowledgedGeneration.current
+    ) {
+      const saved = await persistRef.current(manifestRef.current);
+      if (!saved) {
+        return {
+          ok: false as const,
+          message:
+            "Save the current arrangement before adding a reusable clip.",
+        };
+      }
+    }
+    return {
+      ok: true as const,
+      workspaceId: editable.workspaceId,
+      expectedWorkspaceLockVersion: lockVersionRef.current,
+      startTick: seekTick,
+    };
+  }
+
+  function applyImportedClip(result: ImportStudioClipResult) {
+    if (!editable || result.workspaceId !== editable.workspaceId) {
+      setMessage(
+        "The imported clip did not match this Studio workspace. Nothing was changed here.",
+      );
+      return;
+    }
+    if (autosaveTimer.current) {
+      window.clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+    if (playbackStartTimer.current) {
+      window.clearTimeout(playbackStartTimer.current);
+      playbackStartTimer.current = null;
+    }
+    if (playbackTimer.current) {
+      window.cancelAnimationFrame(playbackTimer.current);
+      playbackTimer.current = null;
+    }
+    runtime.current?.pause();
+    setPlaying(false);
+    const canonical = toEditorManifest(result.manifest);
+    historyRef.current = commitArrangementHistory(
+      historyRef.current,
+      canonical,
+      "clip-import",
+    );
+    setHistoryAvailability({
+      canUndo: historyRef.current.past.length > 0,
+      canRedo: historyRef.current.future.length > 0,
+    });
+    generation.current += 1;
+    acknowledgedGeneration.current = generation.current;
+    manifestRef.current = canonical;
+    setManifest(canonical);
+    setMidiVersions((current) => {
+      const imported = toEditorPatternVersion(result.importedPattern);
+      return [
+        ...current.filter(
+          (version) => version.stemVersionId !== imported.stemVersionId,
+        ),
+        imported,
+      ];
+    });
+    lockVersionRef.current = result.lockVersion;
+    setLockVersion(result.lockVersion);
+    manifestSha256Ref.current = result.manifestSha256;
+    setStatus("saved");
+    setRecovery(null);
+    clearMidiLocalRecovery(editable.viewerId, editable.workspaceId);
+    lifecycle.update({
+      status: "saved",
+      generation: generation.current,
+      acknowledgedGeneration: acknowledgedGeneration.current,
+      recoveryAvailable: false,
+    });
+    setFinalizedClip({
+      trackId: result.trackId,
+      clipId: result.clipId,
+      token: (finalizedClipTokenRef.current += 1),
+    });
+    setMessage(
+      `${result.importedPattern.name} was added on a new track at the playhead.`,
+    );
+  }
+
+  function handleClipImportFailure(code: StudioClipFailureCode) {
+    if (code !== "workspace_stale") return;
+    setStatus("conflict");
+    setMessage(
+      "This workspace changed in another session. Your local arrangement is preserved; reload before adding the clip.",
+    );
+    void cacheRecovery(manifestRef.current, "conflict").then(
+      (recoveryAvailable) => {
+        lifecycle.update({
+          status: "conflict",
+          generation: generation.current,
+          acknowledgedGeneration: acknowledgedGeneration.current,
+          recoveryAvailable,
+        });
+      },
+    );
   }
 
   function replaceVersion(
@@ -1281,90 +1392,22 @@ export function MidiStudioSurface(props: Props) {
                     {rendering ? "Rendering…" : "WAV"}
                   </button>
                   {editable && (
-                    <div className="relative" data-import-menu>
-                      <button
-                        type="button"
-                        className={toolbarButton}
-                        aria-haspopup="menu"
-                        aria-expanded={importMenuOpen}
-                        title="Reuse an exact pattern version from this project"
-                        onClick={() => setImportMenuOpen((open) => !open)}
-                      >
-                        <FiFolderPlus aria-hidden /> Library
-                        <FiChevronDown
-                          aria-hidden
-                          className={`transition-transform ${importMenuOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      <AnimatePresence>
-                        {importMenuOpen && (
-                          <motion.div
-                            role="menu"
-                            aria-label="Pattern versions"
-                            initial={
-                              reduce
-                                ? { opacity: 0 }
-                                : { opacity: 0, y: 6, scale: 0.98 }
-                            }
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={
-                              reduce
-                                ? { opacity: 0 }
-                                : { opacity: 0, y: 6, scale: 0.98 }
-                            }
-                            transition={{
-                              duration: reduce ? 0 : 0.16,
-                              ease: [0.2, 0.8, 0.2, 1],
-                            }}
-                            className="border-strong bg-surface rounded-card absolute right-0 bottom-11 z-50 w-80 max-w-[calc(100vw-2rem)] origin-bottom-right space-y-3 border p-4 shadow-xl"
-                          >
-                            <label
-                              className="block text-xs font-semibold"
-                              htmlFor="arranger-version"
-                            >
-                              Exact pattern version
-                              <select
-                                id="arranger-version"
-                                className={`${input} mt-1 w-full`}
-                                value={selectedVersionId}
-                                onChange={(event) =>
-                                  setSelectedVersionId(event.target.value)
-                                }
-                              >
-                                {midiVersions.map((version) => (
-                                  <option
-                                    key={version.stemVersionId}
-                                    value={version.stemVersionId}
-                                  >
-                                    {version.name} · v{version.version} ·{" "}
-                                    {version.creatorCreditName}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <button
-                              className={`${button} w-full gap-2`}
-                              type="button"
-                              onClick={() => {
-                                void importVersion();
-                                setImportMenuOpen(false);
-                              }}
-                              disabled={
-                                !selectedVersionId || status === "saving"
-                              }
-                            >
-                              <FiFolderPlus /> Import exact version
-                            </button>
-                            <Link
-                              className={`${button} w-full gap-2`}
-                              href="#arrangement"
-                            >
-                              <FiMusic /> Back to arrangement
-                            </Link>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                    <button
+                      ref={clipDrawerTriggerRef}
+                      type="button"
+                      className={toolbarButton}
+                      aria-haspopup="dialog"
+                      aria-expanded={clipDrawerOpen}
+                      title="Browse owned and saved reusable MIDI clips"
+                      disabled={
+                        !editingAllowed ||
+                        composerTarget !== null ||
+                        pendingMidiLane !== null
+                      }
+                      onClick={() => setClipDrawerOpen(true)}
+                    >
+                      <FiFolderPlus aria-hidden /> Add from clips
+                    </button>
                   )}
                 </div>
               }
@@ -1432,6 +1475,16 @@ export function MidiStudioSurface(props: Props) {
                 </div>
               }
             />
+            {editable && (
+              <StudioClipDrawer
+                open={clipDrawerOpen}
+                onOpenChange={setClipDrawerOpen}
+                triggerRef={clipDrawerTriggerRef}
+                prepareImport={prepareClipImport}
+                onImported={applyImportedClip}
+                onImportFailure={handleClipImportFailure}
+              />
+            )}
           </motion.div>
           <AnimatePresence>
             {composerTarget && editable && (

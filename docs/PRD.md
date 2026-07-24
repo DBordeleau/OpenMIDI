@@ -27,7 +27,7 @@ The MVP is MIDI-only. It does not accept, store, arrange, preview, or distribute
 | Visual project/contribution/pattern comparison                   | Complete                 |
 | Public MIDI library and saved clip collection                    | Complete                 |
 | In-Studio clip collection/import authority                       | Complete: CLIP-IMPORT-01 |
-| In-Studio clip drawer/menu                                       | Planned: CLIP-IMPORT-02  |
+| In-Studio clip drawer/menu                                       | Complete: CLIP-IMPORT-02 |
 | Curated challenges, validation, voting, and results              | Complete                 |
 | Challenge achievements and profile badges                        | Complete                 |
 | Beta bug/suggestion intake and administrator triage              | Complete                 |
@@ -204,7 +204,7 @@ Users can:
 - Import and export the supported Standard MIDI File subset.
 - Render a local synthesized audio download without uploading it to OpenMIDI.
 
-The in-Studio clip collection has two explicit sources: **My clips** contains non-deleted exact pattern versions owned by the actor, while **Saved clips** contains only exact public-library versions the actor explicitly bookmarked. An exact version qualifying for both is represented once with owner authority taking precedence. Collection metadata is bounded and excludes note arrays; exact preview detail is loaded only on demand. Import rechecks current source and editable-workspace authority, creates one exact-version clip on a new MIDI track at the caller's playhead tick, and advances the workspace through its existing optimistic lock. CLIP-IMPORT-01 provides this data/command contract; CLIP-IMPORT-02 remains the visible drawer/menu consumer.
+The in-Studio clip collection has two explicit sources: **My clips** contains non-deleted exact pattern versions owned by the actor, while **Saved clips** contains only exact public-library versions the actor explicitly bookmarked. An exact version qualifying for both is represented once with owner authority taking precedence. Collection metadata is bounded and excludes note arrays; exact preview detail is loaded only on demand. Import rechecks current source and editable-workspace authority, creates one exact-version clip on a new MIDI track at the caller's playhead tick, and advances the workspace through its existing optimistic lock. CLIP-IMPORT-01 provides this data/command contract; CLIP-IMPORT-02 consumes it through the responsive **Add from clips** Studio drawer.
 
 The Studio must open quickly without network-bound media hydration. Playback uses deterministic versioned instrument definitions so a published revision remains reproducible.
 

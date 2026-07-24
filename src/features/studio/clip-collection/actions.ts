@@ -17,6 +17,7 @@ import {
 } from "@/server/repositories/studio-clip-collection";
 
 type Failure = { ok: false; code: StudioClipRepositoryFailure };
+export type StudioClipFailureCode = StudioClipRepositoryFailure;
 
 function failure(error: unknown): Failure {
   return {

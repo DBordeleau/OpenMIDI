@@ -16,7 +16,11 @@ test.describe("MIDI-only Studio v3", () => {
     const actorId = await ensureStudioActorProfile();
     const forbiddenRequests: string[] = [];
     page.on("request", (request) => {
-      if (/storage\/v1\/object/i.test(request.url())) {
+      if (
+        /storage\/v1\/object|functions\/v1|dicebear|avatar.*(?:png|svg)|\.(?:mp3|wav|ogg)(?:\?|$)/i.test(
+          request.url(),
+        )
+      ) {
         forbiddenRequests.push(request.url());
       }
     });
@@ -85,6 +89,128 @@ test.describe("MIDI-only Studio v3", () => {
     await page.getByRole("button", { name: "WAV" }).click();
     expect((await wavDownload).suggestedFilename()).toMatch(/\.wav$/);
 
+    const studioActionRequests: string[] = [];
+    const trackStudioAction = (request: import("@playwright/test").Request) => {
+      if (
+        request.method() === "POST" &&
+        request.headers()["next-action"] &&
+        request.url() === page.url()
+      )
+        studioActionRequests.push(request.headers()["next-action"]!);
+    };
+    page.on("request", trackStudioAction);
+    await expect(
+      page.getByRole("button", { name: "Add from clips" }),
+    ).toBeVisible();
+    expect(studioActionRequests).toEqual([]);
+    const studioUrlBeforeImport = page.url();
+    let mainFrameNavigations = 0;
+    const trackNavigation = (frame: import("@playwright/test").Frame) => {
+      if (frame === page.mainFrame()) mainFrameNavigations += 1;
+    };
+    page.on("framenavigated", trackNavigation);
+
+    await page.getByRole("button", { name: "Add from clips" }).click();
+    const drawer = page.getByRole("dialog", { name: "Add from clips" });
+    await expect(drawer).toBeVisible();
+    await expect
+      .poll(() => studioActionRequests.length)
+      .toBeGreaterThanOrEqual(1);
+    await drawer.getByRole("tab", { name: "Saved clips" }).click();
+    await expect(drawer.getByText("No saved clips yet")).toBeVisible();
+    await drawer.getByRole("tab", { name: "My clips" }).click();
+    const search = drawer.getByPlaceholder("Title or creator");
+    await search.fill("Warm keys");
+    const beforeSearch = studioActionRequests.length;
+    await drawer.getByRole("button", { name: "Search" }).click();
+    await expect
+      .poll(() => studioActionRequests.length)
+      .toBeGreaterThan(beforeSearch);
+    await expect(drawer.getByText("Warm keys", { exact: true })).toBeVisible();
+
+    const preview = drawer.getByRole("button", {
+      name: "Preview Warm keys",
+    });
+    const beforePreview = studioActionRequests.length;
+    await preview.click();
+    await expect
+      .poll(() => studioActionRequests.length)
+      .toBeGreaterThan(beforePreview);
+    await expect(
+      drawer.getByRole("button", { name: "Pause Warm keys" }),
+    ).toBeVisible();
+
+    const playhead = page.getByRole("slider", {
+      name: "Arrangement playhead",
+    });
+    await playhead.click({ position: { x: 96, y: 12 } });
+    await expect(playhead).toHaveAttribute("aria-valuenow", "480");
+    const beforeImport = studioActionRequests.length;
+    await drawer.getByRole("button", { name: "Add as new track" }).click();
+    await expect(
+      page.getByRole("button", {
+        name: /MIDI clip on Warm keys, Bar 1 · Beat 2,/,
+      }),
+    ).toBeFocused({ timeout: 15_000 });
+    await expect(
+      page.getByText("Warm keys was added on a new track at the playhead."),
+    ).toBeVisible();
+    await expect(drawer).toBeHidden();
+    expect(page.url()).toBe(studioUrlBeforeImport);
+    expect(mainFrameNavigations).toBe(0);
+    expect(studioActionRequests.length).toBe(beforeImport + 1);
+    await page.waitForTimeout(1_100);
+    expect(studioActionRequests.length).toBe(beforeImport + 1);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Add from clips" }).click();
+    await expect(drawer).toBeVisible();
+    await expect
+      .poll(() =>
+        drawer.evaluate((element) => ({
+          left: element.getBoundingClientRect().left,
+          right: element.getBoundingClientRect().right,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        })),
+      )
+      .toMatchObject({
+        left: 0,
+        right: 390,
+      });
+    await page.setViewportSize({ width: 320, height: 844 });
+    await expect
+      .poll(() =>
+        drawer.evaluate((element) => ({
+          left: element.getBoundingClientRect().left,
+          right: element.getBoundingClientRect().right,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        })),
+      )
+      .toMatchObject({
+        left: 0,
+        right: 320,
+      });
+    expect(
+      await drawer.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Add from clips" }),
+    ).toBeFocused();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByRole("button", { name: "Add from clips" }).click();
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveCSS("transform", "none");
+    await page.keyboard.press("Escape");
+    page.off("framenavigated", trackNavigation);
+    page.off("request", trackStudioAction);
+
     await page
       .getByRole("button", { name: "Publish immutable revision" })
       .click();
@@ -119,8 +245,8 @@ test.describe("MIDI-only Studio v3", () => {
         'clipCount',(select count(*) from public.arrangement_clips where arrangement_version_id='${revision.arrangementVersionId}')
       )::text`),
     ) as { trackCount: number; clipCount: number };
-    expect(counts.trackCount).toBe(2);
-    expect(counts.clipCount).toBe(4);
+    expect(counts.trackCount).toBe(3);
+    expect(counts.clipCount).toBe(5);
 
     const snapshotCount = Number(
       queryLocalDatabase(

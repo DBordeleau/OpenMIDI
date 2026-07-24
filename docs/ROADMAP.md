@@ -175,7 +175,7 @@ Status: Complete in the repository data/server contract. The forward migration, 
 
 Consume CLIP-IMPORT-01 in the Studio with musician-facing **My clips** and **Saved clips** sources, bounded search/filtering, on-demand preview, truthful disabled reasons, keyboard operation, and playhead-aware import. Apply the returned canonical workspace state and imported pattern payload without a full route reload.
 
-Status: Planned. Do not add another authority path or fall back to the older library-page workspace picker.
+Status: Complete. The responsive **Add from clips** Studio drawer lazy-loads owned or explicitly saved exact versions, submits bounded search deliberately, previews detail through the browser-only MIDI runtime on demand, and applies the import command's canonical manifest/hash/lock plus playback payload without a route reload or redundant autosave.
 
 ### PERF-01 â€” Bound production navigation request fanout
 

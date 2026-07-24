@@ -520,6 +520,13 @@ Editable sessions keep the next Add a track row pinned beneath the channels. Its
 pending MIDI lane uses the established dashed/accent state, pill actions, centered
 timeline copy, and semantic focus treatment; it is visibly provisional until a clip
 materializes it.
+The Studio footer has one **Add from clips** entry point. It opens as a compact
+right-side collection drawer on pointer layouts and a safe-area-aware bottom sheet
+on narrow viewports. **My clips** and **Saved clips** remain explicit sources;
+cards carry exact-version, creator, timing, preset, lineage, and availability
+context without turning the drawer into a detached library page. Preview and import
+are deliberate actions, unavailable saved versions remain legible, and a successful
+import returns focus to the new arrangement clip.
 The shared MIDI editor piano uses full white faces, shorter gradient black faces,
 warm semantic dividers, and accent/gold held-note feedback. Melodic gutters label
 only C rows while drum presets retain their mapped names; performance keys expose
