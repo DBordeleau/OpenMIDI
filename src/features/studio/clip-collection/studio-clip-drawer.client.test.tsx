@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -312,6 +313,51 @@ describe("StudioClipDrawer", () => {
     expect(runtimeInstances[1]!.prepare).toHaveBeenCalledOnce();
   });
 
+  it("keeps the newest preview authoritative when older detail resolves last", async () => {
+    const first =
+      deferred<Awaited<ReturnType<typeof getStudioClipDetailAction>>>();
+    const second =
+      deferred<Awaited<ReturnType<typeof getStudioClipDetailAction>>>();
+    vi.mocked(getStudioClipDetailAction).mockImplementation((input) => {
+      const { patternVersionId } = input as { patternVersionId: string };
+      return patternVersionId === item(1).patternVersionId
+        ? first.promise
+        : second.promise;
+    });
+    render(<Harness initiallyOpen />);
+    await screen.findByText("Clip 1");
+    fireEvent.click(screen.getByRole("button", { name: "Preview Clip 1" }));
+    await waitFor(() =>
+      expect(getStudioClipDetailAction).toHaveBeenCalledTimes(1),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Preview Clip 2" }));
+    await waitFor(() =>
+      expect(getStudioClipDetailAction).toHaveBeenCalledTimes(2),
+    );
+
+    second.resolve({ ok: true, detail: detail(item(2)) });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Pause Clip 2" }),
+      ).toBeVisible(),
+    );
+    expect(runtimeInstances).toHaveLength(1);
+    const secondRuntime = runtimeInstances[0]!;
+
+    first.resolve({ ok: true, detail: detail(item(1)) });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(runtimeInstances).toHaveLength(1);
+    expect(secondRuntime.dispose).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "Pause Clip 1" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pause Clip 2" })).toBeVisible();
+  });
+
   it("imports with exact source, live playhead authority, a fresh request id, and pending deduplication", async () => {
     const pending =
       deferred<Awaited<ReturnType<typeof importStudioClipAction>>>();
@@ -355,6 +401,71 @@ describe("StudioClipDrawer", () => {
       "maximum number of tracks",
     );
     expect(onImported).not.toHaveBeenCalled();
+  });
+
+  it("locks dismissal and second actions until successful canonical handoff applies once", async () => {
+    const onImported = vi.fn();
+    const successfulResult = {
+      workspaceId: uuid(700),
+    } as ImportStudioClipResult;
+    vi.mocked(importStudioClipAction).mockResolvedValue({
+      ok: true,
+      result: successfulResult,
+    });
+    render(<Harness initiallyOpen onImported={onImported} />);
+    const firstCard = (await screen.findByText("Clip 1")).closest("article")!;
+
+    await act(async () => {
+      fireEvent.click(
+        within(firstCard).getByRole("button", { name: "Add as new track" }),
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Added to the arrangement")).toBeVisible();
+    expect(onImported).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Add from clips" });
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close clip collection" }),
+    );
+    expect(dialog).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Close Add from clips" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("tab", { name: "Saved clips" })).toBeDisabled();
+    expect(screen.getByPlaceholderText("Title or creator")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Preview Clip 2" }),
+    ).toBeDisabled();
+    expect(
+      within(firstCard).getByRole("button", { name: "Add as new track" }),
+    ).toBeDisabled();
+
+    await waitFor(() => expect(onImported).toHaveBeenCalledOnce(), {
+      timeout: 1_000,
+    });
+    expect(onImported).toHaveBeenCalledWith(successfulResult);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Add from clips" }),
+      ).not.toBeInTheDocument(),
+    );
+    const trigger = screen.getByRole("button", { name: "Add from clips" });
+    expect(trigger).toHaveFocus();
+
+    fireEvent.click(trigger);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("dialog", { name: "Add from clips" }),
+      ).toBeVisible(),
+    );
+    expect(screen.getByRole("tab", { name: "Saved clips" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Preview Clip 1" }),
+    ).toBeEnabled();
+    expect(onImported).toHaveBeenCalledOnce();
   });
 
   it("reports stale authority and restores exact trigger focus after Escape", async () => {

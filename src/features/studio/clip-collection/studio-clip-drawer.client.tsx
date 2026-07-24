@@ -91,6 +91,7 @@ export function StudioClipDrawer({
   const descriptionId = useId();
   const panelRef = useRef<HTMLElement>(null);
   const requestSequence = useRef(0);
+  const previewRequestToken = useRef(0);
   const openRef = useRef(open);
   const importPendingRef = useRef(false);
   const collectionCache = useRef(
@@ -112,8 +113,10 @@ export function StudioClipDrawer({
   );
   const [preview, setPreview] = useState<PreviewState>(initialPreview);
   const [importingId, setImportingId] = useState<string | null>(null);
+  const [successHandoffPending, setSuccessHandoffPending] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [successTitle, setSuccessTitle] = useState<string | null>(null);
+  const interactionLocked = importingId !== null || successHandoffPending;
 
   useEffect(() => {
     openRef.current = open;
@@ -131,6 +134,7 @@ export function StudioClipDrawer({
 
   const stopPreview = useCallback(
     (nextStatus: PreviewState["status"] = "idle") => {
+      previewRequestToken.current += 1;
       clearPreviewTimer();
       previewRuntime.current?.pause();
       setPreview((current) => ({
@@ -142,6 +146,13 @@ export function StudioClipDrawer({
     },
     [clearPreviewTimer],
   );
+
+  const requestClose = useCallback(() => {
+    if (importPendingRef.current) return;
+    requestSequence.current += 1;
+    stopPreview();
+    onOpenChange(false);
+  }, [onOpenChange, stopPreview]);
 
   const loadCollection = useCallback(
     async (nextSource: Source, nextQuery: string) => {
@@ -179,6 +190,7 @@ export function StudioClipDrawer({
   useEffect(() => {
     if (!open) {
       requestSequence.current += 1;
+      previewRequestToken.current += 1;
       clearPreviewTimer();
       previewRuntime.current?.pause();
       return;
@@ -200,7 +212,7 @@ export function StudioClipDrawer({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !importPendingRef.current) {
         event.preventDefault();
-        onOpenChange(false);
+        requestClose();
         return;
       }
       if (event.key !== "Tab" || !panel) return;
@@ -231,10 +243,12 @@ export function StudioClipDrawer({
       document.body.style.overflow = previousOverflow;
       trigger?.focus();
     };
-  }, [onOpenChange, open, triggerRef]);
+  }, [open, requestClose, triggerRef]);
 
   useEffect(
     () => () => {
+      previewRequestToken.current += 1;
+      importPendingRef.current = false;
       clearPreviewTimer();
       clearCloseTimer();
       previewRuntime.current?.dispose();
@@ -243,7 +257,7 @@ export function StudioClipDrawer({
   );
 
   async function togglePreview(item: StudioClipItem) {
-    if (!item.canImport) return;
+    if (!item.canImport || importPendingRef.current) return;
     if (
       preview.patternVersionId === item.patternVersionId &&
       preview.status === "playing"
@@ -252,6 +266,7 @@ export function StudioClipDrawer({
       return;
     }
     stopPreview();
+    const requestToken = previewRequestToken.current;
     setPreview({
       patternVersionId: item.patternVersionId,
       status: "loading",
@@ -262,7 +277,12 @@ export function StudioClipDrawer({
       const response = await getStudioClipDetailAction({
         patternVersionId: item.patternVersionId,
       });
-      if (!openRef.current) return;
+      if (
+        requestToken !== previewRequestToken.current ||
+        !openRef.current ||
+        importPendingRef.current
+      )
+        return;
       if (!response.ok) {
         setPreview({
           patternVersionId: item.patternVersionId,
@@ -274,6 +294,12 @@ export function StudioClipDrawer({
       detail = response.detail;
       detailCache.current.set(item.patternVersionId, detail);
     }
+    if (
+      requestToken !== previewRequestToken.current ||
+      !openRef.current ||
+      importPendingRef.current
+    )
+      return;
     if (!detail.pattern || !detail.metadata.preset) {
       setPreview({
         patternVersionId: item.patternVersionId,
@@ -284,10 +310,19 @@ export function StudioClipDrawer({
       });
       return;
     }
+    let runtime: PublicMidiPreviewRuntime | null = null;
     try {
-      previewRuntime.current?.dispose();
-      const runtime = new PublicMidiPreviewRuntime();
+      runtime = new PublicMidiPreviewRuntime();
       await runtime.prepare(toPreviewEvents(detail));
+      if (
+        requestToken !== previewRequestToken.current ||
+        !openRef.current ||
+        importPendingRef.current
+      ) {
+        runtime.dispose();
+        return;
+      }
+      previewRuntime.current?.dispose();
       previewRuntime.current = runtime;
       window.dispatchEvent(
         new CustomEvent("openmidi:preview-play", {
@@ -300,11 +335,21 @@ export function StudioClipDrawer({
         }),
       );
       await runtime.play(0);
+      if (
+        requestToken !== previewRequestToken.current ||
+        !openRef.current ||
+        importPendingRef.current
+      ) {
+        runtime.dispose();
+        if (previewRuntime.current === runtime) previewRuntime.current = null;
+        return;
+      }
       const durationMs = Math.ceil(
         (detail.pattern.durationTicks * 60_000) / (120 * 480),
       );
+      const activeRuntime = runtime;
       previewTimer.current = setTimeout(() => {
-        runtime.pause();
+        activeRuntime.pause();
         setPreview(initialPreview);
       }, durationMs + 80);
       setPreview({
@@ -313,8 +358,14 @@ export function StudioClipDrawer({
         message: null,
       });
     } catch {
-      previewRuntime.current?.dispose();
-      previewRuntime.current = null;
+      runtime?.dispose();
+      if (previewRuntime.current === runtime) previewRuntime.current = null;
+      if (
+        requestToken !== previewRequestToken.current ||
+        !openRef.current ||
+        importPendingRef.current
+      )
+        return;
       setPreview({
         patternVersionId: item.patternVersionId,
         status: "error",
@@ -354,12 +405,21 @@ export function StudioClipDrawer({
     }
     setSuccessTitle(item.patternName);
     setImportingId(null);
-    importPendingRef.current = false;
+    setSuccessHandoffPending(true);
     clearCloseTimer();
     closeTimer.current = window.setTimeout(
       () => {
-        if (openRef.current) onOpenChange(false);
-        requestAnimationFrame(() => onImported(response.result));
+        closeTimer.current = null;
+        onOpenChange(false);
+        requestAnimationFrame(() => {
+          try {
+            onImported(response.result);
+          } finally {
+            importPendingRef.current = false;
+            setSuccessHandoffPending(false);
+            setSuccessTitle(null);
+          }
+        });
       },
       reduce ? 0 : 420,
     );
@@ -367,6 +427,8 @@ export function StudioClipDrawer({
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (importPendingRef.current) return;
+    stopPreview();
     setAppliedQuery(query.trim());
   }
 
@@ -387,9 +449,7 @@ export function StudioClipDrawer({
             type="button"
             aria-label="Close clip collection"
             className="bg-canvas/72 absolute inset-0 h-full w-full backdrop-blur-[3px]"
-            onClick={() => {
-              if (!importPendingRef.current) onOpenChange(false);
-            }}
+            onClick={requestClose}
           />
           <motion.aside
             ref={panelRef}
@@ -440,8 +500,8 @@ export function StudioClipDrawer({
                   type="button"
                   aria-label="Close Add from clips"
                   title="Close"
-                  disabled={importingId !== null}
-                  onClick={() => onOpenChange(false)}
+                  disabled={interactionLocked}
+                  onClick={requestClose}
                   className="border-strong text-muted hover:border-accent hover:text-accent grid size-11 shrink-0 place-items-center rounded-full border text-lg disabled:opacity-40"
                 >
                   <FiX aria-hidden />
@@ -466,7 +526,12 @@ export function StudioClipDrawer({
                     aria-selected={source === value}
                     aria-controls={`${titleId}-${value}`}
                     id={`${titleId}-${value}-tab`}
-                    onClick={() => setSource(value)}
+                    disabled={interactionLocked}
+                    onClick={() => {
+                      if (value === source) return;
+                      stopPreview();
+                      setSource(value);
+                    }}
                     onKeyDown={(event) => {
                       if (
                         event.key !== "ArrowLeft" &&
@@ -475,6 +540,7 @@ export function StudioClipDrawer({
                         return;
                       event.preventDefault();
                       const next = value === "owned" ? "saved" : "owned";
+                      stopPreview();
                       setSource(next);
                       document
                         .getElementById(`${titleId}-${next}-tab`)
@@ -506,6 +572,7 @@ export function StudioClipDrawer({
                   <input
                     value={query}
                     maxLength={80}
+                    disabled={interactionLocked}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Title or creator"
                     className="border-strong bg-canvas/70 min-h-11 w-full rounded-full border pr-3 pl-10 text-sm"
@@ -513,6 +580,7 @@ export function StudioClipDrawer({
                 </label>
                 <button
                   type="submit"
+                  disabled={interactionLocked}
                   className="border-strong hover:border-accent min-h-11 rounded-full border px-4 text-sm font-semibold"
                 >
                   Search
@@ -566,6 +634,7 @@ export function StudioClipDrawer({
                         onClick={() =>
                           void loadCollection(source, appliedQuery)
                         }
+                        disabled={interactionLocked}
                         className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full underline"
                       >
                         <FiRefreshCw aria-hidden /> Try again
@@ -606,7 +675,7 @@ export function StudioClipDrawer({
                         item={item}
                         preview={preview}
                         importing={importingId === item.patternVersionId}
-                        importDisabled={importingId !== null}
+                        importDisabled={interactionLocked}
                         onPreview={() => void togglePreview(item)}
                         onImport={() => void importClip(item)}
                       />
@@ -662,7 +731,7 @@ function ClipCollectionItem({
         <button
           type="button"
           onClick={onPreview}
-          disabled={!item.canImport || previewLoading}
+          disabled={!item.canImport || previewLoading || importDisabled}
           aria-label={
             previewing
               ? `Pause ${item.patternName}`
