@@ -90,11 +90,11 @@ export default async function MidiLibraryPage({
             <div className="flex flex-wrap gap-2">
               {viewer && (
                 <ButtonLink
-                  href="/library/saved"
+                  href="/library/collection"
                   variant="secondary"
                   prefetch={false}
                 >
-                  Saved clips
+                  Clip collection
                 </ButtonLink>
               )}
               <ButtonLink

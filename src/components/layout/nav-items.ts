@@ -21,7 +21,7 @@ export const exploreLinks: readonly NavLink[] = [
 
 export const accountLinks: readonly NavLink[] = [
   { href: "/projects", label: "My projects" },
-  { href: "/library/saved", label: "Saved clips" },
+  { href: "/library/collection", label: "Clip collection" },
   { href: "/contributions", label: "Contributions" },
   { href: "/settings/profile", label: "Edit profile" },
 ];
@@ -71,6 +71,10 @@ export function isAccountLinkCurrent(pathname: string, href: string) {
         pathname === "/contributions" ||
         (pathname.startsWith("/projects/") &&
           pathname.includes("/contributions"))
+      );
+    case "/library/collection":
+      return (
+        pathname === "/library/collection" || pathname === "/library/saved"
       );
     default:
       return pathname === href;

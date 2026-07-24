@@ -399,16 +399,17 @@ test.describe("public MIDI library", () => {
     await page.getByRole("button", { name: "Save clip" }).click();
     await expect(page.getByText("Saved to your private clips.")).toBeVisible();
     await page.goto("/library/saved");
+    await expect(page).toHaveURL(/\/library\/collection\?source=saved$/);
     await expect(
       page.getByRole("heading", { name: fixture.title }),
     ).toBeVisible();
     const savedCard = page
       .locator("article")
       .filter({ hasText: fixture.title });
-    await expect(savedCard.getByText("External Composer")).toBeVisible();
     await expect(
-      savedCard.getByText(/Commercial reuse · CC BY 4.0/).first(),
+      savedCard.getByText("Saved version by Library Detail Owner"),
     ).toBeVisible();
+    await expect(savedCard.getByText("CC BY 4.0")).toBeVisible();
     await savedCard
       .getByRole("button", { name: "Import exact version" })
       .click();

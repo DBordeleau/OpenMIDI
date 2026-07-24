@@ -177,6 +177,12 @@ Consume CLIP-IMPORT-01 in the Studio with musician-facing **My clips** and **Sav
 
 Status: Complete. The responsive **Add from clips** Studio drawer lazy-loads owned or explicitly saved exact versions, submits bounded search deliberately, previews detail through the browser-only MIDI runtime on demand, and applies the import command's canonical manifest/hash/lock plus playback payload without a route reload or redundant autosave.
 
+### COLLECTION-01 — Latest-owned clips and one coherent collection
+
+Unify the full private collection and Studio source model. **My clips** presents one active owned pattern identity at its latest immutable version, while **Saved clips** preserves each exact bookmarked library version. Keep older owned versions as immutable history, deduplicate only the same exact latest owned-and-saved version with owner authority, and retain an explicitly saved older owned version as its own bookmark.
+
+Status: Complete in the repository. Canonical `/library/collection` uses URL-backed owned/saved sources and bounded search, reads only selected-source metadata without note arrays, loads browser-local preview detail on demand, retains saved reuse/export/editor/fork/import controls, and shares semantics with Studio. `/library/saved` is a compatibility redirect to the saved source.
+
 ### PERF-01 â€” Bound production navigation request fanout
 
 Prevent shared-header and authenticated primary-navigation links from prefetching merely because they enter the viewport, then restore normal Next.js prefetch after pointer or keyboard intent. Keep the shared footer cold, preserve the signed-out-first Auth-independent shell, and leave authorization, Studio lifecycle, and data freshness unchanged.

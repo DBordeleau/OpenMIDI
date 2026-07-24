@@ -1,7 +1,7 @@
 begin;
 reset role;
 create extension if not exists pgtap with schema extensions;
-select plan(47);
+select plan(60);
 
 insert into auth.users(
   instance_id,id,aud,role,email,encrypted_password,raw_app_meta_data,raw_user_meta_data,created_at,updated_at
@@ -41,6 +41,20 @@ select ok(not has_function_privilege(
 select ok(has_function_privilege(
   'authenticated','public.import_studio_clip(uuid,text,uuid,uuid,integer,integer)','execute'
 ),'authenticated actors receive only the bounded import command');
+select ok(has_function_privilege(
+  'authenticated','public.list_studio_clip_collection(text,text,integer)','execute'
+),'authenticated actors can execute the bounded collection projection');
+select ok(
+  (select prosecdef from pg_proc
+    where oid='public.list_studio_clip_collection(text,text,integer)'::regprocedure),
+  'collection projection remains security definer'
+);
+select is(
+  (select proconfig from pg_proc
+    where oid='public.list_studio_clip_collection(text,text,integer)'::regprocedure),
+  array['search_path=""']::text[],
+  'collection projection pins an empty search path'
+);
 select ok(position('noteId' in
   pg_get_functiondef('public.list_studio_clip_collection(text,text,integer)'::regprocedure))=0,
   'collection projection does not aggregate note arrays');
@@ -53,18 +67,23 @@ insert into public.midi_patterns(
 ('ca100000-0000-4000-8000-000000000003','ca000000-0000-4000-8000-000000000002','ca110000-0000-4000-8000-000000000003','Reusable library phrase','public','cc-by-4.0-attestation-v1',now()),
 ('ca100000-0000-4000-8000-000000000004','ca000000-0000-4000-8000-000000000002','ca110000-0000-4000-8000-000000000004','Reference library phrase','private',null,null),
 ('ca100000-0000-4000-8000-000000000005','ca000000-0000-4000-8000-000000000002','ca110000-0000-4000-8000-000000000005','Hidden library phrase','public','cc-by-4.0-attestation-v1',now()),
-('ca100000-0000-4000-8000-000000000006','ca000000-0000-4000-8000-000000000002','ca110000-0000-4000-8000-000000000006','Unsaved third-party phrase','private',null,null);
+('ca100000-0000-4000-8000-000000000006','ca000000-0000-4000-8000-000000000002','ca110000-0000-4000-8000-000000000006','Unsaved third-party phrase','private',null,null),
+('ca100000-0000-4000-8000-000000000007','ca000000-0000-4000-8000-000000000001','ca110000-0000-4000-8000-000000000007','Deleted owned phrase','private',null,null);
+update public.midi_patterns set deleted_at=now()
+where id='ca100000-0000-4000-8000-000000000007';
 insert into public.midi_pattern_versions(
   id,midi_pattern_id,version_number,create_request_id,creator_id,creator_credit_name,
   parent_pattern_version_id,source_pattern_version_id,ppq,duration_ticks,note_count,
   content_sha256,reuse_license_code,reuse_license_version,reuse_license_url
 ) values
-('ca200000-0000-4000-8000-000000000001','ca100000-0000-4000-8000-000000000001',1,'ca210000-0000-4000-8000-000000000001','ca000000-0000-4000-8000-000000000001','Clip Actor',null,null,480,960,2,repeat('1',64),null,null,null),
+('ca200000-0000-4000-8000-000000000001','ca100000-0000-4000-8000-000000000001',1,'ca210000-0000-4000-8000-000000000001','ca000000-0000-4000-8000-000000000001','Clip Actor',null,null,480,960,2,repeat('1',64),'CC-BY-4.0','4.0','https://creativecommons.org/licenses/by/4.0/'),
 ('ca200000-0000-4000-8000-000000000002','ca100000-0000-4000-8000-000000000002',1,'ca210000-0000-4000-8000-000000000002','ca000000-0000-4000-8000-000000000001','Clip Actor',null,null,480,960,1,repeat('2',64),'CC-BY-4.0','4.0','https://creativecommons.org/licenses/by/4.0/'),
 ('ca200000-0000-4000-8000-000000000003','ca100000-0000-4000-8000-000000000003',1,'ca210000-0000-4000-8000-000000000003','ca000000-0000-4000-8000-000000000002','Clip Owner',null,'ca200000-0000-4000-8000-000000000002',480,960,2,repeat('3',64),'CC-BY-4.0','4.0','https://creativecommons.org/licenses/by/4.0/'),
 ('ca200000-0000-4000-8000-000000000004','ca100000-0000-4000-8000-000000000004',1,'ca210000-0000-4000-8000-000000000004','ca000000-0000-4000-8000-000000000002','Clip Owner',null,null,480,960,1,repeat('4',64),null,null,null),
 ('ca200000-0000-4000-8000-000000000005','ca100000-0000-4000-8000-000000000005',1,'ca210000-0000-4000-8000-000000000005','ca000000-0000-4000-8000-000000000002','Clip Owner',null,null,480,960,1,repeat('5',64),'CC-BY-4.0','4.0','https://creativecommons.org/licenses/by/4.0/'),
-('ca200000-0000-4000-8000-000000000006','ca100000-0000-4000-8000-000000000006',1,'ca210000-0000-4000-8000-000000000006','ca000000-0000-4000-8000-000000000002','Clip Owner',null,null,480,960,1,repeat('6',64),null,null,null);
+('ca200000-0000-4000-8000-000000000006','ca100000-0000-4000-8000-000000000006',1,'ca210000-0000-4000-8000-000000000006','ca000000-0000-4000-8000-000000000002','Clip Owner',null,null,480,960,1,repeat('6',64),null,null,null),
+('ca200000-0000-4000-8000-000000000007','ca100000-0000-4000-8000-000000000001',2,'ca210000-0000-4000-8000-000000000007','ca000000-0000-4000-8000-000000000001','Clip Actor','ca200000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000001',480,1440,1,repeat('7',64),null,null,null),
+('ca200000-0000-4000-8000-000000000008','ca100000-0000-4000-8000-000000000007',1,'ca210000-0000-4000-8000-000000000008','ca000000-0000-4000-8000-000000000001','Clip Actor',null,null,480,480,1,repeat('8',64),null,null,null);
 insert into public.midi_pattern_notes(
   midi_pattern_version_id,note_id,start_tick,duration_ticks,pitch,velocity
 ) values
@@ -75,7 +94,9 @@ insert into public.midi_pattern_notes(
 ('ca200000-0000-4000-8000-000000000003','ca220000-0000-4000-8000-000000000005',480,240,59,96),
 ('ca200000-0000-4000-8000-000000000004','ca220000-0000-4000-8000-000000000006',0,480,72,90),
 ('ca200000-0000-4000-8000-000000000005','ca220000-0000-4000-8000-000000000007',0,480,69,90),
-('ca200000-0000-4000-8000-000000000006','ca220000-0000-4000-8000-000000000008',0,480,65,90);
+('ca200000-0000-4000-8000-000000000006','ca220000-0000-4000-8000-000000000008',0,480,65,90),
+('ca200000-0000-4000-8000-000000000007','ca220000-0000-4000-8000-000000000009',240,480,62,95),
+('ca200000-0000-4000-8000-000000000008','ca220000-0000-4000-8000-000000000010',0,240,64,90);
 
 insert into public.midi_library_listings(
   id,midi_pattern_id,midi_pattern_version_id,owner_id,request_id,request_payload_sha256,
@@ -88,7 +109,8 @@ insert into public.midi_library_listings(
 ('ca300000-0000-4000-8000-000000000001','ca100000-0000-4000-8000-000000000002','ca200000-0000-4000-8000-000000000002','ca000000-0000-4000-8000-000000000001','ca310000-0000-4000-8000-000000000001',repeat('a',64),repeat('b',64),'Owned and saved phrase','','ClipActor','Clip Actor','Clip Actor','commercial_reuse','original','midi-library-commercial-attestation-v1','ca000000-0000-4000-8000-000000000001','melody','warm-keys',1,'keys',960,2,1,67,67,'monophonic',to_tsvector('simple','Owned and saved phrase'),null,null,null),
 ('ca300000-0000-4000-8000-000000000002','ca100000-0000-4000-8000-000000000003','ca200000-0000-4000-8000-000000000003','ca000000-0000-4000-8000-000000000002','ca310000-0000-4000-8000-000000000002',repeat('c',64),repeat('d',64),'Reusable library phrase','','ClipOwner','Clip Owner','Clip Owner','commercial_reuse','authorized_adaptation','midi-library-commercial-attestation-v1','ca000000-0000-4000-8000-000000000002','rhythm','warm-keys',1,'keys',960,2,2,55,59,'monophonic',to_tsvector('simple','Reusable library phrase'),'https://example.test/source','CC BY 4.0 source',null),
 ('ca300000-0000-4000-8000-000000000003','ca100000-0000-4000-8000-000000000004','ca200000-0000-4000-8000-000000000004','ca000000-0000-4000-8000-000000000002','ca310000-0000-4000-8000-000000000003',repeat('e',64),repeat('f',64),'Reference library phrase','','ClipOwner','Clip Owner','Clip Owner','reference_only','original','midi-library-reference-display-attestation-v1','ca000000-0000-4000-8000-000000000002','melody','soft-lead',1,'leads',960,2,1,72,72,'monophonic',to_tsvector('simple','Reference library phrase'),null,null,null),
-('ca300000-0000-4000-8000-000000000004','ca100000-0000-4000-8000-000000000005','ca200000-0000-4000-8000-000000000005','ca000000-0000-4000-8000-000000000002','ca310000-0000-4000-8000-000000000004',repeat('0',64),repeat('9',64),'Hidden library phrase','','ClipOwner','Clip Owner','Clip Owner','commercial_reuse','original','midi-library-commercial-attestation-v1','ca000000-0000-4000-8000-000000000002','melody','soft-lead',1,'leads',960,2,1,69,69,'monophonic',to_tsvector('simple','Hidden library phrase'),null,null,now());
+('ca300000-0000-4000-8000-000000000004','ca100000-0000-4000-8000-000000000005','ca200000-0000-4000-8000-000000000005','ca000000-0000-4000-8000-000000000002','ca310000-0000-4000-8000-000000000004',repeat('0',64),repeat('9',64),'Hidden library phrase','','ClipOwner','Clip Owner','Clip Owner','commercial_reuse','original','midi-library-commercial-attestation-v1','ca000000-0000-4000-8000-000000000002','melody','soft-lead',1,'leads',960,2,1,69,69,'monophonic',to_tsvector('simple','Hidden library phrase'),null,null,now()),
+('ca300000-0000-4000-8000-000000000005','ca100000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000001','ca000000-0000-4000-8000-000000000001','ca310000-0000-4000-8000-000000000005',repeat('7',64),repeat('8',64),'Private owned phrase v1','','ClipActor','Clip Actor','Clip Actor','commercial_reuse','original','midi-library-commercial-attestation-v1','ca000000-0000-4000-8000-000000000001','melody','warm-keys',1,'keys',960,2,2,60,64,'monophonic',to_tsvector('simple','Private owned phrase v1'),null,null,null);
 insert into public.midi_pattern_external_credits(
   id,listing_id,midi_pattern_version_id,position,credited_name,role,source_url,source_terms
 ) values(
@@ -102,7 +124,8 @@ insert into public.saved_midi_patterns(
 ('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000002','ca300000-0000-4000-8000-000000000001','ca330000-0000-4000-8000-000000000001'),
 ('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000003','ca300000-0000-4000-8000-000000000002','ca330000-0000-4000-8000-000000000002'),
 ('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000004','ca300000-0000-4000-8000-000000000003','ca330000-0000-4000-8000-000000000003'),
-('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000005','ca300000-0000-4000-8000-000000000004','ca330000-0000-4000-8000-000000000004');
+('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000005','ca300000-0000-4000-8000-000000000004','ca330000-0000-4000-8000-000000000004'),
+('ca000000-0000-4000-8000-000000000001','ca200000-0000-4000-8000-000000000001','ca300000-0000-4000-8000-000000000005','ca330000-0000-4000-8000-000000000005');
 
 insert into public.projects(id,owner_id,create_request_id,title,license_code) values
 ('ca400000-0000-4000-8000-000000000001','ca000000-0000-4000-8000-000000000001','ca410000-0000-4000-8000-000000000001','Actor project','all-rights-reserved'),
@@ -221,8 +244,8 @@ select private.replace_workspace_projection_v3(
 set local role authenticated;
 set local request.jwt.claim.sub='ca000000-0000-4000-8000-000000000001';
 select is(
-  jsonb_array_length(public.list_studio_clip_collection()->'items'),5,
-  'owned and explicitly saved exact versions form one bounded collection'
+  jsonb_array_length(public.list_studio_clip_collection()->'items'),6,
+  'latest owned identities and explicitly saved exact versions form one bounded collection'
 );
 select is(
   (select count(*) from jsonb_array_elements(public.list_studio_clip_collection()->'items') item
@@ -241,15 +264,71 @@ select ok(
 );
 select is(
   jsonb_array_length(public.list_studio_clip_collection('owned')->'items'),2,
-  'My clips contains every non-deleted actor-owned exact version'
+  'My clips contains one latest version for each active actor-owned pattern'
 );
 select is(
-  jsonb_array_length(public.list_studio_clip_collection('saved')->'items'),4,
+  jsonb_array_length(public.list_studio_clip_collection('saved')->'items'),5,
   'Saved clips contains only explicit exact-version bookmarks'
 );
+select ok(
+  exists(
+    select 1 from jsonb_array_elements(public.list_studio_clip_collection('owned')->'items') item
+    where item->>'patternVersionId'='ca200000-0000-4000-8000-000000000007'
+      and (item->>'versionNumber')::integer=2
+  ),
+  'My clips selects the latest immutable version for a multi-version owned pattern'
+);
+select ok(
+  not exists(
+    select 1 from jsonb_array_elements(public.list_studio_clip_collection('owned')->'items') item
+    where item->>'patternVersionId'='ca200000-0000-4000-8000-000000000001'
+  ),
+  'older owned versions stay outside the ordinary My clips list'
+);
 select is(
-  jsonb_array_length(public.list_studio_clip_collection('all','private owned',100)->'items'),1,
-  'bounded search filters collection metadata without loading notes'
+  (select (item->>'versionCount')::integer
+    from jsonb_array_elements(public.list_studio_clip_collection('owned')->'items') item
+    where item->>'patternVersionId'='ca200000-0000-4000-8000-000000000007'),
+  2,
+  'latest owned metadata reports the bounded immutable history count'
+);
+select is(
+  (select item->>'source'
+    from jsonb_array_elements(public.list_studio_clip_collection('saved')->'items') item
+    where item->>'patternVersionId'='ca200000-0000-4000-8000-000000000001'),
+  'saved',
+  'an explicitly saved older owned version remains a distinct exact bookmark'
+);
+select ok(
+  not exists(
+    select 1 from jsonb_array_elements(public.list_studio_clip_collection('owned')->'items') item
+    where item->>'patternId'='ca100000-0000-4000-8000-000000000007'
+  ),
+  'deleted owned pattern identities remain excluded'
+);
+select is(
+  public.list_studio_clip_collection('owned')->'items'->0->>'patternVersionId',
+  'ca200000-0000-4000-8000-000000000002',
+  'latest-owned results use deterministic update-time and stable-ID ordering'
+);
+select is(
+  jsonb_array_length(public.list_studio_clip_collection('all',null,1)->'items'),
+  1,
+  'the caller-selected result bound is applied after exact-version deduplication'
+);
+select throws_ok(
+  $$select public.list_studio_clip_collection('owned',repeat('x',81),100)$$,
+  '22023','studio_clip_collection_invalid',
+  'collection search rejects input beyond the 80-character bound'
+);
+select throws_ok(
+  $$select public.list_studio_clip_collection('owned',null,101)$$,
+  '22023','studio_clip_collection_invalid',
+  'collection result limits cannot exceed 100 rows'
+);
+select is(
+  jsonb_array_length(public.list_studio_clip_collection('all','private owned',100)->'items'),2,
+  'bounded search retains the matching latest identity and its distinct exact bookmark without loading notes'
 );
 select ok(
   not ((public.list_studio_clip_collection()->'items'->0) ? 'notes'),
@@ -453,6 +532,11 @@ select throws_ok(
   'project owner or reviewer cannot mutate the author-owned contribution workspace'
 );
 set local request.jwt.claim.sub='ca000000-0000-4000-8000-000000000003';
+select is(
+  jsonb_array_length(public.list_studio_clip_collection()->'items'),
+  0,
+  'unrelated authenticated actors cannot enumerate another private collection'
+);
 select throws_ok(
   $$select public.import_studio_clip(
     'ca200000-0000-4000-8000-000000000003','owned',
