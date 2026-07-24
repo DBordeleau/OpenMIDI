@@ -24,6 +24,7 @@ export function AccountMenu({ viewer }: { viewer: ViewerIdentity }) {
       <NavMenu
         label="Account menu"
         align="end"
+        panelClassName="w-72"
         triggerClassName="group inline-flex shrink-0 items-center gap-1.5 rounded-full pl-0.5 transition-colors"
         triggerContent={({ open }) => (
           <>

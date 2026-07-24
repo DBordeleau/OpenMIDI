@@ -20,7 +20,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: ReactNode }>) {
+  modal,
+}: Readonly<{ children: ReactNode; modal: ReactNode }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
       {/* dvh, not vh: mobile browser chrome expands and collapses, and the
@@ -32,6 +33,7 @@ export default function RootLayout({
             <SkipLink />
             <ConditionalHeader />
             <div className="flex-1">{children}</div>
+            {modal}
             <ConditionalFooter />
             <ConditionalMobileNav />
           </div>

@@ -150,6 +150,9 @@ describe("SiteHeader", () => {
 
     const trigger = await screen.findByRole("button", { name: "Account menu" });
     fireEvent.click(trigger);
+    const panelId = trigger.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+    expect(document.getElementById(panelId!)).toHaveClass("right-0", "w-72");
 
     expect(
       await screen.findByRole("link", { name: "View profile" }),

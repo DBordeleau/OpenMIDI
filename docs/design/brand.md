@@ -362,7 +362,11 @@ _not_ ARIA menu roles, so Tab order stays predictable over ordinary links) that
 closes on Escape, outside pointerdown, focus-out, and any completed navigation.
 Open-ness is stored as _the route it was opened on_, so navigating closes it
 without an effect chasing the pathname. The trigger chevron rotates 180° when
-open.
+open. On desktop, Explore is start-aligned below its trigger in a compact panel,
+while Account is end-aligned below the avatar in a wider panel; their distinct
+widths keep those two trigger relationships visually legible even when the
+controls sit close together. The mobile renderers continue to share one
+bottom-sheet origin above the tab bar.
 
 The panel wears `.nav-glass` (`globals.css`), not a flat `bg-surface-raised`
 fill: the `.studio-glass` blur/saturate treatment plus a coral corner bloom, a
@@ -416,11 +420,16 @@ entering** the Studio (on the way out the header mounts fresh, already correct):
    `scrollbar-gutter: stable` so the track is always reserved.
 
 **Sign-in modal** — [`SignInModal`](../../src/app/sign-in/_components/sign-in-modal.client.tsx)
-presents sign-in as a focused modal over a blurred backdrop: a warm scale/fade
-entrance and a fade-out on close (Escape, backdrop, or the icon button) that routes
-home. It wears the shared `.dash-card` glass with the lit coral→gold top edge, so
-signing in looks like the room you are about to walk into. The Google button is a
-white pill with the 4-colour Google mark.
+presents sign-in as a focused modal over a blurred backdrop. A soft navigation
+to `/sign-in` uses the root parallel modal slot, keeping the opening route
+mounted behind the dialog; closing after the exit animation returns through
+history and restores the exact trigger. A direct load or refresh of `/sign-in`
+keeps the full-page fallback and closes home. Both presentations reuse the same
+server-renderable sign-in content and the same warm scale/fade entrance,
+focus-trapped lifecycle, scroll containment, and reduced-motion behavior. The
+card wears the shared `.dash-card` glass with the lit coral→gold top edge, so
+signing in looks like the room you are about to walk into. The Google button is
+a white pill with the 4-colour Google mark.
 
 Its composition is **type and space, not ornament**: the wordmark to anchor the
 modal when it is reached directly, one headline, one line of context, one

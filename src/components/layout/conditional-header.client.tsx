@@ -33,7 +33,7 @@ export function ConditionalHeader() {
   // Explore and account dropdown panels escape its own box.
   const [collapsing, setCollapsing] = useState(false);
 
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/sign-in") return null;
 
   const collapsed = { height: 0, opacity: 0, y: -18 };
 

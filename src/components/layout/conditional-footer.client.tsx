@@ -10,7 +10,7 @@ import { SiteFooter } from "./site-footer";
  */
 export function ConditionalFooter() {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/sign-in") return null;
   if (pathname?.startsWith("/studio")) return null;
   return <SiteFooter />;
 }

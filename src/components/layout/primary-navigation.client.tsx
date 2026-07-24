@@ -41,6 +41,7 @@ export function PrimaryNavigation() {
       </IntentPrefetchLink>
       <NavMenu
         label="Explore"
+        panelClassName="w-60"
         triggerClassName={topLevelClassName(exploreCurrent)}
         triggerContent={({ open }) => (
           <>

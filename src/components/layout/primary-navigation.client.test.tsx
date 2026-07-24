@@ -73,6 +73,8 @@ describe("PrimaryNavigation", () => {
   it("groups discovery destinations behind Explore", () => {
     render(<PrimaryNavigation />);
     const nav = openExplore();
+    const trigger = within(nav).getByRole("button", { name: "Explore" });
+    const panelId = trigger.getAttribute("aria-controls");
 
     for (const [name, href] of [
       ["MIDI Library", "/library"],
@@ -83,9 +85,21 @@ describe("PrimaryNavigation", () => {
         "href",
         href,
       );
-    expect(
-      within(nav).getByRole("button", { name: "Explore" }),
-    ).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(panelId).toBeTruthy();
+    expect(document.getElementById(panelId!)).toHaveClass("left-0", "w-60");
+  });
+
+  it("closes on Escape and restores focus to the Explore trigger", () => {
+    render(<PrimaryNavigation />);
+    const nav = openExplore();
+    const trigger = within(nav).getByRole("button", { name: "Explore" });
+    within(nav).getByRole("link", { name: "MIDI Library" }).focus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).toHaveFocus();
   });
 
   it("marks Explore current for any destination it owns", () => {
