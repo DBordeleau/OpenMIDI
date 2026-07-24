@@ -11,7 +11,10 @@ import type {
   MidiStemDraft,
   MidiStemVersion,
 } from "@/features/midi/stems/types";
-import { IntegratedMidiComposer } from "./integrated-midi-composer.client";
+import {
+  IntegratedMidiComposer,
+  type FinalizePatternInput,
+} from "./integrated-midi-composer.client";
 import {
   midiEditorDeviceDraftKey,
   type MidiEditorDraftTarget,
@@ -192,18 +195,36 @@ describe("IntegratedMidiComposer", () => {
     ).toBeVisible();
   });
 
-  it("uses a stable apply intent for changed MIDI and retains the draft after failure", async () => {
-    const onFinalize = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, message: "Workspace failed" })
-      .mockResolvedValueOnce({ ok: true, message: "Applied" });
-    render(
+  it("replays one apply identity after a same-content autosave and remount", async () => {
+    const freezePattern = vi.fn(
+      async (input: {
+        patternRequestId: string | null;
+        versionRequestId: string | null;
+        trackId: string;
+        clipId: string;
+      }) => input,
+    );
+    let saveAttempts = 0;
+    const onFinalize = vi.fn(async (input: FinalizePatternInput) => {
+      await freezePattern({
+        patternRequestId: input.patternRequestId,
+        versionRequestId: input.versionRequestId,
+        trackId: input.appliedTrackId,
+        clipId: input.appliedClipId,
+      });
+      saveAttempts += 1;
+      return saveAttempts === 1
+        ? { ok: false as const, message: "Workspace failed" }
+        : { ok: true as const, message: "Applied" };
+    });
+    const target = {
+      ...clipTarget,
+      version: { ...clipVersion, contentSha256: "b".repeat(64) },
+    };
+    const view = render(
       <IntegratedMidiComposer
         {...baseProps}
-        target={{
-          ...clipTarget,
-          version: { ...clipVersion, contentSha256: "b".repeat(64) },
-        }}
+        target={target}
         onFinalize={onFinalize}
       />,
     );
@@ -238,15 +259,42 @@ describe("IntegratedMidiComposer", () => {
     expect(firstIntent.patternRequestId).toMatch(/^[0-9a-f-]{36}$/i);
     expect(localStorage.length).toBeGreaterThan(0);
 
-    expect(await host.finalize(input)).toEqual({
+    expect(
+      await host.persistDraft!({
+        name: clipVersion.name,
+        defaultPresetId: clipVersion.defaultPresetId,
+        defaultPresetVersion: 1,
+        ppq: 480,
+        durationTicks: clipVersion.durationTicks,
+        notes: clipVersion.notes,
+      }),
+    ).toMatchObject({ ok: true });
+    view.unmount();
+
+    const hostCount = editor.hosts.length;
+    render(
+      <IntegratedMidiComposer
+        {...baseProps}
+        target={target}
+        onFinalize={onFinalize}
+      />,
+    );
+    await waitFor(() => expect(editor.hosts.length).toBeGreaterThan(hostCount));
+    const reopenedHost = editor.hosts.at(-1)!;
+    expect(await reopenedHost.finalize(input)).toEqual({
       ok: true,
       message: "Applied",
     });
     expect(onFinalize.mock.calls[1]![0]).toMatchObject({
       patternRequestId: firstIntent.patternRequestId,
       versionRequestId: firstIntent.versionRequestId,
+      appliedTrackId: firstIntent.appliedTrackId,
       appliedClipId: firstIntent.appliedClipId,
     });
+    expect(freezePattern).toHaveBeenCalledTimes(2);
+    expect(freezePattern.mock.calls[1]![0]).toEqual(
+      freezePattern.mock.calls[0]![0],
+    );
     expect(localStorage.length).toBe(0);
   });
 

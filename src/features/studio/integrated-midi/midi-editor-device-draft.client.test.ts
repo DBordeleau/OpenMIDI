@@ -41,6 +41,8 @@ const content = {
     },
   ],
 };
+const contentFingerprint = "b".repeat(64);
+const changedContentFingerprint = "c".repeat(64);
 
 beforeEach(() => localStorage.clear());
 
@@ -72,6 +74,7 @@ describe("MIDI editor device drafts", () => {
     const first = writeMidiEditorDeviceDraft({
       target: baseTarget,
       content,
+      contentFingerprint,
       expectedLocalLockVersion: null,
     });
     expect(first.ok).toBe(true);
@@ -79,6 +82,7 @@ describe("MIDI editor device drafts", () => {
     const second = writeMidiEditorDeviceDraft({
       target: baseTarget,
       content: { ...content, name: "Night keys two" },
+      contentFingerprint: changedContentFingerprint,
       expectedLocalLockVersion: first.record.localLockVersion,
     });
     expect(second.ok).toBe(true);
@@ -115,6 +119,7 @@ describe("MIDI editor device drafts", () => {
         {
           target: baseTarget,
           content,
+          contentFingerprint,
           expectedLocalLockVersion: null,
         },
         { now: savedAt },
@@ -132,6 +137,7 @@ describe("MIDI editor device drafts", () => {
       writeMidiEditorDeviceDraft({
         target: baseTarget,
         content,
+        contentFingerprint,
         expectedLocalLockVersion: null,
       }).ok,
     ).toBe(true);
@@ -169,6 +175,7 @@ describe("MIDI editor device drafts", () => {
           {
             target,
             content: { ...content, name: `Track ${index}` },
+            contentFingerprint: index.toString(16).padStart(64, "0"),
             expectedLocalLockVersion: null,
           },
           { now: new Date(Date.UTC(2026, 6, 1, 0, 0, index)) },
@@ -196,10 +203,11 @@ describe("MIDI editor device drafts", () => {
     ).toMatchObject({ trackId: uuid(120), name: "Track 20" });
   });
 
-  it("retains one finalization intent across retries and clears it on the next autosave", () => {
+  it("preserves a finalization intent for the same canonical content and invalidates it for changed content", () => {
     const initial = writeMidiEditorDeviceDraft({
       target: baseTarget,
       content,
+      contentFingerprint,
       expectedLocalLockVersion: null,
     });
     expect(initial.ok).toBe(true);
@@ -211,7 +219,7 @@ describe("MIDI editor device drafts", () => {
         target: baseTarget,
         expectedLocalLockVersion: initial.record.localLockVersion,
         content,
-        contentFingerprint: "b".repeat(64),
+        contentFingerprint,
       },
       { randomUUID },
     );
@@ -222,18 +230,60 @@ describe("MIDI editor device drafts", () => {
         target: baseTarget,
         expectedLocalLockVersion: first.record.localLockVersion,
         content,
-        contentFingerprint: "b".repeat(64),
+        contentFingerprint,
       },
       { randomUUID },
     );
     expect(second).toEqual(first);
 
-    const autosaved = writeMidiEditorDeviceDraft({
+    expect(
+      ensureMidiEditorFinalizationIntent(
+        {
+          target: baseTarget,
+          expectedLocalLockVersion: initial.record.localLockVersion,
+          content,
+          contentFingerprint,
+        },
+        { randomUUID },
+      ),
+    ).toEqual({ ok: false, code: "conflict" });
+
+    const sameContentAutosave = writeMidiEditorDeviceDraft({
       target: baseTarget,
-      content: { ...content, name: "Edited after failure" },
+      content,
+      contentFingerprint,
       expectedLocalLockVersion: first.record.localLockVersion,
     });
-    expect(autosaved.ok).toBe(true);
-    if (autosaved.ok) expect(autosaved.record.finalizationIntent).toBeNull();
+    expect(sameContentAutosave.ok).toBe(true);
+    if (!sameContentAutosave.ok) return;
+    expect(sameContentAutosave.record.finalizationIntent).toEqual(
+      first.record.finalizationIntent,
+    );
+
+    const changedContentAutosave = writeMidiEditorDeviceDraft({
+      target: baseTarget,
+      content: { ...content, name: "Edited after failure" },
+      contentFingerprint: changedContentFingerprint,
+      expectedLocalLockVersion: sameContentAutosave.record.localLockVersion,
+    });
+    expect(changedContentAutosave.ok).toBe(true);
+    if (!changedContentAutosave.ok) return;
+    expect(changedContentAutosave.record.finalizationIntent).toBeNull();
+
+    const changedContentIntent = ensureMidiEditorFinalizationIntent(
+      {
+        target: baseTarget,
+        expectedLocalLockVersion:
+          changedContentAutosave.record.localLockVersion,
+        content: { ...content, name: "Edited after failure" },
+        contentFingerprint: changedContentFingerprint,
+      },
+      { randomUUID },
+    );
+    expect(changedContentIntent.ok).toBe(true);
+    if (changedContentIntent.ok)
+      expect(changedContentIntent.record.finalizationIntent).not.toEqual(
+        first.record.finalizationIntent,
+      );
   });
 });

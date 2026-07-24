@@ -178,9 +178,11 @@ export function IntegratedMidiComposer({
       onDraftStatusChange: (status: MidiDraftSaveStatus) =>
         callbacks.current.onDraftStatusChange(status),
       persistDraft: async (content: MidiStemContent) => {
+        const contentFingerprint = await sha256PostgresJsonb(content);
         const result = writeMidiEditorDeviceDraft({
           target: deviceTarget,
           content,
+          contentFingerprint,
           expectedLocalLockVersion: lockVersion.current || null,
         });
         if (!result.ok)
@@ -321,9 +323,11 @@ export function IntegratedMidiComposer({
           lockVersion.current = stored.record.localLockVersion;
           setDraftNotice({ status: "stale", record: stored.record });
         } else {
+          const contentFingerprint = await sha256PostgresJsonb(content);
           const initial = writeMidiEditorDeviceDraft({
             target: deviceTarget,
             content,
+            contentFingerprint,
             expectedLocalLockVersion: null,
           });
           if (initial.ok) {
@@ -378,9 +382,11 @@ export function IntegratedMidiComposer({
   }, [deviceTarget, ownerId, target]);
 
   async function recoverStaleDraft(record: MidiEditorDeviceDraft) {
+    const contentFingerprint = await sha256PostgresJsonb(record.content);
     const recovered = writeMidiEditorDeviceDraft({
       target: deviceTarget,
       content: record.content,
+      contentFingerprint,
       expectedLocalLockVersion: record.localLockVersion,
     });
     if (!recovered.ok) {

@@ -86,6 +86,13 @@ type StoredRecord = {
   bytes: number;
 };
 
+type DeviceDraftWriteInput = {
+  target: MidiEditorDraftTarget;
+  content: MidiStemContent;
+  contentFingerprint: string;
+  expectedLocalLockVersion: number | null;
+};
+
 function getStorage(storage?: Storage) {
   if (storage) return storage;
   if (typeof window === "undefined") return null;
@@ -236,12 +243,9 @@ export function readMidiEditorDeviceDraft(
   }
 }
 
-export function writeMidiEditorDeviceDraft(
-  input: {
-    target: MidiEditorDraftTarget;
-    content: MidiStemContent;
-    expectedLocalLockVersion: number | null;
-    finalizationIntent?: MidiEditorFinalizationIntent | null;
+function writeMidiEditorDeviceDraftRecord(
+  input: DeviceDraftWriteInput & {
+    finalizationIntent?: MidiEditorFinalizationIntent;
   },
   options?: { storage?: Storage; now?: Date },
 ): DeviceDraftWriteResult {
@@ -250,6 +254,7 @@ export function writeMidiEditorDeviceDraft(
   try {
     const target = midiEditorDraftTargetSchema.parse(input.target);
     const content = midiStemContentSchema.parse(input.content);
+    const contentFingerprint = sha256Schema.parse(input.contentFingerprint);
     const key = midiEditorDeviceDraftKey(target);
     const now = options?.now ?? new Date();
     const current = parseStoredRecord(storage, key, now.getTime());
@@ -260,13 +265,25 @@ export function writeMidiEditorDeviceDraft(
       return { ok: false, code: "conflict" };
     if (!current && input.expectedLocalLockVersion !== null)
       return { ok: false, code: "conflict" };
+    const finalizationIntent =
+      input.finalizationIntent === undefined
+        ? current?.record.finalizationIntent?.contentFingerprint ===
+          contentFingerprint
+          ? current.record.finalizationIntent
+          : null
+        : input.finalizationIntent;
+    if (
+      finalizationIntent &&
+      finalizationIntent.contentFingerprint !== contentFingerprint
+    )
+      return { ok: false, code: "invalid" };
     const record = deviceDraftRecordSchema.parse({
       version: DEVICE_DRAFT_VERSION,
       target,
       localLockVersion: (current?.record.localLockVersion ?? 0) + 1,
       updatedAt: now.toISOString(),
       content,
-      finalizationIntent: input.finalizationIntent ?? null,
+      finalizationIntent,
     });
     const serialized = JSON.stringify(record);
     if (encodedBytes(serialized) > DEVICE_DRAFT_MAX_BYTES)
@@ -281,6 +298,13 @@ export function writeMidiEditorDeviceDraft(
       code: error instanceof z.ZodError ? "invalid" : "storage",
     };
   }
+}
+
+export function writeMidiEditorDeviceDraft(
+  input: DeviceDraftWriteInput,
+  options?: { storage?: Storage; now?: Date },
+) {
+  return writeMidiEditorDeviceDraftRecord(input, options);
 }
 
 export function clearMidiEditorDeviceDraft(
@@ -334,16 +358,19 @@ export function ensureMidiEditorFinalizationIntent(
 ): DeviceDraftWriteResult {
   const current = readMidiEditorDeviceDraft(input.target, options);
   if (current.status !== "matching") return { ok: false, code: "conflict" };
+  if (current.record.localLockVersion !== input.expectedLocalLockVersion)
+    return { ok: false, code: "conflict" };
   const fingerprint = sha256Schema.safeParse(input.contentFingerprint);
   if (!fingerprint.success) return { ok: false, code: "invalid" };
   const existing = current.record.finalizationIntent;
   if (existing?.contentFingerprint === fingerprint.data)
     return { ok: true, record: current.record };
   const randomUUID = options?.randomUUID ?? (() => crypto.randomUUID());
-  return writeMidiEditorDeviceDraft(
+  return writeMidiEditorDeviceDraftRecord(
     {
       target: input.target,
       content: input.content,
+      contentFingerprint: fingerprint.data,
       expectedLocalLockVersion: input.expectedLocalLockVersion,
       finalizationIntent: {
         patternRequestId: randomUUID(),
