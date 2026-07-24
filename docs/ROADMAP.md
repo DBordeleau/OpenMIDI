@@ -165,6 +165,18 @@ Replace the post-acceptance stale-workspace reload loop with an explicit owner d
 
 Status: Complete. Studio derives stale authority on the server, disables Publish, flushes pending edits before recovery, and preserves device-local recovery on failure or a publication race. One authenticated idempotent transaction owns both resolution paths, with pgTAP, action/component, recovery, and focused local browser coverage protecting lineage and rollback.
 
+### CLIP-IMPORT-01 — Studio clip collection and atomic import authority
+
+Add the authoritative bounded data contract for **My clips** and **Saved clips**, exact-version on-demand MIDI detail, and replay-safe atomic import into every currently editable actor-owned manifest-v3 workspace. Owner reuse does not require public listing authority; saved third-party reuse rechecks the existing commercially reusable listing, moderation, lifecycle, license, lineage, and attribution rules. Collection reads return no note arrays, exact duplicates prefer owner authority, and import returns the canonical manifest/hash, resulting lock, new track/clip IDs, and validated playback payload.
+
+Status: Complete in the repository data/server contract. The forward migration, private idempotency receipt, strict Zod repository/action boundary, and focused database/unit coverage ship without visible Studio UI or hosted mutation.
+
+### CLIP-IMPORT-02 — In-Studio clip drawer and menu
+
+Consume CLIP-IMPORT-01 in the Studio with musician-facing **My clips** and **Saved clips** sources, bounded search/filtering, on-demand preview, truthful disabled reasons, keyboard operation, and playhead-aware import. Apply the returned canonical workspace state and imported pattern payload without a full route reload.
+
+Status: Planned. Do not add another authority path or fall back to the older library-page workspace picker.
+
 ### PERF-01 â€” Bound production navigation request fanout
 
 Prevent shared-header and authenticated primary-navigation links from prefetching merely because they enter the viewport, then restore normal Next.js prefetch after pointer or keyboard intent. Keep the shared footer cold, preserve the signed-out-first Auth-independent shell, and leave authorization, Studio lifecycle, and data freshness unchanged.

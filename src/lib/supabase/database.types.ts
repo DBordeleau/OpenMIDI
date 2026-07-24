@@ -3520,6 +3520,10 @@ export type Database = {
           silhouette: string
         }[]
       }
+      get_studio_clip_detail: {
+        Args: { p_pattern_version_id: string }
+        Returns: Json
+      }
       get_viewer_dashboard: { Args: never; Returns: Json }
       get_viewer_profile: {
         Args: never
@@ -3539,6 +3543,17 @@ export type Database = {
           username: string
           username_normalized: string
         }[]
+      }
+      import_studio_clip: {
+        Args: {
+          p_expected_workspace_lock_version: number
+          p_pattern_version_id: string
+          p_request_id: string
+          p_source: string
+          p_start_tick: number
+          p_workspace_id: string
+        }
+        Returns: Json
       }
       list_admin_beta_feedback: {
         Args: {
@@ -3689,6 +3704,10 @@ export type Database = {
           source_listing_id: string
           title: string
         }[]
+      }
+      list_studio_clip_collection: {
+        Args: { p_limit?: number; p_query?: string; p_source?: string }
+        Returns: Json
       }
       list_viewer_contributions: {
         Args: {
